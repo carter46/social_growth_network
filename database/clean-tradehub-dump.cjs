@@ -29,6 +29,13 @@ const DROP_TABLES = new Set([
   'watchlists',
 ]);
 
+/** Keep table structure, strip all rows (orphaned FKs to removed products). */
+const EMPTY_DATA_TABLES = new Set([
+  'domain_quotes',
+  'domain_registrations',
+  'domain_connections',
+]);
+
 const KEEP_PRODUCT_TYPES = new Set(['social_service']);
 const KEEP_SERVICE_CATEGORY_SLUGS = new Set(['social-media']);
 const KEEP_PRODUCT_TYPE_SLUGS = new Set(['social_service']);
@@ -228,8 +235,10 @@ async function main() {
   out.write('-- Cleaned dump for Social Growth Network\n');
   out.write('-- Source: u502532383_tradehub.sql\n');
   out.write('-- Removed marketplace/crypto tables; kept users/admins/wallets; trimmed non-social catalog.\n');
+  out.write('-- Emptied domain_quotes/registrations/connections; kept only social platform orders/tools.\n');
   out.write('-- After import: php artisan migrate --force\n');
   out.write('-- If social products missing: php artisan db:seed --class=Database\\\\Seeders\\\\ProductionSeeder --force\n\n');
+  out.write('SET FOREIGN_KEY_CHECKS=0;\n');
 
   const rl = readline.createInterface({
     input: fs.createReadStream(INPUT, { encoding: 'utf8' }),
@@ -269,7 +278,7 @@ async function main() {
     const table = insertTable;
     insertTable = null;
 
-    if (DROP_TABLES.has(table)) {
+    if (DROP_TABLES.has(table) || EMPTY_DATA_TABLES.has(table)) {
       stats.emptiedInserts++;
       return;
     }
@@ -420,46 +429,83 @@ async function main() {
   }
 
   flushInsert();
-
-  // Second pass note: filter order_items in a rewrite is complex mid-stream.
-  // Post-process order_items in output file.
+  out.write('\nSET FOREIGN_KEY_CHECKS=1;\n');
   out.end();
   await new Promise((r) => out.on('finish', r));
 
-  // Post-filter order_items against keptOrderIds
-  console.log('Kept platform order IDs:', keptOrderIds.size);
-  postFilterOrderItems(OUTPUT, keptOrderIds);
+  console.log('Social product IDs for post-filter:', [...socialProductIds].join(', '));
+  postFilterOrphanRows(OUTPUT, socialProductIds);
 
   console.log('Done:', OUTPUT);
   console.log(stats);
   console.log('Output size MB:', (fs.statSync(OUTPUT).size / 1e6).toFixed(2));
 }
 
-function postFilterOrderItems(file, keptOrderIds) {
-  if (!keptOrderIds.size) {
-    console.log('No kept orders detected; leaving order_items as-is (check manually).');
-    return;
-  }
-  const s = fs.readFileSync(file, 'utf8');
-  const re = /INSERT INTO `order_items`[\s\S]*?;/g;
-  let changed = 0;
-  const next = s.replace(re, (block) => {
-    const valuesIdx = block.search(/\bVALUES\b/i);
-    if (valuesIdx < 0) return block;
-    const head = block.slice(0, valuesIdx + 6);
-    const rows = splitValueRows(block.slice(valuesIdx + 6).replace(/;\s*$/, ''));
-    const kept = rows.filter((r) => {
+function rewriteInsert(block, keepRow) {
+  const valuesIdx = block.search(/\bVALUES\b/i);
+  if (valuesIdx < 0) return block;
+  const head = block.slice(0, valuesIdx + 6);
+  const rows = splitValueRows(block.slice(valuesIdx + 6).replace(/;\s*$/, ''));
+  const kept = rows.filter(keepRow);
+  if (!kept.length) return `-- emptied insert (FK-safe trim)\n`;
+  return head + '\n' + kept.join(',\n') + ';\n';
+}
+
+/**
+ * Drop rows that still reference removed products (domain quotes, website orders, etc.).
+ */
+function postFilterOrphanRows(file, socialProductIds) {
+  let s = fs.readFileSync(file, 'utf8');
+
+  // 1) order_items: keep only social platform products
+  const socialOrderIds = new Set();
+  s = s.replace(/INSERT INTO `order_items`[\s\S]*?;/g, (block) => {
+    return rewriteInsert(block, (r) => {
       const f = parseSimpleFields(r);
-      // order_id column — typically index 1
-      const oid = unquote(f[1]);
-      return keptOrderIds.has(String(oid));
+      const itemType = unquote(f[2]);
+      const itemId = String(unquote(f[3]));
+      const orderId = String(unquote(f[1]));
+      if (itemType === 'platform_product' && socialProductIds.has(itemId)) {
+        socialOrderIds.add(orderId);
+        return true;
+      }
+      return false;
     });
-    changed++;
-    if (!kept.length) return '-- order_items emptied (no matching platform orders)\n';
-    return head + '\n' + kept.join(',\n') + ';\n';
   });
-  fs.writeFileSync(file, next);
-  console.log('Post-filtered order_items statements:', changed);
+  console.log('Kept social order IDs from items:', [...socialOrderIds].join(', ') || '(none)');
+
+  // 2) orders: keep only those with social items
+  s = s.replace(/INSERT INTO `orders`[\s\S]*?;/g, (block) => {
+    return rewriteInsert(block, (r) => {
+      const id = String(unquote(parseSimpleFields(r)[0]));
+      return socialOrderIds.has(id);
+    });
+  });
+
+  // 3) user_tools / site_integrations: social products only
+  s = s.replace(/INSERT INTO `user_tools`[\s\S]*?;/g, (block) => {
+    return rewriteInsert(block, (r) => {
+      const f = parseSimpleFields(r);
+      // platform_product_id is column index 5
+      return socialProductIds.has(String(unquote(f[5])));
+    });
+  });
+
+  s = s.replace(/INSERT INTO `site_integrations`[\s\S]*?;/g, (block) => {
+    return rewriteInsert(block, (r) => {
+      const f = parseSimpleFields(r);
+      // platform_product_id is column index 1
+      return socialProductIds.has(String(unquote(f[1])));
+    });
+  });
+
+  // 4) Ensure domain data inserts are gone (belt-and-suspenders)
+  for (const table of EMPTY_DATA_TABLES) {
+    s = s.replace(new RegExp(`INSERT INTO \`${table}\`[\\s\\S]*?;`, 'g'), `-- ${table} data removed (non-social / orphan FK risk)\n`);
+  }
+
+  fs.writeFileSync(file, s);
+  console.log('Post-filtered orphan product FKs and non-social orders.');
 }
 
 main().catch((e) => {

@@ -18,6 +18,22 @@ return new class extends Migration
                 ->pluck('id');
 
             if ($ids->isNotEmpty()) {
+                if (Schema::hasTable('domain_quotes')) {
+                    DB::table('domain_quotes')->whereIn('platform_product_id', $ids)->delete();
+                }
+                if (Schema::hasTable('domain_registrations')) {
+                    // Registrations link via orders/quotes, not products; clear all leftover domain ops.
+                    DB::table('domain_registrations')->delete();
+                }
+                if (Schema::hasTable('domain_connections')) {
+                    DB::table('domain_connections')->delete();
+                }
+                if (Schema::hasTable('site_integrations')) {
+                    DB::table('site_integrations')->whereIn('platform_product_id', $ids)->delete();
+                }
+                if (Schema::hasTable('user_tools')) {
+                    DB::table('user_tools')->whereIn('platform_product_id', $ids)->delete();
+                }
                 if (Schema::hasTable('platform_product_variants')) {
                     DB::table('platform_product_variants')->whereIn('platform_product_id', $ids)->delete();
                 }
