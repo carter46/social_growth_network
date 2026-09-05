@@ -16,7 +16,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @include('partials.tracking.head')
 </head>
-<body class="relative isolate min-h-screen flex items-center justify-center bg-[#0F172A] font-sans text-text-primary antialiased overflow-x-hidden p-4 sm:p-8">
+<body class="relative isolate min-h-screen flex items-center justify-center bg-dark font-sans text-text-primary antialiased overflow-x-hidden p-4 sm:p-8">
     @include('partials.tracking.body-start')
     {{-- Cover background (never drives layout height) --}}
     <div
@@ -26,13 +26,13 @@
     ></div>
     <div
         class="pointer-events-none absolute inset-0 z-[1]"
-        style="background: linear-gradient(165deg, rgba(15, 23, 42, 0.80) 0%, rgba(15, 23, 42, 0.72) 50%, rgba(15, 23, 42, 0.84) 100%);"
+        style="background: linear-gradient(165deg, rgba(11, 18, 32, 0.80) 0%, rgba(11, 18, 32, 0.72) 50%, rgba(11, 18, 32, 0.84) 100%);"
         aria-hidden="true"
     ></div>
     <div
         class="pointer-events-none absolute inset-0 z-[1]"
         aria-hidden="true"
-        style="background-image: radial-gradient(circle at top right, rgba(22, 163, 74, 0.10), transparent 55%), radial-gradient(circle at bottom left, rgba(22, 163, 74, 0.05), transparent 50%);"
+        style="background-image: radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 55%), radial-gradient(circle at bottom left, rgba(0, 74, 198, 0.08), transparent 50%);"
     ></div>
 
     <div class="relative z-10 w-full">

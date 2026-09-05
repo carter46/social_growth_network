@@ -6,17 +6,19 @@
 
 @php
     $statusClass = [
-        'completed' => 'bg-emerald-50 text-emerald-600',
-        'pending' => 'bg-amber-50 text-amber-600',
-        'failed' => 'bg-red-50 text-red-600',
-        'processing' => 'bg-blue-50 text-blue-600',
+        'completed' => 'bg-success/10 text-success',
+        'pending' => 'bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400',
+        'failed' => 'bg-danger/10 text-danger',
+        'processing' => 'bg-primary/10 text-primary',
     ];
     $avatarClass = [
-        'emerald' => 'bg-emerald-100 text-emerald-700',
-        'blue' => 'bg-blue-100 text-blue-700',
-        'indigo' => 'bg-indigo-100 text-indigo-700',
-        'amber' => 'bg-amber-100 text-amber-700',
-        'orange' => 'bg-orange-100 text-orange-700',
+        'emerald' => 'bg-primary/10 text-primary',
+        'primary' => 'bg-primary/10 text-primary',
+        'blue' => 'bg-primary/10 text-primary',
+        'indigo' => 'bg-muted text-text-secondary',
+        'amber' => 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+        'orange' => 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-400',
+        'success' => 'bg-success/10 text-success',
     ];
 @endphp
 
@@ -25,7 +27,7 @@
         <h3 class="text-sm font-bold text-slate-800 dark:text-text-primary">{{ $title }}</h3>
         <div class="flex items-center gap-3">
             @if ($viewAllUrl)
-                <a href="{{ $viewAllUrl }}" class="text-[11px] font-bold text-primary hover:underline dark:text-brand">View All</a>
+                <a href="{{ $viewAllUrl }}" class="text-[11px] font-bold text-primary hover:underline">View All</a>
             @endif
         </div>
     </div>

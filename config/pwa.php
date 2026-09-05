@@ -21,10 +21,10 @@ return [
     'manifest' => [
         'name' => 'Social Growth Network',
         'short_name' => 'Social Growth',
-        'background_color' => '#FFFFFF',
+        'background_color' => '#F8F9FF',
         'display' => 'standalone',
         'description' => 'Social media growth and engagement services with secure checkout.',
-        'theme_color' => '#0B6A39',
+        'theme_color' => '#004AC6',
         'start_url' => '/',
         'scope' => '/',
         'icons' => [

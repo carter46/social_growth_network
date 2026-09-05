@@ -28,7 +28,7 @@
                         <h3 class="font-semibold text-text-primary">{{ $provider->display_name }}</h3>
                         <p class="text-xs text-text-muted">{{ $provider->key }}</p>
                     </div>
-                    <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $provider->enabled ? 'bg-emerald-500/10 text-emerald-700' : 'bg-muted text-text-muted' }}">
+                    <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $provider->enabled ? 'bg-success/10 text-success' : 'bg-muted text-text-muted' }}">
                         {{ $provider->enabled ? 'Enabled' : 'Disabled' }}
                     </span>
                 </div>
@@ -50,7 +50,7 @@
                         <dd>
                             @php
                                 $healthClass = match($provider->health_status) {
-                                    'healthy' => 'text-emerald-700',
+                                    'healthy' => 'text-success',
                                     'degraded' => 'text-amber-700',
                                     'unavailable' => 'text-red-700',
                                     default => 'text-text-muted',

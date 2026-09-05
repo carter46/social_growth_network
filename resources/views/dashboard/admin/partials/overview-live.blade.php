@@ -2,7 +2,7 @@
 <section id="command-pulse" class="space-y-4">
     <x-dashboard.command.section-label
         title="Business Pulse"
-        accent="emerald"
+        accent="primary"
         action="Metrics Detail"
         :action-href="($canAnalytics ?? false) ? route('admin.analytics', ['section' => 'revenue', 'range' => $rangeKey ?? '24h']) : null"
     />

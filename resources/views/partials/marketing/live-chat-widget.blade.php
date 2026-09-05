@@ -16,8 +16,8 @@
   window._smartsupp.key = @json($smartsuppKey);
   window._smartsupp.widget = {
     colors: {
-      primary: '#0B6A39',
-      secondary: '#0F172A'
+      primary: '#004AC6',
+      secondary: '#0B1220'
     }
   };
   window.smartsupp || (function(d) {

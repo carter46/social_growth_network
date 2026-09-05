@@ -97,7 +97,7 @@
                 @forelse ($logs as $log)
                     <div class="rounded-lg border border-border-default px-3 py-2 text-xs">
                         <div class="flex justify-between gap-2">
-                            <span class="{{ $log->ok ? 'text-emerald-600' : 'text-red-600' }}">{{ $log->ok ? 'OK' : 'Fail' }}</span>
+                            <span class="{{ $log->ok ? 'text-success' : 'text-danger' }}">{{ $log->ok ? 'OK' : 'Fail' }}</span>
                             <span class="text-text-muted">{{ $log->created_at->format('j M Y H:i') }}</span>
                         </div>
                         <p class="mt-1 break-words text-text-secondary">{{ $log->message }}</p>

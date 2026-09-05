@@ -52,7 +52,7 @@
                 <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Filter services…"
                        class="w-full rounded-xl border border-white/10 bg-slate-900/50 px-3 py-2 text-sm text-white placeholder:text-slate-500">
             </div>
-            <button type="submit" class="px-4 py-2 rounded-xl bg-white text-slate-900 hover:bg-accent hover:text-white text-sm font-semibold transition-colors">Apply</button>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-white text-slate-900 hover:bg-primary-hover hover:text-white text-sm font-semibold transition-colors">Apply</button>
         </form>
     </div>
 

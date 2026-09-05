@@ -231,7 +231,7 @@
                 @endif
 
                 <div class="flex flex-col sm:flex-row gap-3 pt-1">
-                    <x-ui.button :href="$checkoutUrl" variant="primary" size="lg" class="!px-8 hover:!bg-accent">
+                    <x-ui.button :href="$checkoutUrl" variant="primary" size="lg" class="!px-8 hover:!bg-primary-hover">
                         {{ auth()->check() ? 'Buy Now' : 'Log in to buy' }}
                     </x-ui.button>
                     @include('partials.catalog.view-demo-modal', ['product' => $product])

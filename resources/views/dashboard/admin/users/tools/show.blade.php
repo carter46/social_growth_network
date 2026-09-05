@@ -263,7 +263,7 @@
                         @endphp
                         <div class="rounded-lg border border-border-default px-3 py-2 text-xs">
                             <div class="flex justify-between gap-2">
-                                <span class="{{ $log->ok ? 'text-emerald-600' : ($logIsPendingMerchant ? 'text-amber-600' : 'text-red-600') }}">
+                                <span class="{{ $log->ok ? 'text-success' : ($logIsPendingMerchant ? 'text-amber-600' : 'text-danger') }}">
                                     {{ $log->ok ? 'OK' : ($logIsPendingMerchant ? 'Pending merchant' : 'Fail') }}
                                 </span>
                                 <span class="text-text-muted">{{ $log->created_at->format('j M Y H:i') }}</span>

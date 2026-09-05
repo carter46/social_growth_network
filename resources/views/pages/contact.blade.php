@@ -125,16 +125,16 @@
                         href="https://wa.me/{{ $wa }}"
                         target="_blank"
                         rel="noopener"
-                        class="group flex items-center gap-4 rounded-2xl border border-border-subtle bg-elevated/80 px-4 py-4 sm:px-5 hover:border-emerald-400/40 hover:bg-elevated transition-colors"
+                        class="group flex items-center gap-4 rounded-2xl border border-border-subtle bg-elevated/80 px-4 py-4 sm:px-5 hover:border-[#25D366]/40 hover:bg-elevated transition-colors"
                     >
-                        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
+                        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#25D366]/15 text-[#25D366]">
                             <x-ui.icon name="whatsapp" class="w-5 h-5" />
                         </span>
                         <span class="min-w-0 flex-1">
                             <span class="block text-[11px] uppercase tracking-wide text-text-muted">WhatsApp</span>
-                            <span class="block text-sm sm:text-base font-semibold text-white group-hover:text-emerald-400 transition-colors">{{ $c['phone_whatsapp'] }}</span>
+                            <span class="block text-sm sm:text-base font-semibold text-white group-hover:text-[#25D366] transition-colors">{{ $c['phone_whatsapp'] }}</span>
                         </span>
-                        <x-ui.icon name="chevron-right" class="w-4 h-4 text-text-muted group-hover:text-emerald-400 shrink-0" />
+                        <x-ui.icon name="chevron-right" class="w-4 h-4 text-text-muted group-hover:text-[#25D366] shrink-0" />
                     </a>
                 @endif
 
@@ -163,12 +163,12 @@
                             </span>
                             <div>
                                 <h3 class="font-display text-base font-semibold text-white">{{ $chatLabel }}</h3>
-                                <p class="text-[11px] text-emerald-400">Available now</p>
+                                <p class="text-[11px] text-success">Available now</p>
                             </div>
                         </div>
                         <p class="text-sm text-text-secondary mb-4">Best for time-sensitive help while you’re on the site.</p>
                         <button type="button" onclick="document.dispatchEvent(new CustomEvent('open-live-chat'))"
-                            class="w-full py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-accent transition-colors">
+                            class="w-full py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover transition-colors">
                             Open chat
                         </button>
                     </div>
@@ -183,7 +183,7 @@
                     </div>
                     <p class="text-sm text-text-secondary mb-4">Create a tracked ticket from your dashboard. Login required.</p>
                     <div class="flex flex-col sm:flex-row gap-3">
-                        <a href="{{ $supportHref }}" class="flex-1 text-center py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-accent transition-colors">New ticket</a>
+                        <a href="{{ $supportHref }}" class="flex-1 text-center py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover transition-colors">New ticket</a>
                         <a href="{{ $ticketsHref }}" class="flex-1 text-center py-2.5 rounded-xl border border-border-subtle text-sm font-semibold text-white hover:bg-white/5 transition-colors">My tickets</a>
                     </div>
                 </div>
@@ -232,7 +232,7 @@
                             </li>
                         @endforeach
                         <li>
-                            <a href="{{ route('help') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-accent hover:bg-accent/10 transition-colors">
+                            <a href="{{ route('help') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-accent hover:bg-primary-hover/10 transition-colors">
                                 <x-ui.icon name="search" class="w-4 h-4 shrink-0" />
                                 <span>All Help Center articles</span>
                             </a>
@@ -254,7 +254,7 @@
                             </li>
                         @endforeach
                         <li>
-                            <a href="{{ route('legal') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-accent hover:bg-accent/10 transition-colors">
+                            <a href="{{ route('legal') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-accent hover:bg-primary-hover/10 transition-colors">
                                 <x-ui.icon name="audit" class="w-4 h-4 shrink-0" />
                                 <span>Legal hub</span>
                             </a>

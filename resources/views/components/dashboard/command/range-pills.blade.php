@@ -58,7 +58,7 @@
             <p data-range-modal-error class="mt-3 hidden text-xs font-medium text-red-600">Please select both dates.</p>
             <div class="mt-6 flex items-center justify-end gap-2">
                 <button type="button" data-range-modal-cancel class="rounded-lg border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:border-border-default dark:text-text-secondary">Cancel</button>
-                <button type="button" data-range-modal-done class="rounded-lg bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 dark:bg-brand dark:hover:opacity-90">Done</button>
+                <button type="button" data-range-modal-done class="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary-hover">Done</button>
             </div>
         </div>
     </div>

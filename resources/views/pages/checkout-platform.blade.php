@@ -78,7 +78,7 @@
                     <span class="text-2xl font-bold" x-text="'₦' + totalFormatted"></span>
                 </div>
 
-                <button type="submit" class="w-full py-3 rounded-xl bg-primary hover:bg-accent font-bold">Pay from wallet</button>
+                <button type="submit" class="w-full py-3 rounded-xl bg-primary hover:bg-primary-hover font-bold">Pay from wallet</button>
             @else
                 <p class="text-slate-400">Please <a href="{{ route('login') }}" class="text-accent underline">log in</a> to checkout.</p>
             @endauth

@@ -1,6 +1,6 @@
 const LOADER_ID = 'dashboard-page-loader';
 const LOADER_SESSION_KEY = 'dashboard-page-loader';
-const LOADER_COLOR = { r: 11, g: 106, b: 57 };
+const LOADER_COLOR = { r: 0, g: 74, b: 198 };
 const MIN_VISIBLE_MS = 200;
 const LEAVE_TRANSITION_MS = 850;
 
@@ -94,13 +94,13 @@ function startLoaderAnimation(root) {
 
         ctx.beginPath();
         ctx.arc(center, center, radius, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(11, 106, 57, 0.32)';
+        ctx.strokeStyle = 'rgba(0, 74, 198, 0.32)';
         ctx.lineWidth = 3;
         ctx.stroke();
 
         ctx.beginPath();
         ctx.arc(center, center, radius, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(11, 106, 57, 0.1)';
+        ctx.strokeStyle = 'rgba(0, 74, 198, 0.1)';
         ctx.lineWidth = 8;
         ctx.stroke();
 
@@ -132,12 +132,12 @@ function startLoaderAnimation(root) {
     if (reduceMotion) {
         ctx.beginPath();
         ctx.arc(center, center, radius, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(11, 106, 57, 0.32)';
+        ctx.strokeStyle = 'rgba(0, 74, 198, 0.32)';
         ctx.lineWidth = 3;
         ctx.stroke();
         ctx.beginPath();
         ctx.arc(center + radius, center, 5.8, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(11, 106, 57, 0.9)';
+        ctx.fillStyle = 'rgba(0, 74, 198, 0.9)';
         ctx.fill();
         return;
     }

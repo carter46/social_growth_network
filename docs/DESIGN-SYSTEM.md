@@ -1,4 +1,4 @@
-# 7th Trade Hub — Design System
+# Design System (TaskPulse visual language)
 
 ## Governance (read first)
 
@@ -10,7 +10,7 @@ Raw Tailwind is allowed only for:
 - Marketing hero sections (decorative blurs/gradients)
 - One-off illustration placement
 
-**Marketing typography exception:** marketing layouts/pages may use `font-display` (Poppins) for brand display. Dashboard and admin stay **Inter only** (`font-sans`). Do not use Public Sans.
+**Marketing typography:** marketing layouts/pages may use `font-display` (**Plus Jakarta Sans**) for brand display. Dashboard and admin stay **Inter only** (`font-sans`). Do not use Public Sans or Poppins.
 
 ### PR checklist
 - [ ] Authenticated pages use `<x-dashboard.*>` (not new raw `x-ui.*` on dashboard blades)
@@ -25,8 +25,29 @@ Raw Tailwind is allowed only for:
 - `onsubmit="return confirm(...)"`
 - Bare "No items found" — use `<x-dashboard.empty>` / `<x-dashboard.empty-state>`
 - `hidden` on nav without mobile drawer alternative
-- `font-display` / Public Sans on **admin/dashboard** (Inter only; Poppins OK on marketing)
+- `font-display` / Public Sans on **admin/dashboard** (Inter only; Plus Jakarta Sans OK on marketing via `font-display`)
 - Ad-hoc `max-w-5xl` / `max-w-7xl` / `max-w-3xl` — use width tokens (`max-w-marketing`, `max-w-content-*`, `max-w-form`, `max-w-auth`)
+
+---
+
+## TaskPulse color language
+
+| Role | Light | Dark |
+|------|-------|------|
+| Page surface | `#F8F9FF` | `#0B1220` (cool navy) |
+| Secondary surface | `#EFF4FF` | `#111827` |
+| Cards / elevated | `#FFFFFF` | `#152238` |
+| Borders | `#C3C6D7` | `#2A3548` |
+| Text | `#0B1C30` / `#434655` / `#737686` | `#E8EEF9` / `#A8B0C0` / `#8B93A7` |
+| **Primary (actions)** | `#004AC6` (hover `#2563EB`) | `#2563EB` |
+| **Accent (links / companion)** | `#2563EB` | `#B4C5FF` |
+| **Success / verified** | `#006243` | `#68DBA9` |
+| **Error** | `#BA1A1A` | `#BA1A1A` |
+| Warning | `#F59E0B` | `#F59E0B` |
+
+**Rules:** Blue = primary brand/actions. Green = success/verified only. Do not flood the UI with blue or green. Marketing may stay structurally dark; retheme with navy + blue, not green washes.
+
+Typography: **Inter** (`font-sans`) body; **Plus Jakarta Sans** (`font-display`) marketing headings.
 
 ---
 
@@ -34,13 +55,13 @@ Raw Tailwind is allowed only for:
 
 | Piece | Role |
 |-------|------|
-| `config/dashboard-themes.php` | **SSOT** for light/dark tokens, charts, assets |
-| `ThemeManager` | Resolve preference, payload, generate CSS variables |
+| `config/dashboard-themes.php` | **SSOT** for light/dark tokens, brand colors, charts, assets |
+| `ThemeManager` | Resolve preference, payload, generate CSS variables (`--th-*`) |
 | `partials/dashboard/theme-tokens.blade.php` | Injects CSS from config (dashboard paint) |
 | `partials/dashboard/theme-boot.blade.php` | Early `data-theme` + dual theme payload |
-| `resources/js/dashboard-theme.js` | Client resolve; **ignores server `resolved` when preference is `system`** |
+| `resources/js/dashboard-theme.js` | Client resolve; localStorage `taskpulse.dashboard.theme` (falls back to legacy `7th.dashboard.theme`) |
 | `PUT /theme-preference` | Persist preference; optional `system_theme` hint for assets/charts |
-| `:root` in `app.css` | Marketing/auth dark fallbacks only (not dashboard light/dark) |
+| `:root` in `app.css` | Marketing/auth dark TaskPulse fallbacks (not dashboard light/dark) |
 
 Preferences: `light` \| `dark` \| `system`. Resolved themes: `light` \| `dark`.
 
@@ -65,7 +86,7 @@ Empty states may use optional theme assets via `<x-dashboard.asset>` / `empty-st
 | `bg-overlay` | Modal / drawer scrim |
 | `shadow-panel` | Elevated panels |
 
-Brand: `primary`, `accent`, `success`, `warning`, `danger`.
+- Brand (theme CSS vars): `primary`, `primary-hover`, `accent` (interactive companion blue), `success` (verified/positive green), `warning`, `danger`.
 
 ---
 

@@ -13,7 +13,7 @@ export default {
         extend: {
             fontFamily: {
                 sans: ['Inter', ...defaultTheme.fontFamily.sans],
-                display: ['Poppins', 'Inter', ...defaultTheme.fontFamily.sans],
+                display: ['"Plus Jakarta Sans"', 'Inter', ...defaultTheme.fontFamily.sans],
             },
             maxWidth: {
                 'content-sm': '42rem',
@@ -29,12 +29,14 @@ export default {
                 'section': '1.5rem',
             },
             colors: {
-                primary: '#0B6A39',
-                accent: '#16A34A',
-                success: '#16A34A',
+                // TaskPulse brand tokens (theme-aware via --th-* from dashboard-themes / :root)
+                primary: 'rgb(var(--th-primary-rgb) / <alpha-value>)',
+                accent: 'rgb(var(--th-accent-rgb) / <alpha-value>)',
+                success: 'rgb(var(--th-success-rgb) / <alpha-value>)',
                 warning: '#F59E0B',
-                danger: '#EF4444',
-                // Semantic dashboard tokens (CSS variables; marketing keeps dark via defaults on :root)
+                danger: 'rgb(var(--th-danger-rgb) / <alpha-value>)',
+                'primary-hover': 'rgb(var(--th-primary-hover-rgb) / <alpha-value>)',
+                // Semantic dashboard tokens
                 surface: 'rgb(var(--th-surface-rgb) / <alpha-value>)',
                 card: {
                     DEFAULT: 'var(--th-card)',
@@ -51,17 +53,17 @@ export default {
                 'text-muted': 'var(--th-text-muted)',
                 'border-default': 'var(--th-border-default)',
                 'border-subtle': 'var(--th-border-subtle)',
-                // Marketing/auth hardcoded dark aliases (unchanged public look)
-                dark: '#0F172A',
-                glass: 'rgba(30, 41, 59, 0.7)',
-                'background-dark': '#0F172A',
-                'background-light': '#f8f6f6',
-                'card-dark': '#1E293B',
-                'surface-dark': '#1E293B',
-                'border-dark': '#334155',
+                // Marketing/auth TaskPulse navy aliases
+                dark: '#0B1220',
+                glass: 'rgba(21, 34, 56, 0.7)',
+                'background-dark': '#0B1220',
+                'background-light': '#F8F9FF',
+                'card-dark': '#152238',
+                'surface-dark': '#152238',
+                'border-dark': '#2A3548',
             },
             backgroundImage: {
-                'gradient-primary': 'linear-gradient(135deg, #0B6A39 0%, #053b1f 100%)',
+                'gradient-primary': 'linear-gradient(135deg, #004AC6 0%, #003EA8 100%)',
                 'gradient-soft': 'var(--th-gradient-soft)',
             },
             boxShadow: {

@@ -102,9 +102,9 @@ class OpsMetrics
             KycSubmission::query()->selectRaw('status, count(*) as c')->groupBy('status')->pluck('c', 'status')->all(),
             [
                 'pending' => '#f59e0b',
-                'approved' => '#10b981',
-                'rejected' => '#ef4444',
-                'submitted' => '#3b82f6',
+                'approved' => '#006243',
+                'rejected' => '#BA1A1A',
+                'submitted' => '#004AC6',
             ]
         );
     }
@@ -119,8 +119,8 @@ class OpsMetrics
             [
                 'open' => '#f97316',
                 'pending' => '#f59e0b',
-                'awaiting_user' => '#6366f1',
-                'resolved' => '#10b981',
+                'awaiting_user' => '#565E74',
+                'resolved' => '#006243',
                 'closed' => '#94a3b8',
             ]
         );
@@ -140,11 +140,11 @@ class OpsMetrics
                 ->all(),
             [
                 'pending' => '#f59e0b',
-                'paid' => '#3b82f6',
-                'processing' => '#6366f1',
-                'completed' => '#10b981',
+                'paid' => '#004AC6',
+                'processing' => '#2563EB',
+                'completed' => '#006243',
                 'cancelled' => '#94a3b8',
-                'disputed' => '#ef4444',
+                'disputed' => '#BA1A1A',
             ]
         );
     }
@@ -157,7 +157,7 @@ class OpsMetrics
     private function statusSlices(array $counts, array $colors): array
     {
         $total = max(1.0, (float) array_sum($counts));
-        $palette = ['#10b981', '#3b82f6', '#6366f1', '#f59e0b', '#f97316', '#ef4444', '#94a3b8'];
+        $palette = ['#004AC6', '#2563EB', '#006243', '#f59e0b', '#f97316', '#BA1A1A', '#94a3b8'];
         $i = 0;
         $out = [];
         foreach ($counts as $status => $count) {

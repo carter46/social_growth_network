@@ -6,7 +6,7 @@
 @section('content')
     <p style="margin:0 0 16px;">We received a request to reset your password.</p>
     <p style="margin:0 0 16px;">
-        <a href="{{ $url }}" style="display:inline-block;background:#0b6a39;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:600;">
+        <a href="{{ $url }}" style="display:inline-block;background:#004AC6;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:600;">
             Reset password
         </a>
     </p>

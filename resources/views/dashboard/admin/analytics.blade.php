@@ -26,7 +26,7 @@
     <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
             <nav class="mb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">
-                <span>Admin</span><span aria-hidden="true">/</span><span class="text-brand">Analytics</span>
+                <span>Admin</span><span aria-hidden="true">/</span><span class="text-primary">Analytics</span>
             </nav>
             <h1 class="text-3xl font-bold tracking-tight text-text-primary">Analytics</h1>
             <p class="mt-1 text-sm text-text-secondary">

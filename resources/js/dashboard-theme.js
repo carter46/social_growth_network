@@ -1,7 +1,8 @@
 /**
  * Dashboard theme client: Light / Dark / System with no-reload persistence.
  */
-const STORAGE_KEY = '7th.dashboard.theme';
+const STORAGE_KEY = 'taskpulse.dashboard.theme';
+const LEGACY_STORAGE_KEY = '7th.dashboard.theme';
 
 function systemTheme() {
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -9,7 +10,8 @@ function systemTheme() {
 
 function readCache() {
     try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+        const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY) || 'null';
+        return JSON.parse(raw);
     } catch (e) {
         return null;
     }
@@ -17,7 +19,10 @@ function readCache() {
 
 function writeCache(preference, resolved) {
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ preference, resolved, at: Date.now() }));
+        const payload = JSON.stringify({ preference, resolved, at: Date.now() });
+        localStorage.setItem(STORAGE_KEY, payload);
+        // Keep legacy key in sync so older boots still see the preference briefly
+        localStorage.setItem(LEGACY_STORAGE_KEY, payload);
     } catch (e) {
         // ignore quota / private mode
     }

@@ -3,18 +3,20 @@
     'subtitle' => null,
     'icon' => 'plus',
     'href' => '#',
-    'accent' => 'emerald',
+    'accent' => 'primary',
 ])
 
 @php
     $iconWrap = [
-        'emerald' => 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600',
-        'blue' => 'bg-blue-50 text-blue-600 group-hover:bg-blue-600',
-        'amber' => 'bg-amber-50 text-amber-600 group-hover:bg-amber-600',
-        'indigo' => 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600',
-        'orange' => 'bg-orange-50 text-orange-600 group-hover:bg-orange-600',
+        'primary' => 'bg-primary/10 text-primary group-hover:bg-primary',
+        'emerald' => 'bg-primary/10 text-primary group-hover:bg-primary',
+        'blue' => 'bg-primary/10 text-primary group-hover:bg-primary',
+        'amber' => 'bg-amber-50 text-amber-600 group-hover:bg-amber-600 dark:bg-amber-500/15 dark:text-amber-400',
+        'indigo' => 'bg-muted text-text-secondary group-hover:bg-text-secondary',
+        'orange' => 'bg-orange-50 text-orange-600 group-hover:bg-orange-600 dark:bg-orange-500/15 dark:text-orange-400',
+        'success' => 'bg-success/10 text-success group-hover:bg-success',
     ];
-    $wrap = $iconWrap[$accent] ?? $iconWrap['emerald'];
+    $wrap = $iconWrap[$accent] ?? $iconWrap['primary'];
 @endphp
 
 <a href="{{ $href }}" {{ $attributes->class([

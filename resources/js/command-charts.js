@@ -1,7 +1,7 @@
 /**
  * Shared Chart.js defaults for command-center charts.
  */
-export function commandChartDefaults(theme = 'emerald-area') {
+export function commandChartDefaults(theme = 'primary-area') {
     const base = {
         responsive: true,
         maintainAspectRatio: false,
@@ -63,22 +63,22 @@ export function mountCommandCharts(root = document) {
         } catch (_) {
             return;
         }
-        const theme = el.dataset.chartTheme || 'emerald-area';
+        const theme = el.dataset.chartTheme || 'primary-area';
         const options = commandChartDefaults(theme);
 
         let type = 'line';
         if (theme === 'donut') type = 'doughnut';
         else if (theme === 'bar') type = 'bar';
 
-        if (theme === 'emerald-area' && datasets[0]) {
+        if ((theme === 'primary-area' || theme === 'emerald-area') && datasets[0]) {
             const ctx = el.getContext('2d');
             if (ctx) {
                 const h = el.parentElement?.clientHeight || 240;
                 const gradient = ctx.createLinearGradient(0, 0, 0, h);
-                gradient.addColorStop(0, 'rgba(16, 185, 129, 0.28)');
-                gradient.addColorStop(1, 'rgba(16, 185, 129, 0.02)');
+                gradient.addColorStop(0, 'rgba(0, 74, 198, 0.28)');
+                gradient.addColorStop(1, 'rgba(0, 74, 198, 0.02)');
                 datasets[0].backgroundColor = gradient;
-                datasets[0].borderColor = datasets[0].borderColor || '#10b981';
+                datasets[0].borderColor = datasets[0].borderColor || '#004AC6';
                 datasets[0].fill = true;
             }
             // AVG reference line annotation via plugin-less average dataset marker
@@ -93,7 +93,7 @@ export function mountCommandCharts(root = document) {
         }
 
         if (theme === 'sparkline' && datasets[0]) {
-            datasets[0].borderColor = el.dataset.sparkColor || datasets[0].borderColor || '#10b981';
+            datasets[0].borderColor = el.dataset.sparkColor || datasets[0].borderColor || '#004AC6';
         }
 
         if (theme === 'line' && datasets[0]) {

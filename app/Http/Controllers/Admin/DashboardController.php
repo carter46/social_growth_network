@@ -270,7 +270,7 @@ class DashboardController extends Controller
                 'delta_label' => $rev['delta_label'] ?? 'vs prior period',
                 'description' => $rev['description'] ?? $rangeLabel,
                 'sparkline' => $rev['sparkline'] ?? ($growth['revenue']['values'] ?? []),
-                'badge' => ['label' => 'Live', 'class' => 'bg-emerald-50 text-emerald-700'],
+                'badge' => ['label' => 'Live', 'class' => 'bg-success/10 text-success'],
                 'href' => $canAnalytics
                     ? route('admin.analytics', ['section' => 'revenue', 'range' => $rangeKey])
                     : route('admin.transactions'),
@@ -347,7 +347,7 @@ class DashboardController extends Controller
                 'description' => 'Identity verification queue',
                 'badge' => $kyc > 0
                     ? ['label' => 'Action', 'class' => 'bg-amber-50 text-amber-700']
-                    : ['label' => 'Clear', 'class' => 'bg-emerald-50 text-emerald-700'],
+                    : ['label' => 'Clear', 'class' => 'bg-success/10 text-success'],
                 'hint' => 'Open queue',
                 'href' => route('admin.kyc', ['status' => 'pending']),
             ];
@@ -412,7 +412,7 @@ class DashboardController extends Controller
                 'label' => 'Revenue days',
                 'value' => $revenueDays,
                 'percent' => round(($revenueDays / $total) * 100).'%',
-                'color' => '#10b981',
+                'color' => '#004AC6',
             ],
         ];
 

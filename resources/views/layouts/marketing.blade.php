@@ -33,7 +33,7 @@
 
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet">
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @include('partials.tracking.head')
@@ -59,7 +59,7 @@
                         <a class="text-slate-300 hover:text-white font-medium text-sm transition-colors" href="{{ route('dashboard') }}">Dashboard</a>
                     @else
                         <a class="text-slate-300 hover:text-white font-medium text-sm transition-colors" href="{{ route('login') }}">Login</a>
-                        <a class="hidden lg:inline-flex bg-primary hover:bg-accent px-5 py-2.5 rounded-full text-sm font-bold transition-all shadow-lg hover:scale-105 active:scale-95" href="{{ route('register') }}">Register</a>
+                        <a class="hidden lg:inline-flex bg-primary hover:bg-primary-hover px-5 py-2.5 rounded-full text-sm font-bold transition-all shadow-lg hover:scale-105 active:scale-95" href="{{ route('register') }}">Register</a>
                     @endauth
 
                     <button
@@ -133,7 +133,7 @@
                     @auth
                         <a class="mt-2 px-4 py-3 rounded-xl text-sm font-bold text-center border border-white/15 text-slate-100 hover:bg-white/5 transition-colors" href="{{ route('dashboard') }}" @click="close()">Dashboard</a>
                     @else
-                        <a class="mt-2 px-4 py-3 rounded-xl bg-primary text-white text-sm font-bold text-center hover:bg-accent transition-colors" href="{{ route('register') }}" @click="close()">Register</a>
+                        <a class="mt-2 px-4 py-3 rounded-xl bg-primary text-white text-sm font-bold text-center hover:bg-primary-hover transition-colors" href="{{ route('register') }}" @click="close()">Register</a>
                     @endauth
                 </nav>
             </div>

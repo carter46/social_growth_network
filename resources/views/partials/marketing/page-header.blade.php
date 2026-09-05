@@ -69,7 +69,7 @@
         @if(!empty($cta['href']) && !empty($cta['label']))
             <div class="mt-5">
                 <a href="{{ $cta['href'] }}"
-                   class="inline-flex items-center justify-center rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 hover:bg-accent hover:text-white transition-colors shadow-lg">
+                   class="inline-flex items-center justify-center rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 hover:bg-primary-hover hover:text-white transition-colors shadow-lg">
                     {{ $cta['label'] }}
                 </a>
             </div>

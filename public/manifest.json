@@ -3,8 +3,8 @@
     "short_name": "Social Growth",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#FFFFFF",
-    "theme_color": "#0B6A39",
+    "background_color": "#F8F9FF",
+    "theme_color": "#004AC6",
     "description": "Social media growth and engagement services with secure checkout.",
     "icons": [
         {

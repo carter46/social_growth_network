@@ -14,7 +14,7 @@
             'labels' => $labels,
             'datasets' => [[
                 'data' => $values,
-                'backgroundColor' => ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#a855f7'],
+                'backgroundColor' => ['#004AC6', '#2563EB', '#006243', '#F59E0B', '#BA1A1A', '#565E74'],
             ]],
         ],
         'options' => [

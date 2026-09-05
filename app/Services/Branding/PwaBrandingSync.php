@@ -454,7 +454,7 @@ class PwaBrandingSync
      */
     private function backgroundRgb(): array
     {
-        $hex = ltrim((string) config('pwa.manifest.theme_color', '#0B6A39'), '#');
+        $hex = ltrim((string) config('pwa.manifest.theme_color', '#004AC6'), '#');
         if (strlen($hex) !== 6 || ! ctype_xdigit($hex)) {
             return [11, 106, 57];
         }

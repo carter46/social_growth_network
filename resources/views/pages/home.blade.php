@@ -81,7 +81,7 @@
                     {{ $siteTagline ?? 'Instagram, TikTok, YouTube, Twitter/X, and Facebook growth packs — clear deliverables, secure checkout.' }}
                 </p>
                 <div class="mx-auto flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
-                    <a class="px-6 py-3 text-center text-sm sm:text-base bg-primary hover:bg-accent text-white font-bold rounded-xl shadow-xl transition-all hover:scale-[1.02] animate-glow" href="{{ route('services') }}">
+                    <a class="px-6 py-3 text-center text-sm sm:text-base bg-primary hover:bg-primary-hover text-white font-bold rounded-xl shadow-xl transition-all hover:scale-[1.02] animate-glow" href="{{ route('services') }}">
                         Browse social services
                     </a>
                     <a class="px-6 py-3 text-center text-sm sm:text-base glassmorphism hover:bg-white/10 text-white font-bold rounded-xl border border-white/20 transition-all" href="{{ route('register') }}">
@@ -152,7 +152,7 @@
         <div class="max-w-marketing mx-auto px-5 sm:px-6 text-center">
             <h2 class="text-3xl font-bold font-display mb-4">Ready to grow?</h2>
             <p class="text-slate-400 mb-8 max-w-xl mx-auto">Browse social packs and check out securely from your dashboard.</p>
-            <a href="{{ route('services') }}" class="inline-flex px-8 py-3 bg-primary hover:bg-accent text-white font-bold rounded-xl transition">View services</a>
+            <a href="{{ route('services') }}" class="inline-flex px-8 py-3 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl transition">View services</a>
         </div>
     </section>
 @endsection

@@ -16,7 +16,7 @@
         <ul class="list-none space-y-3">
             @foreach($section['checklist'] as $item)
                 <li class="flex items-start gap-3">
-                    <span class="text-accent mt-0.5 shrink-0"><x-ui.icon name="check" class="w-5 h-5" /></span>
+                    <span class="text-success mt-0.5 shrink-0"><x-ui.icon name="check" class="w-5 h-5" /></span>
                     <span>{{ $item }}</span>
                 </li>
             @endforeach
@@ -67,7 +67,7 @@
                     <p class="text-sm text-text-primary">Open a ticket from your dashboard for legal or privacy questions.</p>
                 </div>
             </div>
-            <x-ui.button href="{{ $ticketHref }}" variant="primary" size="md" class="shrink-0 hover:!bg-accent">
+            <x-ui.button href="{{ $ticketHref }}" variant="primary" size="md" class="shrink-0 hover:!bg-primary-hover">
                 Open ticket
             </x-ui.button>
         </div>

@@ -80,9 +80,9 @@
     @if ($connectionStatus || $connectionMessage)
         @php
             $statusClass = match (true) {
-                $connectionOk === true => 'text-emerald-600',
+                $connectionOk === true => 'text-success',
                 $connectionStatus === 'pending_merchant' => 'text-amber-600',
-                $connectionOk === false => 'text-red-600',
+                $connectionOk === false => 'text-danger',
                 default => 'text-text-muted',
             };
         @endphp

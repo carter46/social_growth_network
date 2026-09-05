@@ -42,7 +42,7 @@
                     <div class="flex items-center gap-4">
                         <span class="text-[11px] font-bold text-slate-900 dark:text-text-primary">{{ $slice['percent'] ?? $slice['value'] ?? '' }}</span>
                         @if (isset($slice['delta']))
-                            <span class="text-[9px] font-bold {{ (float) $slice['delta'] >= 0 ? 'text-emerald-600' : 'text-red-600' }}">
+                            <span class="text-[9px] font-bold {{ (float) $slice['delta'] >= 0 ? 'text-success' : 'text-danger' }}">
                                 {{ (float) $slice['delta'] >= 0 ? '↑' : '↓' }} {{ abs((float) $slice['delta']) }}%
                             </span>
                         @endif

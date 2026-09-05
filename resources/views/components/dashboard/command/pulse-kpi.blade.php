@@ -1,7 +1,7 @@
 @props([
     'label',
     'value',
-    'accent' => 'emerald',
+    'accent' => 'primary',
     'delta' => null,
     'deltaLabel' => null,
     'hint' => null,
@@ -13,44 +13,52 @@
 
 @php
     $tops = [
-        'emerald' => 'border-t-emerald-500',
-        'blue' => 'border-t-blue-500',
+        'primary' => 'border-t-primary',
+        'emerald' => 'border-t-primary',
+        'blue' => 'border-t-primary',
         'amber' => 'border-t-amber-500',
-        'indigo' => 'border-t-indigo-500',
+        'indigo' => 'border-t-text-secondary',
         'orange' => 'border-t-orange-500',
-        'red' => 'border-t-red-500',
+        'red' => 'border-t-danger',
+        'success' => 'border-t-success',
     ];
     $deltaColors = [
-        'emerald' => 'text-emerald-600',
-        'blue' => 'text-blue-600',
+        'primary' => 'text-primary',
+        'emerald' => 'text-success',
+        'blue' => 'text-primary',
         'amber' => 'text-amber-600',
-        'indigo' => 'text-indigo-600',
+        'indigo' => 'text-text-secondary',
         'orange' => 'text-orange-600',
-        'red' => 'text-red-600',
+        'red' => 'text-danger',
+        'success' => 'text-success',
     ];
     $sparkColors = [
-        'emerald' => '#10b981',
-        'blue' => '#3b82f6',
+        'primary' => '#004AC6',
+        'emerald' => '#004AC6',
+        'blue' => '#2563EB',
         'amber' => '#f59e0b',
-        'indigo' => '#6366f1',
+        'indigo' => '#565E74',
         'orange' => '#f97316',
-        'red' => '#ef4444',
+        'red' => '#BA1A1A',
+        'success' => '#006243',
     ];
     $glow = [
-        'emerald' => 'from-emerald-500/10',
-        'blue' => 'from-blue-500/10',
+        'primary' => 'from-primary/10',
+        'emerald' => 'from-primary/10',
+        'blue' => 'from-primary/10',
         'amber' => 'from-amber-500/10',
-        'indigo' => 'from-indigo-500/10',
+        'indigo' => 'from-text-secondary/10',
         'orange' => 'from-orange-500/10',
-        'red' => 'from-red-500/10',
+        'red' => 'from-danger/10',
+        'success' => 'from-success/10',
     ];
-    $top = $tops[$accent] ?? $tops['emerald'];
-    $deltaClass = $deltaColors[$accent] ?? $deltaColors['emerald'];
+    $top = $tops[$accent] ?? $tops['primary'];
+    $deltaClass = $deltaColors[$accent] ?? $deltaColors['primary'];
     if (is_numeric($delta) && (float) $delta < 0) {
-        $deltaClass = 'text-red-600';
+        $deltaClass = 'text-danger';
     }
     $spark = is_array($sparkline) ? array_values($sparkline) : [];
-    $sparkColor = $sparkColors[$accent] ?? '#10b981';
+    $sparkColor = $sparkColors[$accent] ?? '#004AC6';
     $sparkLabels = array_map('strval', array_keys($spark));
     $sparkDatasets = [[
         'data' => $spark,

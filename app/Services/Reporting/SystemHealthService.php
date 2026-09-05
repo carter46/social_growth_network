@@ -50,7 +50,7 @@ class SystemHealthService
                 'label' => 'Heartbeats',
                 'value' => $monitoringAt ? 'OK' : 'N/A',
                 'pct' => $monitoringAt && $monitoringAt->gt(now()->subMinutes(15)) ? 92 : ($monitoringAt ? 40 : 0),
-                'color' => '#10b981',
+                'color' => '#006243',
                 'ok' => $monitoringAt !== null && $monitoringAt->gt(now()->subHour()),
             ],
         ];

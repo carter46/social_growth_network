@@ -18,7 +18,8 @@
 <script @if ($bootNonce !== '') nonce="{{ $bootNonce }}" @endif>
 (function () {
     try {
-        var STORAGE_KEY = '7th.dashboard.theme';
+        var STORAGE_KEY = 'taskpulse.dashboard.theme';
+        var LEGACY_STORAGE_KEY = '7th.dashboard.theme';
         var preference = @json($preference);
         var serverResolved = @json($resolved);
         var payload = @json($payload);
@@ -26,6 +27,13 @@
         function systemTheme() {
             return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
+
+        // Prefer new key; fall back to legacy so existing preferences are preserved.
+        try {
+            if (!localStorage.getItem(STORAGE_KEY) && localStorage.getItem(LEGACY_STORAGE_KEY)) {
+                localStorage.setItem(STORAGE_KEY, localStorage.getItem(LEGACY_STORAGE_KEY));
+            }
+        } catch (e) {}
 
         // DB preference is authoritative for authenticated dashboards (ignore stale localStorage preference).
         preference = preference || 'light';

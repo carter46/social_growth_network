@@ -30,7 +30,7 @@
                         </div>
                         @auth
                             <div class="flex gap-3">
-                                <a href="{{ route('dashboard.services') }}" class="px-6 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-accent transition-all shadow-md">Services</a>
+                                <a href="{{ route('dashboard.services') }}" class="px-6 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-hover transition-all shadow-md">Services</a>
                             </div>
                         @endauth
                     </div>

@@ -15,8 +15,8 @@
     $datasets = [[
         'label' => 'Revenue',
         'data' => $values,
-        'borderColor' => '#10b981',
-        'backgroundColor' => 'rgba(16, 185, 129, 0.12)',
+        'borderColor' => '#004AC6',
+        'backgroundColor' => 'rgba(0, 74, 198, 0.12)',
         'fill' => true,
         'tension' => 0.4,
         'pointRadius' => 0,
@@ -48,7 +48,7 @@
             @endif
         </div>
         <div class="flex items-center gap-3 text-[10px] font-bold text-slate-500">
-            <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-emerald-500"></span> Revenue</span>
+            <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-primary"></span> Revenue</span>
             @if (is_array($compareValues))
                 <span class="flex items-center gap-1.5 text-slate-400"><span class="h-2 w-2 rounded-full bg-slate-300"></span> {{ $compareLabel }}</span>
             @endif
@@ -58,13 +58,13 @@
         @if (! $hasData)
             <div class="absolute inset-0 z-10 flex items-center justify-center text-sm text-slate-400">No data in this range</div>
         @endif
-        <canvas id="{{ $chartId }}" aria-label="{{ $title }}" class="command-chart {{ $hasData ? '' : 'opacity-20' }}" data-chart-theme="emerald-area"
+        <canvas id="{{ $chartId }}" aria-label="{{ $title }}" class="command-chart {{ $hasData ? '' : 'opacity-20' }}" data-chart-theme="primary-area"
             data-labels='@json($labels)' data-datasets='@json($datasets)'></canvas>
     </div>
     @if (is_array($footerLabels) && count($footerLabels))
         <div class="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-6 py-3 text-[10px] font-bold text-slate-400 dark:border-border-subtle dark:bg-muted/30">
             @foreach ($footerLabels as $fl)
-                <span class="{{ !empty($fl['peak']) ? 'text-emerald-600' : '' }}">{{ $fl['label'] ?? $fl }}</span>
+                <span class="{{ !empty($fl['peak']) ? 'text-primary' : '' }}">{{ $fl['label'] ?? $fl }}</span>
             @endforeach
         </div>
     @endif

@@ -12,34 +12,46 @@
  * partials/dashboard/theme-tokens.blade.php (ThemeManager::dashboardThemeStylesheet).
  */
 :root {
-    --th-surface: #0f172a;
+    /* TaskPulse dark fallbacks for marketing/auth (dashboard overrides via data-theme) */
+    --th-surface: #0b1220;
     --th-surface-secondary: #111827;
-    --th-elevated: #1e293b;
-    --th-card: rgba(30, 41, 59, 0.72);
-    --th-sidebar: #1e293b;
-    --th-header: rgba(30, 41, 59, 0.85);
-    --th-muted: #334155;
-    --th-border-default: #334155;
+    --th-elevated: #152238;
+    --th-card: rgba(21, 34, 56, 0.72);
+    --th-sidebar: #152238;
+    --th-header: rgba(21, 34, 56, 0.85);
+    --th-muted: #2a3548;
+    --th-border-default: #2a3548;
     --th-border-subtle: rgba(255, 255, 255, 0.1);
-    --th-text-primary: #f1f5f9;
-    --th-text-secondary: #94a3b8;
-    --th-text-muted: #64748b;
+    --th-text-primary: #e8eef9;
+    --th-text-secondary: #a8b0c0;
+    --th-text-muted: #8b93a7;
     --th-overlay: rgba(2, 6, 23, 0.65);
     --th-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
     --th-blur: 12px;
-    --th-input-bg: rgba(30, 41, 59, 0.55);
-    --th-table-stripe: rgba(51, 65, 85, 0.35);
-    --th-table-hover: rgba(51, 65, 85, 0.55);
+    --th-input-bg: rgba(21, 34, 56, 0.55);
+    --th-table-stripe: rgba(42, 53, 72, 0.35);
+    --th-table-hover: rgba(42, 53, 72, 0.55);
     --th-code-bg: #111827;
-    --th-gradient-soft: linear-gradient(135deg, #0f172a 0%, #052e16 100%);
-    --th-icon-bg: rgba(11, 106, 57, 0.18);
-    --th-icon-fg: #4ade80;
-    --th-surface-rgb: 15 23 42;
-    --th-elevated-rgb: 30 41 59;
-    --th-muted-rgb: 51 65 85;
-    --th-chart-bg: #0f172a;
-    --th-chart-grid: #334155;
-    --th-chart-labels: #94a3b8;
+    --th-gradient-soft: linear-gradient(135deg, #0b1220 0%, #0a1a3a 100%);
+    --th-icon-bg: rgba(180, 197, 255, 0.18);
+    --th-icon-fg: #b4c5ff;
+    --th-primary: #2563eb;
+    --th-primary-hover: #3b82f6;
+    --th-accent: #b4c5ff;
+    --th-success: #68dba9;
+    --th-danger: #ba1a1a;
+    --th-warning: #f59e0b;
+    --th-surface-rgb: 11 18 32;
+    --th-elevated-rgb: 21 34 56;
+    --th-muted-rgb: 42 53 72;
+    --th-primary-rgb: 37 99 235;
+    --th-primary-hover-rgb: 59 130 246;
+    --th-accent-rgb: 180 197 255;
+    --th-success-rgb: 104 219 169;
+    --th-danger-rgb: 186 26 26;
+    --th-chart-bg: #0b1220;
+    --th-chart-grid: #2a3548;
+    --th-chart-labels: #a8b0c0;
 }
 
 /* Dashboard-only polished transitions (scoped — not universal *) */
@@ -70,14 +82,14 @@ html[data-theme] .dashboard-card {
 @layer utilities {
     /* Marketing glass stays dark; dashboard data-theme overrides below */
     .glassmorphism {
-        background: rgba(30, 41, 59, 0.6);
+        background: rgba(21, 34, 56, 0.6);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .glass-card {
-        background: rgba(30, 41, 59, 0.6);
+        background: rgba(21, 34, 56, 0.6);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -103,12 +115,12 @@ html[data-theme] .dashboard-card {
     }
 
     .marketing-page-hero-bg {
-        background-color: #0f172a;
+        background-color: #0b1220;
         background-image:
-            radial-gradient(ellipse 80% 60% at 10% 20%, rgba(22, 163, 74, 0.35), transparent 55%),
-            radial-gradient(ellipse 70% 50% at 90% 10%, rgba(11, 106, 57, 0.4), transparent 50%),
-            radial-gradient(ellipse 60% 40% at 70% 90%, rgba(30, 41, 59, 0.9), transparent 45%),
-            linear-gradient(135deg, #052e16 0%, #0f172a 45%, #020617 100%);
+            radial-gradient(ellipse 80% 60% at 10% 20%, rgba(37, 99, 235, 0.35), transparent 55%),
+            radial-gradient(ellipse 70% 50% at 90% 10%, rgba(0, 74, 198, 0.4), transparent 50%),
+            radial-gradient(ellipse 60% 40% at 70% 90%, rgba(21, 34, 56, 0.9), transparent 45%),
+            linear-gradient(135deg, #0a1a3a 0%, #0b1220 45%, #020617 100%);
     }
 
     /* Reliable gap before footer — large pb-* utilities are often missing from purged builds */
@@ -244,10 +256,10 @@ html[data-theme] .dashboard-card {
 @keyframes glow {
     0%,
     100% {
-        box-shadow: 0 0 20px rgba(22, 163, 74, 0.2);
+        box-shadow: 0 0 20px rgba(37, 99, 235, 0.2);
     }
     50% {
-        box-shadow: 0 0 40px rgba(22, 163, 74, 0.4);
+        box-shadow: 0 0 40px rgba(37, 99, 235, 0.4);
     }
 }
 
@@ -260,7 +272,7 @@ html[data-theme] .dashboard-card {
     }
 }
 
-/* —— User dashboard page loader (Silkwood-style, white + brand green) —— */
+/* —— User dashboard page loader (Silkwood-style, white + TaskPulse blue) —— */
 .dashboard-page-loader {
     position: fixed;
     inset: 0;
@@ -287,7 +299,7 @@ html[data-theme] .dashboard-card {
 .dashboard-page-loader__veil {
     position: absolute;
     inset: 0;
-    background: rgba(255, 255, 255, 0.96);
+    background: rgba(248, 249, 255, 0.96);
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
 }
@@ -312,10 +324,10 @@ html[data-theme] .dashboard-card {
     position: absolute;
     inset: 14px;
     border-radius: 50%;
-    border: 2.5px solid rgba(11, 106, 57, 0.28);
+    border: 2.5px solid rgba(0, 74, 198, 0.28);
     box-shadow:
-        0 0 0 1px rgba(11, 106, 57, 0.08),
-        inset 0 0 24px rgba(11, 106, 57, 0.06);
+        0 0 0 1px rgba(0, 74, 198, 0.08),
+        inset 0 0 24px rgba(0, 74, 198, 0.06);
     pointer-events: none;
 }
 

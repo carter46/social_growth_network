@@ -14,7 +14,7 @@
         <div class="w-full h-full bg-cover bg-center mix-blend-screen" style="background-image: url('{{ $heroImage }}')"></div>
         <div class="absolute inset-0 bg-gradient-to-b from-surface/80 via-transparent to-surface"></div>
     </div>
-    <div class="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_center,rgba(11,106,57,0.12)_0%,transparent_70%)]" aria-hidden="true"></div>
+    <div class="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_center,rgba(0,74,198,0.12)_0%,transparent_70%)]" aria-hidden="true"></div>
 
     <div class="relative z-10 max-w-marketing mx-auto px-5 sm:px-6 text-center w-full">
         <h1 class="font-display text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white mb-4 leading-tight">
@@ -39,7 +39,7 @@
                     placeholder="Search services..."
                     class="w-full min-w-0 bg-transparent border-0 focus:ring-0 text-text-primary placeholder:text-text-muted px-2 py-2 text-sm sm:text-base"
                 />
-                <x-ui.button type="submit" variant="primary" size="md" class="shrink-0 !bg-primary hover:!bg-accent">
+                <x-ui.button type="submit" variant="primary" size="md" class="shrink-0 !bg-primary hover:!bg-primary-hover">
                     Search
                 </x-ui.button>
             </div>

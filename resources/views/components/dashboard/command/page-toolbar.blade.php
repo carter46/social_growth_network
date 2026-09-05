@@ -15,7 +15,7 @@
                     @if ($i > 0)
                         <span aria-hidden="true" class="text-slate-300">/</span>
                     @endif
-                    <span class="{{ $loop->last ? 'text-primary dark:text-brand' : '' }}">{{ is_array($crumb) ? ($crumb[0] ?? '') : $crumb }}</span>
+                    <span class="{{ $loop->last ? 'text-primary' : '' }}">{{ is_array($crumb) ? ($crumb[0] ?? '') : $crumb }}</span>
                 @endforeach
             </nav>
         @endif

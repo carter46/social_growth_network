@@ -21,7 +21,7 @@
         <td align="center">
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
                 <tr>
-                    <td style="padding:24px 28px;border-bottom:1px solid #e5e7eb;background:#0b6a39;color:#ffffff;">
+                    <td style="padding:24px 28px;border-bottom:1px solid #e5e7eb;background:#004AC6;color:#ffffff;">
                         @if($logoUrl)
                             <img src="{{ $logoUrl }}" alt="{{ $siteName }}" style="max-height:40px;max-width:180px;display:block;margin-bottom:8px;">
                         @endif
@@ -39,9 +39,9 @@
                 <tr>
                     <td style="padding:20px 28px;border-top:1px solid #e5e7eb;background:#f9fafb;font-size:12px;line-height:1.6;color:#6b7280;">
                         <div style="font-weight:600;color:#374151;margin-bottom:6px;">{{ $siteName }}</div>
-                        <div><a href="{{ $siteUrl }}" style="color:#0b6a39;text-decoration:none;">{{ $siteUrl }}</a></div>
+                        <div><a href="{{ $siteUrl }}" style="color:#004AC6;text-decoration:none;">{{ $siteUrl }}</a></div>
                         @if($supportEmail)
-                            <div style="margin-top:8px;">Support: <a href="mailto:{{ $supportEmail }}" style="color:#0b6a39;">{{ $supportEmail }}</a></div>
+                            <div style="margin-top:8px;">Support: <a href="mailto:{{ $supportEmail }}" style="color:#004AC6;">{{ $supportEmail }}</a></div>
                         @endif
                     </td>
                 </tr>

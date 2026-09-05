@@ -1,6 +1,6 @@
 @php
     $icons = app(\App\Services\Branding\PwaBrandingSync::class)->headIconUrls();
-    $themeColor = config('pwa.manifest.theme_color', '#0B6A39');
+    $themeColor = config('pwa.manifest.theme_color', '#004AC6');
 @endphp
 <meta name="theme-color" content="{{ $themeColor }}">
 {{-- Prefer branding media (via headIconUrls) so git-restored letter-7 public files cannot win the tab icon.

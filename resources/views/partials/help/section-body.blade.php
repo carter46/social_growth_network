@@ -22,7 +22,7 @@
             <ul class="list-none space-y-3">
                 @foreach(($block['items'] ?? []) as $item)
                     <li class="flex items-start gap-3">
-                        <span class="text-accent mt-0.5 shrink-0"><x-ui.icon name="check" class="w-5 h-5" /></span>
+                        <span class="text-success mt-0.5 shrink-0"><x-ui.icon name="check" class="w-5 h-5" /></span>
                         <span>{{ $item }}</span>
                     </li>
                 @endforeach

@@ -8,7 +8,7 @@
     <x-dashboard.command.section-label title="Marketing — Traffic" accent="blue" />
     @if (! ($gaEnabled ?? false) || ! ($gaConnected ?? false) || ! ($data['ga_connected'] ?? false))
         <div class="rounded-2xl border border-border-default bg-elevated p-5">
-            <p class="text-sm text-text-secondary">{{ $data['message'] ?? 'Connect GA in Marketing & Tracking' }}. Open <a href="{{ route('admin.tracking') }}" class="text-brand hover:underline">Marketing & Tracking</a>.</p>
+            <p class="text-sm text-text-secondary">{{ $data['message'] ?? 'Connect GA in Marketing & Tracking' }}. Open <a href="{{ route('admin.tracking') }}" class="text-primary hover:underline">Marketing & Tracking</a>.</p>
         </div>
     @else
         @php
@@ -36,7 +36,7 @@
     @endif
 
 @elseif ($section === 'revenue')
-    <x-dashboard.command.section-label title="Business — Revenue" accent="emerald" />
+    <x-dashboard.command.section-label title="Business — Revenue" accent="primary" />
     @php
         $pulse = [
             [
@@ -77,7 +77,7 @@
         @php
             $byType = collect($data['by_type'] ?? []);
             $byTypeTotal = max(1.0, (float) $byType->sum('total'));
-            $typeColors = ['#10b981', '#3b82f6', '#6366f1', '#f59e0b', '#f97316'];
+            $typeColors = ['#004AC6', '#2563EB', '#565E74', '#f59e0b', '#f97316'];
             $revenueSlices = $byType->values()->map(function ($row, $i) use ($byTypeTotal, $typeColors) {
                 $val = (float) ($row['total'] ?? 0);
                 return [
@@ -98,7 +98,7 @@
     </div>
 
 @elseif ($section === 'services')
-    <x-dashboard.command.section-label title="Business — Services" accent="emerald" />
+    <x-dashboard.command.section-label title="Business — Services" accent="primary" />
     @php
         $pulse = [
             ['label' => 'Service orders', 'value' => number_format($data['service_orders'] ?? 0), 'accent' => 'emerald', 'href' => route('admin.orders')],
@@ -142,7 +142,7 @@
             ['label' => 'Created in range', 'value' => number_format($data['created_in_range'] ?? 0), 'accent' => 'amber', 'href' => route('admin.tickets')],
         ];
         $slices = collect($data['by_status'] ?? [])->map(function ($count, $status) {
-            $colors = ['open' => '#f97316', 'waiting' => '#f59e0b', 'closed' => '#10b981', 'resolved' => '#3b82f6'];
+            $colors = ['open' => '#f97316', 'waiting' => '#f59e0b', 'closed' => '#006243', 'resolved' => '#004AC6'];
             $total = max(1, array_sum($data['by_status'] ?? []));
             return [
                 'label' => (string) $status,
