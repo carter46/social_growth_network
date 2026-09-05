@@ -144,52 +144,6 @@ class SettingsTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_admin_can_save_blockchain_monitor_provider_and_credentials(): void
-    {
-        $admin = User::factory()->create(['email_verified_at' => now()]);
-        $admin->assignRole('admin');
-
-        $existing = IntegrationProvider::forProvider(IntegrationProvider::BLOCKCHAIN_MONITORING);
-        $existing->mergeCredentials(['etherscan_api_key' => 'keep-me']);
-        $existing->save();
-
-        $this->actingAs($admin)
-            ->post(route('admin.blockchain-monitoring.update'), [
-                'blockchain_enabled' => '1',
-                'monitor_provider' => 'blockchain_com',
-                'blockchain_com_api_key' => 'expl_new_key',
-                'etherscan_api_key' => '',
-                'trongrid_api_key' => 'tron-key',
-                'poll_interval_minutes' => 2,
-            ])
-            ->assertRedirect()
-            ->assertSessionHasNoErrors();
-
-        $row = IntegrationProvider::forProvider(IntegrationProvider::BLOCKCHAIN_MONITORING)->fresh();
-        $this->assertTrue($row->enabled);
-        $this->assertSame('blockchain_com', $row->meta['monitor_provider'] ?? null);
-        $this->assertSame(2, (int) ($row->meta['poll_interval_minutes'] ?? 0));
-        $this->assertSame('expl_new_key', $row->credential('blockchain_com_api_key'));
-        $this->assertSame('tron-key', $row->credential('trongrid_api_key'));
-        $this->assertSame('keep-me', $row->credential('etherscan_api_key'));
-        $this->assertDatabaseHas('audit_logs', ['action' => 'settings.blockchain.updated']);
-    }
-
-    public function test_blockchain_settings_page_lists_monitored_networks(): void
-    {
-        $admin = User::factory()->create(['email_verified_at' => now()]);
-        $admin->assignRole('admin');
-
-        $this->actingAs($admin)
-            ->get(route('admin.blockchain-monitoring'))
-            ->assertOk()
-            ->assertSee('Ethereum (ERC20)')
-            ->assertSee('TRON (TRC20)')
-            ->assertSee('BNB Smart Chain (BEP20)')
-            ->assertSee('Public explorer')
-            ->assertDontSee('mempool.space');
-    }
-
     public function test_admin_site_settings_page_loads(): void
     {
         $admin = User::factory()->create(['email_verified_at' => now()]);

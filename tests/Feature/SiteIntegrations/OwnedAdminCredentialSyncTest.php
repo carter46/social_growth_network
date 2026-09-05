@@ -53,7 +53,7 @@ class OwnedAdminCredentialSyncTest extends TestCase
         $product = $this->forceCreatePlatformProduct([
             'title' => 'Banking Site',
             'slug' => 'banking-cred-sync-'.Str::lower(Str::random(4)),
-            'product_type' => PlatformProductType::WebsitePackage,
+            'product_type' => PlatformProductType::SocialService,
             'product_type_id' => $service->id,
             'status' => PlatformProductStatus::Published,
             'base_price' => 10000,

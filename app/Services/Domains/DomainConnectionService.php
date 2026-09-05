@@ -66,7 +66,7 @@ class DomainConnectionService
                 ...$lookup,
                 'required_nameservers' => $this->dns->platformNameservers(),
                 'already_connected' => true,
-                'message' => 'This domain is already connected to another account on 7th Trade Hub.',
+                'message' => 'This domain is already connected to another account on '.config('app.name', 'this platform').'.',
             ];
         }
 
@@ -204,7 +204,7 @@ class DomainConnectionService
                 );
             });
         } catch (UniqueConstraintViolationException) {
-            throw new InvalidArgumentException('This domain is already connected on 7th Trade Hub.');
+            throw new InvalidArgumentException('This domain is already connected on '.config('app.name', 'this platform').'.');
         }
     }
 

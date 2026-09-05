@@ -2,9 +2,7 @@
 
 namespace App\Services\Reporting\Metrics;
 
-use App\Models\Escrow;
 use App\Models\KycSubmission;
-use App\Models\Listing;
 use App\Models\Order;
 use App\Models\SupportTicket;
 use App\Models\User;
@@ -68,11 +66,6 @@ class OpsMetrics
         return (int) KycSubmission::query()->where('status', 'pending')->count();
     }
 
-    public function pendingEscrows(): int
-    {
-        return (int) Escrow::query()->whereIn('status', ['locked', 'disputed'])->count();
-    }
-
     public function pendingWithdrawals(): int
     {
         return (int) Withdrawal::query()
@@ -83,13 +76,6 @@ class OpsMetrics
             ->count();
     }
 
-    public function lockedEscrowVolume(): float
-    {
-        return round((float) Escrow::query()
-            ->whereIn('status', ['locked', 'disputed'])
-            ->sum('amount'), 2);
-    }
-
     public function supportWaiting(): int
     {
         return (int) SupportTicket::query()
@@ -97,22 +83,11 @@ class OpsMetrics
             ->count();
     }
 
-    public function pendingListings(): int
-    {
-        return (int) Listing::query()->where(function ($q) {
-            $q->where('status', 'pending_review')
-                ->orWhere(function ($inner) {
-                    $inner->where('status', 'published')
-                        ->whereHas('versions', fn ($v) => $v->where('status', 'pending_review'));
-                });
-        })->whereNotIn('status', ['archived', 'sold'])->count();
-    }
-
-    /** Gross marketplace order totals completed/paid in range. */
+    /** Gross platform order totals completed/paid in range. */
     public function gmv(ReportingRange $range): float
     {
         return round((float) Order::query()
-            ->where('source', 'marketplace')
+            ->where('source', 'platform')
             ->whereIn('status', ['completed', 'paid', 'processing'])
             ->whereBetween('created_at', [$range->from, $range->to])
             ->sum(DB::raw('COALESCE(total_amount, amount)')), 2);
@@ -147,22 +122,6 @@ class OpsMetrics
                 'awaiting_user' => '#6366f1',
                 'resolved' => '#10b981',
                 'closed' => '#94a3b8',
-            ]
-        );
-    }
-
-    /**
-     * @return list<array{label: string, value: float, color: string}>
-     */
-    public function escrowStatusSlices(): array
-    {
-        return $this->statusSlices(
-            Escrow::query()->selectRaw('status, count(*) as c')->groupBy('status')->pluck('c', 'status')->all(),
-            [
-                'locked' => '#6366f1',
-                'disputed' => '#ef4444',
-                'released' => '#10b981',
-                'refunded' => '#3b82f6',
             ]
         );
     }

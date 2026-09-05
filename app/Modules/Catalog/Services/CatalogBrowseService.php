@@ -149,7 +149,7 @@ class CatalogBrowseService
     /** Canonical public URL for a product detail page. */
     public function productUrl(PlatformProduct $product): string
     {
-        $typeSlug = $product->typeSlug() ?? 'vpn';
+        $typeSlug = $product->typeSlug() ?? 'social_service';
         $categorySlug = $product->relationLoaded('productType')
             ? $product->productType?->serviceCategory?->slug
             : null;
@@ -267,14 +267,13 @@ class CatalogBrowseService
                     $resolved = $content->forServiceCategory($category);
                     $typeSlugs = $category->services->pluck('slug')->all();
                     $stats = $this->statsForTypes($typeSlugs);
-                    $isLink = $category->isMarketplaceLink();
 
                     return array_merge($resolved, [
                         'slug' => $category->slug,
                         'count' => $stats['count'],
                         'from_price' => $stats['from_price'],
-                        'href' => $isLink ? route('marketplace') : route('services.segment', $category->slug),
-                        'cta' => $category->cta_label ?: ($isLink ? 'Open marketplace' : 'Explore'),
+                        'href' => route('services.segment', $category->slug),
+                        'cta' => $category->cta_label ?: 'Explore',
                         'mode' => $category->mode,
                     ]);
                 })
@@ -380,18 +379,13 @@ class CatalogBrowseService
     }
 
     /**
-     * Home page "What we do" cards: standalone crypto exchange + active catalog services.
+     * Home page "What we do" cards: active catalog services.
      *
      * @return list<array{icon: string, title: string, body: string, href: string}>
      */
     public function homeEcosystemItems(CatalogContentResolver $content): array
     {
-        $items = [[
-            'icon' => 'bitcoin',
-            'title' => 'Crypto Cash Exchange',
-            'body' => 'Turn crypto into cash fast. Safe swaps and quick payouts.',
-            'href' => route('exchange'),
-        ]];
+        $items = [];
 
         foreach ($this->homeCatalogServiceCards($content) as $card) {
             $items[] = [

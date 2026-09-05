@@ -1,11 +1,11 @@
 {
-    "name": "7th Trade Hub",
-    "short_name": "7thHub",
+    "name": "Social Growth Network",
+    "short_name": "Social Growth",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#FFFFFF",
     "theme_color": "#0B6A39",
-    "description": "7th Trade Hub — digital services marketplace (crypto exchange, social growth, receipts, documents, listings).",
+    "description": "Social media growth and engagement services with secure checkout.",
     "icons": [
         {
             "src": "/icons/icon-512x512.png",
@@ -29,7 +29,7 @@
             "src": "/icons/icon-192x192-maskable.png",
             "sizes": "192x192",
             "type": "image/png",
-            "purpose": "maskable"
+            "purpose": "any"
         },
         {
             "src": "/apple-touch-icon.png",

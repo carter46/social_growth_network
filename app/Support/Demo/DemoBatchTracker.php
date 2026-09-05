@@ -91,20 +91,13 @@ class DemoBatchTracker
             \App\Models\SupportTicket::class,
             \App\Models\UserNotification::class,
             \App\Models\UserActivity::class,
-            \App\Models\Review::class,
-            \App\Models\Message::class,
             \App\Models\Favorite::class,
-            \App\Models\Watchlist::class,
             \App\Models\OrderItem::class,
-            \App\Models\Escrow::class,
             \App\Models\Transaction::class,
             \App\Models\Order::class,
-            \App\Models\ListingVersion::class,
-            \App\Models\Listing::class,
             \App\Models\KycSubmission::class,
             \App\Models\WalletFunding::class,
             \App\Models\Withdrawal::class,
-            \App\Models\CryptoSellRequest::class,
             \App\Models\AuditLog::class,
             \App\Models\AnalyticsKpiSnapshot::class,
             \App\Models\ProductMetricDaily::class,
@@ -149,8 +142,8 @@ class DemoBatchTracker
                     continue;
                 }
 
-                // Soft-deleted listings too
-                if ($type === \App\Models\Listing::class && method_exists($type, 'withTrashed')) {
+                // Soft-deleted models if needed
+                if (method_exists($type, 'withTrashed') && $type !== \App\Models\User::class) {
                     $deleted += $type::withTrashed()->whereIn('id', $ids)->forceDelete();
                 } elseif ($type === \App\Models\User::class) {
                     $users = $type::query()->whereIn('id', $ids)->get();

@@ -151,7 +151,7 @@ class SiteIntegrationAdminController extends Controller
         $usedIds = SiteIntegration::query()->pluck('platform_product_id');
 
         return PlatformProduct::query()
-            ->where('product_type', PlatformProductType::WebsitePackage)
+            ->where('product_type', PlatformProductType::SocialService)
             ->whereNotIn('id', $usedIds)
             ->orderBy('title')
             ->get(['id', 'title', 'slug']);

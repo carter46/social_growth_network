@@ -17,15 +17,10 @@ Schedule::call(function () {
     DB::table('email_verification_codes')->where('expires_at', '<', now())->delete();
 })->daily()->name('prune-expired-otp-codes');
 
-$scheduleCommand('app:expire-crypto-quotes', 'app:expire-crypto-quotes')->everyFiveMinutes();
 $scheduleCommand('app:prune-notifications', 'app:prune-notifications')->weekly()->sundays()->at('03:00');
 $scheduleCommand('support:prune-attachments', 'support:prune-attachments')->hourly();
-$scheduleCommand('app:warm-crypto-prices', 'app:warm-crypto-prices')->everyFiveMinutes();
-$scheduleCommand('crypto:poll-deposits', 'crypto:poll-deposits')->everyMinute();
-$scheduleCommand('crypto:poll-balances', 'crypto:poll-balances')->everyFiveMinutes();
 $scheduleCommand('cache:prune-stale-tags', 'cache:prune-stale-tags')->daily();
 
-$scheduleCommand('wallet:expire-listing-holds', 'wallet:expire-listing-holds')->hourly();
 $scheduleCommand('monnify:reconcile', 'monnify:reconcile')->everyFiveMinutes();
 
 $scheduleCommand('analytics:rollup-kpis', 'analytics:rollup-kpis')->hourly();

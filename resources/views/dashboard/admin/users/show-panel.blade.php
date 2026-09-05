@@ -1,8 +1,7 @@
 <div class="space-y-4">
     @if ($activeTab === 'overview')
-        <div class="grid gap-4 md:grid-cols-3">
+        <div class="grid gap-4 md:grid-cols-2">
             <x-dashboard.stats-card label="Orders" :value="number_format($orderCount ?? 0)" icon="orders" />
-            <x-dashboard.stats-card label="Listings" :value="number_format($listingCount ?? 0)" icon="listings" />
             <x-dashboard.stats-card label="Tickets" :value="number_format($ticketCount ?? 0)" icon="support" />
         </div>
         <x-dashboard.card>
@@ -117,38 +116,6 @@
         @if (($tools ?? null) instanceof \Illuminate\Contracts\Pagination\Paginator)
             <x-dashboard.pagination :paginator="$tools" />
         @endif
-    @elseif ($activeTab === 'listings')
-        <x-dashboard.table :empty="($listings ?? collect())->isEmpty()" empty-title="No listings" striped>
-            <x-slot:head>
-                <x-dashboard.th>Title</x-dashboard.th>
-                <x-dashboard.th>Status</x-dashboard.th>
-                <x-dashboard.th>Date</x-dashboard.th>
-            </x-slot:head>
-            @foreach ($listings as $listing)
-                <tr>
-                    <x-dashboard.td>{{ $listing->title ?? ('Listing #'.$listing->id) }}</x-dashboard.td>
-                    <x-dashboard.td><x-dashboard.badge :status="$listing->status ?? ($listing->is_active ? 'active' : 'inactive')" /></x-dashboard.td>
-                    <x-dashboard.td class="text-xs text-text-muted">{{ $listing->created_at->format('j M Y') }}</x-dashboard.td>
-                </tr>
-            @endforeach
-        </x-dashboard.table>
-        <x-dashboard.pagination :paginator="$listings" />
-    @elseif ($activeTab === 'escrows')
-        <x-dashboard.table :empty="($escrows ?? collect())->isEmpty()" empty-title="No escrows" striped>
-            <x-slot:head>
-                <x-dashboard.th>ID</x-dashboard.th>
-                <x-dashboard.th>Status</x-dashboard.th>
-                <x-dashboard.th>Date</x-dashboard.th>
-            </x-slot:head>
-            @foreach ($escrows as $escrow)
-                <tr>
-                    <x-dashboard.td>#{{ $escrow->id }}</x-dashboard.td>
-                    <x-dashboard.td><x-dashboard.badge :status="$escrow->status" /></x-dashboard.td>
-                    <x-dashboard.td class="text-xs text-text-muted">{{ $escrow->created_at->format('j M Y') }}</x-dashboard.td>
-                </tr>
-            @endforeach
-        </x-dashboard.table>
-        <x-dashboard.pagination :paginator="$escrows" />
     @elseif ($activeTab === 'tickets')
         <x-dashboard.table :empty="($tickets ?? collect())->isEmpty()" empty-title="No tickets" striped>
             <x-slot:head>

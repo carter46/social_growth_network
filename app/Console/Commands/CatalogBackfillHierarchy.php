@@ -118,10 +118,6 @@ class CatalogBackfillHierarchy extends Command
         $retiredServices = config('platform_products.retired_services', []);
 
         foreach (PlatformProductType::cases() as $case) {
-            if ($case === PlatformProductType::EscrowService) {
-                continue;
-            }
-
             if (in_array($case->value, $retiredServices, true)) {
                 continue;
             }

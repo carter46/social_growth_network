@@ -33,8 +33,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
-            'marketplace.public' => \App\Http\Middleware\MarketplaceComingSoon::class,
-            'marketplace.dashboard' => \App\Http\Middleware\DashboardMarketplaceComingSoon::class,
         ]);
         $middleware->appendToGroup('web', EnsureNotSuspended::class);
         $middleware->appendToGroup('api', EnsureNotSuspended::class);

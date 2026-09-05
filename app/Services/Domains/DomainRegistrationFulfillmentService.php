@@ -2,7 +2,6 @@
 
 namespace App\Services\Domains;
 
-use App\Enums\PlatformProductType;
 use App\Models\DomainQuote;
 use App\Models\DomainRegistration;
 use App\Models\Order;
@@ -199,6 +198,6 @@ class DomainRegistrationFulfillmentService
 
         $product = PlatformProduct::query()->find($item->item_id);
 
-        return $product?->product_type === PlatformProductType::Domain;
+        return false;
     }
 }

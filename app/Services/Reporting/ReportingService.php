@@ -38,7 +38,6 @@ class ReportingService
 
         $kycSlices = $this->ops->kycStatusSlices();
         $supportSlices = $this->ops->supportStatusSlices();
-        $escrowSlices = $this->ops->escrowStatusSlices();
         $orderSlices = $this->ops->orderStatusSlices($range);
 
         return [
@@ -74,10 +73,7 @@ class ReportingService
                 ],
                 'pending_kyc' => $this->ops->pendingKyc(),
                 'pending_withdrawals' => $this->ops->pendingWithdrawals(),
-                'pending_escrows' => $this->ops->pendingEscrows(),
-                'escrow_locked_ngn' => $this->ops->lockedEscrowVolume(),
                 'support_waiting' => $this->ops->supportWaiting(),
-                'pending_listings' => $this->ops->pendingListings(),
             ],
             'growth' => [
                 'revenue' => $revenueSeries,
@@ -88,7 +84,6 @@ class ReportingService
             'distributions' => [
                 'kyc' => $kycSlices,
                 'support' => $supportSlices,
-                'escrows' => $escrowSlices,
                 'orders' => $orderSlices,
             ],
             'gmv' => $this->ops->gmv($range),

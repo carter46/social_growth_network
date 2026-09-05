@@ -13,7 +13,6 @@
 >
     <x-slot:actions>
         <x-dashboard.button :href="route('dashboard.deposit.create-checkout')" icon="deposit">Fund wallet</x-dashboard.button>
-        <x-dashboard.button :href="route('dashboard.crypto-sell.create')" variant="secondary" icon="bitcoin">Sell Crypto</x-dashboard.button>
     </x-slot:actions>
 
     <x-dashboard.table

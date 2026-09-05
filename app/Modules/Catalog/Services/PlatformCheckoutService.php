@@ -2,7 +2,6 @@
 
 namespace App\Modules\Catalog\Services;
 
-use App\Enums\PlatformProductType;
 use App\Events\OrderCompleted;
 use App\Events\OrderManualBankTransferPaymentFailed;
 use App\Events\OrderManualBankTransferSubmitted;
@@ -681,59 +680,18 @@ class PlatformCheckoutService
         }
 
         $lines = [];
-        $domainContext = null;
         $pendingDomainQuotes = [];
 
-        if ($product->product_type === PlatformProductType::Domain) {
-            $domainContext = $this->domainCheckout->validateStandaloneDomainPurchase($buyer, $product, $data, $deferDomainConsumption);
-            if ($deferDomainConsumption) {
-                $pendingDomainQuotes[] = [
-                    'token' => $domainContext['domain_quote_token'],
-                    'fqdn' => $domainContext['fqdn'],
-                    'product_id' => $product->id,
-                ];
-            }
-            $lines[] = $this->domainLineFromQuote($domainContext, $product);
-        } else {
-            $domainContext = null;
-            if ($product->product_type === PlatformProductType::WebsitePackage) {
-                $domainContext = $this->domainCheckout->validateWebsitePackageDomain($buyer, $product, $data, $deferDomainConsumption);
-            }
-
-            [$variant, $renewTool, $mainLine] = $this->prepareMainLine($buyer, $product, $data, $domainContext);
-            $lines[] = $mainLine;
-
-            if ($domainContext !== null && ($domainContext['mode'] ?? '') === 'buy') {
-                /** @var PlatformProduct $domainProduct */
-                $domainProduct = $domainContext['domain_product'];
-                if ($deferDomainConsumption) {
-                    $pendingDomainQuotes[] = [
-                        'token' => $domainContext['domain_quote_token'],
-                        'fqdn' => $domainContext['fqdn'],
-                        'product_id' => $domainProduct->id,
-                    ];
-                }
-                $lines[] = $this->domainLineFromQuote($domainContext, $domainProduct);
-            }
-
-            $total = $this->sumLines($lines);
-
-            return [
-                'lines' => $lines,
-                'total' => $total,
-                'renew_tool' => $renewTool ?? null,
-                'variant' => $variant ?? null,
-                'pending_domain_quotes' => $pendingDomainQuotes,
-            ];
-        }
+        [$variant, $renewTool, $mainLine] = $this->prepareMainLine($buyer, $product, $data, null);
+        $lines[] = $mainLine;
 
         $total = $this->sumLines($lines);
 
         return [
             'lines' => $lines,
             'total' => $total,
-            'renew_tool' => null,
-            'variant' => null,
+            'renew_tool' => $renewTool ?? null,
+            'variant' => $variant ?? null,
             'pending_domain_quotes' => $pendingDomainQuotes,
         ];
     }
@@ -788,10 +746,6 @@ class PlatformCheckoutService
 
         $unitPrice = number_format((float) ($variant?->price ?? $product->base_price), 2, '.', '');
         $qty = max(1, (int) $data['quantity']);
-
-        if ($product->product_type === PlatformProductType::WebsitePackage && $qty !== 1) {
-            throw new InvalidArgumentException('Website packages must be purchased with quantity 1.');
-        }
 
         $lineTotal = bcmul($unitPrice, (string) $qty, 2);
 

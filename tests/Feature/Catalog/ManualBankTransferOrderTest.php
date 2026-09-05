@@ -35,7 +35,7 @@ class ManualBankTransferOrderTest extends TestCase
         $product = $this->forceCreatePlatformProduct([
             'title' => 'Test Hosting',
             'slug' => 'test-hosting-'.Str::lower(Str::random(4)),
-            'product_type' => PlatformProductType::Vpn,
+            'product_type' => PlatformProductType::SocialService,
             'status' => PlatformProductStatus::Published,
             'base_price' => 2500,
             'sort_order' => 1,

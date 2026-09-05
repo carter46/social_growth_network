@@ -35,7 +35,7 @@ class AdminManualPurchaseTest extends TestCase
         $product = $this->forceCreatePlatformProduct([
             'title' => 'Test Hosting',
             'slug' => 'test-hosting-'.Str::lower(Str::random(4)),
-            'product_type' => PlatformProductType::Vpn,
+            'product_type' => PlatformProductType::SocialService,
             'status' => PlatformProductStatus::Published,
             'base_price' => 2500,
             'sort_order' => 1,
@@ -124,7 +124,7 @@ class AdminManualPurchaseTest extends TestCase
         $product = $this->forceCreatePlatformProduct([
             'title' => 'Banking Site',
             'slug' => 'banking-site-'.Str::lower(Str::random(4)),
-            'product_type' => PlatformProductType::WebsitePackage,
+            'product_type' => PlatformProductType::SocialService,
             'product_type_id' => $service->id,
             'status' => PlatformProductStatus::Published,
             'base_price' => 10000,

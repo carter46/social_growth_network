@@ -1,7 +1,10 @@
 <?php
 
+/**
+ * Legal copy uses :site_name — replaced at render time with branding site name.
+ */
 return [
-    'updated_at' => '2026-07-01',
+    'updated_at' => '2026-09-04',
 
     'contact' => [
         'email' => env('LEGAL_CONTACT_EMAIL'),
@@ -11,8 +14,8 @@ return [
         'terms' => [
             'label' => 'Terms of Service',
             'eyebrow' => 'Compliance & Legal',
-            'intro' => 'Please review the rules for using 7th Trade Hub — wallet, marketplace, services, and crypto exchange.',
-            'summary' => 'By using 7th Trade Hub you agree to our platform rules, KYC requirements where applicable, escrow marketplace policies, and wallet / exchange terms. This document was last updated July 2026.',
+            'intro' => 'Please review the rules for using :site_name — social media services, wallet, and checkout.',
+            'summary' => 'By using :site_name you agree to our platform rules, KYC requirements where applicable, and wallet / checkout terms. This document was last updated September 2026.',
             'sections' => [
                 [
                     'id' => 'acceptance',
@@ -20,7 +23,7 @@ return [
                     'title' => 'Acceptance of Terms',
                     'number' => '01',
                     'paragraphs' => [
-                        'By accessing or using 7th Trade Hub (“the Platform”), including the marketplace, digital services catalog, Naira wallet, and crypto-to-cash exchange, you confirm that you have read, understood, and agree to these Terms of Service.',
+                        'By accessing or using :site_name (“the Platform”), including the social media services catalog and Naira wallet, you confirm that you have read, understood, and agree to these Terms of Service.',
                         'If you do not agree, you must stop using the Platform. We may update these terms from time to time; continued use after changes are posted means you accept the updated terms.',
                     ],
                 ],
@@ -39,21 +42,21 @@ return [
                     ],
                 ],
                 [
-                    'id' => 'marketplace',
-                    'nav' => '3. Marketplace & Services',
-                    'title' => 'Marketplace & Digital Services',
+                    'id' => 'services',
+                    'nav' => '3. Social Media Services',
+                    'title' => 'Social Media Services',
                     'number' => '03',
                     'paragraphs' => [
-                        'The Platform lets users list and purchase digital goods and services, and browse platform-operated service products. Eligible marketplace purchases may use escrow until delivery is confirmed.',
+                        'The Platform sells platform-operated social media growth and engagement services (for example Instagram, TikTok, YouTube, Twitter/X, and Facebook packs).',
                     ],
                     'cards' => [
                         [
-                            'title' => 'Marketplace escrow',
-                            'body' => 'Funds for eligible orders are held until the buyer confirms delivery. Misuse of escrow or false delivery claims may lead to account action.',
+                            'title' => 'Platform services',
+                            'body' => 'Catalog products are fulfilled according to the product description and checkout terms shown at purchase. Purchased services appear in your dashboard under My Tools and My Orders.',
                         ],
                         [
-                            'title' => 'Platform services',
-                            'body' => 'Catalog products (network, social, websites, documents, and related plans) are fulfilled according to the product description and checkout terms shown at purchase.',
+                            'title' => 'No third-party marketplace',
+                            'body' => 'The Platform does not operate a peer-to-peer marketplace or escrow listings. All catalog products are sold by the Platform.',
                         ],
                     ],
                 ],
@@ -63,12 +66,12 @@ return [
                     'title' => 'Financial Transactions',
                     'number' => '04',
                     'paragraphs' => [
-                        'Wallet funding, withdrawals, marketplace checkout, and crypto sell requests are subject to verification, admin review where required, and applicable fees or network costs.',
+                        'Wallet funding, withdrawals, and service checkout are subject to verification, admin review where required, and applicable fees.',
                     ],
                     'bullets' => [
-                        'Sell rates shown on the Exchange page are estimates; the confirmed rate applies when your sell request is processed.',
-                        'You are responsible for providing correct bank or crypto destination details. We are not liable for losses from incorrect details you supply.',
-                        'Deposits, withdrawals, and crypto sells may take from minutes up to longer review windows depending on method and compliance checks.',
+                        'You may pay with wallet balance, card/transfer gateway, or manual bank transfer when those methods are enabled.',
+                        'You are responsible for providing correct bank details for deposits and withdrawals. We are not liable for losses from incorrect details you supply.',
+                        'Deposits and withdrawals may take from minutes up to longer review windows depending on method and compliance checks.',
                     ],
                 ],
                 [
@@ -81,9 +84,9 @@ return [
                         'You must not use the Platform for:',
                     ],
                     'blocks' => [
-                        'Fraud, phishing, or fake listings',
+                        'Fraud, phishing, or payment abuse',
                         'Money laundering or illegal payments',
-                        'Abuse of escrow or chargeback fraud',
+                        'Chargeback fraud or false claims',
                         'Scraping, attacks, or account takeover',
                     ],
                 ],
@@ -93,7 +96,7 @@ return [
                     'title' => 'Intellectual Property',
                     'number' => '06',
                     'paragraphs' => [
-                        'Platform software, branding, UI, and content remain the property of 7th Trade Hub and its licensors. You may not copy or redistribute them without permission, except as allowed by purchased product licenses.',
+                        'Platform software, branding, UI, and content remain the property of :site_name and its licensors. You may not copy or redistribute them without permission.',
                     ],
                 ],
                 [
@@ -102,17 +105,16 @@ return [
                     'title' => 'Limitation of Liability',
                     'number' => '07',
                     'paragraphs' => [
-                        'To the fullest extent permitted by law, 7th Trade Hub is not liable for indirect, incidental, or consequential damages arising from use of the Platform, including delays in funding, exchange processing, or third-party network issues.',
+                        'To the fullest extent permitted by law, :site_name is not liable for indirect, incidental, or consequential damages arising from use of the Platform. Service outcomes depend on product descriptions and third-party platform policies outside our control.',
                     ],
                 ],
                 [
                     'id' => 'contact',
                     'nav' => '8. Contact',
-                    'title' => 'Contact Information',
+                    'title' => 'Contact',
                     'number' => '08',
-                    'variant' => 'contact',
                     'paragraphs' => [
-                        'Questions about these Terms can be sent through a support ticket on the Platform.',
+                        'Questions about these terms can be sent via the Contact page or a support ticket in your dashboard.',
                     ],
                 ],
             ],
@@ -120,32 +122,26 @@ return [
 
         'privacy' => [
             'label' => 'Privacy Policy',
-            'eyebrow' => 'Compliance & Legal',
-            'intro' => 'How 7th Trade Hub collects, uses, and protects personal data across wallet, KYC, marketplace, and support workflows.',
-            'summary' => 'We collect account, transaction, and KYC data needed to run the Platform, prevent fraud, and meet legal obligations. We do not sell your personal data. This policy was last updated July 2026.',
+            'eyebrow' => 'Data & Privacy',
+            'intro' => 'How :site_name collects, uses, and protects your information when you use social media services and wallet features.',
+            'summary' => 'We collect account, KYC, and payment data needed to operate social media service purchases and your Naira wallet. This policy was last updated September 2026.',
             'sections' => [
                 [
                     'id' => 'collect',
-                    'nav' => '1. What We Collect',
-                    'title' => 'What We Collect',
+                    'nav' => '1. Information We Collect',
+                    'title' => 'Information We Collect',
                     'number' => '01',
                     'paragraphs' => [
-                        'Depending on how you use the Platform, we may collect:',
-                    ],
-                    'bullets' => [
-                        'Account details such as name, email, username, and contact information.',
-                        'KYC documents and verification status when required for wallet or compliance features.',
-                        'Transaction records (deposits, withdrawals, orders, crypto sells, and support tickets).',
-                        'Technical logs such as IP address, device/browser data, and security events.',
+                        'We may collect account details (name, email), KYC documents when required, payment and wallet transaction records, and technical logs needed for security and support.',
                     ],
                 ],
                 [
                     'id' => 'use',
-                    'nav' => '2. How We Use Data',
-                    'title' => 'How We Use Data',
+                    'nav' => '2. How We Use Information',
+                    'title' => 'How We Use Information',
                     'number' => '02',
                     'paragraphs' => [
-                        'We use personal data to operate and secure the Platform, process payments and escrow, complete KYC, respond to support requests, improve services, and comply with applicable law.',
+                        'We use your information to provide social media services, process payments, prevent fraud, meet compliance obligations, and support your account.',
                     ],
                 ],
                 [
@@ -154,44 +150,34 @@ return [
                     'title' => 'Sharing',
                     'number' => '03',
                     'paragraphs' => [
-                        'We share data only as needed with infrastructure and service providers (for example hosting, email, and payment processors), with counterparties as required to complete a trade you initiate, or when required by law or to protect the Platform and users.',
+                        'We may share data with payment processors, KYC providers, and service providers who help operate the Platform, under appropriate safeguards. We do not sell your personal data.',
                     ],
                 ],
                 [
-                    'id' => 'cookies',
-                    'nav' => '4. Cookies & Sessions',
-                    'title' => 'Cookies & Sessions',
+                    'id' => 'security-privacy',
+                    'nav' => '4. Security',
+                    'title' => 'Security',
                     'number' => '04',
                     'paragraphs' => [
-                        'We use essential cookies and session storage to keep you signed in, protect against CSRF, and maintain security. Disabling essential cookies may prevent the Platform from working correctly.',
-                    ],
-                ],
-                [
-                    'id' => 'retention',
-                    'nav' => '5. Retention & Security',
-                    'title' => 'Retention & Security',
-                    'number' => '05',
-                    'paragraphs' => [
-                        'We retain data as long as needed for the purposes above, including legal and accounting retention. We apply technical and organizational measures appropriate to the risk, but no method of transmission or storage is perfectly secure.',
+                        'We apply reasonable technical and organizational measures to protect your data. No method of transmission or storage is fully secure; please protect your login credentials.',
                     ],
                 ],
                 [
                     'id' => 'rights',
-                    'nav' => '6. Your Choices',
-                    'title' => 'Your Choices',
-                    'number' => '06',
+                    'nav' => '5. Your Rights',
+                    'title' => 'Your Rights',
+                    'number' => '05',
                     'paragraphs' => [
-                        'You may update profile information in your dashboard and contact support to request access, correction, or deletion where applicable law allows. Some records must be kept for compliance even after account closure.',
+                        'You may request access or correction of your account information via support, subject to legal retention requirements for payments and compliance records.',
                     ],
                 ],
                 [
-                    'id' => 'privacy-contact',
-                    'nav' => '7. Contact',
+                    'id' => 'contact-privacy',
+                    'nav' => '6. Contact',
                     'title' => 'Contact',
-                    'number' => '07',
-                    'variant' => 'contact',
+                    'number' => '06',
                     'paragraphs' => [
-                        'Privacy questions can be raised through a support ticket on the Platform.',
+                        'Privacy questions can be sent via the Contact page or a support ticket in your dashboard.',
                     ],
                 ],
             ],

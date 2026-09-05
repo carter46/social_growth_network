@@ -30,7 +30,7 @@ class CatalogHierarchyTest extends TestCase
 
         $product = $this->forceCreatePlatformProduct([
             'product_type_id' => $service->id,
-            'product_type' => PlatformProductType::Vpn,
+            'product_type' => PlatformProductType::SocialService,
             'title' => 'Residential VPN Demo',
             'slug' => $slug,
             'short_description' => 'Test VPN product',
@@ -61,7 +61,7 @@ class CatalogHierarchyTest extends TestCase
     public function test_backfill_is_idempotent_and_links_products(): void
     {
         $this->forceCreatePlatformProduct([
-            'product_type' => PlatformProductType::Vpn,
+            'product_type' => PlatformProductType::SocialService,
             'title' => 'Legacy VPN',
             'slug' => 'legacy-vpn-link',
             'status' => PlatformProductStatus::Draft,
@@ -157,7 +157,7 @@ class CatalogHierarchyTest extends TestCase
 
         $this->forceCreatePlatformProduct([
             'product_type_id' => $emailService->id,
-            'product_type' => PlatformProductType::Email,
+            'product_type' => PlatformProductType::SocialService,
             'title' => 'Email Only Product',
             'slug' => 'email-only-filter',
             'status' => PlatformProductStatus::Draft,

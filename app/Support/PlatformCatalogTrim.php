@@ -32,11 +32,14 @@ class PlatformCatalogTrim
 
         $config = config('platform_products', []);
         $removed = [];
+        $allowedTypes = [];
 
         foreach ($config as $typeSlug => $keepSlugs) {
             if ($typeSlug === 'retired_services' || ! is_array($keepSlugs)) {
                 continue;
             }
+
+            $allowedTypes[] = $typeSlug;
 
             $query = DB::table('platform_products')->where('product_type', $typeSlug);
 
@@ -52,19 +55,6 @@ class PlatformCatalogTrim
                 continue;
             }
 
-            if ($typeSlug === 'domain') {
-                $drafted = DB::table('platform_products')
-                    ->where('product_type', $typeSlug)
-                    ->whereNotIn('slug', $keepSlugs)
-                    ->update([
-                        'status' => 'draft',
-                        'updated_at' => now(),
-                    ]);
-                $removed[$typeSlug] = $drafted;
-
-                continue;
-            }
-
             if (Schema::hasTable('favorites')) {
                 DB::table('favorites')
                     ->where('favoritable_type', PlatformProduct::class)
@@ -75,6 +65,26 @@ class PlatformCatalogTrim
             $removed[$typeSlug] = DB::table('platform_products')
                 ->whereIn('id', $productIds)
                 ->delete();
+        }
+
+        // Delete products whose type is not in the allow-list at all
+        if ($allowedTypes !== []) {
+            $orphanIds = DB::table('platform_products')
+                ->whereNotIn('product_type', $allowedTypes)
+                ->pluck('id');
+
+            if ($orphanIds->isNotEmpty()) {
+                if (Schema::hasTable('favorites')) {
+                    DB::table('favorites')
+                        ->where('favoritable_type', PlatformProduct::class)
+                        ->whereIn('favoritable_id', $orphanIds)
+                        ->delete();
+                }
+
+                $removed['_orphaned_types'] = DB::table('platform_products')
+                    ->whereIn('id', $orphanIds)
+                    ->delete();
+            }
         }
 
         return $removed;

@@ -2,11 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\CryptoSellRequest;
 use App\Models\DomainRegistration;
-use App\Models\Listing;
-use App\Models\Message;
-use App\Models\Order;
 use App\Models\PlatformProduct;
 use App\Models\UserTool;
 use Illuminate\Http\RedirectResponse;
@@ -43,15 +39,6 @@ class DashboardController extends Controller
             ->limit(4)
             ->get();
 
-        $messagesCount = Message::where('to_user_id', $user->id)->whereNull('read_at')->count();
-        $myListingsCount = $user->listings()->count();
-
-        $openCryptoSell = CryptoSellRequest::query()
-            ->where('user_id', $user->id)
-            ->whereIn('status', CryptoSellRequest::OPEN_STATUSES)
-            ->orderByDesc('id')
-            ->first();
-
         return view('dashboard.user.overview', [
             'wallet' => $wallet,
             'balanceNgn' => $balanceNgn,
@@ -60,11 +47,8 @@ class DashboardController extends Controller
             'activeOrdersCount' => $activeOrdersCount,
             'ordersAwaitingLabel' => $ordersAwaiting > 0 ? "{$ordersAwaiting} in progress" : 'All caught up',
             'myToolsCount' => $myToolsCount,
-            'messagesCount' => $messagesCount,
-            'myListingsCount' => $myListingsCount,
             'featuredServices' => $featuredServices,
             'kycLevel' => $user->kyc_level,
-            'openCryptoSell' => $openCryptoSell,
         ]);
     }
 
@@ -87,35 +71,19 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function listings(): View
-    {
-        $listings = auth()->user()
-            ->listings()
-            ->orderByDesc('updated_at')
-            ->paginate(12);
-
-        return view('dashboard.user.listings', [
-            'listings' => $listings,
-        ]);
-    }
-
-    public function orders(): View
-    {
-        return $this->ordersForSource('marketplace', [
-            'title' => 'Marketplace orders',
-            'subtitle' => 'Purchases from marketplace listings.',
-            'breadcrumbParent' => ['Marketplace', route('dashboard.marketplace')],
-            'emptyTitle' => 'No marketplace orders yet',
-            'emptyDescription' => 'When you buy a listing, it will appear here with escrow tracking.',
-            'emptyAction' => ['href' => route('dashboard.marketplace'), 'label' => 'Browse marketplace'],
-        ]);
-    }
-
     public function serviceOrders(): View
     {
-        return $this->ordersForSource('platform', [
+        $orders = auth()->user()
+            ->orders()
+            ->where('source', 'platform')
+            ->with(['items.variant', 'domainRegistrations'])
+            ->orderByDesc('created_at')
+            ->paginate(15);
+
+        return view('dashboard.user.orders', [
+            'orders' => $orders,
+            'source' => 'platform',
             'title' => 'My Orders',
-            'subtitle' => 'Purchases from platform services.',
             'breadcrumbParent' => ['Services', route('dashboard.services')],
             'emptyTitle' => 'No service orders yet',
             'emptyDescription' => 'When you buy a platform service, it will appear here.',
@@ -123,54 +91,13 @@ class DashboardController extends Controller
         ]);
     }
 
-    /**
-     * @param  array{title: string, subtitle: string, breadcrumbParent: array{0: string, 1: string}, emptyTitle: string, emptyDescription: string, emptyAction: array{href: string, label: string}}  $meta
-     */
-    private function ordersForSource(string $source, array $meta): View
+    public function social(): RedirectResponse
     {
-        $orders = auth()->user()
-            ->orders()
-            ->where('source', $source)
-            ->with(['listing', 'escrow', 'review', 'items.variant', 'domainRegistrations'])
-            ->orderByDesc('created_at')
-            ->paginate(15);
-
-        return view('dashboard.user.orders', [
-            'orders' => $orders,
-            'source' => $source,
-            ...$meta,
-        ]);
+        return redirect()->route('dashboard.services');
     }
 
-    public function sales(): View
+    public function documents(): RedirectResponse
     {
-        $orders = Order::query()
-            ->whereHas('listing', fn ($q) => $q->withTrashed()->where('user_id', auth()->id()))
-            ->with(['listing' => fn ($q) => $q->withTrashed(), 'escrow', 'user'])
-            ->orderByDesc('created_at')
-            ->paginate(15);
-
-        return view('dashboard.user.sales', [
-            'orders' => $orders,
-        ]);
-    }
-
-    public function exchange(): RedirectResponse
-    {
-        return redirect()->route('dashboard.crypto-sell.index');
-    }
-
-    public function social(): View
-    {
-        $items = Listing::published()->where('category', 'social')->limit(12)->get();
-
-        return view('dashboard.user.social', ['items' => $items]);
-    }
-
-    public function documents(): View
-    {
-        $templates = Listing::published()->where('category', 'document')->limit(12)->get();
-
-        return view('dashboard.user.documents', ['templates' => $templates]);
+        return redirect()->route('dashboard.services');
     }
 }

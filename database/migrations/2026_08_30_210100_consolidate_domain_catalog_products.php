@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\PlatformProductStatus;
-use App\Enums\PlatformProductType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -18,7 +17,7 @@ return new class extends Migration
         $retireSlugs = ['com-domain-registration', 'io-domain-registration', 'co-domain-registration'];
 
         DB::table('platform_products')
-            ->where('product_type', PlatformProductType::Domain->value)
+            ->where('product_type', 'domain')
             ->whereIn('slug', $retireSlugs)
             ->update(['status' => PlatformProductStatus::Draft->value]);
 
@@ -39,7 +38,7 @@ return new class extends Migration
         }
 
         $template = DB::table('platform_products')
-            ->where('product_type', PlatformProductType::Domain->value)
+            ->where('product_type', 'domain')
             ->orderBy('id')
             ->first();
 
@@ -50,7 +49,7 @@ return new class extends Migration
         DB::table('platform_products')->insert([
             'title' => 'Domain Registration',
             'slug' => 'domain-registration',
-            'product_type' => PlatformProductType::Domain->value,
+            'product_type' => 'domain',
             'product_type_id' => $template->product_type_id,
             'platform_category_id' => $template->platform_category_id ?? null,
             'short_description' => 'Search and register your domain name.',

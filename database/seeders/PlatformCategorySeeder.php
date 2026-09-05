@@ -11,67 +11,9 @@ class PlatformCategorySeeder extends Seeder
     public function run(): void
     {
         $trees = [
-            PlatformProductType::WebsiteTemplate->value => [
-                ['name' => 'Corporate', 'slug' => 'wt-corporate'],
-                ['name' => 'Agency', 'slug' => 'wt-agency'],
-                ['name' => 'Law', 'slug' => 'wt-law'],
-                ['name' => 'Restaurant', 'slug' => 'wt-restaurant'],
-                ['name' => 'Medical', 'slug' => 'wt-medical'],
-            ],
-            PlatformProductType::WebsitePackage->value => [
-                ['name' => 'Starter Sites', 'slug' => 'wp-starter'],
-                ['name' => 'Business Sites', 'slug' => 'wp-business'],
-                ['name' => 'E-commerce Sites', 'slug' => 'wp-ecommerce'],
-            ],
-            PlatformProductType::Receipt->value => [
-                ['name' => 'Invoice', 'slug' => 'rc-invoice'],
-                ['name' => 'Payment', 'slug' => 'rc-payment'],
-                ['name' => 'Sales', 'slug' => 'rc-sales'],
-            ],
-            PlatformProductType::Document->value => [
-                ['name' => 'HR', 'slug' => 'doc-hr'],
-                ['name' => 'Legal', 'slug' => 'doc-legal'],
-                ['name' => 'Contracts', 'slug' => 'doc-contract'],
-            ],
-            PlatformProductType::Vpn->value => [
-                ['name' => 'Residential', 'slug' => 'vpn-residential'],
-                ['name' => 'Business', 'slug' => 'vpn-business'],
-                ['name' => 'Gaming', 'slug' => 'vpn-gaming'],
-                ['name' => 'Dedicated', 'slug' => 'vpn-dedicated'],
-            ],
-            PlatformProductType::VirtualPhone->value => [
-                ['name' => 'US Numbers', 'slug' => 'phone-us'],
-                ['name' => 'UK Numbers', 'slug' => 'phone-uk'],
-                ['name' => 'NG Numbers', 'slug' => 'phone-ng'],
-            ],
-            PlatformProductType::Vps->value => [
-                ['name' => 'Shared VPS', 'slug' => 'vps-shared'],
-                ['name' => 'Dedicated VPS', 'slug' => 'vps-dedicated'],
-            ],
-            PlatformProductType::Proxy->value => [
-                ['name' => 'Datacenter', 'slug' => 'proxy-datacenter'],
-                ['name' => 'Residential', 'slug' => 'proxy-residential'],
-                ['name' => 'Mobile', 'slug' => 'proxy-mobile'],
-            ],
-            PlatformProductType::Smtp->value => [
-                ['name' => 'Transactional', 'slug' => 'smtp-transactional'],
-                ['name' => 'Marketing', 'slug' => 'smtp-marketing'],
-            ],
-            PlatformProductType::Email->value => [
-                ['name' => 'Business Mail', 'slug' => 'email-business'],
-                ['name' => 'Team Mail', 'slug' => 'email-team'],
-            ],
             PlatformProductType::SocialService->value => [
                 ['name' => 'Growth', 'slug' => 'social-growth'],
                 ['name' => 'Engagement', 'slug' => 'social-engagement'],
-            ],
-            PlatformProductType::Domain->value => [
-                ['name' => 'Registration', 'slug' => 'domain-registration'],
-                ['name' => 'Transfer', 'slug' => 'domain-transfer'],
-            ],
-            PlatformProductType::EscrowService->value => [
-                ['name' => 'Standard', 'slug' => 'escrow-standard'],
-                ['name' => 'High Value', 'slug' => 'escrow-high-value'],
             ],
         ];
 

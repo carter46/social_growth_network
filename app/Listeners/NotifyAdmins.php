@@ -2,9 +2,6 @@
 
 namespace App\Listeners;
 
-use App\Events\EscrowDisputed;
-use App\Events\ListingApproved;
-use App\Events\ListingRejected;
 use App\Events\OrderCompleted;
 use App\Events\OrderManualBankTransferPaymentFailed;
 use App\Events\OrderManualBankTransferSubmitted;
@@ -40,15 +37,6 @@ class NotifyAdmins
     public function handle(object $event): void
     {
         $payload = match ($event::class) {
-            EscrowDisputed::class => [
-                'type' => 'escrow.disputed',
-                'title' => 'Escrow dispute opened',
-                'body' => 'Order #'.$event->orderId.' has a new dispute.',
-                'actionUrl' => Route::has('admin.escrows') ? route('admin.escrows') : null,
-                'meta' => ['order_id' => $event->orderId, 'event' => $event::class],
-                'permission' => 'finance.manage',
-                'dedupeKey' => 'escrow.disputed.'.$event->orderId.'.'.now()->toDateString(),
-            ],
             TicketOpened::class => [
                 'type' => 'ticket.opened',
                 'title' => 'New support ticket',
@@ -66,24 +54,6 @@ class NotifyAdmins
                 'meta' => ['ticket_id' => $event->ticketId, 'replier_id' => $event->replierId, 'event' => $event::class],
                 'permission' => 'support.manage',
                 'dedupeKey' => 'ticket.replied.'.$event->ticketId.'.'.$event->replierId,
-            ],
-            ListingRejected::class => [
-                'type' => 'listing.rejected',
-                'title' => 'Listing rejected',
-                'body' => 'Listing #'.$event->listingId.' was rejected during review.',
-                'actionUrl' => Route::has('admin.listings') ? route('admin.listings') : null,
-                'meta' => ['listing_id' => $event->listingId, 'event' => $event::class],
-                'permission' => 'catalog.manage',
-                'dedupeKey' => null,
-            ],
-            ListingApproved::class => [
-                'type' => 'listing.approved',
-                'title' => 'Listing approved',
-                'body' => 'Listing #'.$event->listingId.' was approved.',
-                'actionUrl' => Route::has('admin.listings') ? route('admin.listings') : null,
-                'meta' => ['listing_id' => $event->listingId, 'event' => $event::class],
-                'permission' => 'catalog.manage',
-                'dedupeKey' => null,
             ],
             UserRegistered::class => $this->userRegisteredPayload($event),
             UserVerified::class => $this->userVerifiedPayload($event),

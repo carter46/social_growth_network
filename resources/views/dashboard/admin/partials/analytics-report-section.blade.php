@@ -59,7 +59,7 @@
                 'label' => 'GMV',
                 'value' => '₦' . number_format($data['gmv'] ?? 0, 2),
                 'accent' => 'blue',
-                'hint' => 'marketplace volume',
+                'hint' => 'platform order volume',
             ],
         ];
     @endphp
@@ -97,44 +97,23 @@
         />
     </div>
 
-@elseif ($section === 'marketplace')
-    <x-dashboard.command.section-label title="Business — Marketplace" accent="indigo" />
+@elseif ($section === 'services')
+    <x-dashboard.command.section-label title="Business — Services" accent="emerald" />
     @php
         $pulse = [
-            ['label' => 'Active listings', 'value' => number_format($data['listings_active'] ?? 0), 'accent' => 'indigo', 'href' => route('admin.listings')],
-            ['label' => 'New listings', 'value' => number_format($data['listings_new'] ?? 0), 'accent' => 'blue', 'hint' => 'in selected range', 'href' => route('admin.listings')],
+            ['label' => 'Service orders', 'value' => number_format($data['service_orders'] ?? 0), 'accent' => 'emerald', 'href' => route('admin.orders')],
+            ['label' => 'Platform transactions', 'value' => number_format($data['platform_transactions'] ?? 0), 'accent' => 'indigo', 'href' => route('admin.transactions')],
         ];
     @endphp
-    <x-dashboard.command.pulse-grid :items="$pulse" class="mb-6 xl:!grid-cols-3" />
+    <x-dashboard.command.pulse-grid :items="$pulse" class="xl:!grid-cols-3" />
     @if (! empty($productMetrics['metrics']))
         <x-dashboard.command.hero-chart
             title="Top product metrics"
             :labels="collect($productMetrics['metrics'])->pluck('metric_key')->all()"
             :values="collect($productMetrics['metrics'])->pluck('total')->all()"
-            id="analytics-marketplace-chart"
+            id="analytics-services-chart"
         />
     @endif
-
-@elseif ($section === 'services')
-    <x-dashboard.command.section-label title="Business — Services" accent="emerald" />
-    @php
-        $pulse = [
-            ['label' => 'Service orders', 'value' => number_format($data['service_orders'] ?? 0), 'accent' => 'emerald', 'href' => route('admin.transactions')],
-            ['label' => 'Platform transactions', 'value' => number_format($data['platform_transactions'] ?? 0), 'accent' => 'indigo', 'href' => route('admin.transactions')],
-        ];
-    @endphp
-    <x-dashboard.command.pulse-grid :items="$pulse" class="xl:!grid-cols-3" />
-
-@elseif ($section === 'escrows')
-    <x-dashboard.command.section-label title="Business — Escrows" accent="indigo" />
-    @php
-        $pulse = [
-            ['label' => 'Pending', 'value' => number_format($data['pending'] ?? 0), 'accent' => 'amber', 'href' => route('admin.escrows')],
-            ['label' => 'Opened', 'value' => number_format($data['opened_in_range'] ?? 0), 'accent' => 'indigo', 'hint' => 'in selected range', 'href' => route('admin.escrows')],
-            ['label' => 'Released', 'value' => number_format($data['released_in_range'] ?? 0), 'accent' => 'emerald', 'hint' => 'in selected range', 'href' => route('admin.escrows')],
-        ];
-    @endphp
-    <x-dashboard.command.pulse-grid :items="$pulse" class="xl:!grid-cols-3" />
 
 @elseif ($section === 'users')
     <x-dashboard.command.section-label title="Business — Users" accent="blue" />

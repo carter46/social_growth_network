@@ -5,7 +5,6 @@ namespace Tests\Feature\Admin;
 use App\Events\TicketOpened;
 use App\Models\AdminNotification;
 use App\Models\AnalyticsKpiSnapshot;
-use App\Models\Listing;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Models\UserNotification;
@@ -19,37 +18,6 @@ use Tests\TestCase;
 class AnalyticsOpsAuditFixesTest extends TestCase
 {
     use RefreshDatabase;
-
-    public function test_soft_deleted_listing_is_reachable_in_admin_trash(): void
-    {
-        $admin = User::factory()->create(['email_verified_at' => now()]);
-        $admin->assignRole('admin');
-
-        $seller = User::factory()->create(['email_verified_at' => now()]);
-        $seller->assignRole('user');
-
-        $listing = Listing::factory()->create([
-            'user_id' => $seller->id,
-            'status' => 'suspended',
-            'is_active' => false,
-        ]);
-        $listing->delete();
-
-        $this->actingAs($admin)
-            ->get(route('admin.listings', ['status' => 'trash']))
-            ->assertOk()
-            ->assertSee($listing->title);
-
-        $this->actingAs($admin)
-            ->get(route('admin.listings.show', $listing))
-            ->assertOk();
-
-        $this->actingAs($admin)
-            ->post(route('admin.listings.restore', $listing))
-            ->assertRedirect();
-
-        $this->assertFalse($listing->fresh()->trashed());
-    }
 
     public function test_kyc_tab_partial_uses_dashboard_tab_header(): void
     {
@@ -128,22 +96,11 @@ class AnalyticsOpsAuditFixesTest extends TestCase
         $this->assertDatabaseHas('support_tickets', ['subject' => 'Need help']);
     }
 
-    public function test_overview_uses_snapshots_not_live_pending_listings_count(): void
+    public function test_overview_uses_snapshots_for_support_waiting(): void
     {
         $admin = User::factory()->create(['email_verified_at' => now()]);
         $admin->assignRole('admin');
 
-        Listing::factory()->create([
-            'status' => 'pending_review',
-            'is_active' => false,
-        ]);
-
-        AnalyticsKpiSnapshot::create([
-            'kpi_key' => 'listings.pending_review',
-            'period' => 'current',
-            'value' => 7,
-            'captured_at' => now(),
-        ]);
         AnalyticsKpiSnapshot::create([
             'kpi_key' => 'revenue.today',
             'period' => 'today',
@@ -163,12 +120,6 @@ class AnalyticsOpsAuditFixesTest extends TestCase
             'captured_at' => now(),
         ]);
         AnalyticsKpiSnapshot::create([
-            'kpi_key' => 'escrows.pending',
-            'period' => 'current',
-            'value' => 0,
-            'captured_at' => now(),
-        ]);
-        AnalyticsKpiSnapshot::create([
             'kpi_key' => 'support.waiting',
             'period' => 'current',
             'value' => 3,
@@ -178,7 +129,7 @@ class AnalyticsOpsAuditFixesTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin'))
             ->assertOk()
-            ->assertViewHas('pendingListings', 7);
+            ->assertViewHas('supportWaiting', 3);
     }
 
     public function test_analytics_section_acl_blocks_finance_without_permission(): void

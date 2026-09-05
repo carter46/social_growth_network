@@ -32,7 +32,7 @@
         ['label' => 'Help Center'],
     ],
     'title' => 'Help Center',
-    'subtitle' => 'Search our knowledge base or get in touch with support for wallet, exchange, services, and marketplace help.',
+    'subtitle' => 'Search our knowledge base or get in touch with support for wallet, services, and account help.',
     'image' => 'assets/images/helpcenter.jpg',
 ])
 

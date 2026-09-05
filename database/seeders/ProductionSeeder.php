@@ -13,7 +13,6 @@ class ProductionSeeder extends Seeder
         $this->call([
             RoleSeeder::class,
             SystemSettingSeeder::class,
-            CategorySeeder::class,
         ]);
 
         // Legacy flavor categories (optional; dropped by cleanup migration).
@@ -23,9 +22,7 @@ class ProductionSeeder extends Seeder
 
         $this->call([
             PlatformCatalogSeeder::class,
-            ExchangeRateSeeder::class,
             PlatformWalletSeeder::class,
-            MarketplaceListingSeeder::class,
         ]);
 
         if (Schema::hasTable('service_categories')) {

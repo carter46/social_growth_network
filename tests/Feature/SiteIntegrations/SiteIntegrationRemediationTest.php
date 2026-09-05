@@ -53,7 +53,7 @@ class SiteIntegrationRemediationTest extends TestCase
         $product = $this->forceCreatePlatformProduct([
             'title' => 'Website Package '.Str::random(4),
             'slug' => 'website-pkg-'.Str::lower(Str::random(6)),
-            'product_type' => PlatformProductType::WebsitePackage,
+            'product_type' => PlatformProductType::SocialService,
             'product_type_id' => $service->id,
             'status' => PlatformProductStatus::Published,
             'base_price' => 10000,

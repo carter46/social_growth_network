@@ -88,7 +88,7 @@ class DashboardController extends Controller
                 'marketing' => [],
             ];
 
-            if ($sec === 'marketplace' && $user?->can('catalog.manage')) {
+            if ($sec === 'services' && $user?->can('catalog.manage')) {
                 $bundle['productMetrics'] = app(\App\Services\Analytics\ProductAnalyticsProvider::class)
                     ->topMetrics((int) ($range['days'] ?? 30));
             }
@@ -189,7 +189,7 @@ class DashboardController extends Controller
 
         $pulse = $overview['pulse'] ?? [];
         $growth = $overview['growth'] ?? [];
-        $pendingListings = (int) ($pulse['pending_listings'] ?? 0);
+        $supportWaiting = (int) ($pulse['support_waiting'] ?? 0);
 
         // Align prior series length to current for Chart.js compare line.
         if (isset($growth['revenue']['values'], $growth['revenue_prior']['values'])) {
@@ -230,8 +230,8 @@ class DashboardController extends Controller
             'recentTransactions' => $canFinance ? $this->reporting->recentTransactions(5) : [],
             'recentAudit' => $canSystem ? $this->reporting->recentAudit(5) : [],
             'health' => $canSystem ? app(\App\Services\Reporting\SystemHealthService::class)->snapshot() : ['rings' => [], 'metrics' => []],
-            'quickActions' => $this->quickActions($pendingListings),
-            'pendingListings' => $pendingListings,
+            'quickActions' => $this->quickActions(),
+            'supportWaiting' => $supportWaiting,
         ];
     }
 
@@ -354,16 +354,16 @@ class DashboardController extends Controller
         }
 
         if ($canFinance) {
-            $esc = (int) ($pulse['pending_escrows'] ?? 0);
+            $withdrawals = (int) ($pulse['pending_withdrawals'] ?? 0);
             $items[] = [
-                'label' => 'Pending Escrows',
-                'value' => number_format($esc),
+                'label' => 'Pending Withdrawals',
+                'value' => number_format($withdrawals),
                 'accent' => 'indigo',
-                'description' => '₦'.number_format((float) ($pulse['escrow_locked_ngn'] ?? 0), 0).' locked',
-                'badge' => $esc > 0
+                'description' => 'Awaiting admin review',
+                'badge' => $withdrawals > 0
                     ? ['label' => 'Active', 'class' => 'bg-indigo-50 text-indigo-700']
                     : null,
-                'href' => route('admin.escrows'),
+                'href' => route('admin.withdrawals'),
             ];
         }
 
@@ -378,14 +378,6 @@ class DashboardController extends Controller
                     ? ['label' => 'Busy', 'class' => 'bg-red-50 text-red-600']
                     : ['label' => 'Queue', 'class' => 'bg-orange-50 text-orange-700'],
                 'href' => route('admin.tickets'),
-            ];
-        } elseif ($canCatalog && count($items) < 6) {
-            $items[] = [
-                'label' => 'Pending Listings',
-                'value' => number_format((int) ($pulse['pending_listings'] ?? 0)),
-                'accent' => 'amber',
-                'description' => 'Review queue',
-                'href' => route('admin.listings', ['status' => 'pending']),
             ];
         }
 
@@ -441,7 +433,7 @@ class DashboardController extends Controller
     /**
      * @return list<array{title: string, subtitle: string|null, href: string, icon: string, accent: string}>
      */
-    private function quickActions(int $pendingListings): array
+    private function quickActions(): array
     {
         $user = auth()->user();
 
@@ -455,16 +447,6 @@ class DashboardController extends Controller
                 'permission' => 'catalog.manage',
             ],
             [
-                'title' => 'Approve Listings',
-                'subtitle' => $pendingListings > 0
-                    ? "{$pendingListings} listing(s) awaiting review."
-                    : 'Review marketplace submissions.',
-                'href' => route('admin.listings', ['status' => 'pending']),
-                'icon' => 'inventory',
-                'accent' => 'blue',
-                'permission' => 'catalog.manage',
-            ],
-            [
                 'title' => 'Review KYC',
                 'subtitle' => 'Identity verification queue.',
                 'href' => route('admin.kyc', ['status' => 'pending']),
@@ -473,11 +455,11 @@ class DashboardController extends Controller
                 'permission' => 'compliance.manage',
             ],
             [
-                'title' => 'Review Escrows',
-                'subtitle' => 'Held funds awaiting release.',
-                'href' => route('admin.escrows'),
-                'icon' => 'lock',
-                'accent' => 'indigo',
+                'title' => 'Platform Orders',
+                'subtitle' => 'Service purchases and manual payments.',
+                'href' => route('admin.orders'),
+                'icon' => 'orders',
+                'accent' => 'blue',
                 'permission' => 'finance.manage',
             ],
         ];

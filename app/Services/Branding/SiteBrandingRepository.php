@@ -25,13 +25,13 @@ class SiteBrandingRepository
     {
         return Cache::remember(self::CACHE_KEY, 3600, function () {
             return [
-                'site_name' => (string) SystemSetting::get('site_name', config('app.name', '7th Trade Hub')),
-                'site_short_name' => (string) SystemSetting::get('site_short_name', 'Trade Hub'),
-                'heading' => (string) SystemSetting::get('site_heading', 'The Ultimate Digital Service Marketplace'),
-                'tagline' => (string) SystemSetting::get('site_tagline', 'Connecting markets, empowering traders.'),
+                'site_name' => (string) SystemSetting::get('site_name', config('app.name', 'Social Growth Network')),
+                'site_short_name' => (string) SystemSetting::get('site_short_name', 'Social Growth'),
+                'heading' => (string) SystemSetting::get('site_heading', 'Grow your social presence'),
+                'tagline' => (string) SystemSetting::get('site_tagline', 'Instagram, TikTok, YouTube, Twitter/X, and Facebook growth packs — clear deliverables, secure checkout.'),
                 'meta_description' => (string) SystemSetting::get(
                     'site_meta_description',
-                    'NGN wallet marketplace. Deposit, buy with escrow, sell digital products and services.'
+                    'Buy social media growth and engagement services. Secure checkout with wallet or card.'
                 ),
                 'favicon_media_id' => $this->nullableInt(SystemSetting::get('favicon_media_id')),
                 'logo_light_media_id' => $this->nullableInt(SystemSetting::get('logo_light_media_id')),

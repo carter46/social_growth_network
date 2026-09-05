@@ -12,35 +12,21 @@ use App\Http\Controllers\Account\AccountController;
 use App\Http\Controllers\Dashboard\ManualOrderPaymentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Dev\DevUiController;
-use App\Http\Controllers\IntegrationDocsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\SitemapController;
 use App\Modules\Admin\Http\Controllers\AuditLogController;
-use App\Modules\Admin\Http\Controllers\CryptoSellController as AdminCryptoSellController;
-use App\Modules\Admin\Http\Controllers\CryptoDepositWalletController;
-use App\Modules\Admin\Http\Controllers\IncomingDepositController;
 use App\Modules\Admin\Http\Controllers\OrderAdminController;
-use App\Modules\Admin\Http\Controllers\EscrowController as AdminEscrowController;
 use App\Modules\Admin\Http\Controllers\KycController as AdminKycController;
-use App\Modules\Admin\Http\Controllers\ListingAdminController;
 use App\Modules\Admin\Http\Controllers\SettingsController as AdminSettingsController;
-use App\Modules\Admin\Http\Controllers\BlockchainMonitoringController;
 use App\Modules\Admin\Http\Controllers\TrackingSettingsController;
 use App\Modules\Admin\Http\Controllers\SupportTicketAdminController;
 use App\Modules\Admin\Http\Controllers\WalletAdjustmentController;
 use App\Modules\Admin\Http\Controllers\WalletFundingController as AdminWalletFundingController;
 use App\Modules\Admin\Http\Controllers\WithdrawalAdminController;
-use App\Modules\Marketplace\Http\Controllers\CheckoutController;
-use App\Modules\Marketplace\Http\Controllers\ListingController;
-use App\Modules\Marketplace\Http\Controllers\MarketplaceController;
-use App\Modules\Marketplace\Http\Controllers\MessageController;
-use App\Modules\Marketplace\Http\Controllers\NotificationController as UserNotificationController;
-use App\Modules\Marketplace\Http\Controllers\ReviewController;
-use App\Modules\Marketplace\Http\Controllers\WatchlistController;
+use App\Http\Controllers\Dashboard\NotificationController as UserNotificationController;
 use App\Modules\Support\Http\Controllers\SupportTicketController;
 use App\Modules\Wallet\Http\Controllers\BankAccountController;
-use App\Modules\Wallet\Http\Controllers\CryptoSellController;
 use App\Modules\Wallet\Http\Controllers\DepositController;
 use App\Modules\Wallet\Http\Controllers\HistoryController;
 use App\Modules\Wallet\Http\Controllers\KycController;
@@ -48,16 +34,14 @@ use App\Modules\Wallet\Http\Controllers\WalletController;
 use App\Modules\Wallet\Http\Controllers\WithdrawalController;
 use App\Http\Controllers\Webhooks\MonnifyWebhookController;
 use App\Modules\Admin\Http\Controllers\ReconciliationController;
-use App\Modules\Wallet\Services\CryptoPriceService;
 use Illuminate\Support\Facades\Route;
 
 if (app()->environment('local')) {
     Route::get('/dev/ui', [DevUiController::class, 'index'])->name('dev.ui');
 }
 
-Route::get('/', function (CryptoPriceService $prices, \App\Modules\Catalog\Services\CatalogBrowseService $browse, \App\Modules\Catalog\Services\CatalogContentResolver $catalogContent) {
+Route::get('/', function (\App\Modules\Catalog\Services\CatalogBrowseService $browse, \App\Modules\Catalog\Services\CatalogContentResolver $catalogContent) {
     return view('pages.home', [
-        'cryptoPrices' => $prices->getPrices(),
         'ecosystemItems' => $browse->homeEcosystemItems($catalogContent),
     ]);
 })->name('home');
@@ -104,43 +88,29 @@ Route::get('/legal', function (\Illuminate\Http\Request $request) {
         $doc = 'terms';
     }
 
+    $siteName = app(\App\Services\Branding\SiteBrandingRepository::class)->siteName();
+    $document = $documents[$doc] ?? [];
+
+    array_walk_recursive($document, function (&$value) use ($siteName): void {
+        if (is_string($value)) {
+            $value = str_replace(':site_name', $siteName, $value);
+        }
+    });
+
     return view('pages.legal', [
         'activeDoc' => $doc,
-        'document' => $documents[$doc] ?? [],
+        'document' => $document,
     ]);
 })->name('legal');
 Route::redirect('/terms', '/legal?doc=terms')->name('terms');
 Route::redirect('/privacy', '/legal?doc=privacy')->name('privacy');
 
-Route::prefix('developers/integrations')->name('developers.integrations.')->group(function (): void {
-    Route::get('/', [IntegrationDocsController::class, 'index'])->name('index');
-    Route::redirect('/samples', '/developers/integrations/samples/README')->name('samples');
-    Route::get('/download/{path}', [IntegrationDocsController::class, 'download'])
-        ->where('path', '.+')
-        ->name('download');
-    Route::get('/{path}', [IntegrationDocsController::class, 'show'])
-        ->where('path', '.+')
-        ->name('show');
-});
+Route::redirect('/developers/integrations', '/help', 301);
+Route::redirect('/developers/integrations/{path}', '/help', 301)->where('path', '.+');
 
-Route::middleware('marketplace.public')->group(function (): void {
-    Route::get('/marketplace', [MarketplaceController::class, 'index'])->name('marketplace');
-    Route::get('/marketplace/suggestions', [MarketplaceController::class, 'suggestions'])
-        ->middleware('throttle:60,1')
-        ->name('marketplace.suggestions');
-    Route::get('/marketplace/{slug}/checkout', [MarketplaceController::class, 'checkout'])
-        ->middleware('auth')
-        ->where('slug', '[A-Za-z0-9\-_]+')
-        ->name('marketplace.checkout');
-    Route::get('/marketplace/{category}/{product}', [MarketplaceController::class, 'pair'])
-        ->where('category', '[a-z0-9\-_]+')
-        ->where('product', '[a-z0-9\-_]+')
-        ->name('marketplace.product');
-    Route::get('/marketplace/{segment}', [MarketplaceController::class, 'segment'])
-        ->where('segment', '[A-Za-z0-9\-_]+')
-        ->name('marketplace.show');
-});
-Route::redirect('/marketplace/web-services', '/services')->name('marketplace.web-services');
+Route::redirect('/marketplace', '/services', 301);
+Route::redirect('/marketplace/{path}', '/services', 301)->where('path', '.+');
+Route::redirect('/exchange', '/services', 301);
 Route::get('/robots.txt', RobotsController::class)->name('robots');
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 
@@ -164,12 +134,6 @@ Route::get('/services/{type}/{productSlug}', [\App\Modules\Catalog\Http\Controll
 // One segment: group slug, type key (301 → nested), or legacy product slug (301)
 Route::get('/services/{segment}', [\App\Modules\Catalog\Http\Controllers\ServiceController::class, 'segment'])
     ->name('services.segment');
-Route::get('/exchange', \App\Modules\Catalog\Http\Controllers\ExchangePageController::class)->name('exchange');
-Route::get('/templates', [\App\Modules\Catalog\Http\Controllers\TemplateController::class, 'index'])->name('templates');
-Route::get('/templates/{slug}', [\App\Modules\Catalog\Http\Controllers\TemplateController::class, 'show'])->name('templates.show');
-Route::redirect('/document-templates', '/services/business-documents/receipt', 301)->name('document-templates');
-Route::get('/website-listings', [\App\Modules\Catalog\Http\Controllers\WebsiteListingController::class, 'index'])->name('website-listings');
-Route::get('/website-listings/{slug}', [\App\Modules\Catalog\Http\Controllers\WebsiteListingController::class, 'show'])->name('website-listings.show');
 Route::get('/checkout/platform/{slug}', [\App\Modules\Catalog\Http\Controllers\PlatformCheckoutController::class, 'show'])
     ->middleware('auth')
     ->name('checkout.platform.show');
@@ -218,14 +182,6 @@ Route::middleware(['auth', 'verified'])->prefix('dashboard')->name('dashboard')-
         Route::post('/banks/replace/verify-otp', [BankAccountController::class, 'verifyOtp'])->middleware('throttle:10,10')->name('.banks.replace.verify-otp');
         Route::post('/banks/replace/resolve', [BankAccountController::class, 'resolve'])->middleware('throttle:10,1')->name('.banks.replace.resolve');
         Route::post('/banks/replace/confirm', [BankAccountController::class, 'confirm'])->middleware('throttle:5,1')->name('.banks.replace.confirm');
-        Route::get('/crypto-sell', [CryptoSellController::class, 'index'])->name('.crypto-sell.index');
-        Route::get('/crypto-sell/create', [CryptoSellController::class, 'create'])->name('.crypto-sell.create');
-        Route::post('/crypto-sell', [CryptoSellController::class, 'store'])->name('.crypto-sell.store');
-        Route::get('/crypto-sell/{cryptoSellRequest}', [CryptoSellController::class, 'show'])->name('.crypto-sell.show');
-        Route::get('/crypto-sell/{cryptoSellRequest}/status', [CryptoSellController::class, 'status'])->name('.crypto-sell.status');
-        Route::post('/crypto-sell/{cryptoSellRequest}/tx', [CryptoSellController::class, 'submitTx'])->name('.crypto-sell.tx');
-        Route::post('/crypto-sell/{cryptoSellRequest}/cancel', [CryptoSellController::class, 'cancel'])->name('.crypto-sell.cancel');
-        Route::post('/crypto-sell/{cryptoSellRequest}/refresh', [CryptoSellController::class, 'refreshQuote'])->name('.crypto-sell.refresh');
         Route::get('/withdrawal', [WithdrawalController::class, 'index'])->name('.withdrawal.index');
         Route::get('/withdrawal/create', [WithdrawalController::class, 'create'])->name('.withdrawal.create');
         Route::post('/withdrawal/otp', [WithdrawalController::class, 'sendOtp'])->middleware('throttle:5,10')->name('.withdrawal.otp');
@@ -233,11 +189,7 @@ Route::middleware(['auth', 'verified'])->prefix('dashboard')->name('dashboard')-
         Route::post('/withdrawal', [WithdrawalController::class, 'store'])->name('.withdrawal.store');
         Route::get('/withdrawal/{withdrawal}', [WithdrawalController::class, 'show'])->name('.withdrawal.show');
         Route::get('/history', [HistoryController::class, 'index'])->name('.history');
-        Route::post('/checkout/{listing}', [CheckoutController::class, 'store'])
-            ->middleware('throttle:10,1')
-            ->name('.checkout.store');
     });
-    Route::get('/exchange', [DashboardController::class, 'exchange'])->name('.exchange');
     Route::get('/social', [DashboardController::class, 'social'])->name('.social');
     Route::get('/documents', [DashboardController::class, 'documents'])->name('.documents');
 
@@ -308,41 +260,17 @@ Route::middleware(['auth', 'verified'])->prefix('dashboard')->name('dashboard')-
         ->middleware('throttle:10,1')
         ->name('.services.demo-launch');
 
-    // Marketplace (coming soon on dashboard when marketplace.dashboard_coming_soon is enabled)
-    Route::middleware('marketplace.dashboard')->group(function (): void {
-        Route::get('/marketplace', [\App\Http\Controllers\Dashboard\DiscoverMarketplaceController::class, 'index'])->name('.marketplace');
-        Route::get('/marketplace/{slug}/checkout', [\App\Http\Controllers\Dashboard\DiscoverMarketplaceController::class, 'checkout'])->name('.marketplace.checkout');
-        Route::get('/marketplace/{slug}', [\App\Http\Controllers\Dashboard\DiscoverMarketplaceController::class, 'show'])->name('.marketplace.show');
-        Route::redirect('/discover/marketplace', '/dashboard/marketplace', 301)->name('.discover.marketplace');
-        Route::get('/discover/marketplace/{slug}/checkout', fn (string $slug) => redirect()->to(route('dashboard.marketplace.checkout', $slug), 301))->name('.discover.marketplace.checkout');
-        Route::get('/discover/marketplace/{slug}', fn (string $slug) => redirect()->to(route('dashboard.marketplace.show', $slug), 301))->name('.discover.marketplace.show');
-
-        Route::get('/listings', [DashboardController::class, 'listings'])->name('.listings');
-        Route::get('/listings/create', [ListingController::class, 'create'])->name('.listings.create');
-        Route::post('/listings', [ListingController::class, 'store'])->name('.listings.store');
-        Route::get('/listings/{listing}/edit', [ListingController::class, 'edit'])->name('.listings.edit');
-        Route::put('/listings/{listing}', [ListingController::class, 'update'])->name('.listings.update');
-        Route::post('/listings/{listing}/revision', [ListingController::class, 'storeRevision'])->name('.listings.revision');
-        Route::post('/listings/{listing}/submit', [ListingController::class, 'submitForReview'])->name('.listings.submit');
-        Route::post('/listings/{listing}/archive', [ListingController::class, 'archive'])->name('.listings.archive');
-        Route::post('/listings/{listing}/restore-archive', [ListingController::class, 'restoreArchive'])->name('.listings.restore-archive');
-        Route::delete('/listings/{listing}', [ListingController::class, 'destroy'])->name('.listings.destroy');
-        Route::get('/orders', [DashboardController::class, 'orders'])->name('.orders');
-        Route::get('/sales', [DashboardController::class, 'sales'])->name('.sales');
-        Route::post('/orders/{order}/confirm', [CheckoutController::class, 'confirmDelivery'])->name('.orders.confirm');
-        Route::post('/orders/{order}/mark-delivered', [CheckoutController::class, 'markDelivered'])->name('.orders.mark-delivered');
-        Route::post('/orders/{order}/dispute', [CheckoutController::class, 'openDispute'])->name('.orders.dispute');
-        Route::post('/orders/{order}/review', [ReviewController::class, 'store'])->name('.orders.review');
-        Route::get('/messages', [MessageController::class, 'index'])->name('.messages');
-        Route::get('/messages/create', [MessageController::class, 'create'])->name('.messages.create');
-        Route::post('/messages', [MessageController::class, 'store'])->name('.messages.store');
-        Route::get('/messages/order/{order}', [MessageController::class, 'showOrder'])->name('.messages.order');
-        Route::post('/messages/order/{order}/reply', [MessageController::class, 'replyOrder'])->name('.messages.order.reply');
-        Route::get('/messages/{message}', [MessageController::class, 'show'])->name('.messages.show');
-        Route::post('/messages/{message}/reply', [MessageController::class, 'reply'])->name('.messages.reply');
-        Route::get('/watchlist', [WatchlistController::class, 'index'])->name('.watchlist');
-        Route::post('/watchlist/{listing}', [WatchlistController::class, 'toggle'])->name('.watchlist.toggle');
-    });
+    Route::redirect('/marketplace', '/dashboard/services', 301);
+    Route::redirect('/marketplace/{path}', '/dashboard/services', 301)->where('path', '.+');
+    Route::redirect('/discover/marketplace', '/dashboard/services', 301);
+    Route::redirect('/discover/marketplace/{path}', '/dashboard/services', 301)->where('path', '.+');
+    Route::redirect('/listings', '/dashboard/services', 301);
+    Route::redirect('/listings/{path}', '/dashboard/services', 301)->where('path', '.+');
+    Route::redirect('/orders', '/dashboard/service-orders', 301);
+    Route::redirect('/sales', '/dashboard/services', 301);
+    Route::redirect('/messages', '/dashboard/services', 301);
+    Route::redirect('/messages/{path}', '/dashboard/services', 301)->where('path', '.+');
+    Route::redirect('/watchlist', '/dashboard/services', 301);
 
     Route::get('/notifications', [UserNotificationController::class, 'index'])->name('.notifications');
     Route::post('/notifications/{notification}/read', [UserNotificationController::class, 'markRead'])->name('.notifications.read');
@@ -397,8 +325,6 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::post('/users/{user}/tools/{tool}/shutdown', [UserManagementController::class, 'shutdownTool'])->name('.users.tools.shutdown');
         Route::post('/users/{user}/tools/{tool}/enable', [UserManagementController::class, 'enableTool'])->name('.users.tools.enable');
         Route::post('/users/{user}/domain-connections/{connection}/approve', [UserManagementController::class, 'approveDomainConnection'])->name('.users.domain-connections.approve');
-        Route::get('/users/{user}/listings', [UserManagementController::class, 'listings'])->name('.users.listings');
-        Route::get('/users/{user}/escrows', [UserManagementController::class, 'escrows'])->name('.users.escrows');
         Route::get('/users/{user}/tickets', [UserManagementController::class, 'tickets'])->name('.users.tickets');
         Route::get('/users/{user}/activity', [UserManagementController::class, 'activity'])->name('.users.activity');
         Route::get('/users/{user}/security', [UserManagementController::class, 'security'])->name('.users.security');
@@ -450,23 +376,6 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::post('/fundings/{funding}/reject', [AdminWalletFundingController::class, 'reject'])->name('.fundings.reject');
         Route::post('/fundings/{funding}/reverse', [AdminWalletFundingController::class, 'reverse'])->name('.fundings.reverse');
         Route::get('/fundings/{funding}/proof', [AdminWalletFundingController::class, 'downloadProof'])->name('.fundings.proof');
-        Route::get('/crypto-sells', [AdminCryptoSellController::class, 'index'])->name('.crypto-sells');
-        Route::get('/crypto-sells/{cryptoSellRequest}', [AdminCryptoSellController::class, 'show'])->name('.crypto-sells.show');
-        Route::post('/crypto-sells/{cryptoSellRequest}/approve', [AdminCryptoSellController::class, 'approve'])->name('.crypto-sells.approve');
-        Route::post('/crypto-sells/{cryptoSellRequest}/reject', [AdminCryptoSellController::class, 'reject'])->name('.crypto-sells.reject');
-        Route::get('/incoming-deposits', [IncomingDepositController::class, 'index'])->name('.incoming-deposits');
-        Route::post('/incoming-deposits/{incomingCryptoTransaction}/ignore', [IncomingDepositController::class, 'ignore'])->name('.incoming-deposits.ignore');
-        Route::post('/incoming-deposits/{incomingCryptoTransaction}/rematch', [IncomingDepositController::class, 'rematch'])->name('.incoming-deposits.rematch');
-        Route::get('/crypto-wallets', [CryptoDepositWalletController::class, 'index'])->name('.crypto-wallets');
-        Route::get('/crypto-wallets/treasury', [CryptoDepositWalletController::class, 'treasury'])->name('.crypto-wallets.treasury');
-        Route::post('/crypto-wallets/treasury/refresh', [CryptoDepositWalletController::class, 'refreshTreasury'])->name('.crypto-wallets.treasury.refresh');
-        Route::get('/crypto-wallets/create', [CryptoDepositWalletController::class, 'create'])->name('.crypto-wallets.create');
-        Route::post('/crypto-wallets', [CryptoDepositWalletController::class, 'store'])->name('.crypto-wallets.store');
-        Route::get('/crypto-wallets/{cryptoDepositWallet}/edit', [CryptoDepositWalletController::class, 'edit'])->name('.crypto-wallets.edit');
-        Route::put('/crypto-wallets/{cryptoDepositWallet}', [CryptoDepositWalletController::class, 'update'])->name('.crypto-wallets.update');
-        Route::delete('/crypto-wallets/{cryptoDepositWallet}', [CryptoDepositWalletController::class, 'destroy'])->name('.crypto-wallets.destroy');
-        Route::get('/otc-pricing', [OtcPricingController::class, 'edit'])->name('.otc-pricing');
-        Route::post('/otc-pricing', [OtcPricingController::class, 'update'])->name('.otc-pricing.update');
         Route::get('/withdrawals', [WithdrawalAdminController::class, 'index'])->name('.withdrawals');
         Route::get('/withdrawals/{withdrawal}', [WithdrawalAdminController::class, 'show'])->name('.withdrawals.show');
         Route::post('/withdrawals/{withdrawal}/approve', [WithdrawalAdminController::class, 'approve'])->name('.withdrawals.approve');
@@ -476,43 +385,12 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::get('/reconciliation', [ReconciliationController::class, 'index'])->name('.reconciliation');
         Route::post('/reconciliation/fundings/{funding}/fix', [ReconciliationController::class, 'fixFunding'])->name('.reconciliation.fix-funding');
         Route::post('/reconciliation/withdrawals/{withdrawal}/sync', [ReconciliationController::class, 'syncWithdrawal'])->name('.reconciliation.sync-withdrawal');
-        Route::get('/escrows', [AdminEscrowController::class, 'index'])->name('.escrows');
-        Route::post('/escrows/{escrow}/release', [AdminEscrowController::class, 'release'])->name('.escrows.release');
-        Route::post('/escrows/{escrow}/refund', [AdminEscrowController::class, 'refund'])->name('.escrows.refund');
         Route::get('/transactions', [AdminDashboardController::class, 'transactions'])->name('.transactions');
         Route::get('/wallet-adjustment', [WalletAdjustmentController::class, 'create'])->name('.wallet-adjustment');
         Route::post('/wallet-adjustment', [WalletAdjustmentController::class, 'store'])->name('.wallet-adjustment.store');
     });
 
     Route::middleware('permission:catalog.manage')->group(function () {
-        Route::get('/listings', [\App\Modules\Admin\Http\Controllers\ListingAdminController::class, 'index'])->name('.listings');
-        Route::get('/listings/pending', fn () => redirect()->route('admin.listings', ['status' => 'pending'], 301))->name('.listings.pending');
-        Route::delete('/listings/trash', [\App\Modules\Admin\Http\Controllers\ListingAdminController::class, 'bulkDestroy'])->name('.listings.trash.destroy');
-        Route::get('/listings/{listing}', [\App\Modules\Admin\Http\Controllers\ListingAdminController::class, 'show'])->withTrashed()->name('.listings.show');
-        Route::post('/listings/{listing}/approve', [\App\Modules\Admin\Http\Controllers\ListingAdminController::class, 'approve'])->withTrashed()->name('.listings.approve');
-        Route::post('/listings/{listing}/reject', [\App\Modules\Admin\Http\Controllers\ListingAdminController::class, 'reject'])->withTrashed()->name('.listings.reject');
-        Route::post('/listings/{listing}/suspend', [\App\Modules\Admin\Http\Controllers\ListingAdminController::class, 'suspend'])->withTrashed()->name('.listings.suspend');
-        Route::post('/listings/{listing}/restore', [\App\Modules\Admin\Http\Controllers\ListingAdminController::class, 'restore'])->withTrashed()->name('.listings.restore');
-        Route::post('/listings/{listing}/feature', [\App\Modules\Admin\Http\Controllers\ListingAdminController::class, 'toggleFeature'])->withTrashed()->name('.listings.feature');
-        Route::post('/listings/{listing}/duplicate', [\App\Modules\Admin\Http\Controllers\ListingAdminController::class, 'duplicate'])->withTrashed()->name('.listings.duplicate');
-        Route::delete('/listings/{listing}', [\App\Modules\Admin\Http\Controllers\ListingAdminController::class, 'destroy'])->withTrashed()->name('.listings.destroy');
-
-        Route::get('/marketplace-categories', [\App\Modules\Admin\Http\Controllers\MarketplaceCategoryAdminController::class, 'index'])->name('.marketplace-categories');
-        Route::get('/marketplace-categories/create', [\App\Modules\Admin\Http\Controllers\MarketplaceCategoryAdminController::class, 'create'])->name('.marketplace-categories.create');
-        Route::post('/marketplace-categories', [\App\Modules\Admin\Http\Controllers\MarketplaceCategoryAdminController::class, 'store'])->name('.marketplace-categories.store');
-        Route::get('/marketplace-categories/{category}/edit', [\App\Modules\Admin\Http\Controllers\MarketplaceCategoryAdminController::class, 'edit'])->name('.marketplace-categories.edit');
-        Route::put('/marketplace-categories/{category}', [\App\Modules\Admin\Http\Controllers\MarketplaceCategoryAdminController::class, 'update'])->name('.marketplace-categories.update');
-        Route::post('/marketplace-categories/{category}/toggle', [\App\Modules\Admin\Http\Controllers\MarketplaceCategoryAdminController::class, 'toggle'])->name('.marketplace-categories.toggle');
-        Route::delete('/marketplace-categories/{category}', [\App\Modules\Admin\Http\Controllers\MarketplaceCategoryAdminController::class, 'destroy'])->name('.marketplace-categories.destroy');
-
-        Route::get('/marketplace-products', [\App\Modules\Admin\Http\Controllers\MarketplaceProductAdminController::class, 'index'])->name('.marketplace-products');
-        Route::get('/marketplace-products/create', [\App\Modules\Admin\Http\Controllers\MarketplaceProductAdminController::class, 'create'])->name('.marketplace-products.create');
-        Route::post('/marketplace-products', [\App\Modules\Admin\Http\Controllers\MarketplaceProductAdminController::class, 'store'])->name('.marketplace-products.store');
-        Route::get('/marketplace-products/{marketplaceProduct}/edit', [\App\Modules\Admin\Http\Controllers\MarketplaceProductAdminController::class, 'edit'])->name('.marketplace-products.edit');
-        Route::put('/marketplace-products/{marketplaceProduct}', [\App\Modules\Admin\Http\Controllers\MarketplaceProductAdminController::class, 'update'])->name('.marketplace-products.update');
-        Route::post('/marketplace-products/{marketplaceProduct}/toggle', [\App\Modules\Admin\Http\Controllers\MarketplaceProductAdminController::class, 'toggle'])->name('.marketplace-products.toggle');
-        Route::delete('/marketplace-products/{marketplaceProduct}', [\App\Modules\Admin\Http\Controllers\MarketplaceProductAdminController::class, 'destroy'])->name('.marketplace-products.destroy');
-
         Route::get('/platform-products', [\App\Modules\Admin\Http\Controllers\PlatformProductAdminController::class, 'index'])->name('.platform-products');
         Route::get('/platform-products/{platformProduct}/edit', [\App\Modules\Admin\Http\Controllers\PlatformProductAdminController::class, 'edit'])->name('.platform-products.edit');
         Route::put('/platform-products/{platformProduct}', [\App\Modules\Admin\Http\Controllers\PlatformProductAdminController::class, 'update'])->name('.platform-products.update');
@@ -546,14 +424,6 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::get('/platform-categories/{platformCategory}/edit', [\App\Modules\Admin\Http\Controllers\CatalogMetaAdminController::class, 'editPlatformCategory'])->name('.platform-categories.edit');
         Route::put('/platform-categories/{platformCategory}', [\App\Modules\Admin\Http\Controllers\CatalogMetaAdminController::class, 'updatePlatformCategory'])->name('.platform-categories.update');
         Route::post('/platform-categories/{platformCategory}/toggle', [\App\Modules\Admin\Http\Controllers\CatalogMetaAdminController::class, 'togglePlatformCategory'])->name('.platform-categories.toggle');
-        Route::get('/exchange-rates', [\App\Modules\Admin\Http\Controllers\CatalogMetaAdminController::class, 'exchangeRates'])->name('.exchange-rates');
-        Route::get('/exchange-rates/coins', [\App\Modules\Admin\Http\Controllers\CatalogMetaAdminController::class, 'coinCatalog'])->name('.exchange-rates.coins');
-        Route::get('/exchange-rates/coin-market', [\App\Modules\Admin\Http\Controllers\CatalogMetaAdminController::class, 'coinMarket'])->name('.exchange-rates.coin-market');
-        Route::get('/exchange-rates/create', [\App\Modules\Admin\Http\Controllers\CatalogMetaAdminController::class, 'createExchangeRate'])->name('.exchange-rates.create');
-        Route::post('/exchange-rates', [\App\Modules\Admin\Http\Controllers\CatalogMetaAdminController::class, 'storeExchangeRate'])->name('.exchange-rates.store');
-        Route::get('/exchange-rates/{exchangeRate}/edit', [\App\Modules\Admin\Http\Controllers\CatalogMetaAdminController::class, 'editExchangeRate'])->name('.exchange-rates.edit');
-        Route::put('/exchange-rates/{exchangeRate}', [\App\Modules\Admin\Http\Controllers\CatalogMetaAdminController::class, 'updateExchangeRate'])->name('.exchange-rates.update');
-        Route::delete('/exchange-rates/{exchangeRate}', [\App\Modules\Admin\Http\Controllers\CatalogMetaAdminController::class, 'destroyExchangeRate'])->name('.exchange-rates.destroy');
     });
 
     Route::middleware('permission:support.manage')->group(function () {
@@ -600,9 +470,6 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::post('/settings/monnify', [AdminSettingsController::class, 'updateMonnify'])->name('.settings.monnify');
         Route::post('/settings/monnify/test', [AdminSettingsController::class, 'testMonnify'])->name('.settings.monnify.test');
         Route::post('/settings/manual-bank-transfer', [AdminSettingsController::class, 'updateManualBankTransfer'])->name('.settings.manual-bank-transfer');
-        Route::get('/blockchain-monitoring', [BlockchainMonitoringController::class, 'index'])->name('.blockchain-monitoring');
-        Route::post('/blockchain-monitoring', [BlockchainMonitoringController::class, 'update'])->name('.blockchain-monitoring.update');
-        Route::post('/blockchain-monitoring/test', [BlockchainMonitoringController::class, 'test'])->name('.blockchain-monitoring.test');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('.audit-logs');
     });
 

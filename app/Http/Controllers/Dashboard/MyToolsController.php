@@ -30,15 +30,10 @@ class MyToolsController extends Controller
         $expiringSoon = $request->boolean('expiring_soon');
         $q = $request->string('q')->toString();
 
-        $websiteTypes = [
-            PlatformProductType::WebsiteTemplate,
-            PlatformProductType::WebsitePackage,
-        ];
-
         $tools = UserTool::query()
             ->ownedBy($userId)
             ->with(['product', 'variant', 'integration'])
-            ->whereHas('product', fn ($query) => $query->whereIn('product_type', $websiteTypes))
+            ->whereHas('product', fn ($query) => $query->where('product_type', PlatformProductType::SocialService))
             ->when($status !== '', fn ($query) => $query->where('status', $status))
             ->when($q !== '', function ($query) use ($q) {
                 $term = '%'.$q.'%';

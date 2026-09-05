@@ -14,7 +14,7 @@
     <x-dashboard.table
         :empty="$transactions->isEmpty()"
         empty-title="No transactions yet"
-        empty-description="Wallet credits, debits, and marketplace payments will appear here."
+        empty-description="Wallet credits, debits, and service payments will appear here."
         empty-icon="history"
         striped
         :min-height="false"

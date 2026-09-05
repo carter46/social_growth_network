@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Models\Listing;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -20,9 +19,8 @@ class OrderFactory extends Factory
         $amount = fake()->randomFloat(2, 1000, 75000);
 
         return [
-            'source' => 'marketplace',
+            'source' => 'platform',
             'user_id' => User::factory(),
-            'listing_id' => Listing::factory()->published(),
             'reference' => 'ORD-'.Str::upper(Str::random(8)),
             'idempotency_key' => Str::uuid()->toString(),
             'amount' => $amount,
@@ -41,16 +39,8 @@ class OrderFactory extends Factory
         return $this->state(fn () => ['status' => 'processing']);
     }
 
-    public function disputed(): static
-    {
-        return $this->state(fn () => ['status' => 'disputed']);
-    }
-
     public function platform(): static
     {
-        return $this->state(fn () => [
-            'source' => 'platform',
-            'listing_id' => null,
-        ]);
+        return $this->state(fn () => ['source' => 'platform']);
     }
 }

@@ -64,7 +64,7 @@ class AdminEmailRoutingTest extends TestCase
         $websiteProduct = $this->forceCreatePlatformProduct([
             'title' => 'Online Banking',
             'slug' => 'online-banking-'.Str::lower(Str::random(4)),
-            'product_type' => PlatformProductType::WebsitePackage,
+            'product_type' => PlatformProductType::SocialService,
             'product_type_id' => 1,
             'status' => PlatformProductStatus::Published,
             'base_price' => 10000,
@@ -98,9 +98,6 @@ class AdminEmailRoutingTest extends TestCase
         ]);
 
         $this->assertSame('order.domain_purchased', $resolver->resolve($domainOrder->fresh('items')));
-
-        $marketplaceOrder = Order::factory()->create(['source' => 'marketplace', 'status' => 'paid']);
-        $this->assertSame('order.marketplace_purchase', $resolver->resolve($marketplaceOrder));
     }
 
     public function test_notify_admins_creates_distinct_types_for_deposit_lifecycle(): void
@@ -203,7 +200,7 @@ class AdminEmailRoutingTest extends TestCase
         $product = $this->forceCreatePlatformProduct([
             'title' => 'Online Banking',
             'slug' => 'online-banking-'.Str::lower(Str::random(4)),
-            'product_type' => PlatformProductType::WebsitePackage,
+            'product_type' => PlatformProductType::SocialService,
             'product_type_id' => 1,
             'status' => PlatformProductStatus::Published,
             'base_price' => 10000,

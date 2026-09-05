@@ -46,7 +46,7 @@
         @elseif ($canAnalytics ?? false)
             <a href="{{ route('admin.analytics') }}" class="block rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-border-default dark:bg-elevated">
                 <p class="text-sm font-bold text-slate-900 dark:text-text-primary">Analytics drill-down</p>
-                <p class="mt-1 text-xs text-slate-500">Traffic, revenue, marketplace, and ops reports with shared ranges.</p>
+                <p class="mt-1 text-xs text-slate-500">Traffic, revenue, services, and ops reports with shared ranges.</p>
             </a>
         @endif
     </section>

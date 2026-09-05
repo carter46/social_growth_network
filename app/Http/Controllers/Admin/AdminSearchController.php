@@ -3,8 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Escrow;
-use App\Models\Listing;
 use App\Models\Order;
 use App\Models\PlatformProduct;
 use App\Models\SupportTicket;
@@ -50,27 +48,6 @@ class AdminSearchController extends Controller
         }
 
         if ($user?->can('catalog.manage')) {
-            $items = Listing::query()
-                ->where(function ($query) use ($like) {
-                    $query->where('title', 'like', $like)
-                        ->orWhere('description', 'like', $like);
-                })
-                ->orderByDesc('updated_at')
-                ->limit(5)
-                ->get()
-                ->map(fn (Listing $row) => [
-                    'id' => 'listing-'.$row->id,
-                    'label' => $row->title,
-                    'subtitle' => '#'.$row->id,
-                    'url' => route('admin.listings.show', $row),
-                    'group' => 'Listings',
-                ])
-                ->all();
-
-            if ($items !== []) {
-                $groups[] = ['label' => 'Listings', 'items' => $items];
-            }
-
             if (Schema::hasTable('platform_products')) {
                 $products = PlatformProduct::query()
                     ->where(function ($query) use ($like) {
@@ -138,28 +115,6 @@ class AdminSearchController extends Controller
 
             if ($orders !== []) {
                 $groups[] = ['label' => 'Orders', 'items' => $orders];
-            }
-
-            $escrows = Escrow::query()
-                ->with('order')
-                ->where(function ($query) use ($like, $q) {
-                    $query->where('id', is_numeric($q) ? (int) $q : -1)
-                        ->orWhereHas('order', fn ($o) => $o->where('reference', 'like', $like));
-                })
-                ->orderByDesc('created_at')
-                ->limit(5)
-                ->get()
-                ->map(fn (Escrow $row) => [
-                    'id' => 'escrow-'.$row->id,
-                    'label' => 'Escrow #'.$row->id,
-                    'subtitle' => ($row->order?->reference ?? '—').' · '.$row->status,
-                    'url' => route('admin.escrows', ['status' => $row->status]),
-                    'group' => 'Escrows',
-                ])
-                ->all();
-
-            if ($escrows !== []) {
-                $groups[] = ['label' => 'Escrows', 'items' => $escrows];
             }
 
             $wallets = Wallet::query()

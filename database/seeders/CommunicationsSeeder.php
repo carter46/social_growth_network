@@ -27,7 +27,7 @@ class CommunicationsSeeder extends Seeder
             }
         }
 
-        $fromName = config('mail.from.name') ?: config('app.name', '7th Trade Hub');
+        $fromName = config('mail.from.name') ?: config('app.name', 'Social Growth Network');
         $fromEmail = config('mail.from.address') ?: 'noreply@example.com';
 
         $defaults = [

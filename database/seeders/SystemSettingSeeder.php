@@ -20,11 +20,11 @@ class SystemSettingSeeder extends Seeder
             'contact_phone' => '',
             'contact_email' => '',
             'contact_email_alt' => '',
-            'site_name' => config('app.name', '7th Trade Hub'),
-            'site_short_name' => 'Trade Hub',
-            'site_heading' => 'The Ultimate Digital Service Marketplace',
-            'site_tagline' => 'Connecting markets, empowering traders.',
-            'site_meta_description' => 'NGN wallet marketplace. Deposit, buy with escrow, sell digital products and services.',
+            'site_name' => config('app.name', 'Social Growth Network'),
+            'site_short_name' => 'Social Growth',
+            'site_heading' => 'Grow your social presence',
+            'site_tagline' => 'Instagram, TikTok, YouTube, Twitter/X, and Facebook growth packs — clear deliverables, secure checkout.',
+            'site_meta_description' => 'Buy social media growth and engagement services. Secure checkout with wallet or card.',
             'contact_timezone' => 'Africa/Lagos',
         ];
 

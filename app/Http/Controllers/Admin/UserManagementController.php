@@ -4,10 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
-use App\Enums\PlatformProductType;
 use App\Enums\UserToolStatus;
 use App\Models\AuditLog;
-use App\Models\Escrow;
 use App\Models\Order;
 use App\Models\PlatformProduct;
 use App\Models\PlatformProductVariant;
@@ -159,7 +157,6 @@ class UserManagementController extends Controller
             'wallet' => $user->wallet,
             'recentTransactions' => $user->transactions()->orderByDesc('created_at')->limit(5)->get(),
             'orderCount' => $user->orders()->count(),
-            'listingCount' => $user->listings()->count(),
             'ticketCount' => $user->supportTickets()->count(),
         ]);
     }
@@ -423,7 +420,6 @@ class UserManagementController extends Controller
 
         $productsQuery = PlatformProduct::query()
             ->visibleToPublic()
-            ->where('product_type', '!=', PlatformProductType::Domain)
             ->with(['activeVariants' => fn ($q) => $q->orderBy('sort_order')])
             ->orderBy('title');
 
@@ -472,12 +468,6 @@ class UserManagementController extends Controller
             ->where('slug', $validated['product_slug'])
             ->firstOrFail();
 
-        if ($product->product_type === PlatformProductType::Domain) {
-            return redirect()
-                ->route('admin.users.show', $user)
-                ->with('error', 'Domain registration must use user checkout with an availability check.');
-        }
-
         PlatformProductVariant::query()
             ->whereKey($validated['variant_id'])
             ->where('platform_product_id', $product->id)
@@ -491,22 +481,8 @@ class UserManagementController extends Controller
             'payment_method' => Order::PAYMENT_MANUAL_BANK_TRANSFER,
             'admin_skip_domain_validation' => true,
             'purchased_at' => $validated['purchased_at'] ?? null,
+            'domain_mode' => 'none',
         ];
-
-        if ($product->product_type === PlatformProductType::WebsitePackage) {
-            $domainFqdn = trim((string) ($validated['domain_fqdn'] ?? ''));
-            if ($domainFqdn === '') {
-                return redirect()
-                    ->route('admin.users.show', $user)
-                    ->with('error', 'Enter the customer\'s existing domain for this website package.');
-            }
-
-            $data['domain_mode'] = 'connect';
-            $data['domain_fqdn'] = $domainFqdn;
-            $data['domain_connect_acknowledged'] = true;
-        } else {
-            $data['domain_mode'] = 'none';
-        }
 
         try {
             $order = $this->checkout->createManualBankTransferOrderForUser(
@@ -721,38 +697,6 @@ class UserManagementController extends Controller
         }
 
         return $redirect->with('status', $statusMessage);
-    }
-
-    public function listings(User $user, Request $request): View
-    {
-        $this->ensureMember($user);
-
-        return $this->userTabView($request, $user, 'listings', [
-            'listings' => $user->listings()->orderByDesc('created_at')->paginate(20),
-        ]);
-    }
-
-    public function escrows(User $user, Request $request): View
-    {
-        $this->ensureMember($user);
-
-        $walletIds = $user->wallet()->pluck('id');
-
-        $escrows = Escrow::query()
-            ->where(function ($q) use ($user, $walletIds) {
-                $q->whereHas('order', fn ($order) => $order->where('user_id', $user->id));
-                if ($walletIds->isNotEmpty()) {
-                    $q->orWhereIn('buyer_wallet_id', $walletIds)
-                        ->orWhereIn('seller_wallet_id', $walletIds);
-                }
-            })
-            ->with('order')
-            ->orderByDesc('created_at')
-            ->paginate(20);
-
-        return $this->userTabView($request, $user, 'escrows', [
-            'escrows' => $escrows,
-        ]);
     }
 
     public function tickets(User $user, Request $request): View

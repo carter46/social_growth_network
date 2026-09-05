@@ -2,19 +2,13 @@
 
 namespace App\Services\Notifications;
 
-use App\Enums\PlatformProductType;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\PlatformProduct;
 
 class OrderNotificationTypeResolver
 {
     public function resolve(Order $order): string
     {
-        if ($order->source === 'marketplace') {
-            return 'order.marketplace_purchase';
-        }
-
         $order->loadMissing('items');
 
         $hasDomain = false;
@@ -52,39 +46,15 @@ class OrderNotificationTypeResolver
             return true;
         }
 
-        if (filled($options['domain_fqdn'] ?? null) || filled($options['domain_quote_id'] ?? null)) {
+        if (filled($options['domain_quote_id'] ?? null)) {
             return true;
         }
 
-        $product = $this->productForItem($item);
-
-        return $product?->product_type === PlatformProductType::Domain;
+        return false;
     }
 
     private function isWebsiteItem(OrderItem $item): bool
     {
-        if ($item->item_type !== 'platform_product') {
-            return false;
-        }
-
-        $product = $this->productForItem($item);
-
-        if (! $product) {
-            return false;
-        }
-
-        return in_array($product->product_type, [
-            PlatformProductType::WebsitePackage,
-            PlatformProductType::WebsiteTemplate,
-        ], true);
-    }
-
-    private function productForItem(OrderItem $item): ?PlatformProduct
-    {
-        if ($item->item_type !== 'platform_product') {
-            return null;
-        }
-
-        return PlatformProduct::query()->find($item->item_id);
+        return false;
     }
 }

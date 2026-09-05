@@ -19,11 +19,11 @@ return [
     */
 
     'manifest' => [
-        'name' => '7th Trade Hub',
-        'short_name' => '7thHub',
+        'name' => 'Social Growth Network',
+        'short_name' => 'Social Growth',
         'background_color' => '#FFFFFF',
         'display' => 'standalone',
-        'description' => '7th Trade Hub — digital services marketplace (crypto exchange, social growth, receipts, documents, listings).',
+        'description' => 'Social media growth and engagement services with secure checkout.',
         'theme_color' => '#0B6A39',
         'start_url' => '/',
         'scope' => '/',

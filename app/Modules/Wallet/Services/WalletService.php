@@ -9,7 +9,6 @@ use App\Enums\WalletType;
 use App\Events\WalletFunded;
 use App\Events\WalletWithdrawalCompleted;
 use App\Events\WithdrawalPayoutFailed;
-use App\Models\Escrow;
 use App\Models\Order;
 use App\Models\PaymentTimelineEvent;
 use App\Models\Transaction;
@@ -89,37 +88,6 @@ class WalletService
         });
     }
 
-    public function debitForPurchase(Wallet $wallet, Order $order, float $amount, ?int $escrowId = null): Transaction
-    {
-        return DB::transaction(function () use ($wallet, $order, $amount, $escrowId) {
-            $wallet = Wallet::where('id', $wallet->id)->lockForUpdate()->firstOrFail();
-            $amountStr = number_format((float) $amount, 2, '.', '');
-
-            if (bccomp((string) $wallet->availableBalance(), $amountStr, 2) < 0) {
-                throw new InvalidArgumentException('Insufficient wallet balance.');
-            }
-
-            $wallet->locked_balance = bcadd((string) $wallet->locked_balance, $amountStr, 2);
-            $wallet->save();
-
-            if ($escrowId) {
-                $this->createHold($wallet, WalletHoldReason::Escrow, $escrowId, (float) $amountStr);
-            }
-
-            return $this->createLedgerEntry($wallet, [
-                'user_id' => $wallet->user_id,
-                'order_id' => $order->id,
-                'escrow_id' => $escrowId,
-                'type' => TransactionType::EscrowLock->value,
-                'label' => 'Purchase escrow',
-                'description' => 'Funds locked for order '.$order->reference,
-                'amount' => -((float) $amountStr),
-                'currency' => 'NGN',
-                'status' => 'completed',
-            ]);
-        });
-    }
-
     public function debitForPlatformPurchase(Wallet $wallet, Order $order, float $amount): Transaction
     {
         return DB::transaction(function () use ($wallet, $order, $amount) {
@@ -185,135 +153,6 @@ class WalletService
                 'amount' => (float) $amountStr,
                 'currency' => 'NGN',
                 'status' => 'completed',
-            ]);
-        });
-    }
-
-    public function releaseEscrow(Escrow $escrow, ?int $releasedBy = null, float $feePercent = 0): void
-    {
-        DB::transaction(function () use ($escrow, $releasedBy, $feePercent) {
-            $escrow = Escrow::where('id', $escrow->id)->lockForUpdate()->firstOrFail();
-
-            if ($escrow->status === 'released') {
-                return;
-            }
-
-            if (! in_array($escrow->status, ['locked', 'disputed'], true)) {
-                throw new InvalidArgumentException('Escrow is not locked.');
-            }
-
-            $buyerWallet = Wallet::where('id', $escrow->buyer_wallet_id)->lockForUpdate()->firstOrFail();
-            $amountStr = number_format((float) $escrow->amount, 2, '.', '');
-
-            if (bccomp((string) $buyerWallet->locked_balance, $amountStr, 2) < 0) {
-                throw new InvalidArgumentException('Insufficient locked balance for escrow release.');
-            }
-
-            $buyerWallet->locked_balance = bcsub((string) $buyerWallet->locked_balance, $amountStr, 2);
-            $buyerWallet->balance = bcsub((string) $buyerWallet->balance, $amountStr, 2);
-            $buyerWallet->save();
-
-            $this->transitionHold(
-                $buyerWallet->id,
-                WalletHoldReason::Escrow,
-                $escrow->id,
-                WalletHoldStatus::Consumed
-            );
-
-            $fee = bcmul($amountStr, (string) ($feePercent / 100), 2);
-            $sellerAmount = bcsub($amountStr, $fee, 2);
-
-            if ($escrow->seller_wallet_id) {
-                $sellerWallet = Wallet::where('id', $escrow->seller_wallet_id)->lockForUpdate()->firstOrFail();
-                $sellerWallet->balance = bcadd((string) $sellerWallet->balance, $sellerAmount, 2);
-                $sellerWallet->save();
-
-                $this->createLedgerEntry($sellerWallet, [
-                    'user_id' => $sellerWallet->user_id,
-                    'order_id' => $escrow->order_id,
-                    'escrow_id' => $escrow->id,
-                    'type' => TransactionType::EscrowRelease->value,
-                    'label' => 'Escrow released',
-                    'amount' => $sellerAmount,
-                    'currency' => 'NGN',
-                    'status' => 'completed',
-                ]);
-            }
-
-            if (bccomp($fee, '0', 2) > 0) {
-                $platformWallet = $this->getPlatformWallet();
-                $platformWallet = Wallet::where('id', $platformWallet->id)->lockForUpdate()->firstOrFail();
-                $platformWallet->balance = bcadd((string) $platformWallet->balance, $fee, 2);
-                $platformWallet->save();
-
-                $this->createLedgerEntry($platformWallet, [
-                    'user_id' => $platformWallet->user_id,
-                    'order_id' => $escrow->order_id,
-                    'escrow_id' => $escrow->id,
-                    'type' => TransactionType::PlatformFee->value,
-                    'label' => 'Platform fee',
-                    'amount' => $fee,
-                    'currency' => 'NGN',
-                    'status' => 'completed',
-                ]);
-            }
-
-            $escrow->update([
-                'status' => 'released',
-                'released_at' => now(),
-                'released_by' => $releasedBy,
-            ]);
-        });
-    }
-
-    public function refundEscrow(Escrow $escrow, ?float $refundAmount = null, ?string $reason = null): void
-    {
-        DB::transaction(function () use ($escrow, $refundAmount, $reason) {
-            $escrow = Escrow::where('id', $escrow->id)->lockForUpdate()->firstOrFail();
-
-            if (in_array($escrow->status, ['refunded', 'partial_refund'], true)) {
-                return;
-            }
-
-            if (! in_array($escrow->status, ['locked', 'disputed'], true)) {
-                throw new InvalidArgumentException('Escrow is not locked.');
-            }
-
-            $amount = $refundAmount ?? (float) $escrow->amount;
-            $amountStr = number_format($amount, 2, '.', '');
-            $buyerWallet = Wallet::where('id', $escrow->buyer_wallet_id)->lockForUpdate()->firstOrFail();
-
-            if (bccomp((string) $buyerWallet->locked_balance, $amountStr, 2) < 0) {
-                throw new InvalidArgumentException('Insufficient locked balance to refund.');
-            }
-
-            $buyerWallet->locked_balance = bcsub((string) $buyerWallet->locked_balance, $amountStr, 2);
-            $buyerWallet->save();
-
-            $this->transitionHold(
-                $buyerWallet->id,
-                WalletHoldReason::Escrow,
-                $escrow->id,
-                WalletHoldStatus::Released
-            );
-
-            $this->createLedgerEntry($buyerWallet, [
-                'user_id' => $buyerWallet->user_id,
-                'order_id' => $escrow->order_id,
-                'escrow_id' => $escrow->id,
-                'type' => TransactionType::Refund->value,
-                'label' => 'Escrow refund',
-                'description' => $reason,
-                'amount' => $amount,
-                'currency' => 'NGN',
-                'status' => 'completed',
-            ]);
-
-            $escrow->update([
-                'status' => $refundAmount && $refundAmount < (float) $escrow->amount ? 'partial_refund' : 'refunded',
-                'refunded_at' => now(),
-                'refund_amount' => $amount,
-                'reason' => $reason,
             ]);
         });
     }
@@ -641,76 +480,6 @@ class WalletService
             ]);
 
             PaymentTimelineEvent::record($withdrawal, 'rejected', 'Rejected — funds returned');
-        });
-    }
-
-    public function lockForListing(Wallet $wallet, int $listingId, float $amount, ?\DateTimeInterface $expiresAt = null): WalletHold
-    {
-        return DB::transaction(function () use ($wallet, $listingId, $amount, $expiresAt) {
-            $wallet = Wallet::where('id', $wallet->id)->lockForUpdate()->firstOrFail();
-            $amountStr = number_format($amount, 2, '.', '');
-
-            if (bccomp((string) $wallet->availableBalance(), $amountStr, 2) < 0) {
-                throw new InvalidArgumentException('Insufficient available balance for listing collateral.');
-            }
-
-            $wallet->locked_balance = bcadd((string) $wallet->locked_balance, $amountStr, 2);
-            $wallet->save();
-
-            $hold = $this->createHold(
-                $wallet,
-                WalletHoldReason::Listing,
-                $listingId,
-                (float) $amountStr,
-                $expiresAt
-            );
-
-            $this->createLedgerEntry($wallet, [
-                'user_id' => $wallet->user_id,
-                'type' => TransactionType::ListingHold->value,
-                'label' => 'Listing collateral hold',
-                'description' => 'Funds held for listing #'.$listingId,
-                'amount' => -((float) $amountStr),
-                'currency' => 'NGN',
-                'status' => 'completed',
-            ]);
-
-            return $hold;
-        });
-    }
-
-    public function releaseListingHold(int $walletId, int $listingId, WalletHoldStatus $to = WalletHoldStatus::Released): void
-    {
-        DB::transaction(function () use ($walletId, $listingId, $to) {
-            $hold = WalletHold::query()
-                ->where('wallet_id', $walletId)
-                ->where('reason_type', WalletHoldReason::Listing->value)
-                ->where('reason_id', $listingId)
-                ->where('status', WalletHoldStatus::Active->value)
-                ->lockForUpdate()
-                ->first();
-
-            if (! $hold) {
-                return;
-            }
-
-            $wallet = Wallet::where('id', $walletId)->lockForUpdate()->firstOrFail();
-            $amountStr = number_format((float) $hold->amount, 2, '.', '');
-
-            $wallet->locked_balance = bcsub((string) $wallet->locked_balance, $amountStr, 2);
-            $wallet->save();
-
-            $hold->update(['status' => $to]);
-
-            $this->createLedgerEntry($wallet, [
-                'user_id' => $wallet->user_id,
-                'type' => TransactionType::ListingHoldRelease->value,
-                'label' => $to === WalletHoldStatus::Expired ? 'Listing hold expired' : 'Listing hold released',
-                'description' => 'Listing #'.$listingId,
-                'amount' => (float) $amountStr,
-                'currency' => 'NGN',
-                'status' => 'completed',
-            ]);
         });
     }
 

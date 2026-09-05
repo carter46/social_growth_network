@@ -2,12 +2,6 @@
 
 namespace App\Listeners;
 
-use App\Events\CryptoSold;
-use App\Events\EscrowDisputed;
-use App\Events\EscrowOpened;
-use App\Events\EscrowReleased;
-use App\Events\ListingApproved;
-use App\Events\ListingRejected;
 use App\Events\OrderCompleted;
 use App\Events\TicketOpened;
 use App\Events\TicketReplied;
@@ -26,15 +20,9 @@ class RecordProductActivity
     public function handle(object $event): void
     {
         match ($event::class) {
-            ListingApproved::class => $this->recorder->incrementDaily('listing.approved', (string) $event->listingId),
-            ListingRejected::class => $this->recorder->incrementDaily('listing.rejected', (string) $event->listingId),
             OrderCompleted::class => $this->handleOrderCompleted($event),
-            EscrowOpened::class => $this->recorder->incrementDaily('escrow.opened', (string) $event->orderId),
-            EscrowReleased::class => $this->recorder->incrementDaily('escrow.released', (string) $event->orderId),
-            EscrowDisputed::class => $this->recorder->incrementDaily('escrow.disputed', (string) $event->orderId),
             WalletFunded::class => $this->handleWalletFunded($event),
             WalletWithdrawalCompleted::class => $this->handleWalletWithdrawalCompleted($event),
-            CryptoSold::class => $this->handleCryptoSold($event),
             UserRegistered::class => $this->recorder->incrementDaily('user.registered'),
             UserVerified::class => $this->recorder->incrementDaily('user.verified'),
             TicketOpened::class => $this->handleTicketOpened($event),
@@ -73,16 +61,6 @@ class RecordProductActivity
         $this->recorder->incrementDaily('wallet.withdrawal_completed', $event->currency);
         $this->recorder->record($event->userId, 'withdrawal_completed', null, 'wallet.withdrawal_completed', [
             'withdrawal_id' => $event->withdrawalId,
-            'transaction_id' => $event->transactionId,
-            'amount' => $event->amount,
-            'currency' => $event->currency,
-        ]);
-    }
-
-    private function handleCryptoSold(CryptoSold $event): void
-    {
-        $this->recorder->incrementDaily('crypto.sold', $event->currency);
-        $this->recorder->record($event->userId, 'sold', null, 'crypto.sold', [
             'transaction_id' => $event->transactionId,
             'amount' => $event->amount,
             'currency' => $event->currency,

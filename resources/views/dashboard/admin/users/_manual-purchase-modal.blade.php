@@ -21,7 +21,7 @@
             return this.products.find(p => p.slug === this.productSlug) || null;
         },
         get isWebsite() {
-            return this.selectedProduct?.product_type === 'website_package';
+            return false;
         },
         get selectedVariant() {
             const product = this.selectedProduct;

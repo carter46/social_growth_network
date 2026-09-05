@@ -2,7 +2,6 @@
 
 namespace App\Services\Domains;
 
-use App\Enums\PlatformProductType;
 use App\Models\PlatformProduct;
 use App\Models\User;
 use App\Support\Domains\DomainFqdn;
@@ -30,53 +29,9 @@ class DomainCheckoutValidator
      *     domain_quote_token?: string
      * }|null
      */
-    public function validateWebsitePackageDomain(User $user, PlatformProduct $product, array $data, bool $deferConsumption = false, ?int $orderId = null): array
+    public function validateWebsitePackageDomain(User $user, PlatformProduct $product, array $data, bool $deferConsumption = false, ?int $orderId = null): ?array
     {
-        if ($product->product_type !== PlatformProductType::WebsitePackage) {
-            return $this->legacyOptionalDomain($data);
-        }
-
-        $mode = (string) ($data['domain_mode'] ?? '');
-        if (! in_array($mode, ['buy', 'connect'], true)) {
-            throw new InvalidArgumentException('Choose whether to buy a new domain or connect an existing one.');
-        }
-
-        if ($mode === 'connect') {
-            if (! empty($data['admin_skip_domain_validation'])) {
-                return $this->validateConnectExistingAdmin($user, $data);
-            }
-
-            return $this->validateConnectExisting($user, $data);
-        }
-
-        $sld = trim((string) ($data['domain_label'] ?? ''));
-        $tld = trim((string) ($data['domain_tld'] ?? ''));
-
-        if ($sld === '' || $tld === '') {
-            throw new InvalidArgumentException('Enter a domain name and extension.');
-        }
-
-        $parsed = DomainFqdn::parse($sld, $tld);
-        $this->assertTldSupported($parsed['tld'], $this->quotes->registrationProduct());
-
-        $token = (string) ($data['domain_quote_token'] ?? '');
-        if ($token === '') {
-            throw new InvalidArgumentException('Check domain availability before checkout.');
-        }
-
-        $domainProduct = $this->quotes->registrationProduct();
-        $quoteResult = $this->resolveDomainQuote($user, $token, $parsed['fqdn'], $domainProduct->id, $deferConsumption, $orderId);
-
-        return [
-            'mode' => 'buy',
-            'fqdn' => $parsed['fqdn'],
-            'tld' => $parsed['tld'],
-            'sld' => $parsed['sld'],
-            'quote' => $quoteResult,
-            'domain_product' => $domainProduct,
-            'domain_quote_token' => $token,
-            'registrant_contact' => $this->resolveRegistrantContact($data),
-        ];
+        return $this->legacyOptionalDomain($data);
     }
 
     /**
@@ -116,7 +71,7 @@ class DomainCheckoutValidator
         }
 
         if ($this->connections->isClaimedByAnotherUser($lookup['fqdn'], $user->id)) {
-            throw new InvalidArgumentException('This domain is already connected to another account on 7th Trade Hub.');
+            throw new InvalidArgumentException('This domain is already connected to another account on '.config('app.name', 'this platform').'.');
         }
 
         if ($this->connections->isClaimedByUser($lookup['fqdn'], $user->id)) {
@@ -154,7 +109,7 @@ class DomainCheckoutValidator
         $parsed = DomainFqdn::fromFqdn($fqdnInput, apexOnly: false);
 
         if ($this->connections->isClaimedByAnotherUser($parsed['fqdn'], $user->id)) {
-            throw new InvalidArgumentException('This domain is already connected to another account on 7th Trade Hub.');
+            throw new InvalidArgumentException('This domain is already connected to another account on '.config('app.name', 'this platform').'.');
         }
 
         return [
@@ -172,32 +127,7 @@ class DomainCheckoutValidator
      */
     public function validateStandaloneDomainPurchase(User $user, PlatformProduct $product, array $data, bool $deferConsumption = false, ?int $orderId = null): array
     {
-        if ($product->product_type !== PlatformProductType::Domain) {
-            throw new InvalidArgumentException('Invalid domain checkout.');
-        }
-
-        $token = (string) ($data['domain_quote_token'] ?? '');
-        $fqdnInput = (string) ($data['domain_fqdn'] ?? $data['domain_name'] ?? '');
-
-        if ($token === '' || $fqdnInput === '') {
-            throw new InvalidArgumentException('Check domain availability before checkout.');
-        }
-
-        $parsed = DomainFqdn::fromFqdn($fqdnInput);
-        $this->assertTldSupported($parsed['tld'], $product);
-
-        $quoteResult = $this->resolveDomainQuote($user, $token, $parsed['fqdn'], $product->id, $deferConsumption, $orderId);
-
-        return [
-            'mode' => 'buy',
-            'fqdn' => $parsed['fqdn'],
-            'tld' => $parsed['tld'],
-            'sld' => $parsed['sld'],
-            'quote' => $quoteResult,
-            'domain_product' => $product,
-            'domain_quote_token' => $token,
-            'registrant_contact' => $this->resolveRegistrantContact($data),
-        ];
+        throw new InvalidArgumentException('Domain checkout is not available.');
     }
 
     /**

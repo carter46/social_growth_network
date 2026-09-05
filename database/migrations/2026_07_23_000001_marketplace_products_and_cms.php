@@ -1,10 +1,8 @@
 <?php
 
-use App\Models\Category;
-use App\Models\Listing;
-use App\Models\MarketplaceProduct;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -173,24 +171,28 @@ return new class extends Migration
         // Create MarketplaceProduct with same name, slug, sort_order, is_active, category_id = parent_id
         // Then for listings where category_id = that child id, set marketplace_product_id = new product id
         if (Schema::hasTable('marketplace_products') && Schema::hasTable('categories') && Schema::hasTable('listings')) {
-            $childCategories = Category::whereNotNull('parent_id')->get();
+            $childCategories = DB::table('categories')->whereNotNull('parent_id')->get();
 
             foreach ($childCategories as $child) {
-                // Create or get MarketplaceProduct
-                $product = MarketplaceProduct::firstOrCreate(
-                    ['slug' => $child->slug],
-                    [
+                $existingId = DB::table('marketplace_products')->where('slug', $child->slug)->value('id');
+                if ($existingId) {
+                    $productId = $existingId;
+                } else {
+                    $productId = DB::table('marketplace_products')->insertGetId([
+                        'slug' => $child->slug,
                         'category_id' => $child->parent_id,
                         'name' => $child->name,
-                        'sort_order' => $child->sort_order,
-                        'is_active' => $child->is_active,
-                    ]
-                );
+                        'sort_order' => $child->sort_order ?? 0,
+                        'is_active' => (bool) ($child->is_active ?? true),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
 
-                // Update listings to point to this product
-                Listing::where('category_id', $child->id)
+                DB::table('listings')
+                    ->where('category_id', $child->id)
                     ->whereNull('marketplace_product_id')
-                    ->update(['marketplace_product_id' => $product->id]);
+                    ->update(['marketplace_product_id' => $productId]);
             }
         }
     }
@@ -207,7 +209,7 @@ return new class extends Migration
         // Soft-deleted rows would resurface as live if we drop deleted_at.
         // Purge them first so rollback never republishes tombstones.
         if (Schema::hasTable('listings') && Schema::hasColumn('listings', 'deleted_at')) {
-            Listing::onlyTrashed()->forceDelete();
+            DB::table('listings')->whereNotNull('deleted_at')->delete();
             Schema::table('listings', function (Blueprint $table) {
                 $table->dropSoftDeletes();
             });

@@ -31,10 +31,7 @@ class AnalyticsRollupKpis extends Command
 
         foreach ($periods as $period => $range) {
             $this->upsertSnapshot('users.total', $period, User::count(), $now);
-            $this->upsertSnapshot('listings.active', $period, \App\Models\Listing::where('is_active', true)->count(), $now);
-            $this->upsertSnapshot('listings.pending_review', $period, $ops->pendingListings(), $now);
             $this->upsertSnapshot('kyc.pending', $period, $ops->pendingKyc(), $now);
-            $this->upsertSnapshot('escrows.pending', $period, $ops->pendingEscrows(), $now);
             $this->upsertSnapshot('support.waiting', $period, $ops->supportWaiting(), $now);
             $this->upsertSnapshot('tickets.open', $period, $ops->supportWaiting(), $now);
             $this->upsertSnapshot('tickets.total', $period, \App\Models\SupportTicket::count(), $now);

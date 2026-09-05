@@ -26,7 +26,7 @@ class FixedPlatformCatalogLockTest extends TestCase
         $vpn = ProductType::query()->where('slug', 'vpn')->firstOrFail();
         $product = $this->forceCreatePlatformProduct([
             'product_type_id' => $vpn->id,
-            'product_type' => PlatformProductType::Vpn,
+            'product_type' => PlatformProductType::SocialService,
             'title' => 'Residential VPN',
             'slug' => 'residential-vpn-lock-test',
             'short_description' => 'Test VPN',
@@ -448,12 +448,12 @@ class FixedPlatformCatalogLockTest extends TestCase
         $migration->up();
     }
 
-    public function test_trust_escrow_redirects_to_marketplace_when_active(): void
+    public function test_trust_escrow_redirects_to_services_when_active(): void
     {
         Artisan::call('catalog:backfill-hierarchy');
 
         $this->get(route('services.segment', 'trust-escrow'))
-            ->assertRedirect(route('marketplace'));
+            ->assertRedirect(route('services'));
     }
 
     public function test_mass_assignment_ignores_locked_identity_fields(): void
@@ -536,7 +536,7 @@ class FixedPlatformCatalogLockTest extends TestCase
 
         $this->forceCreatePlatformProduct([
             'product_type_id' => $vpn->id,
-            'product_type' => PlatformProductType::Vpn,
+            'product_type' => PlatformProductType::SocialService,
             'title' => 'VPN A',
             'slug' => 'vpn-a-global-sort',
             'status' => PlatformProductStatus::Published,
@@ -545,7 +545,7 @@ class FixedPlatformCatalogLockTest extends TestCase
         ]);
         $this->forceCreatePlatformProduct([
             'product_type_id' => $email->id,
-            'product_type' => PlatformProductType::Email,
+            'product_type' => PlatformProductType::SocialService,
             'title' => 'Email A',
             'slug' => 'email-a-global-sort',
             'status' => PlatformProductStatus::Published,

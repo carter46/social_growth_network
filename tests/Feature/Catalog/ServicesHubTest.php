@@ -22,7 +22,7 @@ class ServicesHubTest extends TestCase
 
         $product = $this->forceCreatePlatformProduct([
             'product_type_id' => $service->id,
-            'product_type' => PlatformProductType::Vpn,
+            'product_type' => PlatformProductType::SocialService,
             'title' => 'Residential VPN Demo',
             'slug' => $slug,
             'short_description' => 'Test VPN product',
@@ -137,12 +137,12 @@ class ServicesHubTest extends TestCase
             ->assertRedirect('/services/network-services');
     }
 
-    public function test_trust_and_escrow_routes_to_marketplace(): void
+    public function test_trust_and_escrow_routes_to_services(): void
     {
         Artisan::call('catalog:backfill-hierarchy');
 
         $this->get('/services/trust-escrow')
-            ->assertRedirect(route('marketplace'));
+            ->assertRedirect(route('services'));
     }
 
     public function test_wrong_type_in_product_url_redirects_to_canonical(): void

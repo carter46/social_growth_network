@@ -18,10 +18,10 @@
 
     <div class="relative z-10 max-w-marketing mx-auto px-5 sm:px-6 text-center w-full">
         <h1 class="font-display text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white mb-4 leading-tight">
-            Secure Digital Services
+            Social Media Services
         </h1>
         <p class="max-w-2xl mx-auto text-base sm:text-lg text-text-secondary mb-8 leading-relaxed">
-            Browse by category — network, communication, social, websites, and documents. Explore digital services built for businesses and creators.
+            Growth and engagement packs for Instagram, TikTok, YouTube, Twitter/X, and Facebook — clear deliverables and secure checkout.
         </p>
 
         <form method="GET" action="{{ route('services') }}" class="max-w-xl mx-auto relative group">

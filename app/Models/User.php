@@ -106,11 +106,6 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(UserTool::class);
     }
 
-    public function listings(): HasMany
-    {
-        return $this->hasMany(Listing::class);
-    }
-
     public function kycSubmissions(): HasMany
     {
         return $this->hasMany(KycSubmission::class);
@@ -119,16 +114,6 @@ class User extends Authenticatable implements MustVerifyEmail
     public function notifications(): HasMany
     {
         return $this->hasMany(UserNotification::class);
-    }
-
-    public function watchlists(): HasMany
-    {
-        return $this->hasMany(Watchlist::class);
-    }
-
-    public function reviews(): HasMany
-    {
-        return $this->hasMany(Review::class);
     }
 
     /**

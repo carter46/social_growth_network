@@ -7,7 +7,7 @@
             <div class="space-y-2">
                 <h1 class="text-text-primary text-3xl font-bold tracking-tight">Forgot Password</h1>
                 <p class="text-text-secondary leading-relaxed">
-                    Enter your email to receive a password reset link. We'll help you get back into your trade hub.
+                    Enter your email to receive a password reset link. We'll help you get back into your account.
                 </p>
             </div>
         </div>
@@ -43,7 +43,7 @@
         </div>
         <div class="pt-4 flex items-center justify-center gap-2 text-text-muted text-xs font-medium uppercase tracking-widest">
             <x-ui.icon name="verified" class="w-4 h-4" />
-            <span>Secured by 7th Trade encryption</span>
+            <span>Secured encryption for your account</span>
         </div>
     </main>
 </x-layouts.auth>

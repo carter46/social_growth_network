@@ -5,9 +5,7 @@ namespace App\Services\Analytics;
 use App\Models\AnalyticsGaSnapshot;
 use App\Models\AnalyticsKpiSnapshot;
 use App\Models\AnalyticsProvider;
-use App\Models\Escrow;
 use App\Models\KycSubmission;
-use App\Models\Listing;
 use App\Models\Order;
 use App\Models\SupportTicket;
 use App\Models\Transaction;
@@ -31,7 +29,6 @@ class InternalBusinessProvider
             'users_total' => $this->snapshotValue('users.total', $period),
             'sales_total_ngn' => $this->snapshotValue('sales.total_ngn', $period),
             'transactions_total' => $this->snapshotValue('transactions.total', $period),
-            'listings_active' => $this->snapshotValue('listings.active', $period),
             'tickets_total' => $this->snapshotValue('tickets.total', $period),
             'tickets_open' => $this->snapshotValue('tickets.open', $period),
             'orders_by_status' => $this->ordersByStatus($period),
@@ -216,9 +213,7 @@ class InternalBusinessProvider
         return match ($section) {
             'traffic' => $this->trafficReport($from, $to),
             'revenue' => $this->revenueReport($from, $to),
-            'marketplace' => $this->marketplaceReport($from, $to),
             'services' => $this->servicesReport($from, $to),
-            'escrows' => $this->escrowsReport($from, $to),
             'users' => $this->usersReport($from, $to),
             'support' => $this->supportReport($from, $to),
             'kyc' => $this->kycReport($from, $to),
@@ -267,24 +262,6 @@ class InternalBusinessProvider
     /**
      * @return array<string, mixed>
      */
-    private function marketplaceReport(Carbon $from, Carbon $to): array
-    {
-        return [
-            'listings_active' => Listing::query()->where('is_active', true)->count(),
-            'listings_new' => Listing::query()->whereBetween('created_at', [$from, $to])->count(),
-            'orders_by_status' => Order::query()
-                ->selectRaw('status, count(*) as count')
-                ->whereBetween('created_at', [$from, $to])
-                ->groupBy('status')
-                ->pluck('count', 'status')
-                ->map(fn ($c) => (int) $c)
-                ->all(),
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
     private function servicesReport(Carbon $from, Carbon $to): array
     {
         $platformOrders = Order::query()
@@ -309,27 +286,6 @@ class InternalBusinessProvider
             'platform_gmv_ngn' => (float) (clone $platformOrders)
                 ->whereIn('status', ['paid', 'completed', 'processing'])
                 ->sum('total_amount'),
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function escrowsReport(Carbon $from, Carbon $to): array
-    {
-        return [
-            'pending' => Escrow::query()->where('status', 'locked')->count(),
-            'opened_in_range' => Escrow::query()->whereBetween('created_at', [$from, $to])->count(),
-            'released_in_range' => Escrow::query()
-                ->where('status', 'released')
-                ->whereBetween('released_at', [$from, $to])
-                ->count(),
-            'by_status' => Escrow::query()
-                ->selectRaw('status, count(*) as count')
-                ->groupBy('status')
-                ->pluck('count', 'status')
-                ->map(fn ($c) => (int) $c)
-                ->all(),
         ];
     }
 

@@ -2,7 +2,6 @@
 
 namespace App\Modules\Catalog\Http\Controllers;
 
-use App\Enums\PlatformProductType;
 use App\Http\Controllers\Controller;
 use App\Models\PlatformCategory;
 use App\Models\PlatformProduct;
@@ -306,21 +305,6 @@ class ServiceController extends Controller
             return $this->redirectToCanonicalProduct($product);
         }
 
-        $enumType = null;
-        try {
-            $enumType = PlatformProductType::from($typeSlug);
-        } catch (\ValueError) {
-            // custom DB service slug
-        }
-
-        if (in_array($enumType, [PlatformProductType::WebsitePackage, PlatformProductType::WebsiteTemplate], true)) {
-            if (auth()->check()) {
-                return redirect()->route('dashboard.services.product', $product->slug);
-            }
-
-            return redirect()->route('website-listings.show', $product->slug);
-        }
-
         $groupSlug = $product->productType?->serviceCategory?->slug
             ?? $this->browse->groupForType($typeSlug);
 
@@ -360,7 +344,7 @@ class ServiceController extends Controller
             if ($this->browse->usesDbHierarchy()) {
                 $category = $this->browse->findServiceCategory($segment);
                 if ($category?->isMarketplaceLink()) {
-                    return redirect()->route('marketplace', status: 301);
+                    return redirect()->route('services', status: 301);
                 }
             } else {
                 $routeName = config('catalog.groups.'.$segment.'.route');
@@ -399,22 +383,6 @@ class ServiceController extends Controller
 
     private function redirectToCanonicalProduct(PlatformProduct $product): RedirectResponse
     {
-        $typeSlug = $product->typeSlug() ?? 'vpn';
-
-        try {
-            $enumType = PlatformProductType::from($typeSlug);
-        } catch (\ValueError) {
-            $enumType = null;
-        }
-
-        if (in_array($enumType, [PlatformProductType::WebsitePackage, PlatformProductType::WebsiteTemplate], true)) {
-            if (auth()->check()) {
-                return redirect()->route('dashboard.services.product', $product->slug);
-            }
-
-            return redirect()->route('website-listings.show', $product->slug, 301);
-        }
-
         return redirect()->to($this->browse->productUrl($product), 301);
     }
 

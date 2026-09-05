@@ -4,7 +4,6 @@ namespace App\Modules\Catalog\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Favorite;
-use App\Models\Listing;
 use App\Models\PlatformProduct;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,19 +13,14 @@ class FavoriteController extends Controller
     public function toggle(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'type' => ['required', 'in:listing,platform_product'],
+            'type' => ['required', 'in:platform_product'],
             'id' => ['required', 'integer'],
         ]);
 
-        if ($data['type'] === 'listing') {
-            $model = Listing::query()->published()->findOrFail($data['id']);
-            $class = Listing::class;
-        } else {
-            $model = PlatformProduct::query()
-                ->visibleToPublic()
-                ->findOrFail($data['id']);
-            $class = PlatformProduct::class;
-        }
+        $model = PlatformProduct::query()
+            ->visibleToPublic()
+            ->findOrFail($data['id']);
+        $class = PlatformProduct::class;
 
         $existing = Favorite::query()
             ->where('user_id', $request->user()->id)

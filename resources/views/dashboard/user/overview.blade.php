@@ -11,20 +11,6 @@
         ['Overview', null],
     ]"
 >
-    @if($openCryptoSell ?? null)
-        <div class="mb-6 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                    <p class="text-sm font-medium text-text-primary">Continue your crypto sell</p>
-                    <p class="text-xs text-text-muted">
-                        {{ $openCryptoSell->tracking_code }} · {{ $openCryptoSell->coin }} · {{ str_replace('_', ' ', $openCryptoSell->status) }}
-                    </p>
-                </div>
-                <x-dashboard.button :href="route('dashboard.crypto-sell.show', $openCryptoSell)" size="sm">Continue tracking</x-dashboard.button>
-            </div>
-        </div>
-    @endif
-
     <div class="space-y-4">
         <x-dashboard.stats-card
             label="Total Balance"
@@ -34,7 +20,7 @@
             :href="route('dashboard.wallet')"
         />
 
-        <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div class="grid grid-cols-2 gap-4 lg:grid-cols-2">
             <x-dashboard.stats-card
                 label="My Tools"
                 :value="(string) ($myToolsCount ?? 0)"
@@ -48,20 +34,6 @@
                 :hint="$ordersAwaitingLabel ?? 'All caught up'"
                 icon="shopping-bag"
                 :href="route('dashboard.service-orders')"
-            />
-            <x-dashboard.stats-card
-                label="Escrow chats"
-                :value="(string) ($messagesCount ?? 0)"
-                hint="Check inbox"
-                icon="chat"
-                :href="route('dashboard.messages')"
-            />
-            <x-dashboard.stats-card
-                label="My Listings"
-                :value="(string) ($myListingsCount ?? 0)"
-                hint="Marketplace"
-                icon="storefront"
-                :href="route('dashboard.listings')"
             />
         </div>
     </div>

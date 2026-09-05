@@ -5,12 +5,6 @@ namespace App\Providers;
 use App\Contracts\Analytics\AnalyticsServiceInterface;
 use App\Contracts\Analytics\HeatmapProviderInterface;
 use App\Contracts\Analytics\MarketingAnalyticsProviderInterface;
-use App\Events\CryptoSold;
-use App\Events\EscrowDisputed;
-use App\Events\EscrowOpened;
-use App\Events\EscrowReleased;
-use App\Events\ListingApproved;
-use App\Events\ListingRejected;
 use App\Events\OrderCompleted;
 use App\Events\OrderManualBankTransferPaymentFailed;
 use App\Events\OrderManualBankTransferSubmitted;
@@ -32,11 +26,9 @@ use App\Listeners\NotifyUsersFromEvent;
 use App\Listeners\RecordProductActivity;
 use App\Listeners\WriteAuditLogFromEvent;
 use App\Modules\Admin\Services\AuditLogService;
-use App\Modules\Marketplace\Services\CheckoutService;
 use App\Modules\Wallet\Contracts\WalletProviderInterface;
 use App\Modules\Wallet\Payments\PayoutGateway;
 use App\Modules\Wallet\Providers\ManualProvider;
-use App\Modules\Wallet\Services\CryptoPriceService;
 use App\Modules\Wallet\Services\WalletProvisioningService;
 use App\Modules\Wallet\Services\WalletService;
 use App\Services\Analytics\AnalyticsService;
@@ -66,14 +58,8 @@ class AppServiceProvider extends ServiceProvider
         OrderCompleted::class,
         OrderManualBankTransferSubmitted::class,
         OrderManualBankTransferPaymentFailed::class,
-        EscrowOpened::class,
-        EscrowReleased::class,
-        EscrowDisputed::class,
-        ListingApproved::class,
-        ListingRejected::class,
         TicketOpened::class,
         TicketReplied::class,
-        CryptoSold::class,
     ];
 
     public function register(): void
@@ -91,8 +77,6 @@ class AppServiceProvider extends ServiceProvider
             PayoutGateway::class,
             fn ($app) => PayoutGateway::from($app->make(\App\Modules\Wallet\Payments\Contracts\PaymentRailInterface::class))
         );
-        $this->app->singleton(CryptoPriceService::class);
-        $this->app->singleton(\App\Modules\Wallet\Services\ExchangeQuoteService::class);
         $this->app->singleton(\App\Services\Domains\Providers\NameCom\NameComClient::class);
         $this->app->singleton(\App\Services\Domains\Providers\NameCom\NameComProvider::class);
         $this->app->singleton(\App\Services\Domains\Providers\DomainNameApi\DomainNameApiClient::class);
@@ -108,9 +92,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(\App\Services\Domains\DomainAuditLogger::class);
         $this->app->singleton(\App\Services\Domains\DomainCacheInvalidator::class);
         $this->app->singleton(\App\Services\Domains\DomainProviderConfigValidator::class);
-        $this->app->singleton(CheckoutService::class);
         $this->app->singleton(AuditLogService::class);
-        $this->app->singleton(\App\Modules\Marketplace\Services\NotificationService::class);
         $this->app->singleton(\App\Services\Notifications\NotificationDispatcher::class);
         $this->app->singleton(ThemeManager::class);
         $this->app->singleton(\App\Services\Media\MediaPathService::class);

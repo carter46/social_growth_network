@@ -1,9 +1,6 @@
 @php
     $browse = app(\App\Modules\Catalog\Services\CatalogBrowseService::class);
-    $href = match ($product->product_type?->defaultRoute()) {
-        'website-listings' => route('website-listings.show', $product->slug),
-        default => $browse->productUrl($product),
-    };
+    $href = $browse->productUrl($product);
     $heroUrl = media_url($product->heroMedia ?? null, $product->hero_image, 'medium');
 @endphp
 @include('partials.catalog.grid-card', [

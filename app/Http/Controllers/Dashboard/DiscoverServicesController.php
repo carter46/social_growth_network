@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Dashboard;
 
-use App\Enums\PlatformProductType;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\PlatformProduct;
@@ -10,9 +9,6 @@ use App\Modules\Catalog\Services\CatalogBrowseService;
 use App\Modules\Catalog\Services\CatalogContentResolver;
 use App\Modules\Catalog\Services\PlatformCheckoutService;
 use App\Services\Analytics\UserActivityRecorder;
-use App\Services\Domains\DomainConnectionService;
-use App\Services\Domains\DomainQuoteService;
-use App\Support\Domains\DomainRegistrantContact;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,8 +24,6 @@ class DiscoverServicesController extends Controller
         private CatalogContentResolver $content,
         private UserActivityRecorder $activity,
         private PlatformCheckoutService $checkoutService,
-        private DomainQuoteService $domainQuotes,
-        private DomainConnectionService $domainConnections,
     ) {}
 
     public function index(Request $request): View
@@ -77,7 +71,7 @@ class DiscoverServicesController extends Controller
                 : null;
 
             if ($category?->isMarketplaceLink()) {
-                return redirect()->route('dashboard.marketplace');
+                return redirect()->route('dashboard.services');
             }
 
             $resolved = $this->content->forGroup($segment);
@@ -138,10 +132,6 @@ class DiscoverServicesController extends Controller
 
     public function product(Request $request, string $slug): View|RedirectResponse
     {
-        if (in_array($slug, ['com-domain-registration', 'io-domain-registration', 'co-domain-registration', 'ng-domain-registration'], true)) {
-            return redirect()->route('dashboard.services.product', config('domains.registration_product_slug', 'domain-registration'));
-        }
-
         $product = PlatformProduct::query()
             ->visibleToPublic()
             ->where('slug', $slug)
@@ -155,98 +145,39 @@ class DiscoverServicesController extends Controller
         $groupSlug = $product->productType?->serviceCategory?->slug
             ?? $this->browse->groupForType((string) $typeSlug);
 
-        $isDomainProduct = $product->product_type === PlatformProductType::Domain;
-        $domainTldBundles = $isDomainProduct ? $this->domainTldBundlesForProduct($product) : ['featured' => [], 'advanced' => []];
-
         return view('dashboard.user.discover.services-product', [
             'product' => $product,
             'groupSlug' => $groupSlug,
             'groupLabel' => $groupSlug ? ($this->content->forGroup($groupSlug)['label'] ?? $groupSlug) : null,
             'wallet' => $request->user()->wallet,
-            'isDomainProduct' => $isDomainProduct,
-            'domainTlds' => $domainTldBundles['featured'],
-            'domainTldsAdvanced' => $domainTldBundles['advanced'],
+            'isDomainProduct' => false,
+            'domainTlds' => [],
+            'domainTldsAdvanced' => [],
         ]);
     }
 
     public function domainTlds(): JsonResponse
     {
-        $product = $this->domainQuotes->registrationProduct();
-        $bundles = $this->domainTldBundlesForProduct($product);
-
-        return response()->json([
-            'tlds' => $bundles['featured'],
-            'tlds_advanced' => $bundles['advanced'],
-        ]);
+        abort(410, 'Domain registration is no longer available.');
     }
 
     public function domainQuote(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'product_slug' => ['required', 'string', 'max:255'],
-            'domain_label' => ['required', 'string', 'max:63'],
-            'domain_tld' => ['required', 'string', 'max:63'],
-        ]);
-
-        $product = PlatformProduct::query()
-            ->visibleToPublic()
-            ->where('slug', $data['product_slug'])
-            ->firstOrFail();
-
-        if ($product->product_type !== PlatformProductType::Domain
-            && $product->product_type !== PlatformProductType::WebsitePackage) {
-            abort(422, 'Invalid product for domain quote.');
-        }
-
-        $quoteProduct = $product->product_type === PlatformProductType::Domain
-            ? $product
-            : $this->domainQuotes->registrationProduct();
-
-        $result = $this->domainQuotes->quoteForUser(
-            $request->user(),
-            $quoteProduct,
-            $data['domain_label'],
-            $data['domain_tld'],
-        );
-
-        return response()->json($result);
+        abort(422, 'Domain quotes are no longer available.');
     }
 
     public function domainConnectScan(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'domain_fqdn' => ['required', 'string', 'max:255'],
-        ]);
-
-        $result = $this->domainConnections->scanForUser($request->user(), $data['domain_fqdn']);
-
-        $status = 200;
-        if (($result['status'] ?? '') === 'invalid' || ! empty($result['message'])) {
-            if (! ($result['registered'] ?? false) || ($result['already_connected'] ?? false)) {
-                $status = 200;
-            }
-        }
-
-        return response()->json($result, $status);
+        abort(422, 'Domain connect is no longer available.');
     }
 
     public function checkout(Request $request, string $slug): View|RedirectResponse
     {
-        if (in_array($slug, ['com-domain-registration', 'io-domain-registration', 'co-domain-registration', 'ng-domain-registration'], true)) {
-            return redirect()->route('dashboard.services.checkout', config('domains.registration_product_slug', 'domain-registration'));
-        }
-
         $product = PlatformProduct::query()
             ->visibleToPublic()
             ->where('slug', $slug)
             ->with('activeVariants')
             ->firstOrFail();
-
-        if ($product->product_type === PlatformProductType::WebsitePackage && ! $request->filled('variant')) {
-            return redirect()
-                ->route('dashboard.services.product', $product->slug)
-                ->with('error', 'Choose a plan before checkout.');
-        }
 
         $variants = $product->activeVariants->sortBy('price')->values();
         $requestedVariantId = $request->integer('variant') ?: null;
@@ -260,9 +191,7 @@ class DiscoverServicesController extends Controller
                 ->with('error', 'Selected plan is unavailable.');
         }
 
-        $isWebsitePackage = $product->product_type === PlatformProductType::WebsitePackage;
-        $isDomainProduct = $product->product_type === PlatformProductType::Domain;
-        $showPlanSummary = $requestedVariantId !== null || $isDomainProduct;
+        $showPlanSummary = $requestedVariantId !== null;
 
         $this->activity->record($request->user()->id, 'viewed', $product, 'service.checkout');
 
@@ -275,30 +204,20 @@ class DiscoverServicesController extends Controller
                 ->first();
         }
 
-        if ($isDomainProduct && ! $request->filled('quote_token')) {
-            return redirect()
-                ->route('dashboard.services.product', $product->slug)
-                ->with('error', 'Check domain availability before checkout.');
-        }
-
-        $domainTldBundles = ($isWebsitePackage || $isDomainProduct)
-            ? $this->domainTldBundlesForProduct($product)
-            : ['featured' => [], 'advanced' => []];
-
         return view('dashboard.user.discover.services-checkout', [
             'product' => $product,
             'variants' => $variants,
             'defaultVariantId' => $defaultVariant?->id,
             'basePrice' => (float) $product->displayPrice(),
             'showPlanSummary' => $showPlanSummary,
-            'isWebsitePackage' => $isWebsitePackage,
-            'isDomainProduct' => $isDomainProduct,
-            'requireDomainChoice' => $isWebsitePackage,
-            'domainTlds' => $domainTldBundles['featured'],
-            'domainTldsAdvanced' => $domainTldBundles['advanced'],
-            'quoteToken' => $request->string('quote_token')->toString() ?: null,
-            'quotedFqdn' => $request->string('domain_fqdn')->toString() ?: null,
-            'quotedPrice' => $request->string('quoted_price')->toString() ?: null,
+            'isWebsitePackage' => false,
+            'isDomainProduct' => false,
+            'requireDomainChoice' => false,
+            'domainTlds' => [],
+            'domainTldsAdvanced' => [],
+            'quoteToken' => null,
+            'quotedFqdn' => null,
+            'quotedPrice' => null,
             'idempotencyKey' => (string) Str::uuid(),
             'wallet' => $request->user()->wallet,
             'renewTool' => $renewTool,
@@ -336,21 +255,10 @@ class DiscoverServicesController extends Controller
         $rules = [
             'variant_id' => ['nullable', 'integer', 'exists:platform_product_variants,id'],
             'quantity' => ['required', 'integer', 'min:1', 'max:100'],
-            'domain_mode' => ['nullable', 'in:buy,connect'],
-            'domain_label' => ['nullable', 'string', 'max:63'],
-            'domain_tld' => ['nullable', 'string', 'max:63'],
-            'domain_quote_token' => ['nullable', 'string', 'max:128'],
-            'domain_fqdn' => ['nullable', 'string', 'max:255'],
-            'domain_name' => ['nullable', 'string', 'max:255'],
-            'domain_connect_acknowledged' => ['nullable', 'boolean'],
             'idempotency_key' => ['required', 'string', 'uuid', 'max:64'],
             'renew_user_tool_id' => ['nullable', 'integer', 'exists:user_tools,id'],
             'payment_method' => ['nullable', 'in:'.implode(',', $allowedMethods)],
         ];
-
-        if ($this->purchaseRequiresRegistrant($product, $request)) {
-            $rules = array_merge($rules, DomainRegistrantContact::validationRules());
-        }
 
         $data = $request->validate($rules);
 
@@ -359,16 +267,6 @@ class DiscoverServicesController extends Controller
 
         if (! $data['payment_method'] || ! in_array($data['payment_method'], $allowedMethods, true)) {
             return back()->withInput()->with('error', 'Choose a valid payment method.');
-        }
-
-        if ($product->product_type === PlatformProductType::WebsitePackage) {
-            $data['quantity'] = 1;
-            if ((int) $request->input('quantity', 1) !== 1) {
-                return back()->withInput()->with('error', 'Website packages must be purchased with quantity 1.');
-            }
-            if (empty($data['variant_id'])) {
-                return back()->withInput()->with('error', 'Choose a plan before checkout.');
-            }
         }
 
         if (($data['payment_method'] ?? '') === 'gateway') {
@@ -502,12 +400,7 @@ class DiscoverServicesController extends Controller
                 return $group;
             }
 
-            $isMarketplace = ($group['mode'] ?? null) === 'marketplace_link'
-                || str_contains((string) ($group['href'] ?? ''), 'marketplace');
-
-            $group['href'] = $isMarketplace
-                ? route('dashboard.marketplace')
-                : route('dashboard.services.browse', $slug);
+            $group['href'] = route('dashboard.services.browse', $slug);
 
             return $group;
         });
@@ -564,33 +457,5 @@ class DiscoverServicesController extends Controller
             'typeKeys' => $typeKeys,
             'wallet' => $request->user()->wallet,
         ]);
-    }
-
-    private function purchaseRequiresRegistrant(PlatformProduct $product, Request $request): bool
-    {
-        if ($product->product_type === PlatformProductType::Domain) {
-            return true;
-        }
-
-        if ($product->product_type === PlatformProductType::WebsitePackage) {
-            return $request->input('domain_mode') === 'buy';
-        }
-
-        return false;
-    }
-
-    /**
-     * @return array{featured: list<array{tld: string, label: string}>, advanced: list<array{tld: string, label: string}>}
-     */
-    private function domainTldBundlesForProduct(PlatformProduct $product): array
-    {
-        $registrationProduct = $product->product_type === PlatformProductType::Domain
-            ? $product
-            : $this->domainQuotes->registrationProduct();
-
-        return [
-            'featured' => $this->domainQuotes->featuredTldOptionsForUi($registrationProduct),
-            'advanced' => $this->domainQuotes->advancedTldOptionsForUi($registrationProduct),
-        ];
     }
 }

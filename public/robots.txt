@@ -8,4 +8,5 @@ Disallow: /login
 Disallow: /register
 Disallow: /checkout
 
-Sitemap: https://7th-tradehub.online/sitemap.xml
+# Prefer dynamic robots via RobotsController when routed; keep sitemap relative to APP_URL in production.
+Sitemap: /sitemap.xml

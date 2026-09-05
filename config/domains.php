@@ -41,7 +41,7 @@ return [
         // Legacy/dev fallback only — checkout collects per-customer registrant details.
         'first_name' => env('DOMAIN_CONTACT_FIRST_NAME', 'Domain'),
         'last_name' => env('DOMAIN_CONTACT_LAST_NAME', 'Admin'),
-        'company' => env('DOMAIN_CONTACT_COMPANY', '7th Trade Hub'),
+        'company' => env('DOMAIN_CONTACT_COMPANY', config('app.name', 'Social Growth Network')),
         'email' => env('DOMAIN_CONTACT_EMAIL', 'domains@7thtradehub.online'),
         'phone' => env('DOMAIN_CONTACT_PHONE', '+234.8000000000'),
         'address' => env('DOMAIN_CONTACT_ADDRESS', 'Lagos'),

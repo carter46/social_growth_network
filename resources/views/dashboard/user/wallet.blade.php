@@ -53,7 +53,6 @@
             />
             <x-dashboard.card class="flex flex-col justify-center gap-3 min-h-[120px]">
                 <x-dashboard.button :href="route('dashboard.banks.index')" variant="secondary" size="sm" icon="withdraw">My Bank</x-dashboard.button>
-                <x-dashboard.button :href="route('dashboard.crypto-sell.index')" variant="secondary" size="sm" icon="bitcoin">Sell Crypto</x-dashboard.button>
                 <x-dashboard.button :href="route('dashboard.history')" variant="ghost" size="sm" icon="history">Transaction History</x-dashboard.button>
             </x-dashboard.card>
         </x-dashboard.stat-grid>
@@ -61,7 +60,7 @@
         <x-dashboard.table
             :empty="$transactions->isEmpty()"
             empty-title="No transactions yet"
-            empty-description="Deposits, withdrawals, and marketplace activity will appear here."
+            empty-description="Deposits, withdrawals, and service activity will appear here."
             empty-icon="transactions"
             striped
         >

@@ -11,9 +11,7 @@ class AnalyticsService implements AnalyticsServiceInterface
     public const SECTION_PERMISSIONS = [
         'traffic' => 'analytics.view',
         'revenue' => 'finance.manage',
-        'marketplace' => 'catalog.manage',
         'services' => 'catalog.manage',
-        'escrows' => 'finance.manage',
         'users' => 'users.manage',
         'support' => 'support.manage',
         'kyc' => 'compliance.manage',
@@ -51,10 +49,6 @@ class AnalyticsService implements AnalyticsServiceInterface
             $overview['kpis']['transactions_total'] = $kpis['transactions_total'];
         }
 
-        if ($user->can('catalog.manage') || $user->can('analytics.view')) {
-            $overview['kpis']['listings_active'] = $this->business->kpis()['listings_active'];
-        }
-
         if ($user->can('support.manage') || $user->can('analytics.view')) {
             $kpis = $this->business->kpis();
             $overview['kpis']['tickets_total'] = $kpis['tickets_total'];
@@ -86,7 +80,7 @@ class AnalyticsService implements AnalyticsServiceInterface
         $range = $this->parseRange($filters);
         $days = $range['days'];
 
-        if (in_array($section, ['traffic', 'revenue', 'marketplace', 'services', 'escrows', 'users', 'support', 'kyc'], true)) {
+        if (in_array($section, ['traffic', 'revenue', 'services', 'users', 'support', 'kyc'], true)) {
             return [
                 'section' => $section,
                 'range' => $range,
@@ -120,7 +114,7 @@ class AnalyticsService implements AnalyticsServiceInterface
     public function allowedSections(User $user): array
     {
         $sections = [];
-        foreach (['traffic', 'revenue', 'marketplace', 'services', 'escrows', 'users', 'support', 'kyc'] as $section) {
+        foreach (['traffic', 'revenue', 'services', 'users', 'support', 'kyc'] as $section) {
             $permission = self::SECTION_PERMISSIONS[$section];
             if ($user->can($permission)) {
                 $sections[] = $section;

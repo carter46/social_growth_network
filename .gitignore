@@ -24,6 +24,10 @@
 /public/storage
 /storage/*.key
 /storage/pail
+# Large phpMyAdmin dumps (keep locally; do not commit)
+/database/u502532383_tradehub.sql
+/database/u502532383_tradehub_cleaned.sql
+/database/7th_trade_hub.sql
 Homestead.json
 Homestead.yaml
 Thumbs.db

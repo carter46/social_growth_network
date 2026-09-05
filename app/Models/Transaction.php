@@ -17,7 +17,6 @@ class Transaction extends Model
         'wallet_funding_id',
         'order_id',
         'withdrawal_id',
-        'escrow_id',
         'reverses_transaction_id',
         'reference',
         'type',
@@ -44,11 +43,6 @@ class Transaction extends Model
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
-    }
-
-    public function escrow(): BelongsTo
-    {
-        return $this->belongsTo(Escrow::class);
     }
 
     public function order(): BelongsTo

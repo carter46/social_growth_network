@@ -26,8 +26,8 @@ class SiteIntegrationAdminService
     public function create(array $data, ?int $adminId = null, ?string $ip = null): array
     {
         $product = PlatformProduct::query()->findOrFail($data['platform_product_id']);
-        if ($product->product_type !== PlatformProductType::WebsitePackage) {
-            throw new InvalidArgumentException('Only website package products can be demo-integrated.');
+        if ($product->product_type !== PlatformProductType::SocialService) {
+            throw new InvalidArgumentException('Only social service products can be demo-integrated.');
         }
 
         if (SiteIntegration::query()->where('platform_product_id', $product->id)->exists()) {

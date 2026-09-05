@@ -2,7 +2,6 @@
 
 namespace App\Services\SiteIntegrations;
 
-use App\Enums\PlatformProductType;
 use App\Enums\UserToolStatus;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -38,7 +37,7 @@ class UserToolProvisioningService
         }
 
         $options = $item->options ?? [];
-        if ($product->product_type === PlatformProductType::Domain || filled($options['domain_quote_id'] ?? null)) {
+        if (filled($options['domain_quote_id'] ?? null)) {
             return null;
         }
 

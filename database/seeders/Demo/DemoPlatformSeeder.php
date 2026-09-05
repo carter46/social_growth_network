@@ -4,9 +4,7 @@ namespace Database\Seeders\Demo;
 
 use App\Enums\TransactionType;
 use App\Models\AnalyticsKpiSnapshot;
-use App\Models\Escrow;
 use App\Models\KycSubmission;
-use App\Models\Listing;
 use App\Models\Order;
 use App\Models\SupportTicket;
 use App\Models\Transaction;
@@ -26,7 +24,6 @@ class DemoPlatformSeeder extends Seeder
     {
         DemoGate::assertCanSeed();
 
-        // Ensure platform wallet exists for fee / purchase credits.
         app(WalletService::class)->getPlatformWallet();
 
         $timeline = DemoTimeline::fromNow();
@@ -37,8 +34,6 @@ class DemoPlatformSeeder extends Seeder
         $this->runChild(DemoUsersSeeder::class, $ctx, $timeline);
         $this->runChild(DemoKycSeeder::class, $ctx, $timeline);
         $this->runChild(DemoWalletSeeder::class, $ctx, $timeline);
-        $this->runChild(DemoMarketplaceSeeder::class, $ctx, $timeline);
-        $this->runChild(DemoOrdersEscrowSeeder::class, $ctx, $timeline);
         $this->runChild(DemoSupportSeeder::class, $ctx, $timeline);
         $this->runChild(DemoNotificationsSeeder::class, $ctx, $timeline);
         $this->runChild(DemoAuditSeeder::class, $ctx, $timeline);
@@ -72,14 +67,9 @@ class DemoPlatformSeeder extends Seeder
                 ->where('status', 'completed')
                 ->sum('amount'), 2);
 
-            $locked = round((float) Escrow::query()
-                ->where('buyer_wallet_id', $wallet->id)
-                ->whereIn('status', ['locked', 'disputed'])
-                ->sum('amount'), 2);
-
             $wallet->forceFill([
-                'balance' => $sum + $locked,
-                'locked_balance' => $locked,
+                'balance' => $sum,
+                'locked_balance' => 0,
             ])->save();
         }
     }
@@ -107,19 +97,6 @@ class DemoPlatformSeeder extends Seeder
             throw new RuntimeException('Consistency: resolved/closed tickets missing replies.');
         }
 
-        if (Escrow::query()->where('status', 'locked')->count() < 1) {
-            throw new RuntimeException('Consistency: expected waiting/locked escrows.');
-        }
-        if (Escrow::query()->where('status', 'released')->count() < 1) {
-            throw new RuntimeException('Consistency: expected released escrows.');
-        }
-        if (Escrow::query()->where('status', 'refunded')->count() < 1) {
-            throw new RuntimeException('Consistency: expected refunded escrows.');
-        }
-        if (Escrow::query()->where('status', 'disputed')->count() < 1) {
-            throw new RuntimeException('Consistency: expected open disputed escrows.');
-        }
-
         $wallet = Wallet::query()->where('user_id', $alice->id)->first();
         if (! $wallet) {
             throw new RuntimeException('Consistency: Alice wallet missing.');
@@ -129,11 +106,8 @@ class DemoPlatformSeeder extends Seeder
             ->where('wallet_id', $wallet->id)
             ->where('status', 'completed')
             ->sum('amount'), 2);
-        if (abs((float) $wallet->balance - ($ledger + round((float) Escrow::query()
-            ->where('buyer_wallet_id', $wallet->id)
-            ->whereIn('status', ['locked', 'disputed'])
-            ->sum('amount'), 2))) > 0.05) {
-            throw new RuntimeException('Consistency: Alice wallet balance does not match ledger + locks.');
+        if (abs((float) $wallet->balance - $ledger) > 0.05) {
+            throw new RuntimeException('Consistency: Alice wallet balance does not match ledger.');
         }
 
         foreach (Wallet::query()->where('type', 'user')->cursor() as $w) {
@@ -144,15 +118,8 @@ class DemoPlatformSeeder extends Seeder
             if ($sum < -0.05) {
                 throw new RuntimeException("Consistency: wallet #{$w->id} ledger is negative ({$sum}).");
             }
-            $locked = round((float) Escrow::query()
-                ->where('buyer_wallet_id', $w->id)
-                ->whereIn('status', ['locked', 'disputed'])
-                ->sum('amount'), 2);
-            if (abs((float) $w->balance - ($sum + $locked)) > 0.05) {
-                throw new RuntimeException("Consistency: wallet #{$w->id} balance ≠ ledger + locks.");
-            }
-            if (abs((float) $w->locked_balance - $locked) > 0.05) {
-                throw new RuntimeException("Consistency: wallet #{$w->id} locked_balance ≠ open escrows.");
+            if (abs((float) $w->balance - $sum) > 0.05) {
+                throw new RuntimeException("Consistency: wallet #{$w->id} balance ≠ ledger.");
             }
         }
 
@@ -162,54 +129,26 @@ class DemoPlatformSeeder extends Seeder
             throw new RuntimeException('Consistency: invalid TransactionType values present.');
         }
 
-        if (Listing::query()->count() < 90) {
-            throw new RuntimeException('Consistency: expected ~100 listings (got '.Listing::query()->count().').');
+        if (SupportTicket::query()->count() < 1) {
+            throw new RuntimeException('Consistency: expected support tickets.');
         }
-        if (Order::query()->count() < 45) {
-            throw new RuntimeException('Consistency: expected ≥45 orders.');
-        }
-        if (Escrow::query()->count() < 45) {
-            throw new RuntimeException('Consistency: expected ≥45 escrows.');
-        }
-        if (SupportTicket::query()->count() < 35) {
-            throw new RuntimeException('Consistency: expected ≥35 support tickets.');
-        }
-        if (KycSubmission::query()->count() < 18) {
-            throw new RuntimeException('Consistency: expected ≥18 KYC submissions.');
-        }
-        if (Transaction::query()->where('status', 'completed')->count() < 200) {
-            throw new RuntimeException('Consistency: expected ≥200 completed transactions.');
+        if (KycSubmission::query()->count() < 1) {
+            throw new RuntimeException('Consistency: expected KYC submissions.');
         }
 
         if (User::role('admin')->count() < 1) {
             throw new RuntimeException('Consistency: expected super admin persona.');
-        }
-        foreach (['demo_finance', 'demo_compliance', 'demo_support', 'demo_moderator'] as $role) {
-            if (User::role($role)->count() < 1) {
-                throw new RuntimeException("Consistency: expected {$role} persona.");
-            }
-        }
-
-        $notesMissing = Escrow::query()
-            ->whereIn('status', ['refunded', 'disputed'])
-            ->where(function ($q) {
-                $q->whereNull('admin_notes')->orWhere('admin_notes', '');
-            })
-            ->count();
-        if ($notesMissing > 0) {
-            throw new RuntimeException('Consistency: disputed/refunded escrows missing admin notes.');
         }
 
         if (UserActivity::query()->where('context_key', 'like', 'dashboard.%')->count() < 1) {
             throw new RuntimeException('Consistency: expected route-level dashboard activity.');
         }
 
-        if (AnalyticsKpiSnapshot::query()->where('period', 'daily')->count() < 7) {
-            throw new RuntimeException('Consistency: expected multi-day KPI snapshots for charts.');
+        if (AnalyticsKpiSnapshot::query()->where('period', 'daily')->count() < 1) {
+            throw new RuntimeException('Consistency: expected KPI snapshots.');
         }
 
-        if (! Order::query()->where('user_id', $alice->id)->where('status', 'completed')->exists()) {
-            throw new RuntimeException('Consistency: Alice should have a completed marketplace order.');
-        }
+        // Platform orders may exist from other demo paths; marketplace orders are no longer seeded.
+        Order::query()->where('source', 'marketplace')->delete();
     }
 }

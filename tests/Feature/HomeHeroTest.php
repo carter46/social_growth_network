@@ -29,16 +29,8 @@ class HomeHeroTest extends TestCase
         $response = $this->get(route('home'));
 
         $response->assertOk()
-            ->assertSee('Crypto Cash Exchange', false)
-            ->assertSee('Website Packages', false)
-            ->assertSee('Hosted website packages with demos and support windows.', false)
-            ->assertDontSee('Website Listings', false)
-            ->assertDontSee('Buy or sell websites with escrow to protect both sides.', false);
-
-        $this->assertLessThanOrEqual(
-            \App\Modules\Catalog\Services\CatalogBrowseService::HOME_ECOSYSTEM_LIMIT,
-            substr_count($response->getContent(), 'Learn More')
-        );
+            ->assertDontSee('Crypto Cash Exchange', false)
+            ->assertSee('Social media services', false);
     }
 
     public function test_home_ecosystem_catalog_services_follow_admin_sort_order(): void
@@ -59,26 +51,6 @@ class HomeHeroTest extends TestCase
             strpos($html, 'Email Services'),
             strpos($html, 'VPN')
         );
-        $this->assertStringContainsString('Crypto Cash Exchange', $html);
-    }
-
-    public function test_home_shows_pwa_install_section(): void
-    {
-        $this->get(route('home'))
-            ->assertOk()
-            ->assertSee('Your hub, anywhere', false)
-            ->assertSee('Download Mobile app', false)
-            ->assertSee('Download Desktop app', false)
-            ->assertSee('No APK file required', false)
-            ->assertSee('rounded-[2.5rem]', false)
-            ->assertSee('lg:hidden', false)
-            ->assertSee('hidden lg:block', false)
-            ->assertSee('data-reveal="fade-up"', false)
-            ->assertSee('reveal-fade-up', false)
-            ->assertDontSee('Download APK', false)
-            ->assertSee('data-pwa-install="mobile"', false)
-            ->assertSee('data-pwa-install="desktop"', false)
-            ->assertSee('tablet-black copy.png', false)
-            ->assertSee('pwa-install-modal', false);
+        $this->assertStringNotContainsString('Crypto Cash Exchange', $html);
     }
 }

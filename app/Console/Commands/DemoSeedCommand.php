@@ -6,7 +6,6 @@ use App\Models\User;
 use App\Support\Demo\DemoBatchTracker;
 use App\Support\Demo\DemoGate;
 use Database\Seeders\Demo\DemoPlatformSeeder;
-use Database\Seeders\MarketplaceListingSeeder;
 use Illuminate\Console\Command;
 use RuntimeException;
 
@@ -32,7 +31,7 @@ class DemoSeedCommand extends Command
             return self::FAILURE;
         }
 
-        $this->warn('This will insert demo users, KYC, tickets, escrows, transactions, and analytics.');
+        $this->warn('This will insert demo users, KYC, tickets, transactions, and analytics.');
         $this->line('Database: '.(string) config('database.connections.'.config('database.default').'.database'));
         $this->line('APP_ENV: '.app()->environment());
 
@@ -50,11 +49,6 @@ class DemoSeedCommand extends Command
         }
 
         $batch = $tracker->start('Demo seed '.now()->toDateTimeString(), 'demo:seed');
-
-        $this->call('db:seed', [
-            '--class' => MarketplaceListingSeeder::class,
-            '--force' => true,
-        ]);
 
         $this->call('db:seed', [
             '--class' => DemoPlatformSeeder::class,

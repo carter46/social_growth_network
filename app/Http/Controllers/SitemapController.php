@@ -2,9 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Category;
-use App\Models\Listing;
-use App\Models\MarketplaceProduct;
 use App\Models\PlatformProduct;
 use App\Modules\Catalog\Services\CatalogBrowseService;
 use App\Support\HelpContent;
@@ -38,13 +35,10 @@ class SitemapController extends Controller
 
         $staticRoutes = [
             'home' => ['priority' => '1.0', 'changefreq' => 'daily'],
-            'marketplace' => ['priority' => '0.9', 'changefreq' => 'daily'],
             'about' => ['priority' => '0.5', 'changefreq' => 'monthly'],
             'help' => ['priority' => '0.5', 'changefreq' => 'monthly'],
             'contact' => ['priority' => '0.5', 'changefreq' => 'monthly'],
             'services' => ['priority' => '0.8', 'changefreq' => 'weekly'],
-            'website-listings' => ['priority' => '0.7', 'changefreq' => 'weekly'],
-            'exchange' => ['priority' => '0.7', 'changefreq' => 'weekly'],
             'legal' => ['priority' => '0.3', 'changefreq' => 'yearly'],
         ];
 
@@ -56,12 +50,8 @@ class SitemapController extends Controller
 
         if (Route::has('services.type')) {
             $this->push($urls, route('services.type', [
-                'category' => 'business-documents',
-                'service' => 'receipt',
-            ]), ['priority' => '0.7', 'changefreq' => 'weekly']);
-            $this->push($urls, route('services.type', [
-                'category' => 'business-documents',
-                'service' => 'document',
+                'category' => 'social-media',
+                'service' => 'social_service',
             ]), ['priority' => '0.7', 'changefreq' => 'weekly']);
         }
 
@@ -95,68 +85,6 @@ class SitemapController extends Controller
             }
         } catch (Throwable $e) {
             Log::warning('sitemap.catalog_hierarchy_failed', ['message' => $e->getMessage()]);
-        }
-
-        try {
-            Category::query()
-                ->marketplace()
-                ->active()
-                ->roots()
-                ->select(['slug', 'updated_at'])
-                ->orderBy('sort_order')
-                ->chunk(100, function ($categories) use (&$urls) {
-                    foreach ($categories as $category) {
-                        $this->push($urls, route('marketplace.show', $category->slug), [
-                            'lastmod' => $category->updated_at,
-                            'priority' => '0.75',
-                            'changefreq' => 'weekly',
-                        ]);
-                    }
-                });
-        } catch (Throwable $e) {
-            Log::warning('sitemap.categories_failed', ['message' => $e->getMessage()]);
-        }
-
-        try {
-            MarketplaceProduct::query()
-                ->active()
-                ->with('category:id,slug')
-                ->select(['id', 'slug', 'category_id', 'updated_at'])
-                ->orderBy('sort_order')
-                ->chunk(100, function ($products) use (&$urls) {
-                    foreach ($products as $product) {
-                        if (! $product->category) {
-                            continue;
-                        }
-                        $this->push($urls, route('marketplace.product', [
-                            'category' => $product->category->slug,
-                            'product' => $product->slug,
-                        ]), [
-                            'lastmod' => $product->updated_at,
-                            'priority' => '0.7',
-                            'changefreq' => 'weekly',
-                        ]);
-                    }
-                });
-        } catch (Throwable $e) {
-            Log::warning('sitemap.marketplace_products_failed', ['message' => $e->getMessage()]);
-        }
-
-        try {
-            Listing::published()
-                ->select(['slug', 'updated_at'])
-                ->orderByDesc('updated_at')
-                ->chunk(100, function ($listings) use (&$urls) {
-                    foreach ($listings as $listing) {
-                        $this->push($urls, route('marketplace.show', $listing->slug), [
-                            'lastmod' => $listing->updated_at,
-                            'priority' => '0.8',
-                            'changefreq' => 'weekly',
-                        ]);
-                    }
-                });
-        } catch (Throwable $e) {
-            Log::warning('sitemap.listings_failed', ['message' => $e->getMessage()]);
         }
 
         try {

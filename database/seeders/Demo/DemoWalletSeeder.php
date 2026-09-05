@@ -3,7 +3,6 @@
 namespace Database\Seeders\Demo;
 
 use App\Enums\TransactionType;
-use App\Models\CryptoSellRequest;
 use App\Models\Transaction;
 use App\Models\Wallet;
 use App\Models\WalletFunding;
@@ -161,24 +160,6 @@ class DemoWalletSeeder extends Seeder
                 ]);
                 $ctx->stamp($pendingWd, $at);
             }
-
-            // Alice: pending crypto quote (admin can approve live).
-            if ($key === 'alice') {
-                $at = $timeline->daysAgo(1, 16);
-                $crypto = CryptoSellRequest::query()->create([
-                    'user_id' => $user->id,
-                    'wallet_id' => $wallet->id,
-                    'coin' => 'USDT',
-                    'network' => 'tron',
-                    'amount_crypto' => 50,
-                    'quoted_rate_ngn' => 1600,
-                    'expected_ngn' => 80000,
-                    'status' => 'pending',
-                    'expires_at' => now()->addHours(6),
-                    'quoted_at' => $at,
-                ]);
-                $ctx->track($crypto);
-            }
         }
 
         // Reversed funding with matching ledger (funding + reversal).
@@ -257,6 +238,6 @@ class DemoWalletSeeder extends Seeder
         }
 
         $ctx->transactionCount += $txCount;
-        $ctx->note('✓ Wallet fundings / withdrawals / crypto sells seeded');
+        $ctx->note('✓ Wallet fundings / withdrawals seeded');
     }
 }

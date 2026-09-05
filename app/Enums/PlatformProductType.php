@@ -4,19 +4,7 @@ namespace App\Enums;
 
 enum PlatformProductType: string
 {
-    case WebsiteTemplate = 'website_template';
-    case WebsitePackage = 'website_package';
-    case Receipt = 'receipt';
-    case Document = 'document';
-    case VirtualPhone = 'virtual_phone';
-    case Vpn = 'vpn';
-    case Vps = 'vps';
-    case Proxy = 'proxy';
-    case Smtp = 'smtp';
-    case Domain = 'domain';
-    case Email = 'email';
     case SocialService = 'social_service';
-    case EscrowService = 'escrow_service';
 
     public function label(): string
     {

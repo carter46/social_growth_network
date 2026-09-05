@@ -48,7 +48,7 @@
         ['label' => 'Contact'],
     ],
     'title' => 'Contact & Support',
-    'subtitle' => 'Reach our team for wallet funding, crypto sells, marketplace orders, KYC, and account help.',
+    'subtitle' => 'Reach our team for social media orders, wallet funding, KYC, and account help.',
     'image' => 'assets/images/helpcenter.jpg',
     'cta' => [
         'href' => route('help'),
@@ -257,12 +257,6 @@
                             <a href="{{ route('legal') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-accent hover:bg-accent/10 transition-colors">
                                 <x-ui.icon name="audit" class="w-4 h-4 shrink-0" />
                                 <span>Legal hub</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ route('exchange') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-text-secondary hover:bg-white/5 hover:text-white transition-colors">
-                                <x-ui.icon name="bitcoin" class="w-4 h-4 text-accent shrink-0" />
-                                <span>Crypto Exchange</span>
                             </a>
                         </li>
                     </ul>

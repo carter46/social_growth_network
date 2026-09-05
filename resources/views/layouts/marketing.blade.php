@@ -6,10 +6,10 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         @php
-            $siteName = $siteName ?? config('app.name', '7th Trade Hub');
+            $siteName = $siteName ?? config('app.name', 'Social Growth Network');
             $defaultDescription = ($siteBranding['meta_description'] ?? null)
-                ?: ($siteName.' — NGN wallet marketplace. Deposit, buy with escrow, sell digital products and services.');
-            $defaultOgDescription = 'NGN wallet marketplace with escrow-protected purchases.';
+                ?: ($siteName.' — social media growth and engagement services with secure checkout.');
+            $defaultOgDescription = 'Buy social media growth packs with secure wallet or card checkout.';
             $pageTitle = trim($__env->yieldContent('title') ?: '');
             $resolvedTitle = $pageTitle !== '' ? ($pageTitle.' | '.$siteName) : $siteName;
             $resolvedOgTitle = $__env->hasSection('og_title')
@@ -50,8 +50,7 @@
                 <div class="hidden lg:flex items-center space-x-8 text-sm font-medium text-slate-300">
                     <a class="hover:text-accent transition-colors" href="{{ route('home') }}">Home</a>
                     <a class="hover:text-accent transition-colors" href="{{ route('services') }}">Services</a>
-                    <a class="hover:text-accent transition-colors" href="{{ route('marketplace') }}">Marketplace</a>
-                    <a class="hover:text-accent transition-colors" href="{{ route('exchange') }}">Exchange</a>
+                    <a class="hover:text-accent transition-colors" href="{{ route('about') }}">About</a>
                     <a class="hover:text-accent transition-colors" href="{{ route('help') }}">Help</a>
                 </div>
 
@@ -128,8 +127,7 @@
                 <nav class="flex flex-col p-4 gap-1">
                     <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-200 hover:bg-primary/15 hover:text-accent transition-colors" href="{{ route('home') }}" @click="close()">Home</a>
                     <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-200 hover:bg-primary/15 hover:text-accent transition-colors" href="{{ route('services') }}" @click="close()">Services</a>
-                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-200 hover:bg-primary/15 hover:text-accent transition-colors" href="{{ route('marketplace') }}" @click="close()">Marketplace</a>
-                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-200 hover:bg-primary/15 hover:text-accent transition-colors" href="{{ route('exchange') }}" @click="close()">Exchange</a>
+                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-200 hover:bg-primary/15 hover:text-accent transition-colors" href="{{ route('about') }}" @click="close()">About</a>
                     <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-200 hover:bg-primary/15 hover:text-accent transition-colors" href="{{ route('help') }}" @click="close()">Help</a>
 
                     @auth
@@ -153,7 +151,7 @@
                             <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="h-8 w-auto max-w-[160px] object-contain">
                         </div>
                         <p class="text-slate-500 text-sm leading-relaxed">
-                            {{ $footer->tagline ?? 'Leading the digital marketplace revolution with secure, transparent, and efficient trade solutions for global users.' }}
+                            {{ $footer->tagline ?? ($siteBranding['tagline'] ?? 'Social media growth and engagement services with clear deliverables and secure checkout.') }}
                         </p>
                         <x-ui.social-links :links="$footer->socialLinks" class="flex flex-wrap items-center gap-3 mt-5" />
                     </div>
@@ -162,9 +160,8 @@
                         <ul class="space-y-4 text-slate-500 text-sm">
                             <li><a class="hover:text-accent transition-colors" href="{{ route('home') }}">Home</a></li>
                             <li><a class="hover:text-accent transition-colors" href="{{ route('services') }}">Services</a></li>
-                            <li><a class="hover:text-accent transition-colors" href="{{ route('marketplace') }}">Marketplace</a></li>
-                            <li><a class="hover:text-accent transition-colors" href="{{ route('exchange') }}">Exchange</a></li>
                             <li><a class="hover:text-accent transition-colors" href="{{ route('about') }}">About</a></li>
+                            <li><a class="hover:text-accent transition-colors" href="{{ route('contact') }}">Contact</a></li>
                         </ul>
                     </div>
                     <div>

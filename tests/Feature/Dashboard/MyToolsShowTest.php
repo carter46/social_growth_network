@@ -24,7 +24,7 @@ class MyToolsShowTest extends TestCase
         $product = $this->forceCreatePlatformProduct([
             'title' => 'Online Banking website',
             'slug' => 'online-banking-'.Str::lower(Str::random(5)),
-            'product_type' => PlatformProductType::WebsitePackage,
+            'product_type' => PlatformProductType::SocialService,
             'product_type_id' => 1,
             'status' => PlatformProductStatus::Published,
             'base_price' => 10000,

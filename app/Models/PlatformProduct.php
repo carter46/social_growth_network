@@ -212,14 +212,6 @@ class PlatformProduct extends Model
 
     public function displayPrice(): float
     {
-        $type = $this->product_type;
-        if ($type === PlatformProductType::Domain || $type === PlatformProductType::Domain->value) {
-            $fromTlds = app(\App\Services\Domains\DomainQuoteService::class)->cheapestRetailPrice($this);
-            if ($fromTlds !== null && $fromTlds > 0) {
-                return $fromTlds;
-            }
-        }
-
         $variants = $this->relationLoaded('activeVariants')
             ? $this->activeVariants
             : $this->activeVariants()->get();

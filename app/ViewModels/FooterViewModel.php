@@ -34,7 +34,7 @@ class FooterViewModel
 
         return new self(
             siteName: $branding['site_name'],
-            tagline: $branding['tagline'] ?: 'Leading the digital marketplace revolution with secure, transparent, and efficient trade solutions for global users.',
+            tagline: $branding['tagline'] ?: 'Social media growth and engagement services with clear deliverables and secure checkout.',
             metaDescription: $branding['meta_description'],
             logoDarkUrl: $logoDark,
             logoLightUrl: $logoLight,

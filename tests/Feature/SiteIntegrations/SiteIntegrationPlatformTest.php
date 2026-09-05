@@ -53,7 +53,7 @@ class SiteIntegrationPlatformTest extends TestCase
         $product = $this->forceCreatePlatformProduct([
             'title' => 'Online Banking website',
             'slug' => 'online-banking-website-'.Str::lower(Str::random(4)),
-            'product_type' => PlatformProductType::WebsitePackage,
+            'product_type' => PlatformProductType::SocialService,
             'product_type_id' => $service->id,
             'status' => PlatformProductStatus::Published,
             'base_price' => 10000,
@@ -328,7 +328,7 @@ class SiteIntegrationPlatformTest extends TestCase
         $product = $this->forceCreatePlatformProduct([
             'title' => 'Business VPN',
             'slug' => 'business-vpn-'.Str::lower(Str::random(4)),
-            'product_type' => PlatformProductType::Vpn,
+            'product_type' => PlatformProductType::SocialService,
             'product_type_id' => $service->id,
             'status' => PlatformProductStatus::Published,
             'base_price' => 5000,
