@@ -93,7 +93,7 @@ export default {
         'grid-cols-12', 'lg:grid-cols-12',
         'col-span-3', 'col-span-8', 'col-span-9', 'col-span-4',
         'lg:col-span-3', 'lg:col-span-4', 'lg:col-span-8', 'lg:col-span-9',
-        'lg:flex-row', 'lg:w-72', 'xl:w-80',
+        'lg:flex-row', 'lg:w-72', 'xl:w-80', 'lg:sticky', 'lg:top-20',
         'bg-header', 'bg-sidebar', 'bg-overlay', 'bg-surface-secondary',
     ],
 };

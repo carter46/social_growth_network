@@ -11,7 +11,6 @@
         : 'Choose the campaign you need, select your preferred package, and get your campaign started in minutes.';
     $categoryCards = collect($categoryCards ?? [])->values();
     $featuredProducts = collect($featuredProducts ?? []);
-    $popularTags = collect($popularTags ?? []);
     $filterCategories = $categoryCards->take(5);
     $marketplaceCards = $categoryCards->take(5);
     $heroSlides = [
@@ -26,12 +25,6 @@
         'text-emerald-600',
     ];
     $badgeIcons = ['smart_display', 'share', 'public', 'task_alt'];
-    $fallbackPopular = [
-        ['label' => 'YouTube Views', 'href' => '#services'],
-        ['label' => 'Instagram Likes', 'href' => '#services'],
-        ['label' => 'Website Visits', 'href' => '#services'],
-        ['label' => 'App Reviews', 'href' => '#services'],
-    ];
     $agentPreview = $featuredProducts->first(fn ($p) => (bool) ($p->is_campaign ?? false))
         ?? $featuredProducts->first();
 @endphp
@@ -68,57 +61,46 @@
                 >
             </div>
         @endforeach
-        <div class="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/70 to-slate-900/40"></div>
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-slate-950/55 via-slate-900/35 to-slate-900/20"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/50 via-transparent to-black/10"></div>
     </div>
 
     <div class="relative z-10 max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-24 w-full">
-        <div class="max-w-3xl">
-            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-semibold tracking-wider uppercase mb-6 shadow-sm">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                Digital campaigns &amp; growth
-            </div>
-
+        <div class="max-w-3xl w-full">
             <h1 class="text-4xl sm:text-5xl lg:text-[54px] font-extrabold text-white tracking-tight leading-[1.15] mb-5 font-display">
                 {{ $heading }}
             </h1>
-            <p class="text-lg sm:text-xl text-slate-200/90 font-normal leading-relaxed mb-8 max-w-2xl">
+            <p class="text-lg sm:text-xl text-slate-100/90 font-normal leading-relaxed mb-8 max-w-2xl">
                 {{ $tagline }}
             </p>
 
-            <div class="bg-white rounded-xl shadow-2xl p-2.5 sm:p-3 mb-4 max-w-2xl border border-white/40 backdrop-blur-sm">
-                <form action="{{ route('services') }}" method="GET" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                    <div class="relative flex-1 flex items-center pl-3">
-                        <span class="material-symbols-outlined text-slate-400 text-2xl mr-2.5 shrink-0" aria-hidden="true">search</span>
-                        <label for="home-services-q" class="sr-only">Search campaigns</label>
-                        <input
-                            id="home-services-q"
-                            type="search"
-                            name="q"
-                            class="w-full bg-transparent text-slate-800 placeholder-slate-400 text-sm sm:text-base border-none focus:outline-none focus:ring-0 p-0 font-medium"
-                            placeholder="What do you want to promote? (e.g. YouTube views, Website traffic, Social engagement...)"
-                        >
-                    </div>
-                    <button type="submit" class="bg-primary hover:bg-primary-hover text-white px-6 py-3.5 rounded-lg font-semibold text-sm sm:text-base flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all shrink-0">
-                        <span>Search</span>
-                        <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
-                    </button>
-                </form>
-            </div>
+            <form
+                action="{{ route('services') }}"
+                method="GET"
+                class="w-full max-w-2xl bg-white/45 backdrop-blur-md border border-white/40 rounded-xl p-1.5 shadow-xl flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 mb-6"
+            >
+                <div class="flex items-center gap-2 px-3 py-2 w-full min-w-0">
+                    <span class="material-symbols-outlined text-slate-600/80 shrink-0" aria-hidden="true">search</span>
+                    <label for="home-services-q" class="sr-only">Search campaigns</label>
+                    <input
+                        id="home-services-q"
+                        type="search"
+                        name="q"
+                        class="w-full min-w-0 bg-transparent text-slate-900 text-sm placeholder:text-slate-600/70 focus:outline-none border-0 focus:ring-0 p-0"
+                        placeholder="Search campaign services…"
+                    >
+                </div>
+                <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-primary/90 hover:bg-primary text-white text-sm font-semibold rounded-lg transition-colors shrink-0">
+                    Search
+                </button>
+            </form>
 
-            <div class="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-slate-300 mb-8">
-                <span class="text-slate-400 font-medium">Popular:</span>
-                @foreach(($popularTags->isNotEmpty() ? $popularTags : collect($fallbackPopular)) as $tag)
-                    <a class="px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-colors" href="{{ $tag['href'] }}">{{ $tag['label'] }}</a>
-                @endforeach
-            </div>
-
-            <div class="flex flex-wrap items-center gap-4">
-                <a class="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg hover:shadow-xl transition-all" href="#services">
+            <div class="flex flex-wrap items-center gap-2.5 sm:gap-4">
+                <a class="inline-flex items-center gap-1.5 sm:gap-2 bg-primary hover:bg-primary-hover text-white font-semibold text-sm sm:text-base px-4 py-2.5 sm:px-6 sm:py-3.5 rounded-lg shadow-lg hover:shadow-xl transition-all" href="#services">
                     <span>Explore Services</span>
-                    <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
+                    <span class="material-symbols-outlined text-base sm:text-lg" aria-hidden="true">arrow_forward</span>
                 </a>
-                <a class="inline-flex items-center justify-center bg-white/10 hover:bg-white/20 text-white font-medium text-base px-6 py-3.5 rounded-lg border border-white/30 backdrop-blur-md transition-all" href="#creators">
+                <a class="inline-flex items-center justify-center bg-white/10 hover:bg-white/20 text-white font-medium text-sm sm:text-base px-4 py-2.5 sm:px-6 sm:py-3.5 rounded-lg border border-white/30 backdrop-blur-md transition-all" href="#creators">
                     Create Campaign
                 </a>
             </div>
@@ -148,7 +130,8 @@
                 <p class="text-slate-600 text-base sm:text-lg mt-2 max-w-xl">Browse predefined packages, see upfront pricing, and launch instantly.</p>
             </div>
             @if($filterCategories->isNotEmpty())
-                <div class="flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-xl self-start md:self-auto">
+                {{-- Desktop: wrap pills --}}
+                <div class="hidden md:flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-xl self-start md:self-auto">
                     <button type="button" @click="filter = 'all'" :class="filter === 'all' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600 font-medium hover:text-slate-900'" class="px-4 py-2 rounded-lg text-sm transition-all">All</button>
                     @foreach($filterCategories as $cat)
                         <button
@@ -158,6 +141,31 @@
                             class="px-4 py-2 rounded-lg text-sm transition-all"
                         >{{ $cat['label'] ?? $cat['slug'] }}</button>
                     @endforeach
+                </div>
+
+                {{-- Mobile: All fixed; other categories scroll underneath --}}
+                <div class="md:hidden relative w-full">
+                    <div class="absolute inset-y-0 left-0 z-10 flex items-center bg-slate-100 pl-1.5 pr-1 rounded-l-xl">
+                        <button
+                            type="button"
+                            @click="filter = 'all'"
+                            :class="filter === 'all' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600 font-medium'"
+                            class="px-3.5 py-2 rounded-lg text-sm transition-all shrink-0"
+                        >All</button>
+                        <div class="pointer-events-none absolute top-0 bottom-0 left-full w-6 bg-gradient-to-r from-slate-100 to-transparent" aria-hidden="true"></div>
+                    </div>
+                    <div class="overflow-x-auto scrollbar-hide bg-slate-100 rounded-xl pl-[4.25rem]">
+                        <div class="flex items-center gap-2 p-1.5 min-w-max">
+                            @foreach($filterCategories as $cat)
+                                <button
+                                    type="button"
+                                    @click="filter = '{{ $cat['slug'] }}'"
+                                    :class="filter === '{{ $cat['slug'] }}' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600 font-medium'"
+                                    class="px-3.5 py-2 rounded-lg text-sm transition-all shrink-0"
+                                >{{ $cat['label'] ?? $cat['slug'] }}</button>
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
             @endif
         </div>

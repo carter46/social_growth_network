@@ -10,6 +10,7 @@ export function registerServicesMarketplace(Alpine) {
         q: config.q || '',
         totalVisible: Number(config.totalVisible || 0),
         groups: Array.isArray(config.groups) ? config.groups : [],
+        filtersOpen: false,
         loading: false,
         _abort: null,
         _seq: 0,
