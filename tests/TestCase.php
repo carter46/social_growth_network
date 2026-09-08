@@ -50,6 +50,29 @@ abstract class TestCase extends BaseTestCase
     /** @param  array<string, mixed>  $attrs */
     protected function forceCreatePlatformProduct(array $attrs): PlatformProduct
     {
+        if (empty($attrs['service_category_id']) && ! empty($attrs['slug']) && Schema::hasColumn('platform_products', 'service_category_id')) {
+            foreach (config('platform_categories', []) as $meta) {
+                if (! is_array($meta)) {
+                    continue;
+                }
+                $products = $meta['products'] ?? [];
+                if (is_array($products) && in_array($attrs['slug'], $products, true)) {
+                    $categoryId = ServiceCategory::query()->where('slug', $meta['slug'] ?? '')->value('id');
+                    if ($categoryId) {
+                        $attrs['service_category_id'] = $categoryId;
+                    }
+                    break;
+                }
+            }
+        }
+
+        if (empty($attrs['service_category_id']) && ! empty($attrs['product_type_id']) && Schema::hasColumn('platform_products', 'service_category_id')) {
+            $fromType = ProductType::query()->whereKey($attrs['product_type_id'])->value('service_category_id');
+            if ($fromType) {
+                $attrs['service_category_id'] = $fromType;
+            }
+        }
+
         $product = new PlatformProduct;
         $product->forceFill($attrs)->save();
 

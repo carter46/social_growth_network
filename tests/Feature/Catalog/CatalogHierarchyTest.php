@@ -21,20 +21,22 @@ class CatalogHierarchyTest extends TestCase
     {
         Artisan::call('catalog:backfill-hierarchy');
 
-        return ProductType::query()->where('slug', 'vpn')->firstOrFail();
+        return ProductType::query()->where('slug', 'social_service')->firstOrFail();
     }
 
-    private function seedVpnProduct(string $slug = 'residential-vpn-demo', bool $featured = false): PlatformProduct
+    private function seedYoutubeProduct(string $slug = 'youtube-views-lite', bool $featured = false): PlatformProduct
     {
         $service = $this->seedHierarchy();
+        $category = ServiceCategory::query()->where('slug', 'youtube')->firstOrFail();
 
         $product = $this->forceCreatePlatformProduct([
             'product_type_id' => $service->id,
+            'service_category_id' => $category->id,
             'product_type' => PlatformProductType::SocialService,
-            'title' => 'Residential VPN Demo',
+            'title' => 'YouTube Views Lite',
             'slug' => $slug,
-            'short_description' => 'Test VPN product',
-            'description' => 'A test VPN',
+            'short_description' => 'Grow your YouTube video reach',
+            'description' => 'A test YouTube package',
             'status' => PlatformProductStatus::Published,
             'is_featured' => $featured,
             'base_price' => 3500,
@@ -46,9 +48,9 @@ class CatalogHierarchyTest extends TestCase
 
         PlatformProductVariant::create([
             'platform_product_id' => $product->id,
-            'name' => '1 Month',
-            'label' => '1 Month',
-            'sku' => $slug.'-1m',
+            'name' => 'Standard',
+            'label' => 'Standard',
+            'sku' => $slug.'-std',
             'price' => 3500,
             'is_default' => true,
             'is_active' => true,
@@ -62,8 +64,8 @@ class CatalogHierarchyTest extends TestCase
     {
         $this->forceCreatePlatformProduct([
             'product_type' => PlatformProductType::SocialService,
-            'title' => 'Legacy VPN',
-            'slug' => 'legacy-vpn-link',
+            'title' => 'Instagram Growth Pack',
+            'slug' => 'instagram-growth-pack',
             'status' => PlatformProductStatus::Draft,
             'base_price' => 1000,
         ]);
@@ -76,90 +78,88 @@ class CatalogHierarchyTest extends TestCase
 
         $this->assertSame($first, ServiceCategory::count());
         $this->assertSame($services, ProductType::count());
-        $this->assertGreaterThanOrEqual(6, $first);
-        $this->assertFalse(ProductType::where('slug', 'escrow_service')->exists());
+        $this->assertGreaterThanOrEqual(5, $first);
 
-        $product = PlatformProduct::where('slug', 'legacy-vpn-link')->first();
+        $product = PlatformProduct::where('slug', 'instagram-growth-pack')->first();
         $this->assertNotNull($product->product_type_id);
-        $this->assertSame('vpn', ProductType::find($product->product_type_id)?->slug);
+        $this->assertSame('social_service', ProductType::find($product->product_type_id)?->slug);
+        $this->assertSame('instagram', ServiceCategory::find($product->service_category_id)?->slug);
         $this->assertSame('manual', $product->provider);
         $this->assertSame('manual', $product->fulfillment_mode);
         $this->assertFalse($product->auto_renew);
     }
 
-    public function test_services_index_uses_db_service_categories(): void
+    public function test_services_index_uses_platform_categories(): void
     {
-        $this->seedVpnProduct();
+        $this->seedYoutubeProduct();
 
         $this->get(route('services'))
             ->assertOk()
-            ->assertSee('Network Services')
-            ->assertSee('Documents & Receipts')
+            ->assertSee('YouTube')
             ->assertSee('Browse Categories')
-            ->assertDontSee('Residential VPN Demo');
+            ->assertDontSee('YouTube Views Lite');
     }
 
-    public function test_group_page_lists_services(): void
+    public function test_group_page_lists_products_by_category(): void
     {
-        $this->seedVpnProduct();
+        $this->seedYoutubeProduct();
 
-        $this->get(route('services.segment', 'network-services'))
+        $this->get(route('services.segment', 'youtube'))
             ->assertOk()
-            ->assertSee('Network Services')
-            ->assertSee('VPN')
-            ->assertDontSee('VPS');
+            ->assertSee('YouTube')
+            ->assertSee('YouTube Views Lite');
     }
 
-    public function test_service_page_lists_products(): void
+    public function test_visibility_uses_direct_service_category(): void
     {
-        $this->seedVpnProduct(featured: true);
+        $product = $this->seedYoutubeProduct();
 
-        $this->get(route('services.segment', 'vpn'))
-            ->assertRedirect('/services/network-services/vpn');
+        $this->assertTrue($product->isVisibleToPublic());
 
-        $this->get(route('services.type', ['category' => 'network-services', 'service' => 'vpn']))
-            ->assertOk()
-            ->assertSee('Featured')
-            ->assertSee('Residential VPN Demo');
+        $product->serviceCategory->forceFill(['is_active' => false])->save();
+
+        $this->assertFalse($product->fresh()->isVisibleToPublic());
     }
 
     public function test_service_category_rename_and_toggle_smoke(): void
     {
         Artisan::call('catalog:backfill-hierarchy');
         $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
-        $category = ServiceCategory::query()->where('key', 'network')->firstOrFail();
+        $category = ServiceCategory::query()->where('key', 'youtube')->firstOrFail();
         $slug = $category->slug;
 
         $this->actingAs($admin)
             ->put(route('admin.service-categories.update', $category), [
-                'name' => 'Network Hub Renamed',
+                'name' => 'YouTube Hub Renamed',
                 'is_active' => 1,
                 'sort_order' => $category->sort_order,
             ])
             ->assertRedirect(route('admin.service-categories'));
 
         $category->refresh();
-        $this->assertSame('Network Hub Renamed', $category->name);
+        $this->assertSame('YouTube Hub Renamed', $category->name);
         $this->assertSame($slug, $category->slug);
 
         $this->actingAs($admin)
             ->get(route('admin.service-categories'))
             ->assertOk()
-            ->assertSee('Network Hub Renamed')
+            ->assertSee('YouTube Hub Renamed')
             ->assertDontSee('Add category');
     }
 
-    public function test_product_filters_by_service_and_status(): void
+    public function test_product_filters_by_category_and_status(): void
     {
         $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
-        $vpn = $this->seedVpnProduct('filter-vpn');
-        $emailService = ProductType::query()->where('slug', 'email')->firstOrFail();
+        $youtube = $this->seedYoutubeProduct('youtube-views-lite');
+        $facebook = ServiceCategory::query()->where('slug', 'facebook')->firstOrFail();
+        $service = ProductType::query()->where('slug', 'social_service')->firstOrFail();
 
         $this->forceCreatePlatformProduct([
-            'product_type_id' => $emailService->id,
+            'product_type_id' => $service->id,
+            'service_category_id' => $facebook->id,
             'product_type' => PlatformProductType::SocialService,
-            'title' => 'Email Only Product',
-            'slug' => 'email-only-filter',
+            'title' => 'Facebook Growth Pack',
+            'slug' => 'facebook-growth-pack',
             'status' => PlatformProductStatus::Draft,
             'base_price' => 2000,
             'provider' => 'manual',
@@ -168,12 +168,40 @@ class CatalogHierarchyTest extends TestCase
 
         $this->actingAs($admin)
             ->get(route('admin.platform-products', [
-                'service' => $vpn->product_type_id,
+                'category' => $youtube->service_category_id,
                 'status' => 'published',
             ]))
             ->assertOk()
-            ->assertSee('Residential VPN Demo')
-            ->assertDontSee('Email Only Product');
+            ->assertSee('YouTube Views Lite')
+            ->assertDontSee('Facebook Growth Pack');
+    }
+
+    public function test_admin_can_assign_product_category(): void
+    {
+        $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
+        $product = $this->seedYoutubeProduct();
+        $tiktok = ServiceCategory::query()->where('slug', 'tiktok')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->put(route('admin.platform-products.update', $product), [
+                'title' => $product->title,
+                'short_description' => $product->short_description,
+                'description' => $product->description,
+                'service_category_id' => $tiktok->id,
+                'status' => PlatformProductStatus::Published->value,
+                'sort_order' => 1,
+                'variants' => [
+                    [
+                        'id' => $product->variants()->first()->id,
+                        'price' => 3500,
+                        'description' => null,
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('admin.platform-products.edit', $product));
+
+        $this->assertSame($tiktok->id, $product->fresh()->service_category_id);
+        $this->assertNotNull($product->fresh()->product_type_id);
     }
 
     public function test_legacy_platform_categories_redirect(): void

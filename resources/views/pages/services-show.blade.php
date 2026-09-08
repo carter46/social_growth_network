@@ -11,18 +11,7 @@
     if (! empty($groupSlug) && ! empty($groupContent)) {
         $crumbs[] = ['label' => $groupContent['label'], 'href' => route('services.segment', $groupSlug)];
     }
-    if (! empty($typeKey) && ! empty($typeContent)) {
-        $typeLabel = $typeContent['label'] ?? $product->product_type?->label() ?? $typeKey;
-        $lastGroup = $groupContent['label'] ?? null;
-        if ($typeLabel !== $lastGroup) {
-            $crumbs[] = [
-                'label' => $typeLabel,
-                'href' => $groupSlug
-                    ? route('services.type', ['category' => $groupSlug, 'service' => $typeKey])
-                    : route('services.segment', $typeKey),
-            ];
-        }
-    }
+    // Category → Product breadcrumbs (ProductType mid-layer is not required in the trail).
     $crumbs[] = ['label' => $product->title];
 
     $heroUrl = $product->heroMedia?->url('medium') ?? ($product->hero_image ? asset($product->hero_image) : null);
@@ -171,7 +160,9 @@
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-wider text-primary mb-2">
                         {{ $product->product_type->label() }}
-                        @if($product->productType)
+                        @if($product->serviceCategory)
+                            <span class="text-slate-400 font-normal">· {{ $product->serviceCategory->name }}</span>
+                        @elseif($product->productType)
                             <span class="text-slate-400 font-normal">· {{ $product->productType->name }}</span>
                         @endif
                     </p>

@@ -38,12 +38,20 @@ class CatalogBrowseService
     public function groupSlugs(): array
     {
         if ($this->usesDbHierarchy()) {
-            return ServiceCategory::query()
+            $query = ServiceCategory::query()
                 ->system()
                 ->active()
-                ->orderBy('sort_order')
-                ->pluck('slug')
-                ->all();
+                ->orderBy('sort_order');
+
+            // Prefer categories that own products (platform categories); fall back to all system.
+            if (Schema::hasColumn('platform_products', 'service_category_id')) {
+                $withProducts = (clone $query)->withPublicProducts()->pluck('slug')->all();
+                if ($withProducts !== []) {
+                    return $withProducts;
+                }
+            }
+
+            return $query->pluck('slug')->all();
         }
 
         return array_keys(config('catalog.groups', []));
@@ -148,22 +156,23 @@ class CatalogBrowseService
         return route('services.segment', $serviceSlug);
     }
 
-    /** Canonical public URL for a product detail page. */
+    /**
+     * Canonical public URL for a product detail page.
+     * Path prefix /services/… is presentation only — ownership is ServiceCategory → Product.
+     */
     public function productUrl(PlatformProduct $product): string
     {
-        $typeSlug = $product->typeSlug() ?? 'social_service';
-        $categorySlug = $product->relationLoaded('productType')
-            ? $product->productType?->serviceCategory?->slug
-            : null;
-        $categorySlug ??= $this->groupForType($typeSlug);
+        $categorySlug = $product->categorySlug();
 
         if ($categorySlug) {
-            return route('services.nested.show', [
-                'category' => $categorySlug,
-                'service' => $typeSlug,
+            // Two-segment URL: /services/{category}/{productSlug} (pair() resolves Category→Product).
+            return route('services.show', [
+                'type' => $categorySlug,
                 'productSlug' => $product->slug,
             ]);
         }
+
+        $typeSlug = $product->typeSlug() ?? 'social_service';
 
         return route('services.show', [
             'type' => $typeSlug,
@@ -200,42 +209,36 @@ class CatalogBrowseService
             return ['count' => 0, 'from_price' => null];
         }
 
-        $count = PlatformProduct::query()
-            ->visibleToPublic()
-            ->where(function ($q) use ($types) {
-                $q->whereIn('product_type', $types);
-                if (Schema::hasColumn('platform_products', 'product_type_id')) {
-                    $q->orWhereHas('productType', fn ($inner) => $inner->whereIn('slug', $types));
-                }
-            })
-            ->count();
+        $base = PlatformProduct::query()->visibleToPublic()->ofTypeMany($types);
 
-        $productMin = PlatformProduct::query()
-            ->visibleToPublic()
-            ->where(function ($q) use ($types) {
-                $q->whereIn('product_type', $types);
-                if (Schema::hasColumn('platform_products', 'product_type_id')) {
-                    $q->orWhereHas('productType', fn ($inner) => $inner->whereIn('slug', $types));
-                }
-            })
-            ->where('base_price', '>', 0)
-            ->min('base_price');
+        return $this->statsFromProductQuery(clone $base);
+    }
+
+    /**
+     * Stats for products owned by a ServiceCategory (Category → Product).
+     *
+     * @return array{count: int, from_price: ?float}
+     */
+    public function statsForCategory(ServiceCategory|int|string $category): array
+    {
+        $base = PlatformProduct::query()->visibleToPublic()->ofCategory($category);
+
+        return $this->statsFromProductQuery($base);
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<\App\Models\PlatformProduct>  $base
+     * @return array{count: int, from_price: ?float}
+     */
+    private function statsFromProductQuery($base): array
+    {
+        $count = (clone $base)->count();
+
+        $productMin = (clone $base)->where('base_price', '>', 0)->min('base_price');
 
         $variantMin = PlatformProductVariant::query()
             ->where('is_active', true)
-            ->whereHas('product', function ($q) use ($types) {
-                $q->where('status', PlatformProductStatus::Published)
-                    ->whereHas('productType', function ($service) {
-                        $service->where('is_active', true)
-                            ->whereHas('serviceCategory', fn ($cat) => $cat->where('is_active', true));
-                    })
-                    ->where(function ($inner) use ($types) {
-                        $inner->whereIn('product_type', $types);
-                        if (Schema::hasColumn('platform_products', 'product_type_id')) {
-                            $inner->orWhereHas('productType', fn ($pt) => $pt->whereIn('slug', $types));
-                        }
-                    });
-            })
+            ->whereIn('platform_product_id', (clone $base)->select('id'))
             ->min('price');
 
         $candidates = array_filter([
@@ -255,7 +258,7 @@ class CatalogBrowseService
     public function groupCards(CatalogContentResolver $content): Collection
     {
         if ($this->usesDbHierarchy()) {
-            return ServiceCategory::query()
+            $query = ServiceCategory::query()
                 ->system()
                 ->active()
                 ->orderBy('sort_order')
@@ -263,22 +266,19 @@ class CatalogBrowseService
                     'cardMedia.variants',
                     'bannerMedia.variants',
                     'services' => fn ($q) => $q->active()->orderBy('sort_order'),
-                ])
-                ->get()
-                ->map(function (ServiceCategory $category) use ($content) {
-                    $resolved = $content->forServiceCategory($category);
-                    $typeSlugs = $category->services->pluck('slug')->all();
-                    $stats = $this->statsForTypes($typeSlugs);
+                ]);
 
-                    return array_merge($resolved, [
-                        'slug' => $category->slug,
-                        'count' => $stats['count'],
-                        'from_price' => $stats['from_price'],
-                        'href' => route('services.segment', $category->slug),
-                        'cta' => $category->cta_label ?: 'Explore',
-                        'mode' => $category->mode,
-                    ]);
-                })
+            if (Schema::hasColumn('platform_products', 'service_category_id')) {
+                $withProducts = (clone $query)->withPublicProducts()->get();
+                if ($withProducts->isNotEmpty()) {
+                    return $withProducts
+                        ->map(fn (ServiceCategory $category) => $this->mapGroupCard($category, $content))
+                        ->values();
+                }
+            }
+
+            return $query->get()
+                ->map(fn (ServiceCategory $category) => $this->mapGroupCard($category, $content))
                 ->values();
         }
 
@@ -295,6 +295,26 @@ class CatalogBrowseService
                 'cta' => $group['cta'] ?? 'Explore',
             ]);
         })->values();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mapGroupCard(ServiceCategory $category, CatalogContentResolver $content): array
+    {
+        $resolved = $content->forServiceCategory($category);
+        $stats = Schema::hasColumn('platform_products', 'service_category_id')
+            ? $this->statsForCategory($category)
+            : $this->statsForTypes($category->services->pluck('slug')->all());
+
+        return array_merge($resolved, [
+            'slug' => $category->slug,
+            'count' => $stats['count'],
+            'from_price' => $stats['from_price'],
+            'href' => route('services.segment', $category->slug),
+            'cta' => $category->cta_label ?: 'Explore',
+            'mode' => $category->mode,
+        ]);
     }
 
     /**
@@ -394,6 +414,7 @@ class CatalogBrowseService
         return PlatformProduct::query()
             ->visibleToPublic()
             ->with([
+                'serviceCategory',
                 'productType.serviceCategory',
                 'heroMedia.variants',
                 'activeVariants',

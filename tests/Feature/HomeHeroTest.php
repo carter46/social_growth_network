@@ -20,7 +20,7 @@ class HomeHeroTest extends TestCase
             ->assertSee(route('services'), false);
     }
 
-    public function test_home_ecosystem_uses_catalog_service_names_not_hardcoded_categories(): void
+    public function test_home_marketplace_shows_products_with_category_filters(): void
     {
         \Illuminate\Support\Facades\Artisan::call('catalog:backfill-hierarchy');
         $this->seed(\Database\Seeders\PlatformCatalogSeeder::class);
@@ -29,28 +29,11 @@ class HomeHeroTest extends TestCase
         $response = $this->get(route('home'));
 
         $response->assertOk()
-            ->assertDontSee('Crypto Cash Exchange', false)
-            ->assertSee('Social media services', false);
-    }
-
-    public function test_home_ecosystem_catalog_services_follow_admin_sort_order(): void
-    {
-        \Illuminate\Support\Facades\Artisan::call('catalog:backfill-hierarchy');
-        $this->seed(\Database\Seeders\PlatformCatalogSeeder::class);
-        \Illuminate\Support\Facades\Artisan::call('catalog:backfill-hierarchy');
-
-        $vpn = \App\Models\ProductType::query()->where('slug', 'vpn')->firstOrFail();
-        $email = \App\Models\ProductType::query()->where('slug', 'email')->firstOrFail();
-
-        $vpn->forceFill(['sort_order' => 20])->save();
-        $email->forceFill(['sort_order' => 2])->save();
-
-        $html = $this->get(route('home'))->assertOk()->getContent();
-
-        $this->assertLessThan(
-            strpos($html, 'Email Services'),
-            strpos($html, 'VPN')
-        );
-        $this->assertStringNotContainsString('Crypto Cash Exchange', $html);
+            ->assertSee('What do you want to grow?', false)
+            ->assertSee('YouTube Views Lite', false)
+            ->assertSee('Instagram Growth Pack', false)
+            ->assertSee('>All<', false)
+            ->assertSee('YouTube', false)
+            ->assertDontSee('Crypto Cash Exchange', false);
     }
 }

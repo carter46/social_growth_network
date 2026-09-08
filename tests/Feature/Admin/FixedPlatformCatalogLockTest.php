@@ -23,13 +23,15 @@ class FixedPlatformCatalogLockTest extends TestCase
     {
         Artisan::call('catalog:backfill-hierarchy');
 
-        $vpn = ProductType::query()->where('slug', 'vpn')->firstOrFail();
+        $service = ProductType::query()->where('slug', 'social_service')->firstOrFail();
+        $youtube = ServiceCategory::query()->where('slug', 'youtube')->firstOrFail();
         $product = $this->forceCreatePlatformProduct([
-            'product_type_id' => $vpn->id,
+            'product_type_id' => $service->id,
+            'service_category_id' => $youtube->id,
             'product_type' => PlatformProductType::SocialService,
-            'title' => 'Residential VPN',
-            'slug' => 'residential-vpn-lock-test',
-            'short_description' => 'Test VPN',
+            'title' => 'YouTube Views Lite',
+            'slug' => 'youtube-views-lite',
+            'short_description' => 'Test YouTube pack',
             'description' => 'Long description',
             'status' => PlatformProductStatus::Published,
             'base_price' => 5000,
@@ -40,7 +42,7 @@ class FixedPlatformCatalogLockTest extends TestCase
         ]);
         PlatformProductVariant::query()->create([
             'platform_product_id' => $product->id,
-            'name' => '1 Month',
+            'name' => 'Standard',
             'price' => 5000,
             'duration_months' => 1,
             'is_default' => true,
@@ -57,19 +59,35 @@ class FixedPlatformCatalogLockTest extends TestCase
         return $admin;
     }
 
+    /** @return array<string, mixed> */
+    private function productUpdatePayload(PlatformProduct $product, array $overrides = []): array
+    {
+        $variant = $product->variants()->firstOrFail();
+
+        return array_merge([
+            'title' => $product->title,
+            'short_description' => $product->short_description,
+            'description' => $product->description,
+            'service_category_id' => $product->service_category_id,
+            'status' => 'published',
+            'sort_order' => max(1, (int) $product->sort_order),
+            'variants' => [
+                ['id' => $variant->id, 'price' => (float) $variant->price],
+            ],
+        ], $overrides);
+    }
+
     public function test_categories_receive_permanent_keys_from_backfill(): void
     {
         $this->seedCatalog();
 
         $this->assertDatabaseHas('service_categories', [
-            'id' => 1,
-            'slug' => 'network-services',
-            'key' => 'network',
+            'slug' => 'youtube',
+            'key' => 'youtube',
         ]);
         $this->assertDatabaseHas('service_categories', [
-            'id' => 4,
-            'slug' => 'website-services',
-            'key' => 'website',
+            'slug' => 'social-media',
+            'key' => 'social',
         ]);
         $this->assertSame(6, ServiceCategory::query()->system()->count());
     }
@@ -88,7 +106,7 @@ class FixedPlatformCatalogLockTest extends TestCase
 
         $this->assertDatabaseMissing('service_categories', ['name' => 'Fake Category']);
 
-        $category = ServiceCategory::query()->where('key', 'network')->firstOrFail();
+        $category = ServiceCategory::query()->where('key', 'youtube')->firstOrFail();
         $this->actingAs($admin)
             ->delete('/admin/service-categories/'.$category->id)
             ->assertNotFound();
@@ -100,21 +118,21 @@ class FixedPlatformCatalogLockTest extends TestCase
     {
         $this->seedCatalog();
         $admin = $this->admin();
-        $category = ServiceCategory::query()->where('key', 'network')->firstOrFail();
+        $category = ServiceCategory::query()->where('key', 'youtube')->firstOrFail();
         $slug = $category->slug;
 
         $this->actingAs($admin)
             ->put(route('admin.service-categories.update', $category), [
-                'name' => 'Network Hub',
+                'name' => 'YouTube Hub',
                 'is_active' => '1',
                 'sort_order' => $category->sort_order,
             ])
             ->assertRedirect(route('admin.service-categories'));
 
         $category->refresh();
-        $this->assertSame('Network Hub', $category->name);
+        $this->assertSame('YouTube Hub', $category->name);
         $this->assertSame($slug, $category->slug);
-        $this->assertSame('network', $category->key);
+        $this->assertSame('youtube', $category->key);
 
         $this->actingAs($admin)
             ->post(route('admin.service-categories.toggle', $category))
@@ -127,12 +145,12 @@ class FixedPlatformCatalogLockTest extends TestCase
     {
         $this->seedCatalog();
         $admin = $this->admin();
-        $service = ProductType::query()->where('slug', 'vpn')->firstOrFail();
+        $service = ProductType::query()->where('slug', 'social_service')->firstOrFail();
         $categoryId = $service->service_category_id;
 
         $this->actingAs($admin)
             ->put(route('admin.services.update', $service), [
-                'name' => 'VPN Renamed',
+                'name' => 'Social Renamed',
                 'is_active' => '1',
                 'sort_order' => $service->sort_order,
                 'slug' => 'hacked-slug',
@@ -141,8 +159,8 @@ class FixedPlatformCatalogLockTest extends TestCase
             ->assertRedirect(route('admin.services'));
 
         $service->refresh();
-        $this->assertSame('VPN Renamed', $service->name);
-        $this->assertSame('vpn', $service->slug);
+        $this->assertSame('Social Renamed', $service->name);
+        $this->assertSame('social_service', $service->slug);
         $this->assertSame($categoryId, $service->service_category_id);
 
         $this->actingAs($admin)
@@ -156,8 +174,8 @@ class FixedPlatformCatalogLockTest extends TestCase
     {
         $this->seedCatalog();
         $admin = $this->admin();
-        $service = ProductType::query()->where('slug', 'vpn')->firstOrFail();
-        $product = PlatformProduct::query()->where('slug', 'residential-vpn-lock-test')->firstOrFail();
+        $service = ProductType::query()->where('slug', 'social_service')->firstOrFail();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
 
         $this->actingAs($admin)
             ->post('/admin/services', [
@@ -189,66 +207,64 @@ class FixedPlatformCatalogLockTest extends TestCase
     {
         $this->seedCatalog();
         $admin = $this->admin();
-        $product = PlatformProduct::query()->where('slug', 'residential-vpn-lock-test')->firstOrFail();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
         $variant = $product->variants()->firstOrFail();
 
         $this->actingAs($admin)
-            ->put(route('admin.platform-products.update', $product), [
-                'title' => 'Residential VPN Plus',
+            ->put(route('admin.platform-products.update', $product), $this->productUpdatePayload($product, [
+                'title' => 'YouTube Views Plus',
                 'short_description' => 'Updated short',
                 'description' => 'Updated long',
-                'status' => 'published',
-                'sort_order' => $product->sort_order,
                 'variants' => [
-                    ['id' => $variant->id, 'price' => 5500, 'description' => 'Best for home use'],
+                    ['id' => $variant->id, 'price' => 5500, 'description' => 'Best starter pack'],
                 ],
-            ])
+            ]))
             ->assertRedirect(route('admin.platform-products.edit', $product));
 
         $product->refresh();
-        $this->assertSame('Residential VPN Plus', $product->title);
+        $this->assertSame('YouTube Views Plus', $product->title);
         $this->assertEquals(5500.0, (float) $product->base_price);
         $this->assertEquals(5500.0, (float) $variant->fresh()->price);
-        $this->assertSame('Best for home use', $variant->fresh()->description);
-        $this->assertSame('residential-vpn-lock-test', $product->slug);
+        $this->assertSame('Best starter pack', $variant->fresh()->description);
+        $this->assertSame('youtube-views-lite', $product->slug);
+    }
+
+    public function test_admin_can_assign_product_category_directly(): void
+    {
+        $this->seedCatalog();
+        $admin = $this->admin();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
+        $tiktok = ServiceCategory::query()->where('slug', 'tiktok')->firstOrFail();
+        $originalTypeId = $product->product_type_id;
+
+        $this->actingAs($admin)
+            ->put(route('admin.platform-products.update', $product), $this->productUpdatePayload($product, [
+                'service_category_id' => $tiktok->id,
+            ]))
+            ->assertRedirect(route('admin.platform-products.edit', $product));
+
+        $product->refresh();
+        $this->assertSame($tiktok->id, $product->service_category_id);
+        $this->assertSame($originalTypeId, $product->product_type_id);
     }
 
     public function test_admin_can_toggle_product_featured_and_deactivate(): void
     {
         $this->seedCatalog();
         $admin = $this->admin();
-        $product = PlatformProduct::query()->where('slug', 'residential-vpn-lock-test')->firstOrFail();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
         $product->update(['is_featured' => true]);
-        $variant = $product->variants()->firstOrFail();
 
         $this->actingAs($admin)
-            ->put(route('admin.platform-products.update', $product), [
-                'title' => $product->title,
-                'short_description' => $product->short_description,
-                'description' => $product->description,
-                'status' => 'published',
-                'sort_order' => $product->sort_order,
-                // is_featured omitted = unchecked on edit form
-                'variants' => [
-                    ['id' => $variant->id, 'price' => $variant->price],
-                ],
-            ])
+            ->put(route('admin.platform-products.update', $product), $this->productUpdatePayload($product))
             ->assertRedirect(route('admin.platform-products.edit', $product));
 
         $this->assertFalse($product->fresh()->is_featured);
 
         $this->actingAs($admin)
-            ->put(route('admin.platform-products.update', $product->fresh()), [
-                'title' => $product->title,
-                'short_description' => $product->short_description,
-                'description' => $product->description,
-                'status' => 'published',
-                'sort_order' => $product->fresh()->sort_order,
+            ->put(route('admin.platform-products.update', $product->fresh()), $this->productUpdatePayload($product->fresh(), [
                 'is_featured' => '1',
-                'variants' => [
-                    ['id' => $variant->id, 'price' => $variant->price],
-                ],
-            ])
+            ]))
             ->assertRedirect(route('admin.platform-products.edit', $product));
 
         $this->assertTrue($product->fresh()->is_featured);
@@ -266,32 +282,27 @@ class FixedPlatformCatalogLockTest extends TestCase
         $this->assertSame(PlatformProductStatus::Published, $product->fresh()->status);
     }
 
-    public function test_admin_cannot_change_provider_or_reparent_product(): void
+    public function test_admin_cannot_change_provider_or_product_type_via_form(): void
     {
         $this->seedCatalog();
         $admin = $this->admin();
-        $product = PlatformProduct::query()->where('slug', 'residential-vpn-lock-test')->firstOrFail();
-        $email = ProductType::query()->where('slug', 'email')->firstOrFail();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
         $variant = $product->variants()->firstOrFail();
         $variantName = $variant->name;
+        $typeId = $product->product_type_id;
 
         $this->actingAs($admin)
-            ->put(route('admin.platform-products.update', $product), [
-                'title' => $product->title,
-                'short_description' => $product->short_description,
-                'description' => $product->description,
-                'status' => 'published',
-                'sort_order' => $product->sort_order,
+            ->put(route('admin.platform-products.update', $product), $this->productUpdatePayload($product, [
                 'provider' => 'hacked-provider',
                 'provider_sku' => 'HACK',
                 'fulfillment_mode' => 'api',
                 'auto_renew' => '1',
-                'product_type_id' => $email->id,
+                'product_type_id' => 999,
                 'slug' => 'hacked-slug',
                 'variants' => [
                     ['id' => $variant->id, 'price' => 5000, 'name' => 'Hacked Name'],
                 ],
-            ])
+            ]))
             ->assertRedirect(route('admin.platform-products.edit', $product));
 
         $product->refresh();
@@ -299,8 +310,8 @@ class FixedPlatformCatalogLockTest extends TestCase
         $this->assertNull($product->provider_sku);
         $this->assertSame('manual', $product->fulfillment_mode);
         $this->assertFalse((bool) $product->auto_renew);
-        $this->assertSame('residential-vpn-lock-test', $product->slug);
-        $this->assertNotSame($email->id, $product->product_type_id);
+        $this->assertSame('youtube-views-lite', $product->slug);
+        $this->assertSame($typeId, $product->product_type_id);
         $this->assertSame($variantName, $variant->fresh()->name);
     }
 
@@ -308,20 +319,17 @@ class FixedPlatformCatalogLockTest extends TestCase
     {
         $this->seedCatalog();
         $admin = $this->admin();
-        $product = PlatformProduct::query()->where('slug', 'residential-vpn-lock-test')->firstOrFail();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
         $variant = $product->variants()->firstOrFail();
 
         $this->actingAs($admin)
             ->from(route('admin.platform-products.edit', $product))
-            ->put(route('admin.platform-products.update', $product), [
-                'title' => $product->title,
-                'status' => 'published',
-                'sort_order' => $product->sort_order,
+            ->put(route('admin.platform-products.update', $product), $this->productUpdatePayload($product, [
                 'variants' => [
                     ['id' => $variant->id, 'price' => 5000],
                     ['id' => 999999, 'price' => 100],
                 ],
-            ])
+            ]))
             ->assertSessionHasErrors('variants');
 
         $this->assertSame(1, $product->variants()->count());
@@ -330,116 +338,78 @@ class FixedPlatformCatalogLockTest extends TestCase
     public function test_inactive_category_hides_products_from_public(): void
     {
         $this->seedCatalog();
-        $category = ServiceCategory::query()->where('key', 'network')->firstOrFail();
-        $product = PlatformProduct::query()->where('slug', 'residential-vpn-lock-test')->firstOrFail();
+        $category = ServiceCategory::query()->where('key', 'youtube')->firstOrFail();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
 
         $this->get(route('services.show', [
-            'type' => 'vpn',
+            'type' => 'youtube',
             'productSlug' => $product->slug,
         ]))->assertOk();
 
         $category->update(['is_active' => false]);
 
-        $this->get(route('services.segment', 'network-services'))->assertNotFound();
+        $this->get(route('services.segment', 'youtube'))->assertNotFound();
         $this->get(route('services.show', [
-            'type' => 'vpn',
+            'type' => 'youtube',
             'productSlug' => $product->slug,
         ]))->assertNotFound();
     }
 
-    public function test_inactive_service_hides_products_while_category_stays_active(): void
+    public function test_inactive_product_type_does_not_hide_category_owned_product(): void
     {
         $this->seedCatalog();
-        $service = ProductType::query()->where('slug', 'vpn')->firstOrFail();
-        $product = PlatformProduct::query()->where('slug', 'residential-vpn-lock-test')->firstOrFail();
+        $service = ProductType::query()->where('slug', 'social_service')->firstOrFail();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
 
         $service->update(['is_active' => false]);
 
-        $this->get(route('services.segment', 'network-services'))->assertOk();
-        $this->get(route('services.type', [
-            'category' => 'network-services',
-            'service' => 'vpn',
-        ]))->assertNotFound();
+        $this->get(route('services.segment', 'youtube'))->assertOk();
         $this->get(route('services.show', [
-            'type' => 'vpn',
+            'type' => 'youtube',
             'productSlug' => $product->slug,
-        ]))->assertNotFound();
+        ]))->assertOk();
     }
 
     public function test_draft_product_hidden_from_public_but_listed_in_admin(): void
     {
         $this->seedCatalog();
         $admin = $this->admin();
-        $product = PlatformProduct::query()->where('slug', 'residential-vpn-lock-test')->firstOrFail();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
 
         $product->update(['status' => PlatformProductStatus::Draft]);
 
         $this->get(route('services.show', [
-            'type' => 'vpn',
+            'type' => 'youtube',
             'productSlug' => $product->slug,
         ]))->assertNotFound();
 
         $this->actingAs($admin)
             ->get(route('admin.platform-products', ['status' => 'draft']))
             ->assertOk()
-            ->assertSee('Residential VPN');
-    }
-
-    public function test_category_reactivation_does_not_reactivate_inactive_children(): void
-    {
-        $this->seedCatalog();
-        $category = ServiceCategory::query()->where('key', 'network')->firstOrFail();
-        $service = ProductType::query()->where('slug', 'vpn')->firstOrFail();
-        $product = PlatformProduct::query()->where('slug', 'residential-vpn-lock-test')->firstOrFail();
-
-        $service->update(['is_active' => false]);
-        $product->update(['status' => PlatformProductStatus::Draft]);
-        $category->update(['is_active' => false]);
-
-        $category->update(['is_active' => true]);
-
-        $this->assertFalse($service->fresh()->is_active);
-        $this->assertSame(PlatformProductStatus::Draft, $product->fresh()->status);
-
-        $this->get(route('services.show', [
-            'type' => 'vpn',
-            'productSlug' => $product->slug,
-        ]))->assertNotFound();
-
-        $service->update(['is_active' => true]);
-        $this->get(route('services.show', [
-            'type' => 'vpn',
-            'productSlug' => $product->slug,
-        ]))->assertNotFound();
-
-        $product->update(['status' => PlatformProductStatus::Published]);
-        $this->get(route('services.show', [
-            'type' => 'vpn',
-            'productSlug' => $product->slug,
-        ]))->assertOk();
+            ->assertSee('YouTube Views Lite');
     }
 
     public function test_backfill_preserves_category_and_service_cms_names(): void
     {
         Artisan::call('catalog:backfill-hierarchy');
-        $category = ServiceCategory::query()->where('key', 'network')->firstOrFail();
-        $service = ProductType::query()->where('slug', 'vpn')->firstOrFail();
+        $category = ServiceCategory::query()->where('key', 'youtube')->firstOrFail();
+        $service = ProductType::query()->where('slug', 'social_service')->firstOrFail();
 
-        $category->update(['name' => 'Custom Network Label']);
-        $service->update(['name' => 'Custom VPN Label']);
+        $category->update(['name' => 'Custom YouTube Label']);
+        $service->update(['name' => 'Custom Social Label']);
 
         Artisan::call('catalog:backfill-hierarchy');
 
-        $this->assertSame('Custom Network Label', $category->fresh()->name);
-        $this->assertSame('Custom VPN Label', $service->fresh()->name);
-        $this->assertSame('network', $category->fresh()->key);
-        $this->assertSame('vpn', $service->fresh()->slug);
+        $this->assertSame('Custom YouTube Label', $category->fresh()->name);
+        $this->assertSame('Custom Social Label', $service->fresh()->name);
+        $this->assertSame('youtube', $category->fresh()->key);
+        $this->assertSame('social_service', $service->fresh()->slug);
     }
 
     public function test_key_migration_aborts_on_slug_mismatch(): void
     {
         Artisan::call('catalog:backfill-hierarchy');
-        DB::table('service_categories')->where('id', 1)->update(['slug' => 'tampered-slug']);
+        DB::table('service_categories')->where('id', 10)->update(['slug' => 'tampered-slug']);
 
         $migration = require database_path('migrations/2026_08_29_000100_add_key_to_service_categories.php');
 
@@ -448,106 +418,49 @@ class FixedPlatformCatalogLockTest extends TestCase
         $migration->up();
     }
 
-    public function test_trust_escrow_redirects_to_services_when_active(): void
-    {
-        Artisan::call('catalog:backfill-hierarchy');
-
-        $this->get(route('services.segment', 'trust-escrow'))
-            ->assertRedirect(route('services'));
-    }
-
     public function test_mass_assignment_ignores_locked_identity_fields(): void
     {
         $this->seedCatalog();
-        $product = PlatformProduct::query()->where('slug', 'residential-vpn-lock-test')->firstOrFail();
-        $email = ProductType::query()->where('slug', 'email')->firstOrFail();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
+        $typeId = $product->product_type_id;
 
         $product->update([
-            'title' => 'Still VPN',
+            'title' => 'Still YouTube',
             'slug' => 'should-not-change',
-            'product_type_id' => $email->id,
+            'product_type_id' => 999,
             'provider' => 'evil',
         ]);
 
         $product->refresh();
-        $this->assertSame('Still VPN', $product->title);
-        $this->assertSame('residential-vpn-lock-test', $product->slug);
-        $this->assertNotSame($email->id, $product->product_type_id);
+        $this->assertSame('Still YouTube', $product->title);
+        $this->assertSame('youtube-views-lite', $product->slug);
+        $this->assertSame($typeId, $product->product_type_id);
         $this->assertSame('manual', $product->provider);
-    }
-
-    public function test_service_sort_shift_and_rejects_out_of_range(): void
-    {
-        Artisan::call('catalog:backfill-hierarchy');
-        $admin = $this->admin();
-
-        $vpn = ProductType::query()->where('slug', 'vpn')->firstOrFail();
-        $proxy = ProductType::query()->where('slug', 'proxy')->firstOrFail();
-
-        \App\Support\SortOrder::normalize(
-            ProductType::query()->whereHas('serviceCategory', fn ($q) => $q->system())
-        );
-        $vpn->refresh();
-        $proxy->refresh();
-
-        $vpnOrder = (int) $vpn->sort_order;
-        $proxyOrder = (int) $proxy->sort_order;
-        $this->assertNotSame($vpnOrder, $proxyOrder);
-
-        $siblingMax = ProductType::query()
-            ->whereHas('serviceCategory', fn ($q) => $q->system())
-            ->count();
-
-        $orders = ProductType::query()
-            ->whereHas('serviceCategory', fn ($q) => $q->system())
-            ->pluck('sort_order')
-            ->map(fn ($v) => (int) $v)
-            ->sort()
-            ->values()
-            ->all();
-        $this->assertSame(range(1, $siblingMax), $orders);
-
-        $this->actingAs($admin)
-            ->put(route('admin.services.update', $vpn), [
-                'name' => $vpn->name,
-                'is_active' => '1',
-                'sort_order' => $proxyOrder,
-            ])
-            ->assertRedirect(route('admin.services'));
-
-        $this->assertSame($proxyOrder, (int) $vpn->fresh()->sort_order);
-        $this->assertSame($vpnOrder, (int) $proxy->fresh()->sort_order);
-
-        $this->actingAs($admin)
-            ->from(route('admin.services.edit', $vpn))
-            ->put(route('admin.services.update', $vpn), [
-                'name' => $vpn->name,
-                'is_active' => '1',
-                'sort_order' => $siblingMax + 5,
-            ])
-            ->assertSessionHasErrors('sort_order');
     }
 
     public function test_product_sort_is_globally_unique_after_normalize(): void
     {
         Artisan::call('catalog:backfill-hierarchy');
-        $vpn = ProductType::query()->where('slug', 'vpn')->firstOrFail();
-        $email = ProductType::query()->where('slug', 'email')->firstOrFail();
+        $service = ProductType::query()->where('slug', 'social_service')->firstOrFail();
+        $youtube = ServiceCategory::query()->where('slug', 'youtube')->firstOrFail();
+        $facebook = ServiceCategory::query()->where('slug', 'facebook')->firstOrFail();
 
         $this->forceCreatePlatformProduct([
-            'product_type_id' => $vpn->id,
+            'product_type_id' => $service->id,
+            'service_category_id' => $youtube->id,
             'product_type' => PlatformProductType::SocialService,
-            'title' => 'VPN A',
-            'slug' => 'vpn-a-global-sort',
+            'title' => 'YouTube A',
+            'slug' => 'youtube-a-global-sort',
             'status' => PlatformProductStatus::Published,
             'base_price' => 1000,
             'sort_order' => 0,
         ]);
         $this->forceCreatePlatformProduct([
-            'product_type_id' => $email->id,
+            'product_type_id' => $service->id,
+            'service_category_id' => $facebook->id,
             'product_type' => PlatformProductType::SocialService,
-            'title' => 'Email A',
-            'slug' => 'email-a-global-sort',
+            'title' => 'Facebook A',
+            'slug' => 'facebook-a-global-sort',
             'status' => PlatformProductStatus::Published,
             'base_price' => 1000,
             'sort_order' => 0,
@@ -556,7 +469,10 @@ class FixedPlatformCatalogLockTest extends TestCase
         Artisan::call('catalog:backfill-hierarchy');
 
         $orders = PlatformProduct::query()
-            ->whereHas('productType.serviceCategory', fn ($q) => $q->system())
+            ->where(function ($q) {
+                $q->whereHas('serviceCategory', fn ($cat) => $cat->system())
+                    ->orWhereHas('productType.serviceCategory', fn ($cat) => $cat->system());
+            })
             ->pluck('sort_order')
             ->map(fn ($v) => (int) $v)
             ->sort()
@@ -570,31 +486,33 @@ class FixedPlatformCatalogLockTest extends TestCase
     public function test_category_sort_shift_updates_public_hub_order(): void
     {
         Artisan::call('catalog:backfill-hierarchy');
+        $this->seed(\Database\Seeders\PlatformCatalogSeeder::class);
+        Artisan::call('catalog:backfill-hierarchy');
         $admin = $this->admin();
 
         \App\Support\SortOrder::normalize(ServiceCategory::query()->system());
 
-        $website = ServiceCategory::query()->where('key', 'website')->firstOrFail();
+        $twitter = ServiceCategory::query()->where('key', 'twitter')->firstOrFail();
         $max = ServiceCategory::query()->system()->count();
 
         $this->actingAs($admin)
-            ->put(route('admin.service-categories.update', $website), [
-                'name' => $website->name,
+            ->put(route('admin.service-categories.update', $twitter), [
+                'name' => $twitter->name,
                 'is_active' => '1',
                 'sort_order' => $max,
             ])
             ->assertRedirect(route('admin.service-categories'));
 
         $ordered = ServiceCategory::query()->system()->orderBy('sort_order')->pluck('key')->all();
-        $this->assertSame('website', end($ordered));
+        $this->assertSame('twitter', end($ordered));
 
         $response = $this->get(route('services'));
         $response->assertOk();
         $html = $response->getContent();
-        $posNetwork = strpos($html, 'Network Services');
-        $posWebsite = strpos($html, 'Website Services');
-        $this->assertNotFalse($posNetwork);
-        $this->assertNotFalse($posWebsite);
-        $this->assertLessThan($posWebsite, $posNetwork);
+        $posYoutube = strpos($html, 'YouTube');
+        $posTwitter = strpos($html, 'Twitter');
+        $this->assertNotFalse($posYoutube);
+        $this->assertNotFalse($posTwitter);
+        $this->assertLessThan($posTwitter, $posYoutube);
     }
 }

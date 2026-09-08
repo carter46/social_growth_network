@@ -30,6 +30,11 @@ class CatalogBackfillHierarchy extends Command
         $servicesCreated = $this->seedProductTypes();
         $productsLinked = $this->linkPlatformProducts();
         $providersSet = $this->setProviderDefaults();
+        $flattened = 0;
+        if (Schema::hasColumn('platform_products', 'service_category_id')) {
+            $this->callSilent('catalog:flatten-category-products');
+            $flattened = 1;
+        }
         $trimmed = PlatformCatalogTrim::apply();
         $retired = $trimmed['products'];
         $retiredServices = $trimmed['services'];
@@ -40,6 +45,9 @@ class CatalogBackfillHierarchy extends Command
         $this->info("Services (product_types) upserted: {$servicesCreated}");
         $this->info("Products linked to services: {$productsLinked}");
         $this->info("Provider defaults applied: {$providersSet}");
+        if ($flattened) {
+            $this->info('Category→Product flatten ran (service_category_id backfill).');
+        }
         foreach ($retired as $type => $count) {
             $this->info("Retired disallowed {$type} products: {$count}");
         }
@@ -83,22 +91,26 @@ class CatalogBackfillHierarchy extends Command
                 : 'catalog';
 
             $category = new ServiceCategory;
-            $label = $group['label'] ?? str_replace('-', ' ', ucfirst($slug));
-            $category->forceFill([
+            $label = $meta['label'] ?? ($group['label'] ?? str_replace('-', ' ', ucfirst($slug)));
+            $payload = [
                 'slug' => $slug,
                 'name' => $label,
                 'sort_order' => $sort,
                 'is_active' => true,
                 'banner_image' => $group['banner_image'] ?? null,
                 'card_image' => $group['card_image'] ?? null,
-                'short_description' => $group['short_description'] ?? null,
+                'short_description' => $group['short_description'] ?? ($label.' campaign packages.'),
                 'hero_title' => $label,
-                'hero_subtitle' => $group['short_description'] ?? null,
+                'hero_subtitle' => $group['short_description'] ?? ('Browse predefined '.$label.' packages.'),
                 'benefits' => [],
                 'faq' => $group['faq'] ?? [],
                 'mode' => $mode,
                 'cta_label' => $group['cta'] ?? ($mode === 'marketplace_link' ? 'Open marketplace' : null),
-            ]);
+            ];
+            if (! empty($meta['expected_id'])) {
+                $payload['id'] = (int) $meta['expected_id'];
+            }
+            $category->forceFill($payload);
             if (Schema::hasColumn('service_categories', 'key')) {
                 $category->key = $key;
             }
@@ -249,7 +261,10 @@ class CatalogBackfillHierarchy extends Command
 
         SortOrder::normalize(
             \App\Models\PlatformProduct::query()
-                ->whereHas('productType.serviceCategory', fn ($q) => $q->system())
+                ->where(function ($q) {
+                    $q->whereHas('serviceCategory', fn ($cat) => $cat->system())
+                        ->orWhereHas('productType.serviceCategory', fn ($cat) => $cat->system());
+                })
         );
         $groups++;
 

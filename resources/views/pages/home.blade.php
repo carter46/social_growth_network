@@ -13,7 +13,7 @@
     $featuredProducts = collect($featuredProducts ?? []);
     $popularTags = collect($popularTags ?? []);
     $filterCategories = $categoryCards->take(5);
-    $marketplaceCards = $categoryCards->take(4);
+    $marketplaceCards = $categoryCards->take(5);
     $heroSlides = [
         ['src' => asset('assets/images/homeslider1.jpg'), 'alt' => 'Video creator in creative studio'],
         ['src' => asset('assets/images/homeslider2.jpg'), 'alt' => 'Creator filming with ring light'],
@@ -138,7 +138,7 @@
     </div>
 </section>
 
-{{-- 3. Marketplace catalog (category cards — matches design) --}}
+{{-- 3. Marketplace catalog: product cards + category filter pills --}}
 <section class="py-20 lg:py-28 bg-white border-b border-slate-100" id="services" x-data="{ filter: 'all' }">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
@@ -149,7 +149,7 @@
             </div>
             @if($filterCategories->isNotEmpty())
                 <div class="flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-xl self-start md:self-auto">
-                    <button type="button" @click="filter = 'all'" :class="filter === 'all' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600 font-medium hover:text-slate-900'" class="px-4 py-2 rounded-lg text-sm transition-all">All Campaigns</button>
+                    <button type="button" @click="filter = 'all'" :class="filter === 'all' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600 font-medium hover:text-slate-900'" class="px-4 py-2 rounded-lg text-sm transition-all">All</button>
                     @foreach($filterCategories as $cat)
                         <button
                             type="button"
@@ -162,7 +162,64 @@
             @endif
         </div>
 
-        @if($marketplaceCards->isNotEmpty())
+        @if($featuredProducts->isNotEmpty())
+            @php $browse = app(\App\Modules\Catalog\Services\CatalogBrowseService::class); @endphp
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                @foreach($featuredProducts as $product)
+                    @php
+                        $href = $browse->productUrl($product);
+                        $heroUrl = media_url($product->heroMedia ?? null, $product->hero_image, 'medium');
+                        $tone = $badgeTones[$loop->index % count($badgeTones)];
+                        $icon = $badgeIcons[$loop->index % count($badgeIcons)];
+                        $categorySlug = $product->categorySlug() ?? '';
+                        $categoryLabel = $product->serviceCategory?->name
+                            ?? ($product->productType?->serviceCategory?->name ?? 'Campaign');
+                        $fromPrice = $product->displayPrice();
+                    @endphp
+                    <div
+                        class="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+                        x-show="filter === 'all' || filter === '{{ $categorySlug }}'"
+                        x-cloak
+                    >
+                        <div>
+                            <div class="relative h-48 w-full overflow-hidden bg-slate-100">
+                                @if($heroUrl)
+                                    <img src="{{ $heroUrl }}" alt="{{ $product->title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+                                @else
+                                    <div class="w-full h-full bg-gradient-to-br from-primary/25 via-slate-200 to-slate-100"></div>
+                                @endif
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                                <span class="absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 backdrop-blur-md {{ $tone }} text-xs font-bold shadow-sm">
+                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ $icon }}</span>
+                                    {{ $categoryLabel }}
+                                </span>
+                            </div>
+                            <div class="p-5">
+                                <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-primary transition-colors font-display">
+                                    <a href="{{ $href }}">{{ $product->title }}</a>
+                                </h3>
+                                <p class="text-slate-600 text-sm leading-relaxed mb-4">
+                                    {{ $product->short_description ?: 'Predefined package with upfront pricing and secure checkout.' }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="px-5 pb-5 pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
+                            <span class="text-xs font-medium text-slate-500">
+                                @if($fromPrice)
+                                    From ₦{{ number_format((float) $fromPrice, 0) }}
+                                @else
+                                    From predefined packages
+                                @endif
+                            </span>
+                            <a class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline group-hover:translate-x-0.5 transition-transform" href="{{ $href }}">
+                                View package →
+                            </a>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @elseif($marketplaceCards->isNotEmpty())
+            {{-- Fallback: category cards if products are empty --}}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
                 @foreach($marketplaceCards as $card)
                     @php
@@ -206,49 +263,6 @@
                                     From predefined packages
                                 @endif
                             </span>
-                            <a class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline group-hover:translate-x-0.5 transition-transform" href="{{ $href }}">
-                                Explore Packages →
-                            </a>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        @elseif($featuredProducts->isNotEmpty())
-            {{-- Fallback: products if categories are empty --}}
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-                @foreach($featuredProducts->take(4) as $product)
-                    @php
-                        $browse = app(\App\Modules\Catalog\Services\CatalogBrowseService::class);
-                        $href = $browse->productUrl($product);
-                        $heroUrl = media_url($product->heroMedia ?? null, $product->hero_image, 'medium');
-                        $tone = $badgeTones[$loop->index % count($badgeTones)];
-                        $icon = $badgeIcons[$loop->index % count($badgeIcons)];
-                    @endphp
-                    <div class="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
-                        <div>
-                            <div class="relative h-48 w-full overflow-hidden bg-slate-100">
-                                @if($heroUrl)
-                                    <img src="{{ $heroUrl }}" alt="{{ $product->title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
-                                @else
-                                    <div class="w-full h-full bg-gradient-to-br from-primary/25 via-slate-200 to-slate-100"></div>
-                                @endif
-                                <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
-                                <span class="absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 backdrop-blur-md {{ $tone }} text-xs font-bold shadow-sm">
-                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ $icon }}</span>
-                                    {{ $product->productType?->name ?? 'Campaign' }}
-                                </span>
-                            </div>
-                            <div class="p-5">
-                                <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-primary transition-colors font-display">
-                                    <a href="{{ $href }}">{{ $product->title }}</a>
-                                </h3>
-                                <p class="text-slate-600 text-sm leading-relaxed mb-4">
-                                    {{ $product->short_description ?: 'Predefined package with upfront pricing and secure checkout.' }}
-                                </p>
-                            </div>
-                        </div>
-                        <div class="px-5 pb-5 pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
-                            <span class="text-xs font-medium text-slate-500">From predefined packages</span>
                             <a class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline group-hover:translate-x-0.5 transition-transform" href="{{ $href }}">
                                 Explore Packages →
                             </a>

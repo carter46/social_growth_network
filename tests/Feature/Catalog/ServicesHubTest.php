@@ -7,6 +7,7 @@ use App\Enums\PlatformProductType;
 use App\Models\PlatformProduct;
 use App\Models\PlatformProductVariant;
 use App\Models\ProductType;
+use App\Models\ServiceCategory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
@@ -15,18 +16,20 @@ class ServicesHubTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function seedVpnProduct(string $slug = 'residential-vpn-demo', bool $featured = false): PlatformProduct
+    private function seedYoutubeProduct(string $slug = 'youtube-views-lite', bool $featured = false): PlatformProduct
     {
         Artisan::call('catalog:backfill-hierarchy');
-        $service = ProductType::query()->where('slug', 'vpn')->firstOrFail();
+        $service = ProductType::query()->where('slug', 'social_service')->firstOrFail();
+        $category = ServiceCategory::query()->where('slug', 'youtube')->firstOrFail();
 
         $product = $this->forceCreatePlatformProduct([
             'product_type_id' => $service->id,
+            'service_category_id' => $category->id,
             'product_type' => PlatformProductType::SocialService,
-            'title' => 'Residential VPN Demo',
+            'title' => 'YouTube Views Lite',
             'slug' => $slug,
-            'short_description' => 'Test VPN product',
-            'description' => 'A test VPN',
+            'short_description' => 'Grow your YouTube video reach',
+            'description' => 'A test YouTube package',
             'status' => PlatformProductStatus::Published,
             'is_featured' => $featured,
             'base_price' => 3500,
@@ -49,76 +52,79 @@ class ServicesHubTest extends TestCase
         return $product;
     }
 
-    public function test_services_landing_shows_groups_not_product_grid(): void
+    public function test_services_landing_shows_category_cards_not_product_grid(): void
     {
-        $this->seedVpnProduct();
+        $this->seedYoutubeProduct();
 
         $this->get(route('services'))
             ->assertOk()
-            ->assertSee('Network Services')
-            ->assertSee('Social Media')
-            ->assertSee('Documents & Receipts')
+            ->assertSee('YouTube')
             ->assertSee('Browse Categories')
-            ->assertSee('assets/images/services_1.jpg', false)
-            ->assertSee('assets/images/Network Services_1.jpg', false)
-            ->assertSee('assets/images/Communication_1.jpg', false)
-            ->assertSee('assets/images/Social_Media.jpg', false)
-            ->assertSee('assets/images/Website_Services.jpg', false)
-            ->assertSee('assets/images/Business_Documents.jpg', false)
-            ->assertSee('assets/images/flat-lay-real-estate-concept.jpg', false)
-            ->assertDontSee('Residential VPN Demo');
+            ->assertDontSee('YouTube Views Lite');
     }
 
-    public function test_group_page_shows_type_cards(): void
+    public function test_group_page_lists_category_products(): void
     {
-        $this->seedVpnProduct();
+        $this->seedYoutubeProduct();
 
-        $this->get(route('services.segment', 'network-services'))
+        $this->get(route('services.segment', 'youtube'))
             ->assertOk()
-            ->assertSee('Network Services')
-            ->assertSee('VPN');
+            ->assertSee('YouTube')
+            ->assertSee('YouTube Views Lite')
+            ->assertSee('Products in');
     }
 
-    public function test_type_page_shows_featured_and_products(): void
+    public function test_canonical_product_url_resolves_category_to_product(): void
     {
-        $this->seedVpnProduct(featured: true);
+        $this->seedYoutubeProduct();
 
-        $this->get(route('services.segment', 'vpn'))
-            ->assertRedirect('/services/network-services/vpn');
-
-        $this->get('/services/network-services/vpn')
-            ->assertOk()
-            ->assertSee('Featured')
-            ->assertSee('Residential VPN Demo');
-    }
-
-    public function test_product_show_url_and_legacy_redirect(): void
-    {
-        $this->seedVpnProduct('legacy-vpn-slug');
-
-        $this->get(route('services.nested.show', [
-            'category' => 'network-services',
-            'service' => 'vpn',
-            'productSlug' => 'legacy-vpn-slug',
+        $this->get(route('services.show', [
+            'type' => 'youtube',
+            'productSlug' => 'youtube-views-lite',
         ]))
             ->assertOk()
-            ->assertSee('Residential VPN Demo');
+            ->assertSee('YouTube Views Lite');
+    }
 
-        $this->get(route('services.show', ['type' => 'vpn', 'productSlug' => 'legacy-vpn-slug']))
-            ->assertRedirect('/services/network-services/vpn/legacy-vpn-slug');
+    public function test_nested_legacy_url_redirects_to_canonical(): void
+    {
+        $this->seedYoutubeProduct('youtube-views-lite');
 
-        $this->get('/services/legacy-vpn-slug')
-            ->assertRedirect('/services/network-services/vpn/legacy-vpn-slug');
+        $this->get(route('services.nested.show', [
+            'category' => 'youtube',
+            'service' => 'social_service',
+            'productSlug' => 'youtube-views-lite',
+        ]))
+            ->assertRedirect('/services/youtube/youtube-views-lite');
+    }
+
+    public function test_legacy_type_product_url_redirects_to_canonical(): void
+    {
+        $this->seedYoutubeProduct('youtube-views-lite');
+
+        $this->get(route('services.show', [
+            'type' => 'social_service',
+            'productSlug' => 'youtube-views-lite',
+        ]))
+            ->assertRedirect('/services/youtube/youtube-views-lite');
+    }
+
+    public function test_product_slug_segment_redirects_to_canonical(): void
+    {
+        $this->seedYoutubeProduct('youtube-views-lite');
+
+        $this->get('/services/youtube-views-lite')
+            ->assertRedirect('/services/youtube/youtube-views-lite');
     }
 
     public function test_services_search_finds_products(): void
     {
-        $this->seedVpnProduct();
+        $this->seedYoutubeProduct();
 
-        $this->get(route('services', ['q' => 'Residential VPN']))
+        $this->get(route('services', ['q' => 'YouTube Views']))
             ->assertOk()
             ->assertSee('Search results')
-            ->assertSee('Residential VPN Demo');
+            ->assertSee('YouTube Views Lite');
     }
 
     public function test_unknown_segment_returns_404(): void
@@ -129,27 +135,11 @@ class ServicesHubTest extends TestCase
             ->assertNotFound();
     }
 
-    public function test_legacy_division_redirects_to_group(): void
+    public function test_wrong_category_in_product_url_redirects_to_canonical(): void
     {
-        Artisan::call('catalog:backfill-hierarchy');
+        $this->seedYoutubeProduct('youtube-views-lite');
 
-        $this->get('/services/digital-services')
-            ->assertRedirect('/services/network-services');
-    }
-
-    public function test_trust_and_escrow_routes_to_services(): void
-    {
-        Artisan::call('catalog:backfill-hierarchy');
-
-        $this->get('/services/trust-escrow')
-            ->assertRedirect(route('services'));
-    }
-
-    public function test_wrong_type_in_product_url_redirects_to_canonical(): void
-    {
-        $this->seedVpnProduct('canonical-vpn-slug');
-
-        $this->get('/services/email/canonical-vpn-slug')
-            ->assertRedirect('/services/network-services/vpn/canonical-vpn-slug');
+        $this->get('/services/facebook/youtube-views-lite')
+            ->assertRedirect('/services/youtube/youtube-views-lite');
     }
 }

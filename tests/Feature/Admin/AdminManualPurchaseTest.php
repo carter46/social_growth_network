@@ -126,6 +126,7 @@ class AdminManualPurchaseTest extends TestCase
             'slug' => 'banking-site-'.Str::lower(Str::random(4)),
             'product_type' => PlatformProductType::SocialService,
             'product_type_id' => $service->id,
+            'service_category_id' => $service->service_category_id,
             'status' => PlatformProductStatus::Published,
             'base_price' => 10000,
             'sort_order' => 1,

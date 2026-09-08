@@ -28,7 +28,7 @@ class PlatformProductAdminController extends Controller
     public function index(Request $request): View
     {
         $products = PlatformProduct::query()
-            ->with(['productType.serviceCategory', 'heroMedia.variants', 'activeVariants'])
+            ->with(['serviceCategory', 'productType.serviceCategory', 'heroMedia.variants', 'activeVariants'])
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = '%'.$request->string('q')->toString().'%';
                 $q->where(function ($inner) use ($term) {
@@ -40,7 +40,7 @@ class PlatformProductAdminController extends Controller
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->get('status')))
             ->when($request->filled('service'), fn ($q) => $q->where('product_type_id', $request->integer('service')))
             ->when($request->filled('category'), function ($q) use ($request) {
-                $q->whereHas('productType', fn ($inner) => $inner->where('service_category_id', $request->integer('category')));
+                $q->where('service_category_id', $request->integer('category'));
             })
             ->when($request->filled('type') && ! $request->filled('service'), function ($q) use ($request) {
                 $q->ofType($request->string('type')->toString());
@@ -95,42 +95,44 @@ class PlatformProductAdminController extends Controller
 
     public function edit(PlatformProduct $platformProduct): View|RedirectResponse
     {
-        $platformProduct->load(['variants', 'productType.serviceCategory', 'heroMedia.variants']);
+        $platformProduct->load(['variants', 'serviceCategory', 'productType.serviceCategory', 'heroMedia.variants']);
 
-        if (! $platformProduct->productType?->serviceCategory?->isSystem()) {
+        if (! $this->isUnderSystemCatalog($platformProduct)) {
             return redirect()
                 ->route('admin.platform-products')
                 ->with('error', __('That product is not under a fixed platform category.'));
         }
 
-        $siblings = PlatformProduct::query()
-            ->whereHas('productType.serviceCategory', fn ($q) => $q->system());
+        $siblings = $this->systemProductSiblingsQuery();
         $siblingMax = max(1, (clone $siblings)->count());
 
         return view('dashboard.admin.platform-product-form', [
             'product' => $platformProduct,
             'lockedCatalog' => true,
             'siblingMax' => $siblingMax,
+            'serviceCategories' => ServiceCategory::query()->system()->orderBy('sort_order')->orderBy('name')->get(),
         ]);
     }
 
     public function update(Request $request, PlatformProduct $platformProduct): RedirectResponse
     {
-        $platformProduct->loadMissing('productType.serviceCategory');
-        if (! $platformProduct->productType?->serviceCategory?->isSystem()) {
+        $platformProduct->loadMissing(['serviceCategory', 'productType.serviceCategory']);
+        if (! $this->isUnderSystemCatalog($platformProduct)) {
             return redirect()
                 ->route('admin.platform-products')
                 ->with('error', __('That product is not under a fixed platform category.'));
         }
 
-        $siblings = PlatformProduct::query()
-            ->whereHas('productType.serviceCategory', fn ($q) => $q->system());
+        $siblings = $this->systemProductSiblingsQuery();
         $siblingMax = max(1, (clone $siblings)->count());
+
+        $systemCategoryIds = ServiceCategory::query()->system()->pluck('id')->all();
 
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'short_description' => ['nullable', 'string', 'max:500'],
             'description' => ['nullable', 'string'],
+            'service_category_id' => ['required', 'integer', Rule::in($systemCategoryIds)],
             'status' => ['required', Rule::in([
                 PlatformProductStatus::Draft->value,
                 PlatformProductStatus::Published->value,
@@ -187,6 +189,9 @@ class PlatformProductAdminController extends Controller
         ];
 
         $platformProduct->update($updatePayload);
+        $platformProduct->forceFill([
+            'service_category_id' => (int) $data['service_category_id'],
+        ])->save();
 
         SortOrder::move($platformProduct, (int) $data['sort_order'], $siblings);
 
@@ -206,8 +211,8 @@ class PlatformProductAdminController extends Controller
 
     public function toggle(PlatformProduct $platformProduct): RedirectResponse
     {
-        $platformProduct->loadMissing('productType.serviceCategory');
-        if (! $platformProduct->productType?->serviceCategory?->isSystem()) {
+        $platformProduct->loadMissing(['serviceCategory', 'productType.serviceCategory']);
+        if (! $this->isUnderSystemCatalog($platformProduct)) {
             return back()->with('error', __('That product is not under a fixed platform category.'));
         }
 
@@ -228,6 +233,24 @@ class PlatformProductAdminController extends Controller
         return redirect()
             ->route('admin.platform-products')
             ->with('error', __('Platform products cannot be deleted. Deactivate them instead.'));
+    }
+
+    private function isUnderSystemCatalog(PlatformProduct $product): bool
+    {
+        if ($product->serviceCategory?->isSystem()) {
+            return true;
+        }
+
+        // Dual-write fallback before flatten backfill.
+        return (bool) $product->productType?->serviceCategory?->isSystem();
+    }
+
+    private function systemProductSiblingsQuery()
+    {
+        return PlatformProduct::query()->where(function ($q) {
+            $q->whereHas('serviceCategory', fn ($cat) => $cat->system())
+                ->orWhereHas('productType.serviceCategory', fn ($cat) => $cat->system());
+        });
     }
 
     /**

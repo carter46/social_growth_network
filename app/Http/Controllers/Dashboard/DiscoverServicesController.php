@@ -33,14 +33,12 @@ class DiscoverServicesController extends Controller
 
         $q = $request->string('q')->toString();
         $groups = $this->dashboardGroupCards();
-        $types = $this->browse->allGroupTypeValues();
 
         $searchResults = null;
         if ($q !== '') {
             $searchResults = PlatformProduct::query()
                 ->visibleToPublic()
-                ->ofTypeMany($types)
-                ->with(['productType.serviceCategory', 'activeVariants', 'heroMedia'])
+                ->with(['serviceCategory', 'productType.serviceCategory', 'activeVariants', 'heroMedia'])
                 ->where(function ($inner) use ($q) {
                     $inner->where('title', 'like', "%{$q}%")
                         ->orWhere('short_description', 'like', "%{$q}%");
@@ -85,6 +83,11 @@ class DiscoverServicesController extends Controller
                 return $this->browseType($request, $typeFilter, $segment, $resolved);
             }
 
+            // Prefer Category → Product listing when service_category_id is set.
+            if ($category && \Illuminate\Support\Facades\Schema::hasColumn('platform_products', 'service_category_id')) {
+                return $this->browseCategoryProducts($request, $category, $segment, $resolved, $typeKeys);
+            }
+
             return $this->browseProducts($request, $typeKeys, $segment, $resolved, $typeFilter !== '' ? $typeFilter : null);
         }
 
@@ -102,14 +105,15 @@ class DiscoverServicesController extends Controller
         $product = PlatformProduct::query()
             ->visibleToPublic()
             ->where('slug', $slug)
-            ->with(['productType.serviceCategory', 'activeVariants', 'images', 'heroMedia.variants', 'siteIntegration'])
+            ->with(['serviceCategory', 'productType.serviceCategory', 'activeVariants', 'images', 'heroMedia.variants', 'siteIntegration'])
             ->firstOrFail();
 
         $typeSlug = $product->typeSlug();
 
         $this->activity->record($request->user()->id, 'viewed', $product, 'service.viewed');
 
-        $groupSlug = $product->productType?->serviceCategory?->slug
+        $groupSlug = $product->categorySlug()
+            ?? $product->productType?->serviceCategory?->slug
             ?? $this->browse->groupForType((string) $typeSlug);
 
         return view('dashboard.user.discover.services-product', [
@@ -386,6 +390,49 @@ class DiscoverServicesController extends Controller
      * @param  list<string>  $typeKeys
      * @param  array<string, mixed>  $resolved
      */
+    private function browseCategoryProducts(
+        Request $request,
+        \App\Models\ServiceCategory $category,
+        string $segment,
+        array $resolved,
+        array $typeKeys,
+    ): View {
+        $q = $request->string('q')->toString();
+
+        $products = PlatformProduct::query()
+            ->visibleToPublic()
+            ->ofCategory($category)
+            ->with(['serviceCategory', 'productType.serviceCategory', 'activeVariants', 'heroMedia.variants'])
+            ->when($q !== '', function ($builder) use ($q) {
+                $builder->where(function ($inner) use ($q) {
+                    $inner->where('title', 'like', "%{$q}%")
+                        ->orWhere('short_description', 'like', "%{$q}%");
+                });
+            })
+            ->orderByDesc('is_featured')
+            ->orderBy('sort_order')
+            ->orderBy('title')
+            ->paginate(12)
+            ->withQueryString();
+
+        $this->activity->record($request->user()->id, 'viewed', null, 'services.browse.'.$segment);
+
+        return view('dashboard.user.discover.services-browse', [
+            'segment' => $segment,
+            'title' => $resolved['label'] ?? $segment,
+            'subtitle' => $resolved['short_description'] ?? null,
+            'typeCards' => null,
+            'products' => $products,
+            'filters' => ['q' => $q, 'type' => null],
+            'typeKeys' => $typeKeys,
+            'wallet' => $request->user()->wallet,
+        ]);
+    }
+
+    /**
+     * @param  list<string>  $typeKeys
+     * @param  array<string, mixed>  $resolved
+     */
     private function browseProducts(
         Request $request,
         array $typeKeys,
@@ -399,7 +446,7 @@ class DiscoverServicesController extends Controller
         $products = PlatformProduct::query()
             ->visibleToPublic()
             ->ofTypeMany($activeTypes)
-            ->with(['productType.serviceCategory', 'activeVariants', 'heroMedia.variants'])
+            ->with(['serviceCategory', 'productType.serviceCategory', 'activeVariants', 'heroMedia.variants'])
             ->when($q !== '', function ($builder) use ($q) {
                 $builder->where(function ($inner) use ($q) {
                     $inner->where('title', 'like', "%{$q}%")

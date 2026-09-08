@@ -31,8 +31,8 @@ class CatalogContentImageOverrideTest extends TestCase
         $asset = MediaAsset::query()->latest('id')->firstOrFail();
 
         $category = $this->forceCreateServiceCategory([
-            'name' => 'Network',
-            'slug' => 'network-services',
+            'name' => 'YouTube',
+            'slug' => 'youtube',
             'sort_order' => 0,
             'is_active' => true,
             'mode' => 'catalog',
@@ -66,7 +66,7 @@ class CatalogContentImageOverrideTest extends TestCase
             ->assertCreated();
 
         $asset = MediaAsset::query()->latest('id')->firstOrFail();
-        $category = ServiceCategory::query()->where('slug', 'network-services')->firstOrFail();
+        $category = ServiceCategory::query()->where('slug', 'youtube')->firstOrFail();
 
         $this->actingAs($admin)
             ->put(route('admin.service-categories.update', $category), [
@@ -74,15 +74,15 @@ class CatalogContentImageOverrideTest extends TestCase
                 'sort_order' => $category->sort_order,
                 'is_active' => '1',
                 'card_media_id' => $asset->id,
-                'short_description' => 'Network tools for teams',
+                'short_description' => 'YouTube campaign packages',
             ])
             ->assertRedirect(route('admin.service-categories'));
 
         $category->refresh();
         $this->assertSame($asset->id, $category->card_media_id);
-        $this->assertSame('Network tools for teams', $category->short_description);
+        $this->assertSame('YouTube campaign packages', $category->short_description);
         $this->assertSame($category->name, $category->hero_title);
-        $this->assertSame('Network tools for teams', $category->hero_subtitle);
+        $this->assertSame('YouTube campaign packages', $category->hero_subtitle);
         $this->assertSame([], $category->benefits);
     }
 }

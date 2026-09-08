@@ -88,7 +88,7 @@ class ServiceCategory extends Model
         return media_url(null, $this->card_image ?: $this->banner_image, 'medium');
     }
 
-    /** Services (product_types) under this category. */
+    /** Services (product_types) under this category — optional CMS / legacy. */
     public function services(): HasMany
     {
         return $this->hasMany(ProductType::class)->orderBy('sort_order');
@@ -99,9 +99,21 @@ class ServiceCategory extends Model
         return $this->services();
     }
 
+    /** Products owned directly by this category (Category → Product). */
+    public function products(): HasMany
+    {
+        return $this->hasMany(PlatformProduct::class, 'service_category_id')->orderBy('sort_order');
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    /** Categories that own at least one publicly visible product. */
+    public function scopeWithPublicProducts(Builder $query): Builder
+    {
+        return $query->whereHas('products', fn (Builder $q) => $q->visibleToPublic());
     }
 
     public function isMarketplaceLink(): bool

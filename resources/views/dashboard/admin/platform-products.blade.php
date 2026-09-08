@@ -64,7 +64,7 @@
         <x-slot:head>
             <x-dashboard.th class="w-24"> </x-dashboard.th>
             <x-dashboard.th>Title</x-dashboard.th>
-            <x-dashboard.th>Service</x-dashboard.th>
+            <x-dashboard.th>Category</x-dashboard.th>
             <x-dashboard.th>Sort</x-dashboard.th>
             <x-dashboard.th>Status</x-dashboard.th>
             <x-dashboard.th>Price</x-dashboard.th>
@@ -99,7 +99,7 @@
                         </p>
                     </div>
                 </x-dashboard.td>
-                <x-dashboard.td>{{ $product->productType?->name ?? ($product->product_type?->label() ?? '—') }}</x-dashboard.td>
+                <x-dashboard.td>{{ $product->serviceCategory?->name ?? ($product->productType?->serviceCategory?->name ?? '—') }}</x-dashboard.td>
                 <x-dashboard.td>{{ $product->sort_order }}</x-dashboard.td>
                 <x-dashboard.td>
                     <x-dashboard.badge :status="$product->status->value === 'published' ? 'success' : 'neutral'">

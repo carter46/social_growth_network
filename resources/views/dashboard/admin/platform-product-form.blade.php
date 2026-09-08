@@ -39,10 +39,19 @@
             @method('PUT')
 
             <p class="text-xs text-text-muted">
-                Service: {{ $product->productType?->name ?? '—' }}
-                · Category: {{ $product->productType?->serviceCategory?->name ?? '—' }}
-                · Slug frozen: <span class="font-mono">{{ $product->slug }}</span>
+                Slug frozen: <span class="font-mono">{{ $product->slug }}</span>
+                @if($product->productType)
+                    · Service (legacy/CMS): {{ $product->productType->name }}
+                @endif
             </p>
+
+            <x-dashboard.select label="Category" name="service_category_id" required>
+                @foreach(($serviceCategories ?? []) as $category)
+                    <option value="{{ $category->id }}" @selected((int) old('service_category_id', $product->service_category_id) === (int) $category->id)>
+                        {{ $category->name }}
+                    </option>
+                @endforeach
+            </x-dashboard.select>
 
             <x-dashboard.input label="Title" name="title" :value="old('title', $product->title)" required />
             <x-dashboard.input label="Short description" name="short_description" :value="old('short_description', $product->short_description)" />

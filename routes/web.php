@@ -118,14 +118,14 @@ Route::get('/robots.txt', RobotsController::class)->name('robots');
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 
 Route::get('/services', [\App\Modules\Catalog\Http\Controllers\ServiceController::class, 'index'])->name('services');
-// Nested product: /services/{category}/{service}/{product}
+// Legacy nested product: /services/{category}/{service}/{product} → 301 to Category→Product.
 Route::get('/services/{category}/{service}/{productSlug}', [\App\Modules\Catalog\Http\Controllers\ServiceController::class, 'nestedShow'])
     ->where('category', '[a-z0-9\-_]+')
     ->where('service', '[a-z0-9\-_]+')
     ->where('productSlug', '[A-Za-z0-9\-_]+')
     ->name('services.nested.show');
-// Two segments: category+service listing OR legacy type+product (same URI; pair() disambiguates).
-// Register type name first so inbound binds {category}/{service}; show name kept for product URL generation.
+// Two segments: canonical Category→Product (/services/{category}/{productSlug}) OR legacy type listing.
+// /services is a public path prefix only — ownership is service_category_id, not ProductType.
 Route::get('/services/{category}/{service}', [\App\Modules\Catalog\Http\Controllers\ServiceController::class, 'pair'])
     ->where('category', '[a-z0-9\-_]+')
     ->where('service', '[A-Za-z0-9\-_]+')
@@ -134,7 +134,7 @@ Route::get('/services/{type}/{productSlug}', [\App\Modules\Catalog\Http\Controll
     ->where('type', '[a-z0-9\-_]+')
     ->where('productSlug', '[A-Za-z0-9\-_]+')
     ->name('services.show');
-// One segment: group slug, type key (301 → nested), or legacy product slug (301)
+// One segment: category slug (product listing), type key (legacy), or product slug (301)
 Route::get('/services/{segment}', [\App\Modules\Catalog\Http\Controllers\ServiceController::class, 'segment'])
     ->name('services.segment');
 Route::get('/checkout/platform/{slug}', [\App\Modules\Catalog\Http\Controllers\PlatformCheckoutController::class, 'show'])

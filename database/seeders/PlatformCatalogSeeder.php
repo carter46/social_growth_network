@@ -9,6 +9,7 @@ use App\Models\PlatformProduct;
 use App\Models\PlatformProductImage;
 use App\Models\PlatformProductVariant;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -85,6 +86,11 @@ class PlatformCatalogSeeder extends Seeder
                     'is_primary' => true,
                 ]);
             }
+        }
+
+        // Ownership: Category → Product (keeps product_type_id populated separately).
+        if (Schema::hasColumn('platform_products', 'service_category_id')) {
+            Artisan::call('catalog:flatten-category-products');
         }
     }
 }

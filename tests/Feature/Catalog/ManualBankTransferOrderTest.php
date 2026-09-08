@@ -32,10 +32,16 @@ class ManualBankTransferOrderTest extends TestCase
 
     private function seedSimpleProduct(): \App\Models\PlatformProduct
     {
+        \Illuminate\Support\Facades\Artisan::call('catalog:backfill-hierarchy');
+        $service = \App\Models\ProductType::query()->where('slug', 'social_service')->firstOrFail();
+        $category = \App\Models\ServiceCategory::query()->where('slug', 'youtube')->firstOrFail();
+
         $product = $this->forceCreatePlatformProduct([
             'title' => 'Test Hosting',
             'slug' => 'test-hosting-'.Str::lower(Str::random(4)),
             'product_type' => PlatformProductType::SocialService,
+            'product_type_id' => $service->id,
+            'service_category_id' => $category->id,
             'status' => PlatformProductStatus::Published,
             'base_price' => 2500,
             'sort_order' => 1,

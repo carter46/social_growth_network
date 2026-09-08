@@ -47,12 +47,14 @@ class MediaLifecycleTest extends TestCase
         $asset = $this->makeAsset($admin, 'banner.png');
 
         \Illuminate\Support\Facades\Artisan::call('catalog:backfill-hierarchy');
-        $vpn = ProductType::query()->where('slug', 'vpn')->firstOrFail();
+        $service = ProductType::query()->where('slug', 'social_service')->firstOrFail();
+        $youtube = ServiceCategory::query()->where('slug', 'youtube')->firstOrFail();
         $product = $this->forceCreatePlatformProduct([
             'title' => 'Path Check Product',
             'slug' => 'path-check-product',
-            'product_type_id' => $vpn->id,
-            'product_type' => 'vpn',
+            'product_type_id' => $service->id,
+            'service_category_id' => $youtube->id,
+            'product_type' => 'social_service',
             'status' => 'draft',
             'base_price' => 10,
         ]);
@@ -62,6 +64,7 @@ class MediaLifecycleTest extends TestCase
                 'title' => 'Path Check Product',
                 'short_description' => 'Short',
                 'description' => 'Long',
+                'service_category_id' => $youtube->id,
                 'status' => 'draft',
                 'sort_order' => max(1, (int) $product->sort_order),
                 'hero_media_id' => $asset->id,
@@ -135,7 +138,7 @@ class MediaLifecycleTest extends TestCase
         $asset = $this->makeAsset($admin);
 
         \Illuminate\Support\Facades\Artisan::call('catalog:backfill-hierarchy');
-        $category = ServiceCategory::query()->where('key', 'network')->firstOrFail();
+        $category = ServiceCategory::query()->where('key', 'youtube')->firstOrFail();
         $category->update(['banner_media_id' => $asset->id]);
         app(MediaUsageService::class)->syncUsages($category, ['banner' => $asset->id]);
 
@@ -157,12 +160,14 @@ class MediaLifecycleTest extends TestCase
         $asset->delete();
 
         \Illuminate\Support\Facades\Artisan::call('catalog:backfill-hierarchy');
-        $vpn = ProductType::query()->where('slug', 'vpn')->firstOrFail();
+        $service = ProductType::query()->where('slug', 'social_service')->firstOrFail();
+        $youtube = ServiceCategory::query()->where('slug', 'youtube')->firstOrFail();
         $product = $this->forceCreatePlatformProduct([
             'title' => 'Blocked Attach',
             'slug' => 'blocked-attach',
-            'product_type_id' => $vpn->id,
-            'product_type' => 'vpn',
+            'product_type_id' => $service->id,
+            'service_category_id' => $youtube->id,
+            'product_type' => 'social_service',
             'status' => 'draft',
             'base_price' => 10,
         ]);
@@ -170,6 +175,7 @@ class MediaLifecycleTest extends TestCase
         $this->actingAs($admin)
             ->put(route('admin.platform-products.update', $product), [
                 'title' => 'Blocked Attach',
+                'service_category_id' => $youtube->id,
                 'status' => 'draft',
                 'sort_order' => max(1, (int) $product->sort_order),
                 'hero_media_id' => $asset->id,

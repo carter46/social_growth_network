@@ -46,8 +46,8 @@ class PlatformProduct extends Model
 
     /**
      * Locked identity / fulfillment fields are not mass-assignable:
-     * product_type_id, product_type, slug, provider*, fulfillment_mode, auto_renew, platform_category_id.
-     * Set via forceFill in seeders/backfill only.
+     * product_type_id, product_type, service_category_id, slug, provider*, fulfillment_mode, auto_renew, platform_category_id.
+     * Set via forceFill in seeders/backfill/admin only.
      */
 
     protected function casts(): array
@@ -72,9 +72,19 @@ class PlatformProduct extends Model
         ];
     }
 
+    /** Legacy flavor category (table may be dropped). */
     public function category(): BelongsTo
     {
         return $this->belongsTo(PlatformCategory::class, 'platform_category_id');
+    }
+
+    /**
+     * Owning catalog category (Category → Product).
+     * /services/{category}/… path prefix is presentation only — ownership is this FK.
+     */
+    public function serviceCategory(): BelongsTo
+    {
+        return $this->belongsTo(ServiceCategory::class, 'service_category_id');
     }
 
     public function productType(): BelongsTo
@@ -87,7 +97,7 @@ class PlatformProduct extends Model
         return $this->belongsTo(MediaAsset::class, 'hero_media_id');
     }
 
-    /** UI alias: Service under Service Category. */
+    /** UI alias: optional ProductType (Services CMS / legacy). */
     public function service(): BelongsTo
     {
         return $this->productType();
@@ -129,10 +139,16 @@ class PlatformProduct extends Model
     }
 
     /**
-     * Published and reachable: parent service + category must be active.
+     * Published and reachable via owning Category (service_category_id).
+     * ProductType is not required for visibility (Phase 1 dual-write still keeps product_type_id populated).
      */
     public function scopeVisibleToPublic(Builder $query): Builder
     {
+        if (Schema::hasColumn('platform_products', 'service_category_id')) {
+            return $query->published()->whereHas('serviceCategory', fn (Builder $cat) => $cat->where('is_active', true));
+        }
+
+        // Pre-migration fallback.
         return $query->published()->whereHas('productType', function (Builder $service) {
             $service->where('is_active', true)
                 ->whereHas('serviceCategory', fn (Builder $cat) => $cat->where('is_active', true));
@@ -143,6 +159,14 @@ class PlatformProduct extends Model
     {
         if ($this->status !== PlatformProductStatus::Published) {
             return false;
+        }
+
+        if (Schema::hasColumn($this->getTable(), 'service_category_id')) {
+            $category = $this->relationLoaded('serviceCategory')
+                ? $this->serviceCategory
+                : $this->serviceCategory()->first();
+
+            return (bool) ($category && $category->is_active);
         }
 
         $service = $this->relationLoaded('productType')
@@ -163,6 +187,51 @@ class PlatformProduct extends Model
     public function scopeFeatured(Builder $query): Builder
     {
         return $query->where('is_featured', true);
+    }
+
+    public function scopeOfCategory(Builder $query, int|ServiceCategory|string $category): Builder
+    {
+        if ($category instanceof ServiceCategory) {
+            return $query->where('service_category_id', $category->id);
+        }
+
+        if (is_int($category) || (is_string($category) && ctype_digit($category))) {
+            return $query->where('service_category_id', (int) $category);
+        }
+
+        return $query->whereHas('serviceCategory', fn (Builder $q) => $q->where('slug', $category));
+    }
+
+    /**
+     * @param  list<int|string>  $categories  ids or slugs
+     */
+    public function scopeOfCategoryMany(Builder $query, array $categories): Builder
+    {
+        if ($categories === []) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        $ids = [];
+        $slugs = [];
+        foreach ($categories as $item) {
+            if (is_int($item) || (is_string($item) && ctype_digit($item))) {
+                $ids[] = (int) $item;
+            } elseif (is_string($item) && $item !== '') {
+                $slugs[] = $item;
+            }
+        }
+
+        return $query->where(function (Builder $inner) use ($ids, $slugs) {
+            if ($ids !== []) {
+                $inner->whereIn('service_category_id', $ids);
+            }
+            if ($slugs !== []) {
+                $inner->orWhereHas('serviceCategory', fn (Builder $q) => $q->whereIn('slug', $slugs));
+            }
+            if ($ids === [] && $slugs === []) {
+                $inner->whereRaw('1 = 0');
+            }
+        });
     }
 
     public function scopeOfType(Builder $query, PlatformProductType|string $type): Builder
@@ -199,6 +268,24 @@ class PlatformProduct extends Model
         $id = $service instanceof ProductType ? $service->id : $service;
 
         return $query->where('product_type_id', $id);
+    }
+
+    /** Owning category slug for URLs (Category → Product). */
+    public function categorySlug(): ?string
+    {
+        if ($this->relationLoaded('serviceCategory') && $this->serviceCategory) {
+            return $this->serviceCategory->slug;
+        }
+
+        if ($this->service_category_id) {
+            return ServiceCategory::query()->where('id', $this->service_category_id)->value('slug');
+        }
+
+        // Legacy fallback via ProductType parent.
+        return $this->productType?->serviceCategory?->slug
+            ?? ($this->product_type_id
+                ? ProductType::query()->with('serviceCategory')->find($this->product_type_id)?->serviceCategory?->slug
+                : null);
     }
 
     public function typeSlug(): ?string

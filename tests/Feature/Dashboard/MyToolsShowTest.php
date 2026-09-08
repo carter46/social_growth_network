@@ -21,11 +21,16 @@ class MyToolsShowTest extends TestCase
 
     private function websiteProduct(): PlatformProduct
     {
+        \Illuminate\Support\Facades\Artisan::call('catalog:backfill-hierarchy');
+        $service = \App\Models\ProductType::query()->where('slug', 'social_service')->firstOrFail();
+        $category = \App\Models\ServiceCategory::query()->where('slug', 'youtube')->firstOrFail();
+
         $product = $this->forceCreatePlatformProduct([
             'title' => 'Online Banking website',
             'slug' => 'online-banking-'.Str::lower(Str::random(5)),
             'product_type' => PlatformProductType::SocialService,
-            'product_type_id' => 1,
+            'product_type_id' => $service->id,
+            'service_category_id' => $category->id,
             'status' => PlatformProductStatus::Published,
             'base_price' => 10000,
             'sort_order' => 1,
