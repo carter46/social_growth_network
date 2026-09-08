@@ -1,13 +1,14 @@
-@extends('layouts.dashboard-user')
+@extends($layout ?? 'layouts.dashboard-user')
 
 @section('title', 'History')
 
 @section('content')
+@php $prefix = $prefix ?? 'dashboard'; @endphp
 <x-layout.page
     title="Transaction History"
     width="full"
     :breadcrumb="[
-        ['Dashboard', route('dashboard')],
+        [$prefix === 'agent' ? 'Agent' : 'Dashboard', route($prefix === 'agent' ? 'agent' : 'dashboard')],
         ['History', null],
     ]"
 >

@@ -5,10 +5,19 @@
 ])
 
 @php
-    $homeRoute = $homeRoute ?? (auth()->user()?->hasRole('admin') ? route('admin') : route('dashboard'));
-    $role = auth()->user()?->hasRole('admin') ? 'admin' : 'user';
-    $accountPrefix = $role === 'admin' ? 'admin.account' : 'dashboard.account';
-    $destinations = $destinations ?: \App\Support\DashboardNavigation::searchIndex($role, auth()->user());
+    $user = auth()->user();
+    $homeRoute = $homeRoute ?? ($user?->homeRoute() ? url($user->homeRoute()) : route('dashboard'));
+    if ($user?->hasRole('admin')) {
+        $role = 'admin';
+        $accountPrefix = 'admin.account';
+    } elseif ($user?->hasRole('agent')) {
+        $role = 'agent';
+        $accountPrefix = 'agent.account';
+    } else {
+        $role = 'user';
+        $accountPrefix = 'dashboard.account';
+    }
+    $destinations = $destinations ?: \App\Support\DashboardNavigation::searchIndex($role, $user);
 @endphp
 
 {{-- Shared topbar: logo lives in the sidebar only (admin + user). --}}

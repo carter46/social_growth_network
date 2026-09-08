@@ -337,9 +337,25 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function homeRoute(): string
     {
-        return $this->hasRole('admin')
-            ? route('admin', absolute: false)
-            : route('dashboard', absolute: false);
+        if ($this->hasRole('admin')) {
+            return route('admin', absolute: false);
+        }
+
+        if ($this->hasRole('agent')) {
+            return route('agent', absolute: false);
+        }
+
+        return route('dashboard', absolute: false);
+    }
+
+    public function isCreator(): bool
+    {
+        return $this->hasRole('user');
+    }
+
+    public function isAgent(): bool
+    {
+        return $this->hasRole('agent');
     }
 
     public function sendEmailVerificationNotification(): void

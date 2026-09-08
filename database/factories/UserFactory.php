@@ -27,6 +27,15 @@ class UserFactory extends Factory
         ];
     }
 
+    public function configure(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            if (! $user->roles()->exists()) {
+                $user->assignRole('user');
+            }
+        });
+    }
+
     public function withoutPasswordSet(): static
     {
         return $this->state(fn (array $attributes) => [
@@ -58,8 +67,22 @@ class UserFactory extends Factory
     public function admin(): static
     {
         return $this->afterCreating(function (User $user): void {
-            $user->assignRole('admin');
+            $user->syncRoles(['admin']);
             $user->givePermissionTo(\Database\Seeders\PermissionSeeder::PERMISSIONS);
+        });
+    }
+
+    public function creator(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            $user->syncRoles(['user']);
+        });
+    }
+
+    public function agent(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            $user->syncRoles(['agent']);
         });
     }
 

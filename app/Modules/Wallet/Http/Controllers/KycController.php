@@ -4,6 +4,7 @@ namespace App\Modules\Wallet\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\KycSubmission;
+use App\Support\MemberShell;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -11,7 +12,7 @@ class KycController extends Controller
 {
     public function show(): RedirectResponse
     {
-        return redirect()->route('dashboard.account.kyc');
+        return redirect()->route(MemberShell::prefix().'.account.kyc');
     }
 
     public function store(Request $request): RedirectResponse

@@ -49,6 +49,10 @@ class DashboardController extends Controller
             'myToolsCount' => $myToolsCount,
             'featuredServices' => $featuredServices,
             'kycLevel' => $user->kyc_level,
+            'activeCampaignsCount' => \App\Models\Campaign::query()
+                ->where('creator_id', $user->id)
+                ->whereIn('status', ['active', 'pending_review', 'paused'])
+                ->count(),
         ]);
     }
 

@@ -10,6 +10,7 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketReply;
 use App\Modules\Support\Services\SupportAttachmentService;
 use App\Services\Communications\Contact\PlatformContactRepository;
+use App\Support\MemberShell;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -38,6 +39,8 @@ class SupportTicketController extends Controller
         return view('dashboard.user.support.index', [
             'tickets' => $tickets,
             'contact' => $this->contact->all(),
+            'layout' => MemberShell::layout(),
+            'prefix' => MemberShell::prefix(),
         ]);
     }
 
@@ -45,6 +48,8 @@ class SupportTicketController extends Controller
     {
         return view('dashboard.user.support.create', [
             'categories' => SupportTicket::CATEGORIES,
+            'layout' => MemberShell::layout(),
+            'prefix' => MemberShell::prefix(),
         ]);
     }
 
@@ -74,7 +79,7 @@ class SupportTicketController extends Controller
 
         TicketOpened::dispatch($ticket->id, (int) auth()->id());
 
-        return redirect()->route('dashboard.support.show', $ticket)
+        return redirect()->route(MemberShell::prefix().'.support.show', $ticket)
             ->with('status', __('Support ticket created.'));
     }
 
@@ -87,7 +92,11 @@ class SupportTicketController extends Controller
             'attachments' => fn ($q) => $q->where('expires_at', '>', now())->orderBy('id'),
         ]);
 
-        return view('dashboard.user.support.show', compact('ticket'));
+        return view('dashboard.user.support.show', [
+            'ticket' => $ticket,
+            'layout' => MemberShell::layout(),
+            'prefix' => MemberShell::prefix(),
+        ]);
     }
 
     public function reply(Request $request, SupportTicket $ticket): RedirectResponse

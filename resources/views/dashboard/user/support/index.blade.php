@@ -1,8 +1,9 @@
-@extends('layouts.dashboard-user')
+@extends($layout ?? 'layouts.dashboard-user')
 
 @section('title', 'Support')
 
 @section('content')
+@php $prefix = $prefix ?? 'dashboard'; @endphp
 @php
     $contact = $contact ?? [];
     $emails = array_filter([
@@ -20,7 +21,7 @@
     title="Support Center"
     width="full"
     :breadcrumb="[
-        ['Dashboard', route('dashboard')],
+        [$prefix === 'agent' ? 'Agent' : 'Dashboard', route($prefix === 'agent' ? 'agent' : 'dashboard')],
         ['Support', null],
     ]"
 >
@@ -60,14 +61,14 @@
             <div class="flex flex-wrap gap-3">
                 <x-dashboard.button :href="route('contact')" variant="secondary" size="sm">Contact Us</x-dashboard.button>
                 <x-dashboard.button :href="route('help')" variant="secondary" size="sm">Help Center</x-dashboard.button>
-                <x-dashboard.button :href="route('dashboard.support.create')" size="sm" icon="plus">Open Ticket</x-dashboard.button>
+                <x-dashboard.button :href="route($prefix.'.support.create')" size="sm" icon="plus">Open Ticket</x-dashboard.button>
             </div>
         </x-dashboard.card>
 
         <div>
             <div class="flex items-center justify-between gap-3 mb-3">
                 <h2 class="text-base font-semibold text-text-primary">Your tickets</h2>
-                <x-dashboard.button :href="route('dashboard.support.create')" size="sm" variant="ghost" icon="plus">New ticket</x-dashboard.button>
+                <x-dashboard.button :href="route($prefix.'.support.create')" size="sm" variant="ghost" icon="plus">New ticket</x-dashboard.button>
             </div>
 
             <x-dashboard.table
@@ -75,7 +76,7 @@
                 empty-title="No tickets yet"
                 empty-description="Open a ticket if email and the help center do not solve your issue."
                 empty-icon="support"
-                :empty-action="['href' => route('dashboard.support.create'), 'label' => 'Open Ticket']"
+                :empty-action="['href' => route($prefix.'.support.create'), 'label' => 'Open Ticket']"
                 striped
             >
                 <x-slot:head>
@@ -92,7 +93,7 @@
                             <x-dashboard.badge :status="$t->status === 'open' ? 'pending' : 'completed'">{{ $t->status }}</x-dashboard.badge>
                         </x-dashboard.td>
                         <x-dashboard.td>
-                            <x-dashboard.button :href="route('dashboard.support.show', $t)" variant="link" size="xs">View</x-dashboard.button>
+                            <x-dashboard.button :href="route($prefix.'.support.show', $t)" variant="link" size="xs">View</x-dashboard.button>
                         </x-dashboard.td>
                     </tr>
                 @endforeach

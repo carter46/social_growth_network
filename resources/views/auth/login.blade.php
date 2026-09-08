@@ -63,10 +63,14 @@
         <section class="auth-transition {{ (request()->get('view') === 'signup' || ($showSignup ?? false)) ? '' : 'hidden-section' }}" data-purpose="signup-form-container" id="signup-section">
             <x-ui.card class="!p-8 shadow-2xl">
                 <header class="mb-6">
-                    <h2 class="text-2xl font-semibold text-text-primary">Join the Hub</h2>
-                    <p class="text-text-secondary text-sm">Get started with your free account today.</p>
+                    <h2 class="text-2xl font-semibold text-text-primary">{{ ($registerAsAgent ?? false) ? 'Join as an Agent' : 'Join as a Creator' }}</h2>
+                    <p class="text-text-secondary text-sm">
+                        {{ ($registerAsAgent ?? false)
+                            ? 'Complete tasks, earn rewards, and withdraw to your bank.'
+                            : 'Buy campaign packages and grow your social presence.' }}
+                    </p>
                 </header>
-                <form action="{{ route('register') }}" class="space-y-4" method="POST" x-data="{ submitting: false }" @submit="submitting = true">
+                <form action="{{ ($registerAsAgent ?? false) ? route('register.agent.store') : route('register') }}" class="space-y-4" method="POST" x-data="{ submitting: false }" @submit="submitting = true">
                     @csrf
                     <x-ui.input
                         label="Full Name"
@@ -126,10 +130,19 @@
                     <x-ui.button type="submit" class="w-full" size="lg" x-bind:loading="submitting">Create Account</x-ui.button>
                 </form>
                 @include('partials.auth.google-gis', ['mode' => 'button', 'surface' => 'register', 'buttonText' => 'signup_with'])
-                <footer class="mt-6 pt-6 border-t border-border-default text-center">
+                <footer class="mt-6 pt-6 border-t border-border-default text-center space-y-2">
                     <p class="text-text-secondary text-sm">
                         Already have an account?
                         <a href="{{ route('login') }}" class="text-accent hover:text-primary font-semibold transition-colors">Login Here</a>
+                    </p>
+                    <p class="text-text-secondary text-sm">
+                        @if ($registerAsAgent ?? false)
+                            Looking to buy campaigns?
+                            <a href="{{ route('register') }}" class="text-accent hover:text-primary font-semibold transition-colors">Register as Creator</a>
+                        @else
+                            Want to earn by completing tasks?
+                            <a href="{{ route('register.agent') }}" class="text-accent hover:text-primary font-semibold transition-colors">Register as Agent</a>
+                        @endif
                     </p>
                 </footer>
             </x-ui.card>

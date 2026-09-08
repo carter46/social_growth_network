@@ -135,13 +135,13 @@ Route::get('/services/{type}/{productSlug}', [\App\Modules\Catalog\Http\Controll
 Route::get('/services/{segment}', [\App\Modules\Catalog\Http\Controllers\ServiceController::class, 'segment'])
     ->name('services.segment');
 Route::get('/checkout/platform/{slug}', [\App\Modules\Catalog\Http\Controllers\PlatformCheckoutController::class, 'show'])
-    ->middleware('auth')
+    ->middleware(['auth', 'verified', 'role:user'])
     ->name('checkout.platform.show');
 Route::post('/checkout/platform/{slug}', [\App\Modules\Catalog\Http\Controllers\PlatformCheckoutController::class, 'store'])
-    ->middleware(['auth', 'verified', 'has_wallet', 'throttle:10,1'])
+    ->middleware(['auth', 'verified', 'role:user', 'has_wallet', 'throttle:10,1'])
     ->name('checkout.platform.store');
 Route::post('/favorites/toggle', [\App\Modules\Catalog\Http\Controllers\FavoriteController::class, 'toggle'])
-    ->middleware(['auth', 'verified', 'throttle:30,1'])
+    ->middleware(['auth', 'verified', 'role:user', 'throttle:30,1'])
     ->name('favorites.toggle');
 Route::get('/support', fn () => redirect()->route('login'))->name('support');
 Route::get('/u/{username}', function (string $username) {
@@ -150,7 +150,7 @@ Route::get('/u/{username}', function (string $username) {
     return view('pages.user-profile', ['user' => $user]);
 })->name('user.profile');
 
-Route::middleware(['auth', 'verified'])->prefix('dashboard')->name('dashboard')->group(function () {
+Route::middleware(['auth', 'verified', 'role:user'])->prefix('dashboard')->name('dashboard')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('');
     Route::prefix('account')->name('.account')->controller(AccountController::class)->group(function () {
         Route::get('/profile', 'profile')->name('.profile');
@@ -215,6 +215,8 @@ Route::middleware(['auth', 'verified'])->prefix('dashboard')->name('dashboard')-
     Route::get('/services/browse/{segment}', [\App\Http\Controllers\Dashboard\DiscoverServicesController::class, 'browse'])->name('.services.browse');
     Route::redirect('/discover/services', '/dashboard/services', 301)->name('.discover.services');
     Route::get('/service-orders', [DashboardController::class, 'serviceOrders'])->name('.service-orders');
+    Route::get('/campaigns', [\App\Http\Controllers\Dashboard\CampaignController::class, 'index'])->name('.campaigns');
+    Route::get('/campaigns/{campaign}', [\App\Http\Controllers\Dashboard\CampaignController::class, 'show'])->name('.campaigns.show');
     Route::get('/orders/{order}/manual-payment', [ManualOrderPaymentController::class, 'show'])->name('.orders.manual-payment');
     Route::post('/orders/{order}/manual-payment/expire', [ManualOrderPaymentController::class, 'expireSession'])
         ->middleware('throttle:30,1')
@@ -285,6 +287,66 @@ Route::middleware(['auth', 'verified'])->prefix('dashboard')->name('dashboard')-
     Route::post('/support/{ticket}/reply', [SupportTicketController::class, 'reply'])->name('.support.reply');
 });
 
+Route::middleware(['auth', 'verified', 'role:agent'])->prefix('agent')->name('agent')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Agent\DashboardController::class, 'index'])->name('');
+    Route::prefix('account')->name('.account')->controller(AccountController::class)->group(function () {
+        Route::get('/profile', 'profile')->name('.profile');
+        Route::patch('/profile', 'updateProfile')->name('.profile.update');
+        Route::get('/security', 'security')->name('.security');
+        Route::delete('/security', 'destroy')->name('.destroy');
+        Route::get('/notifications', 'notifications')->name('.notifications');
+        Route::get('/kyc', 'kyc')->name('.kyc');
+        Route::get('/preferences', 'preferences')->name('.preferences');
+        Route::get('/sessions', 'sessions')->name('.sessions');
+        Route::delete('/sessions/{session}', 'revokeSession')->name('.sessions.destroy');
+    });
+    Route::get('/kyc', fn () => redirect()->route('agent.account.kyc'))->name('.kyc');
+    Route::post('/kyc', [KycController::class, 'store'])->name('.kyc.store');
+    Route::post('/wallet/create', [WalletController::class, 'create'])->name('.wallet.create');
+    Route::get('/wallet', [\App\Http\Controllers\Agent\DashboardController::class, 'wallet'])->name('.wallet');
+    Route::middleware('has_wallet')->group(function () {
+        Route::get('/banks', [BankAccountController::class, 'index'])->name('.banks.index');
+        Route::get('/banks/replace', [BankAccountController::class, 'replaceForm'])->name('.banks.replace');
+        Route::post('/banks/replace/otp', [BankAccountController::class, 'sendOtp'])->middleware('throttle:5,10')->name('.banks.replace.otp');
+        Route::post('/banks/replace/verify-otp', [BankAccountController::class, 'verifyOtp'])->middleware('throttle:10,10')->name('.banks.replace.verify-otp');
+        Route::post('/banks/replace/resolve', [BankAccountController::class, 'resolve'])->middleware('throttle:10,1')->name('.banks.replace.resolve');
+        Route::post('/banks/replace/confirm', [BankAccountController::class, 'confirm'])->middleware('throttle:5,1')->name('.banks.replace.confirm');
+        Route::get('/withdrawal', [WithdrawalController::class, 'index'])->name('.withdrawal.index');
+        Route::get('/withdrawal/create', [WithdrawalController::class, 'create'])->name('.withdrawal.create');
+        Route::post('/withdrawal/otp', [WithdrawalController::class, 'sendOtp'])->middleware('throttle:5,10')->name('.withdrawal.otp');
+        Route::post('/withdrawal/verify-otp', [WithdrawalController::class, 'verifyOtp'])->middleware('throttle:10,10')->name('.withdrawal.verify-otp');
+        Route::post('/withdrawal', [WithdrawalController::class, 'store'])->name('.withdrawal.store');
+        Route::get('/withdrawal/{withdrawal}', [WithdrawalController::class, 'show'])->name('.withdrawal.show');
+        Route::get('/history', [HistoryController::class, 'index'])->name('.history');
+    });
+
+    Route::get('/marketplace', [\App\Http\Controllers\Agent\MarketplaceController::class, 'index'])->name('.marketplace');
+    Route::get('/marketplace/{campaign}', [\App\Http\Controllers\Agent\MarketplaceController::class, 'show'])->name('.marketplace.show');
+    Route::post('/marketplace/{campaign}/start', [\App\Http\Controllers\Agent\MarketplaceController::class, 'start'])
+        ->middleware('throttle:20,1')
+        ->name('.marketplace.start');
+
+    Route::get('/tasks/active', [\App\Http\Controllers\Agent\TaskController::class, 'active'])->name('.tasks.active');
+    Route::get('/tasks/incomplete', [\App\Http\Controllers\Agent\TaskController::class, 'incomplete'])->name('.tasks.incomplete');
+    Route::get('/tasks/completed', [\App\Http\Controllers\Agent\TaskController::class, 'completed'])->name('.tasks.completed');
+    Route::get('/tasks/{participation}', [\App\Http\Controllers\Agent\TaskController::class, 'show'])->name('.tasks.show');
+    Route::post('/tasks/{participation}/submit', [\App\Http\Controllers\Agent\TaskController::class, 'submit'])
+        ->middleware('throttle:20,1')
+        ->name('.tasks.submit');
+
+    Route::get('/notifications', [UserNotificationController::class, 'index'])->name('.notifications');
+    Route::post('/notifications/{notification}/read', [UserNotificationController::class, 'markRead'])->name('.notifications.read');
+    Route::post('/notifications/read-all', [UserNotificationController::class, 'markAllRead'])->name('.notifications.read-all');
+    Route::get('/support', [SupportTicketController::class, 'index'])->name('.support.index');
+    Route::get('/support/create', [SupportTicketController::class, 'create'])->name('.support.create');
+    Route::post('/support', [SupportTicketController::class, 'store'])->name('.support.store');
+    Route::get('/support/attachments/{attachment}', [SupportTicketController::class, 'downloadAttachment'])
+        ->middleware('signed')
+        ->name('.support.attachments.download');
+    Route::get('/support/{ticket}', [SupportTicketController::class, 'show'])->name('.support.show');
+    Route::post('/support/{ticket}/reply', [SupportTicketController::class, 'reply'])->name('.support.reply');
+});
+
 Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|demo_support|demo_moderator', 'throttle:60,1'])->prefix('admin')->name('admin')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('');
     Route::get('/overview/panel', [AdminDashboardController::class, 'overviewPanel'])->name('.overview.panel');
@@ -302,6 +364,13 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::get('/users', [UserManagementController::class, 'index'])->name('.users');
         Route::get('/users/create', [UserManagementController::class, 'create'])->name('.users.create');
         Route::post('/users', [UserManagementController::class, 'store'])->name('.users.store');
+        Route::get('/campaigns', [\App\Http\Controllers\Admin\CampaignAdminController::class, 'index'])->name('.campaigns');
+        Route::get('/campaigns/{campaign}', [\App\Http\Controllers\Admin\CampaignAdminController::class, 'show'])->name('.campaigns.show');
+        Route::post('/campaigns/{campaign}/status', [\App\Http\Controllers\Admin\CampaignAdminController::class, 'updateStatus'])->name('.campaigns.status');
+        Route::get('/verifications', [\App\Http\Controllers\Admin\VerificationAdminController::class, 'index'])->name('.verifications');
+        Route::get('/verifications/{participation}', [\App\Http\Controllers\Admin\VerificationAdminController::class, 'show'])->name('.verifications.show');
+        Route::post('/verifications/{participation}/approve', [\App\Http\Controllers\Admin\VerificationAdminController::class, 'approve'])->name('.verifications.approve');
+        Route::post('/verifications/{participation}/reject', [\App\Http\Controllers\Admin\VerificationAdminController::class, 'reject'])->name('.verifications.reject');
         Route::get('/users/manual-purchase/catalog', [UserManagementController::class, 'manualPurchaseCatalog'])->name('.users.manual-purchase.catalog');
         Route::get('/users/{user}', [UserManagementController::class, 'show'])->name('.users.show');
         Route::get('/users/{user}/edit', [UserManagementController::class, 'edit'])->name('.users.edit');

@@ -4,8 +4,8 @@
         'security' => ['label' => 'Security', 'icon' => 'lock'],
     ];
 
-    // KYC lives under Account for members (not the sidebar).
-    if (($prefix ?? '') === 'dashboard') {
+    // KYC lives under Account for Creators and Agents (not Admin).
+    if (in_array(($prefix ?? ''), ['dashboard', 'agent'], true)) {
         $items['kyc'] = ['label' => 'KYC', 'icon' => 'kyc'];
     }
 
@@ -14,7 +14,11 @@
 
     $active = collect($items)->keys()->first(function ($key) use ($prefix) {
         if ($key === 'kyc') {
-            return request()->routeIs('dashboard.account.kyc', 'dashboard.kyc', 'dashboard.kyc.*');
+            return request()->routeIs(
+                $prefix.'.account.kyc',
+                $prefix.'.kyc',
+                $prefix.'.kyc.*',
+            );
         }
 
         return request()->routeIs($prefix.'.account.'.$key);

@@ -126,7 +126,7 @@ class AppServiceProvider extends ServiceProvider
         $this->applySiteBrandingConfig();
         $this->configureProductionUrls();
 
-        View::composer(['layouts.dashboard-user', 'layouts.dashboard-admin'], function ($view) {
+        View::composer(['layouts.dashboard-user', 'layouts.dashboard-admin', 'layouts.dashboard-agent'], function ($view) {
             /** @var ThemeManager $themes */
             $themes = app(ThemeManager::class);
             $user = auth()->user();

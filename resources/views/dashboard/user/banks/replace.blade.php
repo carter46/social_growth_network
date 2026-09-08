@@ -1,27 +1,28 @@
-@extends('layouts.dashboard-user')
+@extends($layout ?? 'layouts.dashboard-user')
 
 @section('title', 'Replace bank')
 
 @section('content')
+@php $prefix = $prefix ?? 'dashboard'; @endphp
 @php $step = session('bank_replace_step', old('_step', 'password')); @endphp
 <x-layout.page
     title="Replace Bank Account"
     width="full"
     :breadcrumb="[
-        ['Dashboard', route('dashboard')],
-        ['My Bank', route('dashboard.banks.index')],
+        [$prefix === 'agent' ? 'Agent' : 'Dashboard', route($prefix === 'agent' ? 'agent' : 'dashboard')],
+        ['My Bank', route($prefix.'.banks.index')],
         ['Replace', null],
     ]"
 >
     <x-dashboard.card>
         @if ($step === 'password')
-            <form method="POST" action="{{ route('dashboard.banks.replace.otp') }}" class="space-y-4">
+            <form method="POST" action="{{ route($prefix.'.banks.replace.otp') }}" class="space-y-4">
                 @csrf
                 <x-dashboard.input type="password" name="password" label="Confirm your password" required autocomplete="current-password" />
                 <x-dashboard.button type="submit">Send email code</x-dashboard.button>
             </form>
         @elseif ($step === 'otp')
-            <form method="POST" action="{{ route('dashboard.banks.replace.verify-otp') }}" class="space-y-4">
+            <form method="POST" action="{{ route($prefix.'.banks.replace.verify-otp') }}" class="space-y-4">
                 @csrf
                 <x-dashboard.input name="otp" label="6-digit verification code" maxlength="6" required />
                 <x-dashboard.button type="submit">Verify code</x-dashboard.button>
@@ -29,7 +30,7 @@
         @elseif ($step === 'bank')
             <div
                 class="space-y-4"
-                x-data="bankReplaceResolve(@js(route('dashboard.banks.replace.resolve')), @js(csrf_token()), @js($banks))"
+                x-data="bankReplaceResolve(@js(route($prefix.'.banks.replace.resolve')), @js(csrf_token()), @js($banks))"
                 @click.outside="bankOpen = false"
             >
                 <div class="relative">
@@ -91,7 +92,7 @@
 
                 <form
                     method="POST"
-                    action="{{ route('dashboard.banks.replace.confirm') }}"
+                    action="{{ route($prefix.'.banks.replace.confirm') }}"
                     class="space-y-4"
                     x-show="resolved"
                     x-cloak
@@ -110,7 +111,7 @@
                 <p><strong>Account:</strong> {{ $resolved['accountNumber'] }}</p>
                 <p><strong>Account name:</strong> {{ $resolved['accountName'] }}</p>
             </div>
-            <form method="POST" action="{{ route('dashboard.banks.replace.confirm') }}" class="space-y-4">
+            <form method="POST" action="{{ route($prefix.'.banks.replace.confirm') }}" class="space-y-4">
                 @csrf
                 <input type="hidden" name="bank_code" value="{{ $resolved['bankCode'] }}">
                 <input type="hidden" name="bank_name" value="{{ $resolved['bankName'] }}">
@@ -120,7 +121,7 @@
             </form>
         @else
             <p class="text-sm text-text-secondary">Start again from the beginning.</p>
-            <x-dashboard.button :href="route('dashboard.banks.replace')" class="mt-4">Restart</x-dashboard.button>
+            <x-dashboard.button :href="route($prefix.'.banks.replace')" class="mt-4">Restart</x-dashboard.button>
         @endif
     </x-dashboard.card>
 </x-layout.page>

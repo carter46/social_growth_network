@@ -13,14 +13,25 @@ class NotificationController extends Controller
     {
         $user = auth()->user();
         $isAdmin = (bool) $user?->hasRole('admin');
+        $isAgent = (bool) $user?->hasRole('agent');
 
         $notifications = ($user && \Illuminate\Support\Facades\Schema::hasTable('user_notifications'))
             ? $user->notifications()->orderByDesc('created_at')->paginate(20)
             : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 20);
 
-        $layout = $isAdmin ? 'layouts.dashboard-admin' : 'layouts.dashboard-user';
-        $notificationReadAll = $isAdmin ? 'admin.inbox.read-all' : 'dashboard.notifications.read-all';
-        $notificationRead = $isAdmin ? 'admin.inbox.read' : 'dashboard.notifications.read';
+        if ($isAdmin) {
+            $layout = 'layouts.dashboard-admin';
+            $notificationReadAll = 'admin.inbox.read-all';
+            $notificationRead = 'admin.inbox.read';
+        } elseif ($isAgent) {
+            $layout = 'layouts.dashboard-agent';
+            $notificationReadAll = 'agent.notifications.read-all';
+            $notificationRead = 'agent.notifications.read';
+        } else {
+            $layout = 'layouts.dashboard-user';
+            $notificationReadAll = 'dashboard.notifications.read-all';
+            $notificationRead = 'dashboard.notifications.read';
+        }
 
         return view('dashboard.user.notifications', compact(
             'notifications',

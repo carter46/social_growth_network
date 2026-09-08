@@ -16,8 +16,15 @@ class DepositController extends Controller
         private DepositCheckoutService $checkout,
     ) {}
 
+    private function rejectAgents(): void
+    {
+        abort_if(auth()->user()?->hasRole('agent'), 403, 'Agents cannot deposit funds.');
+    }
+
     public function index(): View
     {
+        $this->rejectAgents();
+
         $user = auth()->user();
         $fundings = WalletFunding::where('user_id', $user->id)
             ->where('amount', '>', 0)
@@ -33,6 +40,8 @@ class DepositController extends Controller
 
     public function createCheckout(): View|RedirectResponse
     {
+        $this->rejectAgents();
+
         try {
             $this->checkout->assertDepositKyc(auth()->user());
         } catch (\Throwable $e) {
@@ -49,6 +58,8 @@ class DepositController extends Controller
 
     public function storeCheckout(Request $request): RedirectResponse
     {
+        $this->rejectAgents();
+
         $depositMin = (float) SystemSetting::get('deposit_min_amount', 100);
         $validated = $request->validate([
             'amount' => ['required', 'numeric', 'min:'.$depositMin],
@@ -69,6 +80,8 @@ class DepositController extends Controller
 
     public function callback(Request $request): RedirectResponse
     {
+        $this->rejectAgents();
+
         $paymentReference = (string) $request->query('paymentReference', $request->query('paymentReference', ''));
         if ($paymentReference === '') {
             $paymentReference = (string) $request->query('payment_reference', '');
@@ -97,6 +110,8 @@ class DepositController extends Controller
 
     public function show(WalletFunding $funding): View|RedirectResponse
     {
+        $this->rejectAgents();
+
         if ((int) $funding->user_id !== (int) auth()->id()) {
             abort(403);
         }
@@ -111,6 +126,8 @@ class DepositController extends Controller
 
     public function reservedAccount(Request $request): RedirectResponse|View
     {
+        $this->rejectAgents();
+
         try {
             $account = $this->checkout->ensureReservedAccount($request->user());
         } catch (\Throwable $e) {

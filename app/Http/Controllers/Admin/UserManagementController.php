@@ -116,14 +116,28 @@ class UserManagementController extends Controller
             $status = 'active';
         }
 
-        $base = User::role('user')->notAnonymized();
+        $roleFilter = $request->string('role')->toString() ?: 'all';
+        if (! in_array($roleFilter, ['all', 'creator', 'agent'], true)) {
+            $roleFilter = 'all';
+        }
+
+        $roleName = match ($roleFilter) {
+            'creator' => 'user',
+            'agent' => 'agent',
+            default => null,
+        };
+
+        $base = User::query()
+            ->role($roleName ? [$roleName] : ['user', 'agent'])
+            ->notAnonymized();
 
         $activeCount = (clone $base)->where('is_suspended', false)->count();
         $suspendedCount = (clone $base)->where('is_suspended', true)->count();
 
         $search = trim($request->string('q')->toString());
 
-        $users = User::role('user')
+        $users = User::query()
+            ->role($roleName ? [$roleName] : ['user', 'agent'])
             ->notAnonymized()
             ->when($status === 'suspended', fn ($q) => $q->where('is_suspended', true))
             ->when($status === 'active', fn ($q) => $q->where('is_suspended', false))
@@ -138,6 +152,7 @@ class UserManagementController extends Controller
             'activeCount' => $activeCount,
             'suspendedCount' => $suspendedCount,
             'search' => $search,
+            'roleFilter' => $roleFilter,
         ];
 
         if ($this->wantsTabPartial($request)) {
@@ -973,7 +988,10 @@ class UserManagementController extends Controller
     private function ensureMember(User $user): void
     {
         abort_if($user->isAnonymized(), 404);
-        abort_unless($user->hasRole('user') && ! $user->hasRole('admin'), 404);
+        abort_unless(
+            ($user->hasRole('user') || $user->hasRole('agent')) && ! $user->hasRole('admin'),
+            404
+        );
     }
 
     private function wantsTabPartial(Request $request): bool

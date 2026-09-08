@@ -12,6 +12,7 @@ use App\Events\WithdrawalPayoutFailed;
 use App\Models\Order;
 use App\Models\PaymentTimelineEvent;
 use App\Models\Transaction;
+use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletFunding;
 use App\Models\WalletHold;
@@ -31,6 +32,11 @@ class WalletService
     ): Transaction {
         return DB::transaction(function () use ($funding, $approvedBy, $approvedIp, $approvedDevice, $approvedReason) {
             $funding = WalletFunding::where('id', $funding->id)->lockForUpdate()->firstOrFail();
+
+            $owner = User::query()->find($funding->user_id);
+            if ($owner?->hasRole('agent')) {
+                throw new InvalidArgumentException('Agents cannot receive deposit credits. Earnings are credited after task verification.');
+            }
 
             if ($funding->status === 'approved' || $funding->internal_status === 'completed') {
                 return $this->findFundingTransaction($funding)
@@ -507,6 +513,46 @@ class WalletService
                 'description' => $reason.' (admin #'.$adminId.')',
                 'amount' => $amount,
                 'currency' => 'NGN',
+                'status' => 'completed',
+            ]);
+        });
+    }
+
+    /**
+     * Credit an arbitrary positive amount to a user's wallet (e.g. campaign rewards).
+     */
+    public function creditReward(
+        User $user,
+        float $amount,
+        string $label,
+        string $type = 'campaign_reward',
+    ): Transaction {
+        $amountStr = number_format((float) $amount, 2, '.', '');
+
+        if (bccomp($amountStr, '0', 2) <= 0) {
+            throw new InvalidArgumentException('Reward amount must be positive.');
+        }
+
+        return DB::transaction(function () use ($user, $amountStr, $label, $type) {
+            $wallet = Wallet::query()
+                ->where('user_id', $user->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $wallet) {
+                throw new InvalidArgumentException('User has no wallet to credit.');
+            }
+
+            $wallet->balance = bcadd((string) $wallet->balance, $amountStr, 2);
+            $wallet->save();
+
+            return $this->createLedgerEntry($wallet, [
+                'user_id' => $user->id,
+                'type' => $type,
+                'label' => $label,
+                'description' => $label,
+                'amount' => (float) $amountStr,
+                'currency' => $wallet->currency ?: 'NGN',
                 'status' => 'completed',
             ]);
         });

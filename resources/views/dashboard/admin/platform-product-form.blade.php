@@ -61,6 +61,29 @@
                 Featured (show in featured sections on public / user pages)
             </label>
 
+            <label class="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="is_campaign" value="1" @checked(old('is_campaign', $product->is_campaign ?? false))>
+                Campaign package (creates a campaign agents can work on after purchase)
+            </label>
+
+            <div class="grid gap-4 sm:grid-cols-2">
+                <x-dashboard.input
+                    label="Agent reward per completion (NGN)"
+                    name="agent_reward_per_completion"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    :value="old('agent_reward_per_completion', $product->agent_reward_per_completion)"
+                />
+                <x-dashboard.input
+                    label="Estimated minutes per task"
+                    name="estimated_minutes"
+                    type="number"
+                    min="1"
+                    :value="old('estimated_minutes', $product->estimated_minutes)"
+                />
+            </div>
+
             <x-dashboard.input
                 label="Sort position"
                 name="sort_order"

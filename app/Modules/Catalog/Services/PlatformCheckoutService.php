@@ -133,6 +133,8 @@ class PlatformCheckoutService
             $this->createDomainConnectionsForOrder($buyer, $locked);
             $this->fulfillTools($locked);
 
+            app(\App\Services\Campaigns\CampaignFulfillmentService::class)->createFromPaidOrder($locked);
+
             DB::afterCommit(function () use ($locked) {
                 OrderCompleted::dispatch($locked->id, $locked->user_id, null);
             });
@@ -436,6 +438,8 @@ class PlatformCheckoutService
                 $this->walletService->debitForPlatformPurchase($wallet, $order, (float) $checkout['total']);
 
                 $this->fulfillTools($order, $checkout['renew_tool'], $checkout['variant']);
+
+                app(\App\Services\Campaigns\CampaignFulfillmentService::class)->createFromPaidOrder($order);
 
                 DB::afterCommit(function () use ($order, $buyer) {
                     OrderCompleted::dispatch($order->id, $buyer->id, null);

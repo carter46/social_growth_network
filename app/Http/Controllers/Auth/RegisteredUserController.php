@@ -25,11 +25,40 @@ class RegisteredUserController extends Controller
     }
 
     /**
+     * Display agent registration (combined auth with signup section active).
+     */
+    public function createAgent(): View
+    {
+        return view('auth.login', [
+            'showSignup' => true,
+            'registerAsAgent' => true,
+        ]);
+    }
+
+    /**
      * Handle an incoming registration request.
      *
      * @throws ValidationException
      */
     public function store(Request $request): RedirectResponse
+    {
+        return $this->registerWithRole($request, 'user');
+    }
+
+    /**
+     * Handle an incoming agent registration request.
+     *
+     * @throws ValidationException
+     */
+    public function storeAgent(Request $request): RedirectResponse
+    {
+        return $this->registerWithRole($request, 'agent');
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function registerWithRole(Request $request, string $role): RedirectResponse
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -48,7 +77,7 @@ class RegisteredUserController extends Controller
             'terms_accepted_at' => now(),
         ]);
 
-        $user->assignRole('user');
+        $user->assignRole($role);
 
         event(new Registered($user));
         UserRegistered::dispatch($user->id);

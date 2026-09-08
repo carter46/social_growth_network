@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Wallet\Payments\Contracts\PaymentRailInterface;
 use App\Modules\Wallet\Services\BankAccountService;
 use App\Modules\Wallet\Services\BankCatalogService;
+use App\Support\MemberShell;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,16 +28,19 @@ class BankAccountController extends Controller
             'bank' => $user->activeBankAccount,
             'canReplace' => ! $this->banks->hasOpenWithdrawal($user),
             'monnifyReady' => $this->rail->isConfigured(),
+            'layout' => MemberShell::layout(),
+            'prefix' => MemberShell::prefix(),
         ]);
     }
 
     public function replaceForm(): View|RedirectResponse
     {
         $user = auth()->user();
+        $prefix = MemberShell::prefix();
         try {
             $this->banks->assertCanReplace($user);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return redirect()->route('dashboard.banks.index')->withErrors($e->errors());
+            return redirect()->route($prefix.'.banks.index')->withErrors($e->errors());
         }
 
         return view('dashboard.user.banks.replace', [
@@ -44,6 +48,8 @@ class BankAccountController extends Controller
             'step' => session('bank_replace_step', 'password'),
             'resolved' => session('bank_replace_resolved'),
             'banks' => $this->safeBanks(),
+            'layout' => MemberShell::layout(),
+            'prefix' => $prefix,
         ]);
     }
 
@@ -56,7 +62,7 @@ class BankAccountController extends Controller
         $this->banks->startReplace($request->user(), $validated['password']);
 
         return redirect()
-            ->route('dashboard.banks.replace')
+            ->route(MemberShell::prefix().'.banks.replace')
             ->with('bank_replace_step', 'otp')
             ->with('status', __('A verification code was sent to your email.'));
     }
@@ -70,7 +76,7 @@ class BankAccountController extends Controller
         $this->banks->verifyOtp($request->user(), $validated['otp']);
 
         return redirect()
-            ->route('dashboard.banks.replace')
+            ->route(MemberShell::prefix().'.banks.replace')
             ->with('bank_replace_step', 'bank')
             ->with('status', __('Email verified. Enter your new bank account.'));
     }
@@ -103,7 +109,7 @@ class BankAccountController extends Controller
         }
 
         return redirect()
-            ->route('dashboard.banks.replace')
+            ->route(MemberShell::prefix().'.banks.replace')
             ->with('bank_replace_step', 'confirm')
             ->with('bank_replace_resolved', $resolved);
     }
@@ -133,7 +139,7 @@ class BankAccountController extends Controller
         }
 
         return redirect()
-            ->route('dashboard.banks.index')
+            ->route(MemberShell::prefix().'.banks.index')
             ->with('status', __('My bank updated.'));
     }
 

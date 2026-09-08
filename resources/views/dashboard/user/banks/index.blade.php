@@ -1,13 +1,14 @@
-@extends('layouts.dashboard-user')
+@extends($layout ?? 'layouts.dashboard-user')
 
 @section('title', 'My Bank')
 
 @section('content')
+@php $prefix = $prefix ?? 'dashboard'; @endphp
 <x-layout.page
     title="My Bank"
     width="full"
     :breadcrumb="[
-        ['Dashboard', route('dashboard')],
+        [$prefix === 'agent' ? 'Agent' : 'Dashboard', route($prefix === 'agent' ? 'agent' : 'dashboard')],
         ['My Bank', null],
     ]"
 >
@@ -22,7 +23,7 @@
             </div>
             @if ($canReplace)
                 <div class="mt-6">
-                    <x-dashboard.button :href="route('dashboard.banks.replace')" variant="secondary">Replace Bank Account</x-dashboard.button>
+                    <x-dashboard.button :href="route($prefix.'.banks.replace')" variant="secondary">Replace Bank Account</x-dashboard.button>
                 </div>
             @else
                 <x-dashboard.alert type="warning" class="mt-6">
@@ -34,7 +35,7 @@
             @if (! $monnifyReady)
                 <x-dashboard.alert type="warning" class="mb-4">Bank verification is not available yet. Try again later.</x-dashboard.alert>
             @endif
-            <x-dashboard.button :href="route('dashboard.banks.replace')" icon="withdraw">Add Bank Account</x-dashboard.button>
+            <x-dashboard.button :href="route($prefix.'.banks.replace')" icon="withdraw">Add Bank Account</x-dashboard.button>
         @endif
     </x-dashboard.card>
 </x-layout.page>

@@ -1,14 +1,15 @@
-@extends('layouts.dashboard-user')
+@extends($layout ?? 'layouts.dashboard-user')
 
 @section('title', 'Withdrawal')
 
 @section('content')
+@php $prefix = $prefix ?? 'dashboard'; @endphp
 <x-layout.page
     title="Withdrawal"
     width="full"
     :breadcrumb="[
-        ['Dashboard', route('dashboard')],
-        ['Withdraw', route('dashboard.withdrawal.index')],
+        [$prefix === 'agent' ? 'Agent' : 'Dashboard', route($prefix === 'agent' ? 'agent' : 'dashboard')],
+        ['Withdraw', route($prefix.'.withdrawal.index')],
         ['Receipt', null],
     ]"
 >

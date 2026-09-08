@@ -40,6 +40,10 @@ class DepositCheckoutService
 
     public function assertDepositKyc(User $user): void
     {
+        if ($user->hasRole('agent')) {
+            throw new InvalidArgumentException('Agents cannot deposit funds. Earnings are credited after task verification.');
+        }
+
         if (! SystemSetting::kycRequired()) {
             return;
         }
@@ -54,6 +58,10 @@ class DepositCheckoutService
 
     public function startCheckout(User $user, float $amount, string $redirectUrl): WalletFunding
     {
+        if ($user->hasRole('agent')) {
+            throw new InvalidArgumentException('Agents cannot deposit funds.');
+        }
+
         if (! $user->wallet) {
             throw new InvalidArgumentException('Create a wallet first.');
         }
@@ -155,6 +163,12 @@ class DepositCheckoutService
             throw new InvalidArgumentException('Paid amount does not match funding amount.');
         }
 
+        $owner = User::query()->find($funding->user_id);
+        if ($owner?->hasRole('agent')) {
+            $this->clearReservedDepositRails($owner);
+            throw new InvalidArgumentException('Agents cannot receive deposit credits.');
+        }
+
         PaymentTimelineEvent::record($funding, 'verified', 'Payment verified with Monnify');
         $this->wallets->creditFromFunding($funding);
 
@@ -166,6 +180,10 @@ class DepositCheckoutService
      */
     public function ensureReservedAccount(User $user): array
     {
+        if ($user->hasRole('agent')) {
+            throw new InvalidArgumentException('Agents cannot deposit funds.');
+        }
+
         if (! $this->reservedAccountsAllowed($user)) {
             throw new InvalidArgumentException('Complete KYC to get a reserved deposit account.');
         }
@@ -228,6 +246,13 @@ class DepositCheckoutService
 
         $existing = WalletFunding::where('provider_payment_reference', $paymentReference)->first();
         if ($existing) {
+            $existingOwner = User::query()->find($existing->user_id);
+            if ($existingOwner?->hasRole('agent')) {
+                $this->clearReservedDepositRails($existingOwner);
+
+                return null;
+            }
+
             if ($existing->internal_status !== 'completed') {
                 $this->wallets->creditFromFunding($existing);
             }
@@ -241,6 +266,13 @@ class DepositCheckoutService
         }
 
         if (! $wallet) {
+            return null;
+        }
+
+        $owner = User::query()->find($wallet->user_id);
+        if ($owner?->hasRole('agent')) {
+            $this->clearReservedDepositRails($owner);
+
             return null;
         }
 
@@ -266,5 +298,30 @@ class DepositCheckoutService
         $this->wallets->creditFromFunding($funding);
 
         return $funding;
+    }
+
+    /**
+     * Agents are withdraw-only — strip any leftover Monnify reserved deposit rails.
+     */
+    public function clearReservedDepositRails(User $user): void
+    {
+        $wallet = $user->wallet;
+        if (! $wallet) {
+            return;
+        }
+
+        if (
+            blank($wallet->reserved_account_number)
+            && blank($wallet->reserved_bank_name)
+            && blank($wallet->reserved_account_reference)
+        ) {
+            return;
+        }
+
+        $wallet->update([
+            'reserved_account_number' => null,
+            'reserved_bank_name' => null,
+            'reserved_account_reference' => null,
+        ]);
     }
 }

@@ -143,6 +143,9 @@ class PlatformProductAdminController extends Controller
             'variants.*.description' => ['nullable', 'string', 'max:2000'],
             'tutorial_url' => ['nullable', 'string', 'max:500'],
             'tutorial_description' => ['nullable', 'string', 'max:2000'],
+            'is_campaign' => ['sometimes', 'boolean'],
+            'agent_reward_per_completion' => ['nullable', 'numeric', 'min:0'],
+            'estimated_minutes' => ['nullable', 'integer', 'min:1', 'max:10080'],
         ]);
 
         $rawTutorial = trim((string) ($data['tutorial_url'] ?? ''));
@@ -178,6 +181,9 @@ class PlatformProductAdminController extends Controller
             'tutorial_description' => filled($data['tutorial_description'] ?? null)
                 ? trim((string) $data['tutorial_description'])
                 : null,
+            'is_campaign' => $request->boolean('is_campaign'),
+            'agent_reward_per_completion' => $data['agent_reward_per_completion'] ?? null,
+            'estimated_minutes' => $data['estimated_minutes'] ?? null,
         ];
 
         $platformProduct->update($updatePayload);

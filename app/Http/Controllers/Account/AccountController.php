@@ -24,7 +24,7 @@ class AccountController extends Controller
         $user = $request->user();
         $user->fill($request->validated());
 
-        if ($user->isDirty('email')) {
+        if ($user->isDirty('email') && ! $user->hasRole('admin')) {
             $user->email_verified_at = null;
         }
 
@@ -93,7 +93,7 @@ class AccountController extends Controller
 
     public function kyc(Request $request): View|RedirectResponse
     {
-        abort_unless(self::routePrefix($request) === 'dashboard', 404);
+        abort_unless(in_array(self::routePrefix($request), ['dashboard', 'agent'], true), 404);
 
         $user = $request->user();
         $submission = $user->kycSubmissions()->latest()->first();
@@ -159,7 +159,17 @@ class AccountController extends Controller
 
     public static function routePrefix(Request $request): string
     {
-        return $request->user()->hasRole('admin') ? 'admin' : 'dashboard';
+        $user = $request->user();
+
+        if ($user->hasRole('admin')) {
+            return 'admin';
+        }
+
+        if ($user->hasRole('agent')) {
+            return 'agent';
+        }
+
+        return 'dashboard';
     }
 
     private function routeName(Request $request, string $page): string
@@ -174,7 +184,11 @@ class AccountController extends Controller
     {
         $prefix = self::routePrefix($request);
         $payload = array_merge($data, [
-            'layout' => $prefix === 'admin' ? 'layouts.dashboard-admin' : 'layouts.dashboard-user',
+            'layout' => match ($prefix) {
+                'admin' => 'layouts.dashboard-admin',
+                'agent' => 'layouts.dashboard-agent',
+                default => 'layouts.dashboard-user',
+            },
             'prefix' => $prefix,
         ]);
 

@@ -13,4 +13,5 @@ enum TransactionType: string
     case Reversal = 'reversal';
     case WithdrawalUnlock = 'withdrawal_unlock';
     case WithdrawalHold = 'withdrawal_hold';
+    case CampaignReward = 'campaign_reward';
 }

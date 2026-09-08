@@ -23,6 +23,8 @@ class HistoryController extends Controller
 
         return view('dashboard.user.history', [
             'transactions' => $query->paginate(20)->withQueryString(),
+            'layout' => \App\Support\MemberShell::layout(),
+            'prefix' => \App\Support\MemberShell::prefix(),
         ]);
     }
 }

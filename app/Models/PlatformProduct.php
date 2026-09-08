@@ -38,6 +38,9 @@ class PlatformProduct extends Model
         'faqs',
         'support_text',
         'base_price',
+        'is_campaign',
+        'agent_reward_per_completion',
+        'estimated_minutes',
         'meta',
     ];
 
@@ -63,6 +66,9 @@ class PlatformProduct extends Model
             'meta' => 'array',
             'provider_meta' => 'array',
             'base_price' => 'decimal:2',
+            'is_campaign' => 'boolean',
+            'agent_reward_per_completion' => 'decimal:2',
+            'estimated_minutes' => 'integer',
         ];
     }
 

@@ -1,14 +1,15 @@
-@extends('layouts.dashboard-user')
+@extends($layout ?? 'layouts.dashboard-user')
 
 @section('title', $ticket->subject)
 
 @section('content')
+@php $prefix = $prefix ?? 'dashboard'; @endphp
 <x-layout.page
     title="{{ $ticket->subject }}"
     width="full"
     :breadcrumb="[
-        ['Dashboard', route('dashboard')],
-        ['Support', route('dashboard.support.index')],
+        [$prefix === 'agent' ? 'Agent' : 'Dashboard', route($prefix === 'agent' ? 'agent' : 'dashboard')],
+        ['Support', route($prefix.'.support.index')],
         ['Ticket', null],
     ]"
 >
@@ -39,7 +40,7 @@
     @endforeach
 
     <x-dashboard.card>
-        <form method="POST" action="{{ route('dashboard.support.reply', $ticket) }}" enctype="multipart/form-data" class="space-y-4" x-data="{ submitting: false }" @submit="submitting = true">
+        <form method="POST" action="{{ route($prefix.'.support.reply', $ticket) }}" enctype="multipart/form-data" class="space-y-4" x-data="{ submitting: false }" @submit="submitting = true">
             @csrf
             <x-dashboard.textarea label="Reply" name="body" :rows="3" required />
             <div>

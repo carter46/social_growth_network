@@ -1,19 +1,20 @@
-@extends('layouts.dashboard-user')
+@extends($layout ?? 'layouts.dashboard-user')
 
 @section('title', 'New Support Ticket')
 
 @section('content')
+@php $prefix = $prefix ?? 'dashboard'; @endphp
 <x-layout.page
     title="New Support Ticket"
     width="full"
     :breadcrumb="[
-        ['Dashboard', route('dashboard')],
-        ['Support', route('dashboard.support.index')],
+        [$prefix === 'agent' ? 'Agent' : 'Dashboard', route($prefix === 'agent' ? 'agent' : 'dashboard')],
+        ['Support', route($prefix.'.support.index')],
         ['New ticket', null],
     ]"
 >
     <x-dashboard.card>
-        <form method="POST" action="{{ route('dashboard.support.store') }}" enctype="multipart/form-data" class="w-full space-y-4" x-data="{ submitting: false }" @submit="submitting = true">
+        <form method="POST" action="{{ route($prefix.'.support.store') }}" enctype="multipart/form-data" class="w-full space-y-4" x-data="{ submitting: false }" @submit="submitting = true">
             @csrf
             <x-dashboard.select label="Category" name="category">
                 @foreach ($categories as $c)

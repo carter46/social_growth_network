@@ -5,7 +5,7 @@ namespace App\Modules\Wallet\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Withdrawal;
 use App\Modules\Wallet\Services\WithdrawalConfirmationService;
-use App\Modules\Wallet\Services\WithdrawalConfirmationService;
+use App\Support\MemberShell;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -33,23 +33,28 @@ class WithdrawalController extends Controller
             'withdrawals' => $withdrawals,
             'wallet' => auth()->user()->wallet,
             'hasOpen' => $hasOpen,
+            'layout' => MemberShell::layout(),
+            'prefix' => MemberShell::prefix(),
         ]);
     }
 
     public function create(): View|RedirectResponse
     {
         $user = auth()->user();
+        $prefix = MemberShell::prefix();
 
         try {
             $this->confirmation->assertCanRequest($user);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return redirect()->route('dashboard.withdrawal.index')->withErrors($e->errors());
+            return redirect()->route($prefix.'.withdrawal.index')->withErrors($e->errors());
         }
 
         return view('dashboard.user.withdrawal.create', [
             'wallet' => $user->wallet,
             'bank' => $user->activeBankAccount,
             'step' => session('withdrawal_step', 'confirm'),
+            'layout' => MemberShell::layout(),
+            'prefix' => $prefix,
         ]);
     }
 
@@ -68,8 +73,10 @@ class WithdrawalController extends Controller
             (int) $validated['user_bank_account_id'],
         );
 
+        $prefix = MemberShell::prefix();
+
         return redirect()
-            ->route('dashboard.withdrawal.create')
+            ->route($prefix.'.withdrawal.create')
             ->with('withdrawal_step', 'otp')
             ->with('withdrawal_amount', $validated['amount'])
             ->with('status', __('A verification code was sent to your email.'));
@@ -82,16 +89,17 @@ class WithdrawalController extends Controller
         ]);
 
         $withdrawal = $this->confirmation->verifyOtpAndCreate($request->user(), $validated['otp']);
+        $prefix = MemberShell::prefix();
 
         return redirect()
-            ->route('dashboard.withdrawal.show', $withdrawal)
+            ->route($prefix.'.withdrawal.show', $withdrawal)
             ->with('status', __('Withdrawal request submitted.'));
     }
 
     public function store(Request $request): RedirectResponse
     {
         return redirect()
-            ->route('dashboard.withdrawal.create')
+            ->route(MemberShell::prefix().'.withdrawal.create')
             ->with('error', __('Confirm your password and verify the email code to submit a withdrawal.'));
     }
 
@@ -106,6 +114,8 @@ class WithdrawalController extends Controller
         return view('dashboard.user.withdrawal.show', [
             'withdrawal' => $withdrawal,
             'wallet' => auth()->user()->wallet,
+            'layout' => MemberShell::layout(),
+            'prefix' => MemberShell::prefix(),
         ]);
     }
 }

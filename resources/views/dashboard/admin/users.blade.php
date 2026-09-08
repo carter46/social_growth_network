@@ -29,6 +29,14 @@
     <x-dashboard.card class="mb-4">
         <form method="GET" action="{{ route('admin.users') }}" class="flex flex-wrap gap-3 items-end">
             <input type="hidden" name="status" value="{{ $status }}">
+            <div class="min-w-[10rem]">
+                <label class="mb-1 block text-xs font-medium text-text-secondary" for="role-filter">Role</label>
+                <select id="role-filter" name="role" class="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-text-primary">
+                    <option value="all" @selected(($roleFilter ?? 'all') === 'all')>All members</option>
+                    <option value="creator" @selected(($roleFilter ?? 'all') === 'creator')>Creators</option>
+                    <option value="agent" @selected(($roleFilter ?? 'all') === 'agent')>Agents</option>
+                </select>
+            </div>
             <div class="min-w-[16rem] flex-1">
                 <x-dashboard.input name="q" label="Search" :value="$search ?? ''" placeholder="Name, email, username..." />
             </div>
@@ -39,8 +47,8 @@
     <x-dashboard.ajax-tabs
         :active="$status"
         :tabs="[
-            ['id' => 'active', 'label' => 'Active', 'href' => route('admin.users', ['status' => 'active']), 'count' => $activeCount ?? null],
-            ['id' => 'suspended', 'label' => 'Suspended', 'href' => route('admin.users', ['status' => 'suspended']), 'count' => $suspendedCount ?? null],
+            ['id' => 'active', 'label' => 'Active', 'href' => route('admin.users', array_filter(['status' => 'active', 'role' => ($roleFilter ?? 'all') !== 'all' ? ($roleFilter ?? null) : null, 'q' => $search ?? null])), 'count' => $activeCount ?? null],
+            ['id' => 'suspended', 'label' => 'Suspended', 'href' => route('admin.users', array_filter(['status' => 'suspended', 'role' => ($roleFilter ?? 'all') !== 'all' ? ($roleFilter ?? null) : null, 'q' => $search ?? null])), 'count' => $suspendedCount ?? null],
         ]"
         class="mb-4"
     />

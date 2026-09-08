@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Modules\Wallet\Services\WalletProvisioningService;
+use App\Support\MemberShell;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,10 +18,12 @@ class EnsureHasWallet
             return redirect()->route('login');
         }
 
+        $prefix = MemberShell::prefix($request);
+
         if (! $user->wallet) {
             if (! $user->hasApprovedKyc()) {
                 return redirect()
-                    ->route('dashboard.account.kyc')
+                    ->route($prefix.'.account.kyc')
                     ->with('error', __('Complete KYC Level 1 before using wallet features.'));
             }
 
@@ -29,14 +32,14 @@ class EnsureHasWallet
                 $user->load('wallet');
             } catch (\Throwable) {
                 return redirect()
-                    ->route('dashboard.wallet')
+                    ->route($prefix.'.wallet')
                     ->with('error', __('Create a wallet before using this feature.'));
             }
         }
 
         if (! $user->wallet) {
             return redirect()
-                ->route('dashboard.wallet')
+                ->route($prefix.'.wallet')
                 ->with('error', __('Create a wallet before using this feature.'));
         }
 
