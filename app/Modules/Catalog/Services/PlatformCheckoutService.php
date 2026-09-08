@@ -674,7 +674,7 @@ class PlatformCheckoutService
     private function buildCheckout(User $buyer, PlatformProduct $product, array $data, bool $deferDomainConsumption = false): array
     {
         $product = PlatformProduct::query()
-            ->with(['productType.serviceCategory'])
+            ->with(['serviceCategory', 'productType.serviceCategory'])
             ->where('id', $product->id)
             ->lockForUpdate()
             ->firstOrFail();

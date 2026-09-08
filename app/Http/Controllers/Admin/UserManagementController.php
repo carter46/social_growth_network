@@ -441,15 +441,20 @@ class UserManagementController extends Controller
         if ($serviceId) {
             $productsQuery->where('product_type_id', $serviceId);
         } elseif ($categoryId) {
-            $productsQuery->whereHas('productType', fn ($q) => $q->where('service_category_id', $categoryId));
+            if (\Illuminate\Support\Facades\Schema::hasColumn('platform_products', 'service_category_id')) {
+                $productsQuery->where('service_category_id', $categoryId);
+            } else {
+                $productsQuery->whereHas('productType', fn ($q) => $q->where('service_category_id', $categoryId));
+            }
         }
 
         $products = $productsQuery->get()->map(fn (PlatformProduct $product) => [
             'id' => $product->id,
             'title' => $product->title,
             'slug' => $product->slug,
-            'product_type' => $product->product_type->value,
+            'product_type' => $product->product_type?->value,
             'product_type_id' => $product->product_type_id,
+            'service_category_id' => $product->service_category_id,
             'base_price' => (float) $product->base_price,
             'variants' => $product->activeVariants->map(fn (PlatformProductVariant $variant) => [
                 'id' => $variant->id,

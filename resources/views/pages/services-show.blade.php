@@ -159,12 +159,9 @@
             <div class="flex flex-col gap-4 sm:gap-5 lg:pt-1">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-wider text-primary mb-2">
-                        {{ $product->product_type->label() }}
-                        @if($product->serviceCategory)
-                            <span class="text-slate-400 font-normal">· {{ $product->serviceCategory->name }}</span>
-                        @elseif($product->productType)
-                            <span class="text-slate-400 font-normal">· {{ $product->productType->name }}</span>
-                        @endif
+                        {{ $product->serviceCategory?->name
+                            ?? $product->product_type?->label()
+                            ?? ($product->productType?->name ?? 'Campaign') }}
                     </p>
                     <h1 class="font-display text-xl sm:text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight leading-tight">
                         {{ $product->title }}

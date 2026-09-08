@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\PlatformProduct;
 use App\Models\ServiceCategory;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -57,8 +58,10 @@ class CatalogFlattenCategoryProducts extends Command
                     'benefits' => [],
                     'faq' => [],
                 ];
-                if (! empty($meta['expected_id'])) {
-                    $payload['id'] = (int) $meta['expected_id'];
+                // Only force expected_id when that PK is free (avoid collisions on shared DBs).
+                $expectedId = (int) ($meta['expected_id'] ?? 0);
+                if ($expectedId > 0 && ! ServiceCategory::query()->whereKey($expectedId)->exists()) {
+                    $payload['id'] = $expectedId;
                 }
                 $category->forceFill($payload);
                 if (Schema::hasColumn('service_categories', 'key')) {
@@ -97,8 +100,29 @@ class CatalogFlattenCategoryProducts extends Command
             $sort++;
         }
 
+        // Fallback: any remaining nulls inherit from ProductType parent (compat / non-registry products).
+        $legacyLinked = 0;
+        if (Schema::hasColumn('platform_products', 'product_type_id')) {
+            $rows = DB::table('platform_products as pp')
+                ->join('product_types as pt', 'pt.id', '=', 'pp.product_type_id')
+                ->whereNull('pp.service_category_id')
+                ->whereNotNull('pt.service_category_id')
+                ->select(['pp.id', 'pt.service_category_id'])
+                ->get();
+
+            foreach ($rows as $row) {
+                DB::table('platform_products')
+                    ->where('id', $row->id)
+                    ->update(['service_category_id' => $row->service_category_id]);
+                $legacyLinked++;
+            }
+        }
+
         $this->info("Service categories upserted/verified: {$categoriesUpserted}");
-        $this->info("Products linked via service_category_id: {$productsLinked}");
+        $this->info("Products linked via service_category_id (registry): {$productsLinked}");
+        if ($legacyLinked > 0) {
+            $this->info("Products linked via ProductType fallback: {$legacyLinked}");
+        }
         $this->line('product_type_id left unchanged (Phase 1 compatibility).');
 
         return self::SUCCESS;

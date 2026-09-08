@@ -11,6 +11,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 class SitemapController extends Controller
@@ -88,10 +89,15 @@ class SitemapController extends Controller
         }
 
         try {
+            $productSelect = ['id', 'slug', 'product_type', 'product_type_id', 'updated_at'];
+            if (Schema::hasColumn('platform_products', 'service_category_id')) {
+                $productSelect[] = 'service_category_id';
+            }
+
             PlatformProduct::query()
                 ->visibleToPublic()
-                ->with(['productType.serviceCategory'])
-                ->select(['id', 'slug', 'product_type', 'product_type_id', 'updated_at'])
+                ->with(['serviceCategory', 'productType.serviceCategory'])
+                ->select($productSelect)
                 ->orderByDesc('updated_at')
                 ->chunk(100, function ($products) use (&$urls) {
                     foreach ($products as $product) {

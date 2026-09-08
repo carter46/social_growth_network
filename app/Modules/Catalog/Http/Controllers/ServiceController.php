@@ -14,11 +14,16 @@ use Illuminate\View\View;
 
 class ServiceController extends Controller
 {
-    /** @var array<string, string> legacy division slug → group slug (target must differ) */
-    private const DIVISION_TO_GROUP = [
-        'digital-services' => 'network-services',
-        'web-solutions' => 'website-services',
-        'trust-protection' => 'trust-escrow',
+    /** @var array<string, true> retired catalog division/group slugs → 301 to /services hub */
+    private const LEGACY_HUB_REDIRECTS = [
+        'digital-services' => true,
+        'web-solutions' => true,
+        'trust-protection' => true,
+        'network-services' => true,
+        'website-services' => true,
+        'trust-escrow' => true,
+        'communication' => true,
+        'business-documents' => true,
     ];
 
     public function __construct(
@@ -291,11 +296,16 @@ class ServiceController extends Controller
         }
 
         $typeSlug = $product->typeSlug();
-        if ($typeSlug !== $type) {
+        if ($typeSlug && $typeSlug === $type && ! $categorySlug) {
+            // Visible via legacy ProductType path with no category slug yet — render, do not redirect-loop.
+            return $this->renderProduct($product);
+        }
+
+        if ($typeSlug !== $type || $categorySlug) {
             return $this->redirectToCanonicalProduct($product);
         }
 
-        return $this->redirectToCanonicalProduct($product);
+        return $this->renderProduct($product);
     }
 
     private function renderProduct(PlatformProduct $product): View
@@ -324,11 +334,8 @@ class ServiceController extends Controller
      */
     public function segment(string $segment): View|RedirectResponse
     {
-        if (isset(self::DIVISION_TO_GROUP[$segment])) {
-            $target = self::DIVISION_TO_GROUP[$segment];
-            if ($target !== $segment) {
-                return redirect()->route('services.segment', $target, 301);
-            }
+        if (isset(self::LEGACY_HUB_REDIRECTS[$segment])) {
+            return redirect()->route('services', status: 301);
         }
 
         if ($this->browse->isGroup($segment)) {

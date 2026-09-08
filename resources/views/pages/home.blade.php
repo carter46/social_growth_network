@@ -179,7 +179,6 @@
                     <div
                         class="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
                         x-show="filter === 'all' || filter === '{{ $categorySlug }}'"
-                        x-cloak
                     >
                         <div>
                             <div class="relative h-48 w-full overflow-hidden bg-slate-100">

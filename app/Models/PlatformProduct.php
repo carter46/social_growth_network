@@ -140,12 +140,22 @@ class PlatformProduct extends Model
 
     /**
      * Published and reachable via owning Category (service_category_id).
-     * ProductType is not required for visibility (Phase 1 dual-write still keeps product_type_id populated).
+     * Dual-read: prefer direct category; fall back to ProductType→Category when FK not yet backfilled.
+     * ProductType itself is not required once service_category_id is set.
      */
     public function scopeVisibleToPublic(Builder $query): Builder
     {
         if (Schema::hasColumn('platform_products', 'service_category_id')) {
-            return $query->published()->whereHas('serviceCategory', fn (Builder $cat) => $cat->where('is_active', true));
+            return $query->published()->where(function (Builder $outer) {
+                $outer->whereHas('serviceCategory', fn (Builder $cat) => $cat->where('is_active', true))
+                    ->orWhere(function (Builder $legacy) {
+                        $legacy->whereNull('service_category_id')
+                            ->whereHas('productType', function (Builder $service) {
+                                $service->where('is_active', true)
+                                    ->whereHas('serviceCategory', fn (Builder $cat) => $cat->where('is_active', true));
+                            });
+                    });
+            });
         }
 
         // Pre-migration fallback.
@@ -161,7 +171,7 @@ class PlatformProduct extends Model
             return false;
         }
 
-        if (Schema::hasColumn($this->getTable(), 'service_category_id')) {
+        if (Schema::hasColumn($this->getTable(), 'service_category_id') && $this->service_category_id) {
             $category = $this->relationLoaded('serviceCategory')
                 ? $this->serviceCategory
                 : $this->serviceCategory()->first();
@@ -169,6 +179,7 @@ class PlatformProduct extends Model
             return (bool) ($category && $category->is_active);
         }
 
+        // Dual-read / pre-migration: ProductType → ServiceCategory.
         $service = $this->relationLoaded('productType')
             ? $this->productType
             : $this->productType()->with('serviceCategory')->first();

@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -20,6 +21,14 @@ return new class extends Migration
                     ->constrained('service_categories')
                     ->nullOnDelete();
             });
+        }
+
+        // Required: backfill ownership immediately so visibility does not empty the storefront.
+        try {
+            Artisan::call('catalog:flatten-category-products');
+        } catch (\Throwable $e) {
+            // Command may be unavailable mid-deploy before code is fully loaded; operators can re-run.
+            // Dual-read visibility still shows products via ProductType until flatten succeeds.
         }
     }
 

@@ -135,6 +135,16 @@ class ServicesHubTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_legacy_retired_slugs_redirect_to_services_hub(): void
+    {
+        Artisan::call('catalog:backfill-hierarchy');
+
+        $this->get('/services/network-services')
+            ->assertRedirect(route('services'));
+        $this->get('/services/digital-services')
+            ->assertRedirect(route('services'));
+    }
+
     public function test_wrong_category_in_product_url_redirects_to_canonical(): void
     {
         $this->seedYoutubeProduct('youtube-views-lite');

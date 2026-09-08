@@ -121,6 +121,17 @@ class CatalogHierarchyTest extends TestCase
         $this->assertFalse($product->fresh()->isVisibleToPublic());
     }
 
+    public function test_visibility_dual_reads_product_type_when_category_fk_null(): void
+    {
+        $product = $this->seedYoutubeProduct();
+        $product->forceFill(['service_category_id' => null])->save();
+
+        $this->assertTrue($product->fresh(['productType.serviceCategory'])->isVisibleToPublic());
+        $this->assertTrue(
+            PlatformProduct::query()->visibleToPublic()->where('id', $product->id)->exists()
+        );
+    }
+
     public function test_service_category_rename_and_toggle_smoke(): void
     {
         Artisan::call('catalog:backfill-hierarchy');

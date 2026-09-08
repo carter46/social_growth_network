@@ -1,49 +1,53 @@
 # Catalog hierarchy & admin deploy notes
 
-## Hostinger / shared hosting
+## Hostinger / shared hosting (Category → Product)
 
 1. Pull latest code (includes tracked `public/build` if assets changed).
-2. **Preflight (required before migrate on production):** confirm live `service_categories` still match the six fixed id↔slug pairs:
-   - `1` → `network-services`
-   - `2` → `communication`
-   - `3` → `social-media`
-   - `4` → `website-services`
-   - `5` → `business-documents`
-   - `6` → `trust-escrow`  
-   If anything differs, **STOP** — do not run the key migration.
-3. Run migrations (adds `service_categories.key` and backfills only; aborts on mismatch):
+2. Run migrations (adds `platform_products.service_category_id` and attempts flatten backfill):
    ```bash
    php artisan migrate --force
    ```
-4. Optional hierarchy repair (idempotent; **non-destructive** for existing category/service CMS names and images — keys only when missing; also renumbers `sort_order` to contiguous **unique global 1..N** for categories, services, and products):
+3. **Required** after this deploy — ensure Category→Product ownership is filled (idempotent; does **not** clear `product_type_id`):
    ```bash
    php artisan catalog:backfill-hierarchy
+   # equivalent ownership step alone:
+   php artisan catalog:flatten-category-products
    ```
-5. Clear caches:
+4. Clear caches:
    ```bash
    php artisan view:clear
    php artisan config:clear
    php artisan route:clear
    ```
-6. Optional: set `CATALOG_USE_DB_HIERARCHY=true` in `.env` (default true when config key is present).
+5. Smoke:
+   - Home “What do you want to grow?” shows **product** cards + category pills
+   - `/services` lists platform categories (YouTube, Facebook, …)
+   - `/services/youtube/youtube-views-lite` loads
+   - Checkout works
+   - Admin product edit has Category select
+   - Confirm `product_type_id` is still populated on products
+
+Optional: `CATALOG_USE_DB_HIERARCHY=true` in `.env` (default true).
 
 ## Fixed platform catalog
 
-- Categories / services / products are **integral** — admin cannot Add or Delete.
-- Categories & services: edit public **name** + activate/deactivate; slugs frozen; permanent category `key` in code (`config/platform_categories.php`).
-- Products: edit title, short/long description, base price, hero image, status (published↔draft), sort position, and **existing variant prices only**.
-- Public + user browse hide products unless category **and** service are active and product is published.
-- **Sort:** categories, services, and products each use a **unique global** 1..N position. Changing a position shifts neighbors; values above the list count are rejected. Run `catalog:backfill-hierarchy` after deploy to clear duplicate/zero ranks.
-- Marketplace and Crypto/OTC are unchanged.
+- Ownership: **ServiceCategory → PlatformProduct** via `service_category_id`.
+- `/services/...` is a public path prefix only — not ProductType ownership.
+- ProductType / Services admin remain for CMS/legacy (Phase 1 dual-write).
+- Public visibility: product **published** + owning **ServiceCategory active**.  
+  Until flatten runs, dual-read still shows products via active ProductType→Category when `service_category_id` is null.
+- Categories / services / products are **integral** — admin cannot Add or Delete platform rows.
+- Products: edit title, descriptions, prices, hero, status, sort, **Category**, and existing variant prices.
+- **Sort:** categories, services, and products each use a unique global 1..N position. Run `catalog:backfill-hierarchy` after deploy to clear duplicate/zero ranks.
 
-**Do not run `php artisan db:seed` or `ProductionSeeder` on Hostinger production.** Seeders are for fresh/local installs. Variant seeding is non-destructive (`firstOrCreate`), but production content should only change via admin + migrate/backfill.
+**Do not run `php artisan db:seed` or `ProductionSeeder` on Hostinger production.** Seeders are for fresh/local installs.
 
 ## What changed (history)
 
-- Platform catalog: `service_categories` → `product_types` (admin label **Services**) → `platform_products` (+ variants).
+- Platform catalog cutover: Category → Product ownership (`service_category_id`).
+- Legacy mid-layer ProductType kept populated for compatibility.
 - Legacy `platform_categories` removed after cleanup migration.
-- Admin nav: Operations / Platform Catalog / Marketplace / Crypto Exchange / Finance / System.
 
 ## Rollback note
 
-Phase 2.5 dual-read kept string `product_type` temporarily; cleanup migration drops `platform_categories`. Restore from DB backup if you must roll back past that migration.
+Phase 1 keeps `product_type_id` populated. Restore from DB backup if you must roll back past the `service_category_id` migration.

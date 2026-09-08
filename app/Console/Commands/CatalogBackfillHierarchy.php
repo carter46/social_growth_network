@@ -108,7 +108,10 @@ class CatalogBackfillHierarchy extends Command
                 'cta_label' => $group['cta'] ?? ($mode === 'marketplace_link' ? 'Open marketplace' : null),
             ];
             if (! empty($meta['expected_id'])) {
-                $payload['id'] = (int) $meta['expected_id'];
+                $expectedId = (int) $meta['expected_id'];
+                if (! ServiceCategory::query()->whereKey($expectedId)->exists()) {
+                    $payload['id'] = $expectedId;
+                }
             }
             $category->forceFill($payload);
             if (Schema::hasColumn('service_categories', 'key')) {
