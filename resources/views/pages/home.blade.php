@@ -5,48 +5,38 @@
 @section('content')
 @php
     $brandName = $siteName ?? config('app.name', 'Social Growth Network');
-    $heading = $siteHeading ?: 'Get more from your digital content.';
-    $tagline = $siteTagline ?: 'Choose the campaign you need, select your preferred package, and get your campaign started in minutes.';
-    $ecosystemItems = collect($ecosystemItems ?? []);
-    $categoryCards = collect($categoryCards ?? []);
+    $heading = filled($siteHeading ?? null) ? $siteHeading : 'Get more from your digital content.';
+    $tagline = filled($siteTagline ?? null)
+        ? $siteTagline
+        : 'Choose the campaign you need, select your preferred package, and get your campaign started in minutes.';
+    $categoryCards = collect($categoryCards ?? [])->values();
     $featuredProducts = collect($featuredProducts ?? []);
     $popularTags = collect($popularTags ?? []);
-    $filterCategories = $categoryCards->filter(fn ($c) => ($c['count'] ?? 0) > 0 || ! empty($c['href']))->values();
+    $filterCategories = $categoryCards->take(5);
+    $marketplaceCards = $categoryCards->take(4);
     $heroSlides = [
-        ['src' => asset('assets/images/homeslider1.jpg'), 'alt' => 'Creator in studio'],
-        ['src' => asset('assets/images/homeslider2.jpg'), 'alt' => 'Campaign production'],
-        ['src' => asset('assets/images/homeslider3.jpg'), 'alt' => 'Growth analytics'],
+        ['src' => asset('assets/images/homeslider1.jpg'), 'alt' => 'Video creator in creative studio'],
+        ['src' => asset('assets/images/homeslider2.jpg'), 'alt' => 'Creator filming with ring light'],
+        ['src' => asset('assets/images/homeslider3.jpg'), 'alt' => 'Entrepreneur reviewing campaign analytics'],
     ];
     $badgeTones = [
         'text-red-600',
         'text-purple-600',
         'text-teal-600',
         'text-emerald-600',
-        'text-blue-600',
-        'text-orange-600',
     ];
-    $badgeIcons = ['smart_display', 'share', 'public', 'task_alt', 'campaign', 'groups'];
-    $faqs = [
-        [
-            'q' => 'What is '.$brandName.'?',
-            'a' => $brandName.' is a digital campaign marketplace — browse predefined packages, pay upfront, and launch growth or engagement campaigns in minutes.',
-        ],
-        [
-            'q' => 'How do I start a campaign?',
-            'a' => 'Open Services, pick a product, choose a package, then check out with wallet, card/transfer, or bank transfer when enabled.',
-        ],
-        [
-            'q' => 'Can I earn as an agent?',
-            'a' => 'Yes. Register as an agent, complete available digital tasks with proof, and receive verified payouts.',
-        ],
-        [
-            'q' => 'Where do I track progress?',
-            'a' => 'After checkout, campaigns and orders appear in your dashboard so you can monitor delivery and support.',
-        ],
+    $badgeIcons = ['smart_display', 'share', 'public', 'task_alt'];
+    $fallbackPopular = [
+        ['label' => 'YouTube Views', 'href' => '#services'],
+        ['label' => 'Instagram Likes', 'href' => '#services'],
+        ['label' => 'Website Visits', 'href' => '#services'],
+        ['label' => 'App Reviews', 'href' => '#services'],
     ];
+    $agentPreview = $featuredProducts->first(fn ($p) => (bool) ($p->is_campaign ?? false))
+        ?? $featuredProducts->first();
 @endphp
 
-{{-- Hero --}}
+{{-- 2. Hero --}}
 <section
     class="relative min-h-[640px] lg:min-h-[700px] flex items-center overflow-hidden bg-navy-dark"
     x-data="{
@@ -73,6 +63,7 @@
                     src="{{ $slide['src'] }}"
                     alt="{{ $slide['alt'] }}"
                     class="w-full h-full object-cover object-center"
+                    :class="current === {{ $index }} ? 'transform scale-100 transition-transform duration-[10000ms] ease-out' : ''"
                     @if($index > 0) loading="lazy" @endif
                 >
             </div>
@@ -95,7 +86,7 @@
                 {{ $tagline }}
             </p>
 
-            <div class="bg-white rounded-xl shadow-2xl p-2.5 sm:p-3 mb-4 max-w-2xl border border-white/40">
+            <div class="bg-white rounded-xl shadow-2xl p-2.5 sm:p-3 mb-4 max-w-2xl border border-white/40 backdrop-blur-sm">
                 <form action="{{ route('services') }}" method="GET" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <div class="relative flex-1 flex items-center pl-3">
                         <span class="material-symbols-outlined text-slate-400 text-2xl mr-2.5 shrink-0" aria-hidden="true">search</span>
@@ -105,7 +96,7 @@
                             type="search"
                             name="q"
                             class="w-full bg-transparent text-slate-800 placeholder-slate-400 text-sm sm:text-base border-none focus:outline-none focus:ring-0 p-0 font-medium"
-                            placeholder="What do you want to promote? (e.g. YouTube views, social engagement…)"
+                            placeholder="What do you want to promote? (e.g. YouTube views, Website traffic, Social engagement...)"
                         >
                     </div>
                     <button type="submit" class="bg-primary hover:bg-primary-hover text-white px-6 py-3.5 rounded-lg font-semibold text-sm sm:text-base flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all shrink-0">
@@ -115,23 +106,19 @@
                 </form>
             </div>
 
-            @if($popularTags->isNotEmpty())
-                <div class="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-slate-300 mb-8">
-                    <span class="text-slate-400 font-medium">Popular:</span>
-                    @foreach($popularTags as $tag)
-                        <a class="px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-colors" href="{{ $tag['href'] }}">{{ $tag['label'] }}</a>
-                    @endforeach
-                </div>
-            @else
-                <div class="mb-8"></div>
-            @endif
+            <div class="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-slate-300 mb-8">
+                <span class="text-slate-400 font-medium">Popular:</span>
+                @foreach(($popularTags->isNotEmpty() ? $popularTags : collect($fallbackPopular)) as $tag)
+                    <a class="px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-colors" href="{{ $tag['href'] }}">{{ $tag['label'] }}</a>
+                @endforeach
+            </div>
 
             <div class="flex flex-wrap items-center gap-4">
                 <a class="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white font-semibold text-base px-6 py-3.5 rounded-lg shadow-lg hover:shadow-xl transition-all" href="#services">
                     <span>Explore Services</span>
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
                 </a>
-                <a class="inline-flex items-center justify-center bg-white/10 hover:bg-white/20 text-white font-medium text-base px-6 py-3.5 rounded-lg border border-white/30 backdrop-blur-md transition-all" href="{{ route('register') }}">
+                <a class="inline-flex items-center justify-center bg-white/10 hover:bg-white/20 text-white font-medium text-base px-6 py-3.5 rounded-lg border border-white/30 backdrop-blur-md transition-all" href="#creators">
                     Create Campaign
                 </a>
             </div>
@@ -145,16 +132,14 @@
                 @click="go({{ $index }})"
                 :class="current === {{ $index }} ? 'h-2 w-8 bg-white' : 'h-2 w-2 bg-white/40 hover:bg-white/70'"
                 class="rounded-full transition-all duration-300"
-                :aria-label="'Go to slide {{ $index + 1 }}'"
+                aria-label="Go to slide {{ $index + 1 }}"
             ></button>
         @endforeach
     </div>
 </section>
 
-{{-- Marketplace catalog: products (+ category filters) --}}
-<section class="py-20 lg:py-28 bg-white border-b border-slate-100" id="services"
-    x-data="{ filter: 'all' }"
->
+{{-- 3. Marketplace catalog (category cards — matches design) --}}
+<section class="py-20 lg:py-28 bg-white border-b border-slate-100" id="services" x-data="{ filter: 'all' }">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
             <div>
@@ -165,7 +150,7 @@
             @if($filterCategories->isNotEmpty())
                 <div class="flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-xl self-start md:self-auto">
                     <button type="button" @click="filter = 'all'" :class="filter === 'all' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600 font-medium hover:text-slate-900'" class="px-4 py-2 rounded-lg text-sm transition-all">All Campaigns</button>
-                    @foreach($filterCategories->take(5) as $cat)
+                    @foreach($filterCategories as $cat)
                         <button
                             type="button"
                             @click="filter = '{{ $cat['slug'] }}'"
@@ -177,85 +162,94 @@
             @endif
         </div>
 
-        @if($featuredProducts->isNotEmpty())
+        @if($marketplaceCards->isNotEmpty())
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-                @foreach($featuredProducts as $product)
+                @foreach($marketplaceCards as $card)
                     @php
-                        $browse = app(\App\Modules\Catalog\Services\CatalogBrowseService::class);
-                        $href = $browse->productUrl($product);
-                        $heroUrl = media_url($product->heroMedia ?? null, $product->hero_image, 'medium');
-                        $catSlug = $product->productType?->serviceCategory?->slug ?? '';
-                        $catLabel = $product->productType?->serviceCategory?->name
-                            ?? $product->productType?->name
-                            ?? 'Campaign';
                         $tone = $badgeTones[$loop->index % count($badgeTones)];
                         $icon = $badgeIcons[$loop->index % count($badgeIcons)];
+                        $image = $card['card_image'] ?? $card['banner_image'] ?? null;
+                        $href = $card['href'] ?? route('services');
+                        $slug = $card['slug'] ?? '';
                     @endphp
                     <div
                         class="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
-                        x-show="filter === 'all' || filter === '{{ $catSlug }}'"
+                        x-show="filter === 'all' || filter === '{{ $slug }}'"
                     >
                         <div>
                             <div class="relative h-48 w-full overflow-hidden bg-slate-100">
-                                @if($heroUrl)
-                                    <img src="{{ $heroUrl }}" alt="{{ $product->title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+                                @if($image)
+                                    <img src="{{ $image }}" alt="{{ $card['label'] ?? 'Campaign' }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
                                 @else
-                                    <div class="w-full h-full bg-gradient-to-br from-primary/30 via-slate-200 to-slate-100"></div>
+                                    <div class="w-full h-full bg-gradient-to-br from-primary/25 via-slate-200 to-slate-100"></div>
                                 @endif
                                 <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
                                 <span class="absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 backdrop-blur-md {{ $tone }} text-xs font-bold shadow-sm">
                                     <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ $icon }}</span>
-                                    {{ $catLabel }}
+                                    {{ $card['label'] ?? 'Campaigns' }}
                                 </span>
                             </div>
                             <div class="p-5">
                                 <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-primary transition-colors font-display">
-                                    <a href="{{ $href }}">{{ $product->title }}</a>
+                                    <a href="{{ $href }}">{{ $card['label'] ?? 'Campaigns' }}</a>
                                 </h3>
-                                <p class="text-slate-600 text-sm leading-relaxed mb-4 line-clamp-3">
-                                    {{ $product->short_description ?: 'Predefined package with upfront pricing and secure checkout.' }}
+                                <p class="text-slate-600 text-sm leading-relaxed mb-4">
+                                    {{ $card['short_description'] ?? $card['hero_subtitle'] ?? 'Predefined packages with upfront pricing and secure checkout.' }}
                                 </p>
                             </div>
                         </div>
-                        <div class="px-5 pb-5 pt-3 border-t border-slate-100 flex items-center justify-between mt-auto gap-3">
-                            <span class="text-xs font-medium text-slate-500">From ₦{{ number_format($product->displayPrice(), 0) }}</span>
-                            <a class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline shrink-0" href="{{ $href }}">
+                        <div class="px-5 pb-5 pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
+                            <span class="text-xs font-medium text-slate-500">
+                                @if(! empty($card['from_price']))
+                                    From ₦{{ number_format((float) $card['from_price'], 0) }}
+                                @else
+                                    From predefined packages
+                                @endif
+                            </span>
+                            <a class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline group-hover:translate-x-0.5 transition-transform" href="{{ $href }}">
                                 Explore Packages →
                             </a>
                         </div>
                     </div>
                 @endforeach
             </div>
-        @elseif($categoryCards->isNotEmpty())
+        @elseif($featuredProducts->isNotEmpty())
+            {{-- Fallback: products if categories are empty --}}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-                @foreach($categoryCards->take(8) as $card)
+                @foreach($featuredProducts->take(4) as $product)
                     @php
+                        $browse = app(\App\Modules\Catalog\Services\CatalogBrowseService::class);
+                        $href = $browse->productUrl($product);
+                        $heroUrl = media_url($product->heroMedia ?? null, $product->hero_image, 'medium');
                         $tone = $badgeTones[$loop->index % count($badgeTones)];
                         $icon = $badgeIcons[$loop->index % count($badgeIcons)];
-                        $image = $card['card_image'] ?? $card['banner_image'] ?? null;
                     @endphp
                     <div class="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
                         <div>
                             <div class="relative h-48 w-full overflow-hidden bg-slate-100">
-                                @if($image)
-                                    <img src="{{ $image }}" alt="{{ $card['label'] ?? '' }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+                                @if($heroUrl)
+                                    <img src="{{ $heroUrl }}" alt="{{ $product->title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
                                 @else
-                                    <div class="w-full h-full bg-gradient-to-br from-primary/30 via-slate-200 to-slate-100"></div>
+                                    <div class="w-full h-full bg-gradient-to-br from-primary/25 via-slate-200 to-slate-100"></div>
                                 @endif
                                 <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
-                                <span class="absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 {{ $tone }} text-xs font-bold shadow-sm">
+                                <span class="absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 backdrop-blur-md {{ $tone }} text-xs font-bold shadow-sm">
                                     <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ $icon }}</span>
-                                    {{ $card['label'] ?? 'Category' }}
+                                    {{ $product->productType?->name ?? 'Campaign' }}
                                 </span>
                             </div>
                             <div class="p-5">
-                                <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-primary font-display">{{ $card['label'] ?? 'Category' }}</h3>
-                                <p class="text-slate-600 text-sm leading-relaxed mb-4 line-clamp-3">{{ $card['short_description'] ?? $card['hero_subtitle'] ?? 'Browse packages in this category.' }}</p>
+                                <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-primary transition-colors font-display">
+                                    <a href="{{ $href }}">{{ $product->title }}</a>
+                                </h3>
+                                <p class="text-slate-600 text-sm leading-relaxed mb-4">
+                                    {{ $product->short_description ?: 'Predefined package with upfront pricing and secure checkout.' }}
+                                </p>
                             </div>
                         </div>
                         <div class="px-5 pb-5 pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
-                            <span class="text-xs font-medium text-slate-500">{{ ($card['count'] ?? 0) }} packages</span>
-                            <a class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline" href="{{ $card['href'] ?? route('services') }}">
+                            <span class="text-xs font-medium text-slate-500">From predefined packages</span>
+                            <a class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline group-hover:translate-x-0.5 transition-transform" href="{{ $href }}">
                                 Explore Packages →
                             </a>
                         </div>
@@ -265,29 +259,22 @@
         @else
             <p class="text-slate-500 text-center py-12">Campaign packages will appear here once published in the catalog.</p>
         @endif
-
-        <div class="mt-10 text-center">
-            <a href="{{ route('services') }}" class="inline-flex items-center gap-2 text-primary font-semibold hover:underline">
-                View all services
-                <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
-            </a>
-        </div>
     </div>
 </section>
 
-{{-- How it works --}}
-<section class="py-20 lg:py-24 bg-surface-muted" id="how-it-works">
+{{-- 4. How it works --}}
+<section class="py-20 lg:py-24 bg-[#F8FAFC]" id="how-it-works">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center max-w-2xl mx-auto mb-16">
             <span class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-2 block">How {{ $brandName }} works</span>
             <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-display">Launch in three simple steps.</h2>
             <p class="text-slate-600 text-base sm:text-lg mt-2">A predictable, straightforward framework built for zero friction.</p>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
             @foreach([
                 ['n' => '01', 'icon' => 'category', 'title' => 'Choose', 'body' => 'Pick the campaign and predefined quantity that matches your goal with upfront fixed pricing.', 'foot' => 'Step 1 • No haggling'],
                 ['n' => '02', 'icon' => 'tune', 'title' => 'Set Up', 'body' => 'Add your target URL and simple campaign instructions in our streamlined submission form.', 'foot' => 'Step 2 • 2-minute setup'],
-                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Launch', 'body' => 'Pay securely and track delivery from your dashboard as work completes.', 'foot' => 'Step 3 • Secure checkout'],
+                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Launch', 'body' => 'Pay securely and watch verified task completion in real-time as tasks post to your ledger.', 'foot' => 'Step 3 • Escrow protected'],
             ] as $step)
                 <div class="bg-white p-8 rounded-xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
                     <div>
@@ -309,7 +296,7 @@
     </div>
 </section>
 
-{{-- Creators --}}
+{{-- 5. Creators --}}
 <section class="py-20 lg:py-28 bg-white overflow-hidden" id="creators">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
@@ -317,14 +304,14 @@
                 <div class="relative rounded-2xl overflow-hidden shadow-xl border border-slate-100">
                     <img
                         src="{{ asset('assets/images/homeslider2.jpg') }}"
-                        alt="Creators launching campaigns on {{ $brandName }}"
+                        alt="Creator launching campaigns on {{ $brandName }}"
                         class="w-full h-auto max-h-[580px] object-cover object-center"
                         loading="lazy"
                     >
                     <div class="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"></div>
                     <div class="absolute bottom-6 left-6 right-6 text-white">
                         <p class="font-bold text-lg">Built for creators &amp; founders</p>
-                        <p class="text-sm text-slate-200">Fixed packages · Secure checkout · Dashboard tracking</p>
+                        <p class="text-sm text-slate-200">Independent creators · Campaign packages · {{ $brandName }}</p>
                     </div>
                 </div>
                 <div class="absolute -bottom-6 -right-6 -z-10 w-64 h-64 bg-blue-100/60 rounded-full blur-3xl pointer-events-none"></div>
@@ -335,13 +322,13 @@
                     Everything you need to get your campaign moving.
                 </h2>
                 <p class="text-slate-600 text-base sm:text-lg leading-relaxed mb-8">
-                    Stop negotiating with unpredictable freelancers. {{ $brandName }} gives you fixed upfront packages, secure checkout, and clear delivery tracking.
+                    Stop negotiating with unpredictable freelancers or risking bot farms. {{ $brandName }} gives you fixed upfront packages, escrow protection, and verified human activity.
                 </p>
                 <div class="space-y-4 mb-9 w-full">
                     @foreach([
                         ['title' => 'Upfront predefined pricing — zero bidding wars', 'body' => 'Know exactly what you pay and get before committing any budget.'],
-                        ['title' => 'Clear packages with measurable deliverables', 'body' => 'Pick a tier that matches your goal and launch without custom quotes.'],
-                        ['title' => 'Track progress directly in your account', 'body' => 'Orders and campaigns live in your dashboard after checkout.'],
+                        ['title' => 'Guaranteed verified human activity & proof validation', 'body' => 'Every completion undergoes multi-point telemetry and submission checks.'],
+                        ['title' => 'Real-time progress monitoring directly in your account', 'body' => 'Track execution velocity, view completed agent actions, and download reports.'],
                     ] as $point)
                         <div class="flex items-start gap-3">
                             <div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
@@ -355,12 +342,12 @@
                     @endforeach
                 </div>
                 <div class="flex flex-wrap items-center gap-5">
-                    <a class="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white font-semibold text-base px-6 py-3.5 rounded-lg shadow-sm hover:shadow transition-all" href="{{ route('services') }}">
+                    <a class="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white font-semibold text-base px-6 py-3.5 rounded-lg shadow-sm hover:shadow transition-all" href="#services">
                         <span>Start a Campaign</span>
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
                     </a>
-                    <a class="inline-flex items-center gap-1.5 text-slate-700 hover:text-primary font-semibold text-base transition-colors" href="{{ route('register') }}">
-                        <span>Create creator account</span>
+                    <a class="inline-flex items-center gap-1.5 text-slate-700 hover:text-primary font-semibold text-base transition-colors" href="{{ route('help') }}">
+                        <span>See Sample Reports</span>
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
                     </a>
                 </div>
@@ -369,7 +356,7 @@
     </div>
 </section>
 
-{{-- Agents --}}
+{{-- 6. Agents --}}
 <section class="py-14 bg-slate-50 border-y border-slate-200/60" id="agents">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="bg-white rounded-2xl p-6 sm:p-8 lg:p-10 border border-slate-200/80 shadow-sm">
@@ -383,7 +370,7 @@
                         Want to earn by completing digital tasks?
                     </h3>
                     <p class="text-slate-600 text-base leading-relaxed mb-6 max-w-xl">
-                        Join the Agent side of {{ $brandName }}. Discover available tasks, submit proof, and receive verified payouts.
+                        Join the Agent side of {{ $brandName }}. Discover available tasks on your phone or computer, submit proof, and receive verified fast payouts.
                     </p>
                     <div class="flex flex-wrap items-center gap-4">
                         <a class="inline-flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm sm:text-base px-5 py-2.5 rounded-lg shadow-sm transition-colors" href="{{ route('register.agent') }}">
@@ -396,31 +383,41 @@
                     </div>
                 </div>
                 <div class="lg:col-span-5 w-full">
-                    @php $preview = $featuredProducts->first(); @endphp
+                    @php
+                        $previewTitle = $agentPreview?->title ?? 'YouTube Video Review & Feedback';
+                        $previewBody = $agentPreview?->short_description
+                            ?: 'Watch 3 minutes, provide honest feedback, and verify timestamp.';
+                        $reward = $agentPreview?->agent_reward_per_completion ?? null;
+                        $previewHref = $agentPreview
+                            ? app(\App\Modules\Catalog\Services\CatalogBrowseService::class)->productUrl($agentPreview)
+                            : route('register.agent');
+                    @endphp
                     <div class="bg-slate-50 rounded-xl p-5 border border-slate-200">
                         <div class="flex items-center justify-between pb-3 border-b border-slate-200/80 text-xs font-semibold text-slate-500">
                             <span class="flex items-center gap-1">
                                 <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                Live marketplace
+                                Live Task Available
                             </span>
                             <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-200 font-bold">Open spots</span>
                         </div>
                         <div class="py-3">
-                            <h4 class="font-bold text-slate-900 text-base mb-1">{{ $preview?->title ?? 'Digital campaign tasks' }}</h4>
-                            <p class="text-xs text-slate-500 mb-3">{{ $preview?->short_description ?: 'Complete structured tasks, submit proof, and get paid after verification.' }}</p>
+                            <h4 class="font-bold text-slate-900 text-base mb-1">{{ $previewTitle }}</h4>
+                            <p class="text-xs text-slate-500 mb-3">{{ $previewBody }}</p>
                             <div class="flex items-center justify-between bg-white px-3 py-2 rounded-lg border border-slate-200/70 mb-3">
-                                <span class="text-xs text-slate-600 font-medium">Creator packages from</span>
+                                <span class="text-xs text-slate-600 font-medium">Verified Reward</span>
                                 <span class="text-sm font-extrabold text-emerald-600">
-                                    @if($preview)
-                                        ₦{{ number_format($preview->displayPrice(), 0) }}
+                                    @if($reward !== null && (float) $reward > 0)
+                                        ₦{{ number_format((float) $reward, 0) }} per task
+                                    @elseif($agentPreview)
+                                        From ₦{{ number_format($agentPreview->displayPrice(), 0) }}
                                     @else
-                                        Browse catalog
+                                        ₦250 per review · 5 mins
                                     @endif
                                 </span>
                             </div>
                         </div>
-                        <a href="{{ $preview ? app(\App\Modules\Catalog\Services\CatalogBrowseService::class)->productUrl($preview) : route('register.agent') }}" class="w-full py-2 bg-slate-200/70 hover:bg-primary hover:text-white text-slate-700 font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1">
-                            <span>{{ $preview ? 'Preview package' : 'Join as agent' }}</span>
+                        <a href="{{ $previewHref }}" class="w-full py-2 bg-slate-200/70 hover:bg-primary hover:text-white text-slate-700 font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1">
+                            <span>Preview Task Requirements</span>
                             <span class="material-symbols-outlined text-sm" aria-hidden="true">open_in_new</span>
                         </a>
                     </div>
@@ -430,7 +427,7 @@
     </div>
 </section>
 
-{{-- Final CTA --}}
+{{-- 7. Final CTA --}}
 <section class="py-20 lg:py-24 bg-navy-dark text-white relative overflow-hidden">
     <div class="absolute -top-24 -right-24 w-96 h-96 bg-primary/20 rounded-full blur-3xl pointer-events-none"></div>
     <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
@@ -443,10 +440,10 @@
                 Ready to start your campaign?
             </h2>
             <p class="text-slate-300 text-base sm:text-lg mb-8 max-w-xl mx-auto">
-                Browse available packages, select your tier, and launch on {{ $brandName }}.
+                Browse available packages, select your tier, and launch in less than 2 minutes.
             </p>
             <div class="flex flex-wrap items-center justify-center gap-4">
-                <a class="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white font-semibold text-base px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all" href="{{ route('services') }}">
+                <a class="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white font-semibold text-base px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all" href="#services">
                     <span>Explore Services</span>
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
                 </a>
@@ -455,25 +452,13 @@
     </div>
 </section>
 
-{{-- FAQ --}}
-<section class="py-16 sm:py-20 bg-white" id="faq">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-10">
-            <h2 class="text-3xl font-extrabold font-display text-slate-900 mb-3">Frequently asked questions</h2>
-            <p class="text-slate-600">Quick answers about buying and earning on {{ $brandName }}.</p>
-        </div>
-        <div class="mx-auto max-w-3xl space-y-4">
-            @foreach($faqs as $faq)
-                <details class="group rounded-xl border border-slate-200 bg-slate-50/50 px-5 py-4">
-                    <summary class="cursor-pointer list-none font-semibold text-slate-900">{{ $faq['q'] }}</summary>
-                    <p class="mt-3 text-sm text-slate-600 leading-relaxed">{{ $faq['a'] }}</p>
-                </details>
-            @endforeach
-        </div>
-        <p class="mt-10 text-center text-sm text-slate-500">
-            Have more questions? View our <a class="text-primary font-semibold hover:underline" href="{{ route('help') }}">Help Center</a>
-            or <a class="text-primary font-semibold hover:underline" href="{{ route('contact') }}">contact support</a>.
-        </p>
+{{-- 8. FAQ strip (matches design) --}}
+<section class="py-12 bg-white" id="faq">
+    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500">
+        Have questions? View our comprehensive
+        <a class="text-primary font-semibold hover:underline" href="{{ route('help') }}">FAQ guide</a>
+        or reach out to
+        <a class="text-primary font-semibold hover:underline" href="{{ route('contact') }}">24/7 campaign support</a>.
     </div>
 </section>
 @endsection

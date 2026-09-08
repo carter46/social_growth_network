@@ -47,38 +47,38 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @include('partials.tracking.head')
     </head>
-    <body class="marketing-site bg-white text-slate-900 font-sans antialiased selection:bg-primary selection:text-white" x-data="mobileNav" @keydown.escape.window="close()">
+    <body class="marketing-site bg-white text-slate-900 font-sans antialiased selection:bg-blue-500 selection:text-white" x-data="mobileNav" @keydown.escape.window="close()">
         @include('partials.tracking.body-start')
-        <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80">
-            <nav class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-3">
+        <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 transition-all">
+            <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
                 <div class="flex items-center gap-8 min-w-0">
                     <a class="flex items-center gap-2.5 min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg" href="{{ route('home') }}">
-                        <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="h-10 sm:h-11 w-auto max-w-[200px] sm:max-w-[220px] object-contain">
+                        <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="h-9 w-auto max-w-[200px] object-contain">
                         <span class="sr-only">{{ $siteName }}</span>
                     </a>
 
-                    <div class="hidden lg:flex items-center space-x-1 text-[15px] font-medium text-slate-600">
+                    <nav class="hidden md:flex items-center space-x-1 lg:space-x-2 text-[15px] font-medium text-slate-600">
                         <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors" href="{{ $navServices }}">Services</a>
                         <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors" href="{{ $navHow }}">How It Works</a>
                         <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors" href="{{ $navCreators }}">For Creators</a>
                         <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors" href="{{ $navAgents }}">For Agents</a>
                         <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors" href="{{ $navFaq }}">FAQ</a>
-                    </div>
+                    </nav>
                 </div>
 
-                <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+                <div class="flex items-center gap-3 shrink-0">
                     @auth
-                        <a class="text-[15px] font-medium text-slate-700 hover:text-slate-950 px-3 py-2 rounded-lg transition-colors" href="{{ route('dashboard') }}">Dashboard</a>
+                        <a class="hidden sm:inline-flex text-[15px] font-medium text-slate-700 hover:text-slate-950 px-4 py-2 rounded-lg transition-colors" href="{{ route('dashboard') }}">Dashboard</a>
                     @else
                         <a class="hidden sm:inline-flex text-[15px] font-medium text-slate-700 hover:text-slate-950 px-4 py-2 rounded-lg transition-colors" href="{{ route('login') }}">Log In</a>
-                        <a class="hidden sm:inline-flex items-center justify-center bg-primary hover:bg-primary-hover text-white text-[15px] font-semibold px-5 py-2.5 rounded-lg shadow-sm hover:shadow transition-all" href="{{ route('register') }}">
+                        <a class="hidden sm:inline-flex items-center justify-center bg-primary hover:bg-primary-hover text-white text-[15px] font-semibold px-5 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-150" href="{{ $isHome ? '#services' : route('services') }}">
                             Get Started
                         </a>
                     @endauth
 
                     <button
                         type="button"
-                        class="lg:hidden p-2 rounded-lg text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        class="md:hidden p-2 rounded-lg text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                         @click="open = true"
                         :aria-expanded="open.toString()"
                         aria-controls="marketing-mobile-menu"
@@ -87,14 +87,14 @@
                         <x-ui.icon name="menu" class="w-7 h-7" />
                     </button>
                 </div>
-            </nav>
+            </div>
         </header>
 
         <div
             id="marketing-mobile-menu"
             x-show="open"
             x-cloak
-            class="fixed inset-0 z-[60] flex items-center justify-center p-4 lg:hidden"
+            class="fixed inset-0 z-[60] flex items-center justify-center p-4 md:hidden"
             role="dialog"
             aria-modal="true"
             aria-label="Site menu"
@@ -165,12 +165,11 @@
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12 mb-12">
                     <div class="col-span-2 md:col-span-1">
                         <a class="inline-block mb-4" href="{{ route('home') }}">
-                            <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="h-9 w-auto max-w-[180px] object-contain">
+                            <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="h-8 w-auto max-w-[180px] object-contain">
                         </a>
                         <p class="text-slate-500 text-sm leading-relaxed mb-4">
-                            {{ $footer->tagline ?? ($siteBranding['tagline'] ?? 'The modern marketplace for structured digital campaigns, verified tasks, and real results.') }}
+                            {{ $footer->tagline ?? ($siteBranding['tagline'] ?? 'The modern marketplace for structured digital campaigns, verified human micro-tasks, and real results.') }}
                         </p>
-                        <x-ui.social-links :links="$footer->socialLinks" class="flex flex-wrap items-center gap-3 mb-4" />
                         <p class="text-xs text-slate-400">
                             © {{ now()->year }} {{ $siteName }}. All rights reserved.
                         </p>
@@ -182,7 +181,7 @@
                             <li><a class="hover:text-primary transition-colors" href="{{ route('home') }}#how-it-works">How It Works</a></li>
                             <li><a class="hover:text-primary transition-colors" href="{{ route('home') }}#creators">For Creators</a></li>
                             <li><a class="hover:text-primary transition-colors" href="{{ route('home') }}#agents">For Agents</a></li>
-                            <li><a class="hover:text-primary transition-colors" href="{{ route('help') }}">FAQ</a></li>
+                            <li><a class="hover:text-primary transition-colors" href="{{ route('home') }}#faq">FAQ</a></li>
                         </ul>
                     </div>
                     <div>
@@ -211,11 +210,11 @@
                 </div>
 
                 <div class="pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-                    <p>Verified delivery and fixed predefined campaign packages.</p>
-                    <div class="flex flex-wrap items-center justify-center gap-4">
-                        <a class="hover:text-slate-600 transition-colors" href="{{ route('legal') }}">Legal</a>
-                        <a class="hover:text-slate-600 transition-colors" href="{{ route('help') }}">Help</a>
-                        <a class="hover:text-slate-600 transition-colors" href="{{ route('contact') }}">Contact</a>
+                    <p>Verified human telemetry and fixed predefined campaign packages.</p>
+                    <div class="flex items-center space-x-4">
+                        <a class="hover:text-slate-600 transition-colors" href="{{ route('legal', ['doc' => 'privacy']) }}">Security</a>
+                        <a class="hover:text-slate-600 transition-colors" href="{{ route('help') }}">System Status</a>
+                        <a class="hover:text-slate-600 transition-colors" href="{{ route('legal', ['doc' => 'privacy']) }}">Cookie Preferences</a>
                     </div>
                 </div>
             </div>
