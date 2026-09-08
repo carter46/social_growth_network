@@ -126,9 +126,9 @@
                 x-transition:leave-end="opacity-0 scale-[0.92] -translate-y-4"
                 @click.stop
             >
-                <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-slate-100 shrink-0">
+                <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 border-b border-slate-100 shrink-0">
                     <a class="flex items-center gap-2.5 min-w-0" href="{{ route('home') }}" @click="close()">
-                        <img src="{{ $logoUrl }}" alt="" class="h-9 w-auto max-w-[140px] object-contain shrink-0">
+                        <img src="{{ $logoUrl }}" alt="" class="h-11 w-auto max-w-[168px] object-contain shrink-0">
                         <span class="font-display text-sm font-bold text-slate-900 truncate">{{ $siteName }}</span>
                     </a>
                     <button
@@ -141,21 +141,23 @@
                     </button>
                 </div>
 
-                <nav class="flex flex-col p-3 sm:p-4 gap-1 overflow-y-auto overscroll-contain min-h-0 flex-1">
-                    <a class="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navHome }}" @click="close()">Home</a>
-                    <a class="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navServices }}" @click="close()">Services</a>
-                    <a class="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navHow }}" @click="close()">How It Works</a>
-                    <a class="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navCreators }}" @click="close()">For Creators</a>
-                    <a class="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navAgents }}" @click="close()">For Agents</a>
-                    <a class="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navAbout }}" @click="close()">About Us</a>
-                    <a class="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navHelp }}" @click="close()">Help Center</a>
-                    <a class="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ route('contact') }}" @click="close()">Contact</a>
+                <nav class="flex flex-col p-3 sm:p-4 overflow-y-auto overscroll-contain min-h-0 flex-1">
+                    <div class="flex flex-col divide-y divide-slate-200/40">
+                        <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navHome }}" @click="close()">Home</a>
+                        <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navServices }}" @click="close()">Services</a>
+                        <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navHow }}" @click="close()">How It Works</a>
+                        <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navCreators }}" @click="close()">For Creators</a>
+                        <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navAgents }}" @click="close()">For Agents</a>
+                        <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navAbout }}" @click="close()">About Us</a>
+                        <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navHelp }}" @click="close()">Help Center</a>
+                        <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ route('contact') }}" @click="close()">Contact</a>
+                    </div>
 
                     @auth
-                        <a class="mt-2 px-4 py-2.5 rounded-xl text-sm font-bold text-center border border-slate-200 text-slate-800 hover:bg-slate-50 transition-colors" href="{{ route('dashboard') }}" @click="close()">Dashboard</a>
+                        <a class="mt-4 px-4 py-3 rounded-xl text-sm font-bold text-center border border-slate-200 text-slate-800 hover:bg-slate-50 transition-colors" href="{{ route('dashboard') }}" @click="close()">Dashboard</a>
                     @else
-                        <a class="mt-2 px-4 py-2.5 rounded-xl text-sm font-medium text-center text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors" href="{{ route('login') }}" @click="close()">Log In</a>
-                        <a class="px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-bold text-center hover:bg-primary-hover transition-colors" href="{{ route('register') }}" @click="close()">Get Started</a>
+                        <a class="mt-4 px-4 py-3 rounded-xl text-sm font-medium text-center text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors" href="{{ route('login') }}" @click="close()">Log In</a>
+                        <a class="mt-2 px-4 py-3 rounded-xl bg-primary text-white text-sm font-bold text-center hover:bg-primary-hover transition-colors" href="{{ route('register') }}" @click="close()">Get Started</a>
                     @endauth
                 </nav>
             </div>

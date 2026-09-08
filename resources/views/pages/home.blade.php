@@ -29,9 +29,9 @@
         ?? $featuredProducts->first();
 @endphp
 
-{{-- 2. Hero --}}
+{{-- Hero: fills remaining viewport below sticky header on all screen sizes --}}
 <section
-    class="relative min-h-[640px] lg:min-h-[700px] flex items-center overflow-hidden bg-navy-dark"
+    class="home-hero relative flex items-center overflow-hidden bg-navy-dark"
     x-data="{
         current: 0,
         total: {{ count($heroSlides) }},
@@ -65,12 +65,12 @@
         <div class="absolute inset-0 bg-gradient-to-t from-slate-950/50 via-transparent to-black/10"></div>
     </div>
 
-    <div class="relative z-10 max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-24 w-full">
+    <div class="relative z-10 max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16 w-full">
         <div class="max-w-3xl w-full">
-            <h1 class="text-4xl sm:text-5xl lg:text-[54px] font-extrabold text-white tracking-tight leading-[1.15] mb-5 font-display">
+            <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-[54px] font-extrabold text-white tracking-tight leading-[1.15] mb-4 sm:mb-5 font-display">
                 {{ $heading }}
             </h1>
-            <p class="text-lg sm:text-xl text-slate-100/90 font-normal leading-relaxed mb-8 max-w-2xl">
+            <p class="text-base sm:text-lg lg:text-xl text-slate-100/90 font-normal leading-relaxed mb-6 sm:mb-8 max-w-2xl">
                 {{ $tagline }}
             </p>
 
@@ -107,7 +107,7 @@
         </div>
     </div>
 
-    <div class="absolute bottom-6 left-0 right-0 z-20 flex justify-center items-center gap-2.5">
+    <div class="absolute bottom-4 sm:bottom-6 left-0 right-0 z-20 flex justify-center items-center gap-2.5">
         @foreach($heroSlides as $index => $slide)
             <button
                 type="button"

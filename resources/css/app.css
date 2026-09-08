@@ -88,6 +88,18 @@ body.marketing-site h6 {
     transition: opacity 0.8s ease-in-out;
 }
 
+/* Homepage hero: fill viewport below sticky marketing header (4rem / 4.5rem) */
+.home-hero {
+    min-height: calc(100svh - 4rem);
+    min-height: calc(100dvh - 4rem);
+}
+@media (min-width: 640px) {
+    .home-hero {
+        min-height: calc(100svh - 4.5rem);
+        min-height: calc(100dvh - 4.5rem);
+    }
+}
+
 /* Dashboard-only polished transitions (scoped — not universal *) */
 .dashboard-shell,
 .dashboard-shell > header,
