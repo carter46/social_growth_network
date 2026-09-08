@@ -7,8 +7,7 @@
     $heroImage = asset('assets/images/services_1.jpg');
     $groups = collect($groups ?? []);
     $products = $products ?? null;
-    $productCount = $products?->total() ?? 0;
-    $totalVisible = (int) ($totalVisible ?? $productCount);
+    $totalVisible = (int) ($totalVisible ?? ($products?->total() ?? 0));
     $activeCategory = $activeCategory ?? '';
     $sort = $sort ?? 'popular';
     $budget = $budget ?? '';
@@ -29,53 +28,59 @@
         'twitter' => 'bg-sky-500',
         'social-media' => 'bg-violet-500',
     ];
-    $filterBase = array_filter([
-        'q' => $q !== '' ? $q : null,
-        'sort' => $sort !== 'popular' ? $sort : null,
-        'budget' => $budget !== '' ? $budget : null,
-    ]);
-    $activeCategoryLabel = $activeCategory === ''
-        ? 'All Services'
-        : ($groups->firstWhere('slug', $activeCategory)['label'] ?? $activeCategory);
+    $marketplaceConfig = [
+        'endpoint' => route('services'),
+        'category' => $activeCategory,
+        'sort' => $sort,
+        'budget' => $budget,
+        'q' => $q,
+        'totalVisible' => $totalVisible,
+        'groups' => $groups->map(fn ($card) => [
+            'slug' => $card['slug'] ?? '',
+            'label' => $card['label'] ?? ($card['slug'] ?? ''),
+            'count' => (int) ($card['count'] ?? 0),
+        ])->values()->all(),
+    ];
 @endphp
 
+<div
+    class="w-full"
+    x-data="servicesMarketplace(@js($marketplaceConfig))"
+    @click.capture="onResultsClick($event)"
+>
 {{-- Marketplace hero --}}
-<section class="relative w-full overflow-hidden bg-slate-900 text-white py-14 md:py-20">
-    <div class="absolute inset-0 bg-cover bg-center opacity-35" style="background-image: url('{{ $heroImage }}');" aria-hidden="true"></div>
-    <div class="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/90 to-slate-900/70" aria-hidden="true"></div>
+<section class="relative w-full overflow-hidden bg-slate-800 text-white py-14 md:py-20">
+    <div class="absolute inset-0 bg-cover bg-center opacity-70" style="background-image: url('{{ $heroImage }}');" aria-hidden="true"></div>
+    <div class="absolute inset-0 bg-gradient-to-r from-slate-950/55 via-slate-900/35 to-slate-900/20" aria-hidden="true"></div>
 
     <div class="relative max-w-site mx-auto px-4 sm:px-6 lg:px-8 z-10">
-        <div class="max-w-3xl flex flex-col items-start">
+        <div class="max-w-3xl w-full flex flex-col items-start">
             <h1 class="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-3 tracking-tight leading-tight">
                 Find the campaign service you need.
             </h1>
-            <p class="text-base sm:text-lg text-slate-300 max-w-2xl mb-8 leading-relaxed">
+            <p class="text-base sm:text-lg text-slate-100/90 max-w-2xl mb-8 leading-relaxed">
                 Browse predefined campaign packages, choose your quantity, and launch with transparent upfront pricing.
             </p>
 
-            <form method="GET" action="{{ route('services') }}" class="w-full bg-white rounded-xl p-1.5 shadow-xl flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5">
-                @if($activeCategory !== '')
-                    <input type="hidden" name="category" value="{{ $activeCategory }}">
-                @endif
-                @if($sort !== 'popular')
-                    <input type="hidden" name="sort" value="{{ $sort }}">
-                @endif
-                @if($budget !== '')
-                    <input type="hidden" name="budget" value="{{ $budget }}">
-                @endif
+            <form
+                method="GET"
+                action="{{ route('services') }}"
+                class="w-full max-w-full bg-white/45 backdrop-blur-md border border-white/40 rounded-xl p-1.5 shadow-xl flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5"
+                @submit="search($event)"
+            >
                 <div class="flex items-center gap-2 px-3 py-2 w-full min-w-0">
-                    <span class="material-symbols-outlined text-slate-400 shrink-0" aria-hidden="true">search</span>
+                    <span class="material-symbols-outlined text-slate-600/80 shrink-0" aria-hidden="true">search</span>
                     <label for="marketplace-search" class="sr-only">Search campaign services</label>
                     <input
                         id="marketplace-search"
                         type="search"
                         name="q"
-                        value="{{ $q }}"
-                        placeholder="Search campaign services (e.g. YouTube views, Instagram)…"
-                        class="w-full min-w-0 bg-transparent text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none border-0 focus:ring-0 p-0"
+                        x-model="q"
+                        placeholder="Search campaign services…"
+                        class="w-full min-w-0 bg-transparent text-slate-900 text-sm placeholder:text-slate-600/70 focus:outline-none border-0 focus:ring-0 p-0"
                     >
                 </div>
-                <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary-hover transition-colors shrink-0">
+                <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-primary/90 hover:bg-primary text-white text-sm font-semibold rounded-lg transition-colors shrink-0">
                     Search
                 </button>
             </form>
@@ -83,107 +88,110 @@
     </div>
 </section>
 
-{{-- Desktop category strip (unchanged position) --}}
+{{-- Desktop category strip --}}
 <section class="hidden md:block w-full bg-white border-b border-slate-200 shadow-sm sticky top-24 z-30">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <div class="flex items-center gap-2 overflow-x-auto scrollbar-hide py-0.5">
-            <a
-                href="{{ route('services', $filterBase) }}"
-                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold shrink-0 transition-all {{ $activeCategory === '' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}"
+            <button
+                type="button"
+                @click="setCategory('')"
+                :class="category === '' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold shrink-0 transition-all"
             >
                 <span class="material-symbols-outlined text-[18px]" aria-hidden="true">grid_view</span>
                 All Services ({{ $totalVisible }})
-            </a>
+            </button>
             @foreach($groups as $card)
                 @php
                     $slug = $card['slug'] ?? '';
                     $label = $card['label'] ?? $slug;
                     $count = (int) ($card['count'] ?? 0);
                     $icon = $categoryIcons[$slug] ?? ($card['icon'] ?? 'category');
-                    $isActive = $activeCategory === $slug;
-                    $href = route('services', array_filter(array_merge($filterBase, ['category' => $slug])));
                 @endphp
-                <a
-                    href="{{ $href }}"
-                    class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold shrink-0 transition-all {{ $isActive ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}"
+                <button
+                    type="button"
+                    @click="setCategory(@js($slug))"
+                    :class="category === @js($slug) ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                    class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold shrink-0 transition-all"
                 >
-                    <span class="w-2.5 h-2.5 rounded-full {{ $categoryDots[$slug] ?? 'bg-primary' }} {{ $isActive ? 'ring-2 ring-white/40' : '' }}"></span>
+                    <span
+                        class="w-2.5 h-2.5 rounded-full {{ $categoryDots[$slug] ?? 'bg-primary' }}"
+                        :class="category === @js($slug) ? 'ring-2 ring-white/40' : ''"
+                    ></span>
                     <span class="material-symbols-outlined text-[18px]" aria-hidden="true">{{ $icon }}</span>
                     {{ $label }}@if($count > 0) ({{ $count }})@endif
-                </a>
+                </button>
             @endforeach
         </div>
     </div>
 </section>
 
 {{-- Mobile category filter accordion (collapsed by default) --}}
-<section class="md:hidden w-full bg-white border-b border-slate-200" x-data="{ open: false }">
+<section class="md:hidden w-full bg-white border-b border-slate-200">
     <div class="max-w-site mx-auto px-4 sm:px-6 py-3">
         <button
             type="button"
             class="w-full flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left"
-            @click="open = !open"
-            :aria-expanded="open.toString()"
+            @click="mobileFilterOpen = !mobileFilterOpen"
+            :aria-expanded="mobileFilterOpen.toString()"
             aria-controls="services-mobile-category-filter"
         >
             <span class="min-w-0">
                 <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-500">Filter</span>
-                <span class="block text-sm font-semibold text-slate-900 truncate">{{ $activeCategoryLabel }}@if($activeCategory === '') ({{ $totalVisible }})@endif</span>
+                <span class="block text-sm font-semibold text-slate-900 truncate" x-text="category === '' ? ('All Services (' + totalVisible + ')') : categoryLabel"></span>
             </span>
-            <span class="material-symbols-outlined text-slate-500 shrink-0 transition-transform" :class="open ? 'rotate-180' : ''" aria-hidden="true">expand_more</span>
+            <span class="material-symbols-outlined text-slate-500 shrink-0 transition-transform" :class="mobileFilterOpen ? 'rotate-180' : ''" aria-hidden="true">expand_more</span>
         </button>
 
         <div
             id="services-mobile-category-filter"
-            x-show="open"
+            x-show="mobileFilterOpen"
             x-cloak
             class="mt-2 rounded-xl border border-slate-200 bg-white overflow-hidden"
         >
             <div class="flex flex-col p-1.5">
-                <a
-                    href="{{ route('services', $filterBase) }}"
-                    class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium {{ $activeCategory === '' ? 'bg-primary text-white' : 'text-slate-700 hover:bg-slate-50' }}"
+                <button
+                    type="button"
+                    @click="setCategory('')"
+                    :class="category === '' ? 'bg-primary text-white' : 'text-slate-700 hover:bg-slate-50'"
+                    class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-left"
                 >
                     <span class="material-symbols-outlined text-[18px]" aria-hidden="true">grid_view</span>
                     All Services ({{ $totalVisible }})
-                </a>
+                </button>
                 @foreach($groups as $card)
                     @php
                         $slug = $card['slug'] ?? '';
                         $label = $card['label'] ?? $slug;
                         $count = (int) ($card['count'] ?? 0);
                         $icon = $categoryIcons[$slug] ?? ($card['icon'] ?? 'category');
-                        $isActive = $activeCategory === $slug;
-                        $href = route('services', array_filter(array_merge($filterBase, ['category' => $slug])));
                     @endphp
-                    <a
-                        href="{{ $href }}"
-                        class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium {{ $isActive ? 'bg-primary text-white' : 'text-slate-700 hover:bg-slate-50' }}"
+                    <button
+                        type="button"
+                        @click="setCategory(@js($slug))"
+                        :class="category === @js($slug) ? 'bg-primary text-white' : 'text-slate-700 hover:bg-slate-50'"
+                        class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-left"
                     >
                         <span class="w-2.5 h-2.5 rounded-full {{ $categoryDots[$slug] ?? 'bg-primary' }}"></span>
                         <span class="material-symbols-outlined text-[18px]" aria-hidden="true">{{ $icon }}</span>
                         {{ $label }}@if($count > 0) ({{ $count }})@endif
-                    </a>
+                    </button>
                 @endforeach
             </div>
         </div>
     </div>
 </section>
 
-{{-- Main browsing area: flex avoids missing lg:col-span-* purge issues --}}
+{{-- Main browsing area --}}
 <section class="w-full">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
         <div class="flex flex-col lg:flex-row gap-8 items-start">
             {{-- Filters sidebar --}}
             <aside class="w-full lg:w-72 xl:w-80 shrink-0 flex flex-col gap-6">
-                <form method="GET" action="{{ route('services') }}" class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col gap-6">
-                    @if($q !== '')
-                        <input type="hidden" name="q" value="{{ $q }}">
-                    @endif
-
+                <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col gap-6">
                     <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                         <span class="font-display text-lg font-bold text-slate-900">Filters</span>
-                        <a href="{{ route('services') }}" class="text-sm text-primary hover:underline">Reset</a>
+                        <button type="button" @click="reset()" class="text-sm text-primary hover:underline">Reset</button>
                     </div>
 
                     <div>
@@ -196,8 +204,8 @@
                                         name="category"
                                         value=""
                                         class="accent-primary"
-                                        @checked($activeCategory === '')
-                                        onchange="this.form.submit()"
+                                        :checked="category === ''"
+                                        @change="setCategory('')"
                                     >
                                     All categories
                                 </span>
@@ -215,8 +223,8 @@
                                             name="category"
                                             value="{{ $slug }}"
                                             class="accent-primary"
-                                            @checked($activeCategory === $slug)
-                                            onchange="this.form.submit()"
+                                            :checked="category === @js($slug)"
+                                            @change="setCategory(@js($slug))"
                                         >
                                         {{ $card['label'] ?? $slug }}
                                     </span>
@@ -235,12 +243,14 @@
                                 '10k_25k' => '₦10,000 – ₦25,000',
                                 '25k_plus' => '₦25,000+',
                             ] as $value => $label)
-                                <label class="block">
-                                    <input type="radio" name="budget" value="{{ $value }}" class="sr-only peer" @checked($budget === $value) onchange="this.form.submit()">
-                                    <span class="block w-full text-left px-3 py-2 text-sm rounded-lg cursor-pointer transition-colors peer-checked:bg-primary peer-checked:text-white bg-slate-50 hover:bg-slate-100 text-slate-700">
-                                        {{ $label }}
-                                    </span>
-                                </label>
+                                <button
+                                    type="button"
+                                    @click="setBudget(@js($value))"
+                                    :class="budget === @js($value) ? 'bg-primary text-white' : 'bg-slate-50 hover:bg-slate-100 text-slate-700'"
+                                    class="block w-full text-left px-3 py-2 text-sm rounded-lg transition-colors"
+                                >
+                                    {{ $label }}
+                                </button>
                             @endforeach
                         </div>
                     </div>
@@ -248,13 +258,13 @@
                     <div>
                         <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Sort by</h4>
                         <select
-                            name="sort"
                             class="w-full bg-slate-50 text-slate-900 text-sm rounded-lg px-3 py-2.5 border-0 focus:ring-2 focus:ring-primary/30"
-                            onchange="this.form.submit()"
+                            :value="sort"
+                            @change="setSort($event.target.value)"
                         >
-                            <option value="popular" @selected($sort === 'popular')>Most popular</option>
-                            <option value="price_asc" @selected($sort === 'price_asc')>Lowest starting price</option>
-                            <option value="price_desc" @selected($sort === 'price_desc')>Highest starting price</option>
+                            <option value="popular">Most popular</option>
+                            <option value="price_asc">Lowest starting price</option>
+                            <option value="price_desc">Highest starting price</option>
                         </select>
                     </div>
 
@@ -265,65 +275,43 @@
                             <span class="block text-xs text-slate-500 mt-1 leading-relaxed">Clear deliverables and upfront pricing before you checkout.</span>
                         </div>
                     </div>
-                </form>
+                </div>
             </aside>
 
             {{-- Listings --}}
             <div class="w-full min-w-0 flex-1 flex flex-col gap-5">
-                <div class="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div class="min-w-0">
-                        <h2 class="font-display text-xl sm:text-2xl font-bold text-slate-900">Available campaign services</h2>
-                        <p class="text-sm text-slate-500 mt-0.5">
-                            @if($q !== '')
-                                Showing {{ $productCount }} {{ \Illuminate\Support\Str::plural('result', $productCount) }} for “{{ $q }}”
-                            @elseif($activeCategory !== '')
-                                Showing {{ $productCount }} {{ \Illuminate\Support\Str::plural('package', $productCount) }} in {{ $activeCategoryLabel }}
-                            @else
-                                Showing {{ $productCount }} active predefined {{ \Illuminate\Support\Str::plural('campaign', $productCount) }}
-                            @endif
-                        </p>
-                    </div>
-                    <form method="GET" action="{{ route('services') }}" class="flex items-center gap-2 shrink-0">
-                        @if($q !== '')
-                            <input type="hidden" name="q" value="{{ $q }}">
-                        @endif
-                        @if($activeCategory !== '')
-                            <input type="hidden" name="category" value="{{ $activeCategory }}">
-                        @endif
-                        @if($budget !== '')
-                            <input type="hidden" name="budget" value="{{ $budget }}">
-                        @endif
-                        <label for="services-sort" class="text-xs font-medium text-slate-400 shrink-0">Sort by:</label>
-                        <select
-                            id="services-sort"
-                            name="sort"
-                            class="bg-slate-50 text-slate-900 text-sm rounded-lg px-3 py-2 border-0 focus:ring-2 focus:ring-primary/30"
-                            onchange="this.form.submit()"
-                        >
-                            <option value="popular" @selected($sort === 'popular')>Most popular</option>
-                            <option value="price_asc" @selected($sort === 'price_asc')>Lowest starting price</option>
-                            <option value="price_desc" @selected($sort === 'price_desc')>Highest starting price</option>
-                        </select>
-                    </form>
+                <div class="flex items-center justify-end gap-2">
+                    <label for="services-sort" class="text-xs font-medium text-slate-400 shrink-0">Sort by:</label>
+                    <select
+                        id="services-sort"
+                        class="bg-white text-slate-900 text-sm rounded-lg px-3 py-2 border border-slate-200 shadow-sm focus:ring-2 focus:ring-primary/30"
+                        :value="sort"
+                        @change="setSort($event.target.value)"
+                    >
+                        <option value="popular">Most popular</option>
+                        <option value="price_asc">Lowest starting price</option>
+                        <option value="price_desc">Highest starting price</option>
+                    </select>
                 </div>
 
-                @if(! $products || $products->isEmpty())
-                    <div class="bg-white rounded-xl border border-slate-200 p-10 text-center">
-                        <p class="text-slate-600 mb-4">No campaign packages match your filters.</p>
-                        <a href="{{ route('services') }}" class="inline-flex text-sm font-semibold text-primary hover:underline">Clear filters</a>
-                    </div>
-                @else
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
-                        @foreach($products as $product)
-                            @include('partials.catalog.marketplace-product-card', ['product' => $product])
-                        @endforeach
-                    </div>
-                    <div class="mt-2">{{ $products->links() }}</div>
-                @endif
+                <div
+                    x-ref="results"
+                    id="services-results"
+                    class="flex flex-col gap-5 transition-opacity"
+                    :class="loading ? 'opacity-60 pointer-events-none' : ''"
+                >
+                    @include('partials.catalog.services-results', [
+                        'products' => $products,
+                        'groups' => $groups,
+                        'q' => $q,
+                        'activeCategory' => $activeCategory,
+                    ])
+                </div>
             </div>
         </div>
     </div>
 </section>
+</div>
 
 {{-- How packages work --}}
 <section class="w-full bg-slate-50 py-12 sm:py-16 border-t border-slate-100">

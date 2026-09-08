@@ -93,7 +93,7 @@ class ServiceController extends Controller
 
         $totalVisible = PlatformProduct::query()->visibleToPublic()->count();
 
-        return view('pages.services', [
+        $payload = [
             'groups' => $groups,
             'products' => $products,
             'q' => $q,
@@ -102,7 +102,13 @@ class ServiceController extends Controller
             'budget' => $budget,
             'totalVisible' => $totalVisible,
             'popularTags' => $this->browse->homePopularSearchTags(5),
-        ]);
+        ];
+
+        if ($request->headers->get('X-Services-Filter') === '1' || $request->boolean('partial')) {
+            return view('partials.catalog.services-results', $payload);
+        }
+
+        return view('pages.services', $payload);
     }
 
     /**

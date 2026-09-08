@@ -77,6 +77,20 @@ class ServicesHubTest extends TestCase
             ->assertDontSee('YouTube Views Lite');
     }
 
+    public function test_services_filter_partial_returns_results_fragment(): void
+    {
+        $this->seedYoutubeProduct();
+
+        $this->get(route('services', ['category' => 'youtube']), [
+            'X-Services-Filter' => '1',
+            'X-Requested-With' => 'XMLHttpRequest',
+        ])
+            ->assertOk()
+            ->assertSee('YouTube Views Lite')
+            ->assertSee('Available campaign services')
+            ->assertDontSee('Find the campaign service you need');
+    }
+
     public function test_group_page_lists_category_products(): void
     {
         $this->seedYoutubeProduct();

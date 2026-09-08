@@ -10,6 +10,7 @@ import { assignAlpineHelpers, createDomainSearchHelpers, extractQuoteError } fro
 import { createCheckoutValidationHelpers } from './checkout-validation';
 import { registerAdminConnectionTest } from './admin-connection-test';
 import { registerManualBankPayment } from './manual-bank-payment';
+import { registerServicesMarketplace } from './services-marketplace';
 import { copyToClipboard, copyFromAsync, copyFailedMessage } from './copy-to-clipboard';
 import Alpine from 'alpinejs';
 import Chart from 'chart.js/auto';
@@ -32,6 +33,7 @@ document.addEventListener('alpine:init', () => {
     registerPullToRefresh(Alpine);
     registerAdminConnectionTest(Alpine);
     registerManualBankPayment(Alpine);
+    registerServicesMarketplace(Alpine);
 
     Alpine.data('toastStore', (initial = []) => ({
         toasts: [],
