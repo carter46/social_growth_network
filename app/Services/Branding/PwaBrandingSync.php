@@ -11,6 +11,13 @@ use Throwable;
 
 class PwaBrandingSync
 {
+    private ?string $lastError = null;
+
+    public function lastError(): ?string
+    {
+        return $this->lastError;
+    }
+
     /**
      * Write favicon + PWA icon files from uploaded branding and refresh manifest.json.
      *
@@ -19,6 +26,7 @@ class PwaBrandingSync
     public function sync(?array $branding = null): bool
     {
         $branding ??= app(SiteBrandingRepository::class)->all();
+        $this->lastError = null;
 
         try {
             $this->syncIcons($branding);
@@ -26,7 +34,12 @@ class PwaBrandingSync
 
             return true;
         } catch (Throwable $e) {
-            Log::warning('pwa.branding_sync_failed', ['error' => $e->getMessage()]);
+            $this->lastError = $e->getMessage();
+            Log::warning('pwa.branding_sync_failed', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
 
             return false;
         }

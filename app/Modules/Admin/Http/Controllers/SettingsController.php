@@ -103,17 +103,25 @@ class SettingsController extends Controller
         config(['app.name' => $validated['site_name']]);
 
         $synced = false;
+        $syncError = null;
         try {
-            $synced = app(\App\Services\Branding\PwaBrandingSync::class)->sync(
-                array_merge($this->branding->all(), $validated)
-            );
-        } catch (Throwable) {
+            /** @var \App\Services\Branding\PwaBrandingSync $pwaSync */
+            $pwaSync = app(\App\Services\Branding\PwaBrandingSync::class);
+            $synced = $pwaSync->sync(array_merge($this->branding->all(), $validated));
+            if (! $synced) {
+                $syncError = $pwaSync->lastError()
+                    ?: __('Check storage/logs for pwa.branding_sync_failed — usually missing storage symlink, unreadable media file, PHP GD disabled, or public/ not writable.');
+            }
+        } catch (Throwable $e) {
             $synced = false;
+            $syncError = $e->getMessage();
+            report($e);
         }
 
         $this->audit->log(auth()->id(), 'settings.branding.updated', null, null, [
             'site_name' => $validated['site_name'],
             'pwa_icons_synced' => $synced,
+            'pwa_sync_error' => $syncError,
         ], $request->ip());
 
         $hasBrandingMedia = (int) ($validated['favicon_media_id'] ?? 0) > 0
@@ -121,11 +129,17 @@ class SettingsController extends Controller
             || (int) ($validated['logo_dark_media_id'] ?? 0) > 0;
 
         if (! $synced && $hasBrandingMedia) {
-            return back()->with('error', __('Site information was saved, but favicon/PWA icons could not be regenerated from your branding media. Icons were not left as the letter fallback intentionally — fix PHP GD / storage paths / public write access, then run: php artisan branding:sync-pwa'));
+            return back()->with('error', __(
+                'Site information was saved, but favicon/PWA icons could not be regenerated from your branding media. :detail Fix PHP GD / storage paths / public write access, then run: php artisan branding:sync-pwa',
+                ['detail' => $syncError ? '('.$syncError.')' : '']
+            ));
         }
 
         if (! $synced) {
-            return back()->with('warning', __('Site information saved, but favicon/PWA icons could not be regenerated. Ensure PHP GD is enabled and public/ is writable, then run: php artisan branding:sync-pwa'));
+            return back()->with('warning', __(
+                'Site information saved, but favicon/PWA icons could not be regenerated. :detail Ensure PHP GD is enabled and public/ is writable, then run: php artisan branding:sync-pwa',
+                ['detail' => $syncError ? '('.$syncError.')' : '']
+            ));
         }
 
         return back()->with('status', __('Site information saved. Favicon, Apple touch, and PWA icons were refreshed from your branding — reinstall the app / request indexing if Google still shows the old icon.'));

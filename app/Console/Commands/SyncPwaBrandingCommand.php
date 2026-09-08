@@ -32,7 +32,9 @@ class SyncPwaBrandingCommand extends Command
         }
 
         if (! $sync->sync($settings)) {
-            $this->error('Branding icon sync failed. Check storage logs — if media is set, icons were NOT replaced with letter-7.');
+            $detail = $sync->lastError() ?: 'unknown error';
+            $this->error('Branding icon sync failed: '.$detail);
+            $this->line('Common fixes: php artisan storage:link ; enable PHP GD ; chmod public/ and public/icons writable.');
 
             return self::FAILURE;
         }
