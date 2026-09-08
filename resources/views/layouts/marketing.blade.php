@@ -22,12 +22,12 @@
             $logoUrl = $footer->logoLightUrl
                 ?? $footer->logoDarkUrl
                 ?? asset('assets/images/originla_logo.png');
-            $isHome = request()->routeIs('home');
-            $navServices = $isHome ? '#services' : route('services');
-            $navHow = $isHome ? '#how-it-works' : route('home').'#how-it-works';
-            $navCreators = $isHome ? '#creators' : route('home').'#creators';
-            $navAgents = $isHome ? '#agents' : route('home').'#agents';
-            $navFaq = $isHome ? '#faq' : route('help');
+            $navHome = route('home');
+            $navServices = route('services');
+            $navHow = route('how-it-works');
+            $navCreators = route('creators');
+            $navAgents = route('agents');
+            $navFaq = route('help').'#faqs';
         @endphp
         <title>{{ $resolvedTitle }}</title>
         <meta name="description" content="{{ $resolvedDescription }}">
@@ -50,19 +50,20 @@
     <body class="marketing-site bg-white text-slate-900 font-sans antialiased selection:bg-blue-500 selection:text-white" x-data="mobileNav" @keydown.escape.window="close()">
         @include('partials.tracking.body-start')
         <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 transition-all">
-            <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 min-h-24 py-3 flex items-center justify-between">
                 <div class="flex items-center gap-8 min-w-0">
                     <a class="flex items-center gap-2.5 min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg" href="{{ route('home') }}">
-                        <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="h-9 w-auto max-w-[200px] object-contain">
+                        <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="h-12 sm:h-14 w-auto max-w-[240px] object-contain">
                         <span class="sr-only">{{ $siteName }}</span>
                     </a>
 
                     <nav class="hidden md:flex items-center space-x-1 lg:space-x-2 text-[15px] font-medium text-slate-600">
-                        <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors" href="{{ $navServices }}">Services</a>
-                        <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors" href="{{ $navHow }}">How It Works</a>
-                        <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors" href="{{ $navCreators }}">For Creators</a>
-                        <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors" href="{{ $navAgents }}">For Agents</a>
-                        <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors" href="{{ $navFaq }}">FAQ</a>
+                        <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('home') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navHome }}">Home</a>
+                        <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('services*') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navServices }}">Services</a>
+                        <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('how-it-works') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navHow }}">How It Works</a>
+                        <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('creators') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navCreators }}">For Creators</a>
+                        <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('agents') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navAgents }}">For Agents</a>
+                        <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('help*') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navFaq }}">FAQ</a>
                     </nav>
                 </div>
 
@@ -71,7 +72,7 @@
                         <a class="hidden sm:inline-flex text-[15px] font-medium text-slate-700 hover:text-slate-950 px-4 py-2 rounded-lg transition-colors" href="{{ route('dashboard') }}">Dashboard</a>
                     @else
                         <a class="hidden sm:inline-flex text-[15px] font-medium text-slate-700 hover:text-slate-950 px-4 py-2 rounded-lg transition-colors" href="{{ route('login') }}">Log In</a>
-                        <a class="hidden sm:inline-flex items-center justify-center bg-primary hover:bg-primary-hover text-white text-[15px] font-semibold px-5 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-150" href="{{ $isHome ? '#services' : route('services') }}">
+                        <a class="hidden sm:inline-flex items-center justify-center bg-primary hover:bg-primary-hover text-white text-[15px] font-semibold px-5 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-150" href="{{ route('services') }}">
                             Get Started
                         </a>
                     @endauth
@@ -125,7 +126,7 @@
             >
                 <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                     <a class="flex items-center gap-2" href="{{ route('home') }}" @click="close()">
-                        <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="h-10 w-auto max-w-[180px] object-contain">
+                        <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="h-12 w-auto max-w-[220px] object-contain">
                     </a>
                     <button
                         type="button"
@@ -138,6 +139,7 @@
                 </div>
 
                 <nav class="flex flex-col p-4 gap-1">
+                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navHome }}" @click="close()">Home</a>
                     <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navServices }}" @click="close()">Services</a>
                     <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navHow }}" @click="close()">How It Works</a>
                     <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navCreators }}" @click="close()">For Creators</a>
@@ -165,7 +167,7 @@
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12 mb-12">
                     <div class="col-span-2 md:col-span-1">
                         <a class="inline-block mb-4" href="{{ route('home') }}">
-                            <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="h-8 w-auto max-w-[180px] object-contain">
+                            <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="h-10 w-auto max-w-[200px] object-contain">
                         </a>
                         <p class="text-slate-500 text-sm leading-relaxed mb-4">
                             {{ $footer->tagline ?? ($siteBranding['tagline'] ?? 'The modern marketplace for structured digital campaigns, verified human micro-tasks, and real results.') }}
@@ -177,11 +179,12 @@
                     <div>
                         <h4 class="font-bold text-slate-900 text-sm tracking-wider uppercase mb-4 font-display">Platform</h4>
                         <ul class="space-y-2.5 text-sm text-slate-600">
+                            <li><a class="hover:text-primary transition-colors" href="{{ route('home') }}">Home</a></li>
                             <li><a class="hover:text-primary transition-colors" href="{{ route('services') }}">Services</a></li>
-                            <li><a class="hover:text-primary transition-colors" href="{{ route('home') }}#how-it-works">How It Works</a></li>
-                            <li><a class="hover:text-primary transition-colors" href="{{ route('home') }}#creators">For Creators</a></li>
-                            <li><a class="hover:text-primary transition-colors" href="{{ route('home') }}#agents">For Agents</a></li>
-                            <li><a class="hover:text-primary transition-colors" href="{{ route('home') }}#faq">FAQ</a></li>
+                            <li><a class="hover:text-primary transition-colors" href="{{ route('how-it-works') }}">How It Works</a></li>
+                            <li><a class="hover:text-primary transition-colors" href="{{ route('creators') }}">For Creators</a></li>
+                            <li><a class="hover:text-primary transition-colors" href="{{ route('agents') }}">For Agents</a></li>
+                            <li><a class="hover:text-primary transition-colors" href="{{ route('help') }}#faqs">FAQ</a></li>
                         </ul>
                     </div>
                     <div>

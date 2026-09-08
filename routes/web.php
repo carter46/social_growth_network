@@ -55,6 +55,9 @@ Route::post('/webhooks/site-integrations/{integrationId}', \App\Http\Controllers
     ->name('webhooks.site-integrations');
 
 Route::view('/about', 'pages.about')->name('about');
+Route::view('/how-it-works', 'pages.how-it-works')->name('how-it-works');
+Route::view('/creators', 'pages.creators')->name('creators');
+Route::view('/agents', 'pages.agents')->name('agents');
 Route::get('/help', function () {
     return view('pages.help', [
         'categories' => config('help.categories', []),
