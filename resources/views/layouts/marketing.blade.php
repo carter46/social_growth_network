@@ -27,7 +27,8 @@
             $navHow = route('how-it-works');
             $navCreators = route('creators');
             $navAgents = route('agents');
-            $navFaq = route('help').'#faqs';
+            $navAbout = route('about');
+            $navHelp = route('help');
         @endphp
         <title>{{ $resolvedTitle }}</title>
         <meta name="description" content="{{ $resolvedDescription }}">
@@ -63,7 +64,8 @@
                         <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('how-it-works') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navHow }}">How It Works</a>
                         <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('creators') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navCreators }}">For Creators</a>
                         <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('agents') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navAgents }}">For Agents</a>
-                        <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('help*') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navFaq }}">FAQ</a>
+                        <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('about') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navAbout }}">About Us</a>
+                        <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('help*') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navHelp }}">Help Center</a>
                     </nav>
                 </div>
 
@@ -144,9 +146,9 @@
                     <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navHow }}" @click="close()">How It Works</a>
                     <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navCreators }}" @click="close()">For Creators</a>
                     <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navAgents }}" @click="close()">For Agents</a>
-                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navFaq }}" @click="close()">FAQ</a>
-                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ route('about') }}" @click="close()">About</a>
-                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ route('help') }}" @click="close()">Help</a>
+                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navAbout }}" @click="close()">About Us</a>
+                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navHelp }}" @click="close()">Help Center</a>
+                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ route('contact') }}" @click="close()">Contact</a>
 
                     @auth
                         <a class="mt-2 px-4 py-3 rounded-xl text-sm font-bold text-center border border-slate-200 text-slate-800 hover:bg-slate-50 transition-colors" href="{{ route('dashboard') }}" @click="close()">Dashboard</a>
@@ -184,7 +186,7 @@
                             <li><a class="hover:text-primary transition-colors" href="{{ route('how-it-works') }}">How It Works</a></li>
                             <li><a class="hover:text-primary transition-colors" href="{{ route('creators') }}">For Creators</a></li>
                             <li><a class="hover:text-primary transition-colors" href="{{ route('agents') }}">For Agents</a></li>
-                            <li><a class="hover:text-primary transition-colors" href="{{ route('help') }}#faqs">FAQ</a></li>
+                            <li><a class="hover:text-primary transition-colors" href="{{ route('about') }}">About Us</a></li>
                         </ul>
                     </div>
                     <div>

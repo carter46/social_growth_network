@@ -96,8 +96,8 @@ class CatalogHierarchyTest extends TestCase
         $this->get(route('services'))
             ->assertOk()
             ->assertSee('YouTube')
-            ->assertSee('Browse Categories')
-            ->assertDontSee('YouTube Views Lite');
+            ->assertSee('Available campaign services')
+            ->assertSee('YouTube Views Lite');
     }
 
     public function test_group_page_lists_products_by_category(): void

@@ -35,30 +35,73 @@ class ServiceController extends Controller
     public function index(Request $request): View
     {
         $q = $request->string('q')->toString();
-        $searchResults = null;
-
-        if ($q !== '') {
-            $searchResults = PlatformProduct::query()
-                ->visibleToPublic()
-                ->with(['serviceCategory', 'productType.serviceCategory', 'activeVariants'])
-                ->where(function ($inner) use ($q) {
-                    $inner->where('title', 'like', "%{$q}%")
-                        ->orWhere('short_description', 'like', "%{$q}%")
-                        ->orWhere('description', 'like', "%{$q}%");
-                })
-                ->orderByDesc('is_featured')
-                ->orderBy('sort_order')
-                ->orderBy('title')
-                ->paginate(12)
-                ->withQueryString();
-        }
+        $categorySlug = $request->string('category')->toString();
+        $sort = $request->string('sort')->toString() ?: 'popular';
+        $budget = $request->string('budget')->toString();
 
         $groups = $this->browse->groupCards($this->content);
 
+        if ($categorySlug !== '' && ! $this->browse->isGroup($categorySlug)) {
+            $categorySlug = '';
+        }
+
+        $productsQuery = PlatformProduct::query()
+            ->visibleToPublic()
+            ->with([
+                'serviceCategory',
+                'productType.serviceCategory',
+                'activeVariants',
+                'heroMedia.variants',
+            ]);
+
+        if ($categorySlug !== '') {
+            $category = $this->browse->findServiceCategory($categorySlug);
+            if ($category && Schema::hasColumn('platform_products', 'service_category_id')) {
+                $productsQuery->ofCategory($category);
+            }
+        }
+
+        if ($q !== '') {
+            $productsQuery->where(function ($inner) use ($q) {
+                $inner->where('title', 'like', "%{$q}%")
+                    ->orWhere('short_description', 'like', "%{$q}%")
+                    ->orWhere('description', 'like', "%{$q}%");
+            });
+        }
+
+        // Budget presets use catalog starting price (base_price mirrors package floor).
+        if ($budget === 'under_10k') {
+            $productsQuery->where('base_price', '<', 10000);
+        } elseif ($budget === '10k_25k') {
+            $productsQuery->whereBetween('base_price', [10000, 25000]);
+        } elseif ($budget === '25k_plus') {
+            $productsQuery->where('base_price', '>', 25000);
+        }
+
+        match ($sort) {
+            'price_asc' => $productsQuery->orderBy('base_price')->orderBy('title'),
+            'price_desc' => $productsQuery->orderByDesc('base_price')->orderBy('title'),
+            default => $productsQuery
+                ->orderByDesc('is_featured')
+                ->orderBy('sort_order')
+                ->orderBy('title'),
+        };
+
+        $products = $productsQuery
+            ->paginate(12)
+            ->withQueryString();
+
+        $totalVisible = PlatformProduct::query()->visibleToPublic()->count();
+
         return view('pages.services', [
             'groups' => $groups,
-            'searchResults' => $searchResults,
+            'products' => $products,
             'q' => $q,
+            'activeCategory' => $categorySlug,
+            'sort' => $sort,
+            'budget' => $budget,
+            'totalVisible' => $totalVisible,
+            'popularTags' => $this->browse->homePopularSearchTags(5),
         ]);
     }
 

@@ -52,14 +52,28 @@ class ServicesHubTest extends TestCase
         return $product;
     }
 
-    public function test_services_landing_shows_category_cards_not_product_grid(): void
+    public function test_services_landing_shows_product_marketplace(): void
     {
         $this->seedYoutubeProduct();
 
         $this->get(route('services'))
             ->assertOk()
+            ->assertSee('Find the campaign service you need')
+            ->assertSee('Available campaign services')
             ->assertSee('YouTube')
-            ->assertSee('Browse Categories')
+            ->assertSee('YouTube Views Lite');
+    }
+
+    public function test_services_landing_filters_by_category(): void
+    {
+        $this->seedYoutubeProduct();
+
+        $this->get(route('services', ['category' => 'youtube']))
+            ->assertOk()
+            ->assertSee('YouTube Views Lite');
+
+        $this->get(route('services', ['category' => 'facebook']))
+            ->assertOk()
             ->assertDontSee('YouTube Views Lite');
     }
 
@@ -123,8 +137,8 @@ class ServicesHubTest extends TestCase
 
         $this->get(route('services', ['q' => 'YouTube Views']))
             ->assertOk()
-            ->assertSee('Search results')
-            ->assertSee('YouTube Views Lite');
+            ->assertSee('YouTube Views Lite')
+            ->assertSee('result');
     }
 
     public function test_unknown_segment_returns_404(): void
