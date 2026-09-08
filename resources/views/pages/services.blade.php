@@ -12,22 +12,6 @@
     $sort = $sort ?? 'popular';
     $budget = $budget ?? '';
     $q = $q ?? '';
-    $categoryIcons = [
-        'youtube' => 'smart_display',
-        'facebook' => 'public',
-        'instagram' => 'photo_camera',
-        'tiktok' => 'music_note',
-        'twitter' => 'chat',
-        'social-media' => 'share',
-    ];
-    $categoryDots = [
-        'youtube' => 'bg-red-500',
-        'facebook' => 'bg-blue-600',
-        'instagram' => 'bg-pink-500',
-        'tiktok' => 'bg-slate-900',
-        'twitter' => 'bg-sky-500',
-        'social-media' => 'bg-violet-500',
-    ];
     $marketplaceConfig = [
         'endpoint' => route('services'),
         'category' => $activeCategory,
@@ -88,107 +72,13 @@
     </div>
 </section>
 
-{{-- Desktop category strip --}}
-<section class="hidden md:block w-full bg-white border-b border-slate-200 shadow-sm sticky top-24 z-30">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-3">
-        <div class="flex items-center gap-2 overflow-x-auto scrollbar-hide py-0.5">
-            <button
-                type="button"
-                @click="setCategory('')"
-                :class="category === '' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
-                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold shrink-0 transition-all"
-            >
-                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">grid_view</span>
-                All Services ({{ $totalVisible }})
-            </button>
-            @foreach($groups as $card)
-                @php
-                    $slug = $card['slug'] ?? '';
-                    $label = $card['label'] ?? $slug;
-                    $count = (int) ($card['count'] ?? 0);
-                    $icon = $categoryIcons[$slug] ?? ($card['icon'] ?? 'category');
-                @endphp
-                <button
-                    type="button"
-                    @click="setCategory(@js($slug))"
-                    :class="category === @js($slug) ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
-                    class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold shrink-0 transition-all"
-                >
-                    <span
-                        class="w-2.5 h-2.5 rounded-full {{ $categoryDots[$slug] ?? 'bg-primary' }}"
-                        :class="category === @js($slug) ? 'ring-2 ring-white/40' : ''"
-                    ></span>
-                    <span class="material-symbols-outlined text-[18px]" aria-hidden="true">{{ $icon }}</span>
-                    {{ $label }}@if($count > 0) ({{ $count }})@endif
-                </button>
-            @endforeach
-        </div>
-    </div>
-</section>
-
-{{-- Mobile category filter accordion (collapsed by default) --}}
-<section class="md:hidden w-full bg-white border-b border-slate-200">
-    <div class="max-w-site mx-auto px-4 sm:px-6 py-3">
-        <button
-            type="button"
-            class="w-full flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left"
-            @click="mobileFilterOpen = !mobileFilterOpen"
-            :aria-expanded="mobileFilterOpen.toString()"
-            aria-controls="services-mobile-category-filter"
-        >
-            <span class="min-w-0">
-                <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-500">Filter</span>
-                <span class="block text-sm font-semibold text-slate-900 truncate" x-text="category === '' ? ('All Services (' + totalVisible + ')') : categoryLabel"></span>
-            </span>
-            <span class="material-symbols-outlined text-slate-500 shrink-0 transition-transform" :class="mobileFilterOpen ? 'rotate-180' : ''" aria-hidden="true">expand_more</span>
-        </button>
-
-        <div
-            id="services-mobile-category-filter"
-            x-show="mobileFilterOpen"
-            x-cloak
-            class="mt-2 rounded-xl border border-slate-200 bg-white overflow-hidden"
-        >
-            <div class="flex flex-col p-1.5">
-                <button
-                    type="button"
-                    @click="setCategory('')"
-                    :class="category === '' ? 'bg-primary text-white' : 'text-slate-700 hover:bg-slate-50'"
-                    class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-left"
-                >
-                    <span class="material-symbols-outlined text-[18px]" aria-hidden="true">grid_view</span>
-                    All Services ({{ $totalVisible }})
-                </button>
-                @foreach($groups as $card)
-                    @php
-                        $slug = $card['slug'] ?? '';
-                        $label = $card['label'] ?? $slug;
-                        $count = (int) ($card['count'] ?? 0);
-                        $icon = $categoryIcons[$slug] ?? ($card['icon'] ?? 'category');
-                    @endphp
-                    <button
-                        type="button"
-                        @click="setCategory(@js($slug))"
-                        :class="category === @js($slug) ? 'bg-primary text-white' : 'text-slate-700 hover:bg-slate-50'"
-                        class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-left"
-                    >
-                        <span class="w-2.5 h-2.5 rounded-full {{ $categoryDots[$slug] ?? 'bg-primary' }}"></span>
-                        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">{{ $icon }}</span>
-                        {{ $label }}@if($count > 0) ({{ $count }})@endif
-                    </button>
-                @endforeach
-            </div>
-        </div>
-    </div>
-</section>
-
 {{-- Main browsing area --}}
 <section class="w-full">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
         <div class="flex flex-col lg:flex-row gap-8 items-start">
-            {{-- Filters sidebar --}}
-            <aside class="w-full lg:w-72 xl:w-80 shrink-0 flex flex-col gap-6">
-                <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col gap-6">
+            {{-- Filters sidebar (sticky on desktop) --}}
+            <aside class="w-full lg:w-72 xl:w-80 shrink-0">
+                <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col gap-6 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
                     <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                         <span class="font-display text-lg font-bold text-slate-900">Filters</span>
                         <button type="button" @click="reset()" class="text-sm text-primary hover:underline">Reset</button>

@@ -10,7 +10,6 @@ export function registerServicesMarketplace(Alpine) {
         q: config.q || '',
         totalVisible: Number(config.totalVisible || 0),
         groups: Array.isArray(config.groups) ? config.groups : [],
-        mobileFilterOpen: false,
         loading: false,
         _abort: null,
         _seq: 0,
@@ -65,7 +64,6 @@ export function registerServicesMarketplace(Alpine) {
 
         setCategory(slug) {
             this.category = slug || '';
-            this.mobileFilterOpen = false;
             this.apply();
         },
 
