@@ -43,6 +43,9 @@ if (app()->environment('local')) {
 Route::get('/', function (\App\Modules\Catalog\Services\CatalogBrowseService $browse, \App\Modules\Catalog\Services\CatalogContentResolver $catalogContent) {
     return view('pages.home', [
         'ecosystemItems' => $browse->homeEcosystemItems($catalogContent),
+        'categoryCards' => $browse->groupCards($catalogContent),
+        'featuredProducts' => $browse->homeFeaturedProducts(),
+        'popularTags' => $browse->homePopularSearchTags(),
     ]);
 })->name('home');
 

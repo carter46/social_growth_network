@@ -15,6 +15,8 @@ class CatalogBrowseService
 {
     public const HOME_ECOSYSTEM_LIMIT = 8;
 
+    public const HOME_PRODUCT_LIMIT = 12;
+
     public function usesDbHierarchy(): bool
     {
         if (! config('catalog.use_db_hierarchy', true)) {
@@ -379,9 +381,50 @@ class CatalogBrowseService
     }
 
     /**
+     * Featured / catalog products for the public homepage marketplace grid.
+     *
+     * @return Collection<int, PlatformProduct>
+     */
+    public function homeFeaturedProducts(int $limit = self::HOME_PRODUCT_LIMIT): Collection
+    {
+        if (! Schema::hasTable('platform_products')) {
+            return collect();
+        }
+
+        return PlatformProduct::query()
+            ->visibleToPublic()
+            ->with([
+                'productType.serviceCategory',
+                'heroMedia.variants',
+                'activeVariants',
+            ])
+            ->orderByDesc('is_featured')
+            ->orderBy('sort_order')
+            ->orderBy('title')
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
+     * Compact popular search chips for the homepage hero.
+     *
+     * @return list<array{label: string, href: string}>
+     */
+    public function homePopularSearchTags(int $limit = 4): array
+    {
+        return $this->homeFeaturedProducts($limit)
+            ->map(fn (PlatformProduct $product) => [
+                'label' => $product->title,
+                'href' => $this->productUrl($product),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
      * Home page "What we do" cards: active catalog services.
      *
-     * @return list<array{icon: string, title: string, body: string, href: string}>
+     * @return list<array{icon: string, title: string, body: string, href: string, image: ?string, badge: ?string, category_slug: ?string}>
      */
     public function homeEcosystemItems(CatalogContentResolver $content): array
     {
@@ -393,6 +436,9 @@ class CatalogBrowseService
                 'title' => $card['title'],
                 'body' => $card['body'],
                 'href' => $card['href'],
+                'image' => $card['image'] ?? null,
+                'badge' => $card['badge'] ?? null,
+                'category_slug' => $card['category_slug'] ?? null,
             ];
         }
 
@@ -411,7 +457,12 @@ class CatalogBrowseService
         }
 
         $query = ProductType::query()
-            ->with('serviceCategory')
+            ->with([
+                'serviceCategory.cardMedia.variants',
+                'serviceCategory.bannerMedia.variants',
+                'cardMedia.variants',
+                'bannerMedia.variants',
+            ])
             ->active()
             ->whereHas('products', fn ($q) => $q->visibleToPublic());
 
@@ -454,13 +505,16 @@ class CatalogBrowseService
                     'title' => $resolved['label'] ?? str_replace('_', ' ', ucfirst($slug)),
                     'body' => $resolved['short_description'] ?? '',
                     'href' => $this->serviceListingUrl($slug),
+                    'image' => $resolved['card_image'] ?? $resolved['banner_image'] ?? null,
+                    'badge' => $resolved['label'] ?? null,
+                    'category_slug' => $this->groupForType($slug),
                 ];
             })
             ->values();
     }
 
     /**
-     * @return array{icon: string, title: string, body: string, href: string}
+     * @return array{icon: string, title: string, body: string, href: string, image: ?string, badge: ?string, category_slug: ?string}
      */
     private function mapHomeServiceCard(ProductType $service, CatalogContentResolver $content): array
     {
@@ -472,6 +526,9 @@ class CatalogBrowseService
             'title' => $resolved['label'] ?? $service->name,
             'body' => $resolved['short_description'] ?? $service->short_description ?? '',
             'href' => $this->serviceListingUrl($service->slug, $service->serviceCategory?->slug),
+            'image' => $resolved['card_image'] ?? $resolved['banner_image'] ?? null,
+            'badge' => $service->serviceCategory?->name ?? ($resolved['label'] ?? null),
+            'category_slug' => $service->serviceCategory?->slug ?? null,
         ];
     }
 }

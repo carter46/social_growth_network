@@ -24,6 +24,7 @@ export default {
                 'form': '44rem',
                 'auth': '28rem',
                 'marketing': '71.875rem', // 1150px
+                'site': '80rem', // 1280px — marketing shell
             },
             spacing: {
                 'section': '1.5rem',
@@ -53,7 +54,12 @@ export default {
                 'text-muted': 'var(--th-text-muted)',
                 'border-default': 'var(--th-border-default)',
                 'border-subtle': 'var(--th-border-subtle)',
-                // Marketing/auth TaskPulse navy aliases
+                // Marketing shell (light TaskPulse marketplace)
+                'navy-dark': '#0F172A',
+                'navy-slate': '#1E293B',
+                'surface-muted': '#F8FAFC',
+                'surface-border': '#E2E8F0',
+                // Marketing/auth legacy aliases
                 dark: '#0B1220',
                 glass: 'rgba(21, 34, 56, 0.7)',
                 'background-dark': '#0B1220',
@@ -63,7 +69,7 @@ export default {
                 'border-dark': '#2A3548',
             },
             backgroundImage: {
-                'gradient-primary': 'linear-gradient(135deg, #004AC6 0%, #003EA8 100%)',
+                'gradient-primary': 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
                 'gradient-soft': 'var(--th-gradient-soft)',
             },
             boxShadow: {

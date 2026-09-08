@@ -8,8 +8,8 @@
         @php
             $siteName = $siteName ?? config('app.name', 'Social Growth Network');
             $defaultDescription = ($siteBranding['meta_description'] ?? null)
-                ?: ($siteName.' — social media growth and engagement services with secure checkout.');
-            $defaultOgDescription = 'Buy social media growth packs with secure wallet or card checkout.';
+                ?: ($siteName.' — digital campaigns and growth packages with secure checkout.');
+            $defaultOgDescription = 'Browse predefined campaign packages, pick a plan, and launch in minutes.';
             $pageTitle = trim($__env->yieldContent('title') ?: '');
             $resolvedTitle = $pageTitle !== '' ? ($pageTitle.' | '.$siteName) : $siteName;
             $resolvedOgTitle = $__env->hasSection('og_title')
@@ -19,7 +19,15 @@
             $resolvedOgDescription = $__env->hasSection('og_description')
                 ? trim($__env->yieldContent('og_description'))
                 : ($__env->yieldContent('meta_description') ?: $defaultOgDescription);
-            $logoUrl = $footer->logoDarkUrl ?? asset('assets/images/white_originla_logo.png');
+            $logoUrl = $footer->logoLightUrl
+                ?? $footer->logoDarkUrl
+                ?? asset('assets/images/originla_logo.png');
+            $isHome = request()->routeIs('home');
+            $navServices = $isHome ? '#services' : route('services');
+            $navHow = $isHome ? '#how-it-works' : route('home').'#how-it-works';
+            $navCreators = $isHome ? '#creators' : route('home').'#creators';
+            $navAgents = $isHome ? '#agents' : route('home').'#agents';
+            $navFaq = $isHome ? '#faq' : route('help');
         @endphp
         <title>{{ $resolvedTitle }}</title>
         <meta name="description" content="{{ $resolvedDescription }}">
@@ -33,38 +41,44 @@
 
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @include('partials.tracking.head')
     </head>
-    <body class="bg-dark text-slate-100 font-sans selection:bg-accent selection:text-white" x-data="mobileNav" @keydown.escape.window="close()">
+    <body class="marketing-site bg-white text-slate-900 font-sans antialiased selection:bg-primary selection:text-white" x-data="mobileNav" @keydown.escape.window="close()">
         @include('partials.tracking.body-start')
-        <header class="fixed top-0 w-full z-50 glassmorphism border-b border-white/10">
-            <nav class="max-w-marketing mx-auto px-5 sm:px-6 h-20 flex items-center justify-between gap-3">
-                <a class="flex items-center gap-2 min-w-0" href="{{ route('home') }}">
-                    <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="h-10 w-auto max-w-[160px] object-contain">
-                    <span class="sr-only">{{ $siteName }}</span>
-                </a>
+        <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80">
+            <nav class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-8 min-w-0">
+                    <a class="flex items-center gap-2.5 min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg" href="{{ route('home') }}">
+                        <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="h-10 sm:h-11 w-auto max-w-[200px] sm:max-w-[220px] object-contain">
+                        <span class="sr-only">{{ $siteName }}</span>
+                    </a>
 
-                <div class="hidden lg:flex items-center space-x-8 text-sm font-medium text-slate-300">
-                    <a class="hover:text-accent transition-colors" href="{{ route('home') }}">Home</a>
-                    <a class="hover:text-accent transition-colors" href="{{ route('services') }}">Services</a>
-                    <a class="hover:text-accent transition-colors" href="{{ route('about') }}">About</a>
-                    <a class="hover:text-accent transition-colors" href="{{ route('help') }}">Help</a>
+                    <div class="hidden lg:flex items-center space-x-1 text-[15px] font-medium text-slate-600">
+                        <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors" href="{{ $navServices }}">Services</a>
+                        <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors" href="{{ $navHow }}">How It Works</a>
+                        <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors" href="{{ $navCreators }}">For Creators</a>
+                        <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors" href="{{ $navAgents }}">For Agents</a>
+                        <a class="px-3.5 py-2 rounded-md hover:text-primary hover:bg-slate-50 transition-colors" href="{{ $navFaq }}">FAQ</a>
+                    </div>
                 </div>
 
-                <div class="flex items-center gap-2 sm:gap-4 shrink-0">
+                <div class="flex items-center gap-2 sm:gap-3 shrink-0">
                     @auth
-                        <a class="text-slate-300 hover:text-white font-medium text-sm transition-colors" href="{{ route('dashboard') }}">Dashboard</a>
+                        <a class="text-[15px] font-medium text-slate-700 hover:text-slate-950 px-3 py-2 rounded-lg transition-colors" href="{{ route('dashboard') }}">Dashboard</a>
                     @else
-                        <a class="text-slate-300 hover:text-white font-medium text-sm transition-colors" href="{{ route('login') }}">Login</a>
-                        <a class="hidden lg:inline-flex bg-primary hover:bg-primary-hover px-5 py-2.5 rounded-full text-sm font-bold transition-all shadow-lg hover:scale-105 active:scale-95" href="{{ route('register') }}">Register</a>
+                        <a class="hidden sm:inline-flex text-[15px] font-medium text-slate-700 hover:text-slate-950 px-4 py-2 rounded-lg transition-colors" href="{{ route('login') }}">Log In</a>
+                        <a class="hidden sm:inline-flex items-center justify-center bg-primary hover:bg-primary-hover text-white text-[15px] font-semibold px-5 py-2.5 rounded-lg shadow-sm hover:shadow transition-all" href="{{ route('register') }}">
+                            Get Started
+                        </a>
                     @endauth
 
                     <button
                         type="button"
-                        class="lg:hidden p-2 rounded-lg text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                        class="lg:hidden p-2 rounded-lg text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                         @click="open = true"
                         :aria-expanded="open.toString()"
                         aria-controls="marketing-mobile-menu"
@@ -76,7 +90,6 @@
             </nav>
         </header>
 
-        {{-- Centered mobile nav modal (resmenu-style), not a sidebar --}}
         <div
             id="marketing-mobile-menu"
             x-show="open"
@@ -88,7 +101,7 @@
             @keydown.escape.window="close()"
         >
             <div
-                class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
                 x-show="open"
                 x-transition:enter="transition ease-out duration-300"
                 x-transition:enter-start="opacity-0"
@@ -100,7 +113,7 @@
             ></div>
 
             <div
-                class="relative w-full max-w-sm overflow-hidden rounded-2xl border border-white/10 bg-elevated shadow-2xl"
+                class="relative w-full max-w-sm overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
                 x-show="open"
                 x-transition:enter="transition ease-out duration-300"
                 x-transition:enter-start="opacity-0 scale-[0.92] -translate-y-4"
@@ -110,13 +123,13 @@
                 x-transition:leave-end="opacity-0 scale-[0.92] -translate-y-4"
                 @click.stop
             >
-                <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                     <a class="flex items-center gap-2" href="{{ route('home') }}" @click="close()">
-                        <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="h-8 w-auto max-w-[140px] object-contain">
+                        <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="h-10 w-auto max-w-[180px] object-contain">
                     </a>
                     <button
                         type="button"
-                        class="p-2 rounded-xl text-slate-400 hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                        class="p-2 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                         @click="close()"
                         aria-label="Close menu"
                     >
@@ -125,96 +138,84 @@
                 </div>
 
                 <nav class="flex flex-col p-4 gap-1">
-                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-200 hover:bg-primary/15 hover:text-accent transition-colors" href="{{ route('home') }}" @click="close()">Home</a>
-                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-200 hover:bg-primary/15 hover:text-accent transition-colors" href="{{ route('services') }}" @click="close()">Services</a>
-                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-200 hover:bg-primary/15 hover:text-accent transition-colors" href="{{ route('about') }}" @click="close()">About</a>
-                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-200 hover:bg-primary/15 hover:text-accent transition-colors" href="{{ route('help') }}" @click="close()">Help</a>
+                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navServices }}" @click="close()">Services</a>
+                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navHow }}" @click="close()">How It Works</a>
+                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navCreators }}" @click="close()">For Creators</a>
+                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navAgents }}" @click="close()">For Agents</a>
+                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ $navFaq }}" @click="close()">FAQ</a>
+                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ route('about') }}" @click="close()">About</a>
+                    <a class="px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors" href="{{ route('help') }}" @click="close()">Help</a>
 
                     @auth
-                        <a class="mt-2 px-4 py-3 rounded-xl text-sm font-bold text-center border border-white/15 text-slate-100 hover:bg-white/5 transition-colors" href="{{ route('dashboard') }}" @click="close()">Dashboard</a>
+                        <a class="mt-2 px-4 py-3 rounded-xl text-sm font-bold text-center border border-slate-200 text-slate-800 hover:bg-slate-50 transition-colors" href="{{ route('dashboard') }}" @click="close()">Dashboard</a>
                     @else
-                        <a class="mt-2 px-4 py-3 rounded-xl bg-primary text-white text-sm font-bold text-center hover:bg-primary-hover transition-colors" href="{{ route('register') }}" @click="close()">Register</a>
+                        <a class="mt-2 px-4 py-3 rounded-xl text-sm font-medium text-center text-slate-700 hover:bg-slate-50 transition-colors" href="{{ route('login') }}" @click="close()">Log In</a>
+                        <a class="px-4 py-3 rounded-xl bg-primary text-white text-sm font-bold text-center hover:bg-primary-hover transition-colors" href="{{ route('register') }}" @click="close()">Get Started</a>
                     @endauth
                 </nav>
             </div>
         </div>
 
-        <main class="pt-20 marketing-main" style="padding-bottom: clamp(5rem, 10vw, 8rem);">
+        <main class="marketing-main">
             @yield('content')
         </main>
 
-        <footer class="bg-slate-950 pt-16 sm:pt-20 pb-10 border-t border-white/5 mt-0">
-            <div class="max-w-marketing mx-auto px-5 sm:px-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-                    <div>
-                        <div class="flex items-center gap-2 mb-6">
-                            <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="h-8 w-auto max-w-[160px] object-contain">
-                        </div>
-                        <p class="text-slate-500 text-sm leading-relaxed">
-                            {{ $footer->tagline ?? ($siteBranding['tagline'] ?? 'Social media growth and engagement services with clear deliverables and secure checkout.') }}
+        <footer class="bg-white border-t border-slate-200">
+            <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12 mb-12">
+                    <div class="col-span-2 md:col-span-1">
+                        <a class="inline-block mb-4" href="{{ route('home') }}">
+                            <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="h-9 w-auto max-w-[180px] object-contain">
+                        </a>
+                        <p class="text-slate-500 text-sm leading-relaxed mb-4">
+                            {{ $footer->tagline ?? ($siteBranding['tagline'] ?? 'The modern marketplace for structured digital campaigns, verified tasks, and real results.') }}
                         </p>
-                        <x-ui.social-links :links="$footer->socialLinks" class="flex flex-wrap items-center gap-3 mt-5" />
+                        <x-ui.social-links :links="$footer->socialLinks" class="flex flex-wrap items-center gap-3 mb-4" />
+                        <p class="text-xs text-slate-400">
+                            © {{ now()->year }} {{ $siteName }}. All rights reserved.
+                        </p>
                     </div>
                     <div>
-                        <h4 class="text-white font-bold mb-6 font-display">Platform</h4>
-                        <ul class="space-y-4 text-slate-500 text-sm">
-                            <li><a class="hover:text-accent transition-colors" href="{{ route('home') }}">Home</a></li>
-                            <li><a class="hover:text-accent transition-colors" href="{{ route('services') }}">Services</a></li>
-                            <li><a class="hover:text-accent transition-colors" href="{{ route('about') }}">About</a></li>
-                            <li><a class="hover:text-accent transition-colors" href="{{ route('contact') }}">Contact</a></li>
+                        <h4 class="font-bold text-slate-900 text-sm tracking-wider uppercase mb-4 font-display">Platform</h4>
+                        <ul class="space-y-2.5 text-sm text-slate-600">
+                            <li><a class="hover:text-primary transition-colors" href="{{ route('services') }}">Services</a></li>
+                            <li><a class="hover:text-primary transition-colors" href="{{ route('home') }}#how-it-works">How It Works</a></li>
+                            <li><a class="hover:text-primary transition-colors" href="{{ route('home') }}#creators">For Creators</a></li>
+                            <li><a class="hover:text-primary transition-colors" href="{{ route('home') }}#agents">For Agents</a></li>
+                            <li><a class="hover:text-primary transition-colors" href="{{ route('help') }}">FAQ</a></li>
                         </ul>
                     </div>
                     <div>
-                        <h4 class="text-white font-bold mb-6 font-display">Support</h4>
-                        <ul class="space-y-4 text-slate-500 text-sm">
-                            <li><a class="hover:text-accent transition-colors" href="{{ route('help') }}">Help Center</a></li>
-                            <li><a class="hover:text-accent transition-colors" href="{{ route('contact') }}">Contact Us</a></li>
-                            <li>
-                                <a class="hover:text-accent transition-colors" href="{{ auth()->check() ? route('dashboard.support.create') : route('login') }}">
-                                    Open a ticket
-                                </a>
-                            </li>
+                        <h4 class="font-bold text-slate-900 text-sm tracking-wider uppercase mb-4 font-display">Support</h4>
+                        <ul class="space-y-2.5 text-sm text-slate-600">
+                            <li><a class="hover:text-primary transition-colors" href="{{ route('help') }}">Help Center</a></li>
+                            <li><a class="hover:text-primary transition-colors" href="{{ route('contact') }}">Contact</a></li>
+                            <li><a class="hover:text-primary transition-colors" href="{{ route('legal', ['doc' => 'terms']) }}">Terms of Service</a></li>
+                            <li><a class="hover:text-primary transition-colors" href="{{ route('legal', ['doc' => 'privacy']) }}">Privacy Policy</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-900 text-sm tracking-wider uppercase mb-4 font-display">Account</h4>
+                        <ul class="space-y-2.5 text-sm text-slate-600">
                             @auth
-                                <li><a class="hover:text-accent transition-colors" href="{{ route('dashboard.support.index') }}">My tickets</a></li>
-                                <li><a class="hover:text-accent transition-colors" href="{{ route('dashboard') }}">Dashboard</a></li>
+                                <li><a class="hover:text-primary transition-colors" href="{{ route('dashboard') }}">Dashboard</a></li>
+                                <li><a class="hover:text-primary transition-colors" href="{{ route('dashboard.support.create') }}">Open a ticket</a></li>
                             @else
-                                <li><a class="hover:text-accent transition-colors" href="{{ route('login') }}">Login</a></li>
-                                <li><a class="hover:text-accent transition-colors" href="{{ route('register') }}">Register</a></li>
+                                <li><a class="hover:text-primary transition-colors" href="{{ route('login') }}">Log In</a></li>
+                                <li><a class="hover:text-primary transition-colors" href="{{ route('register') }}">Register</a></li>
+                                <li><a class="hover:text-primary transition-colors" href="{{ route('register') }}">Creator Portal</a></li>
+                                <li><a class="hover:text-primary transition-colors" href="{{ route('register.agent') }}">Agent Dashboard</a></li>
                             @endauth
-                        </ul>
-                        @php
-                            $fc = $footer->contact ?? [];
-                            $footerPhone = $fc['phone_support'] ?? $fc['phone_general'] ?? '';
-                            $footerEmail = $fc['email_support'] ?? $fc['email_info'] ?? '';
-                        @endphp
-                        @if($footerPhone !== '' || $footerEmail !== '')
-                            <ul class="mt-6 space-y-2 text-slate-500 text-sm">
-                                @if($footerPhone !== '')
-                                    <li><a class="hover:text-accent transition-colors" href="tel:{{ preg_replace('/\s+/', '', $footerPhone) }}">{{ $footerPhone }}</a></li>
-                                @endif
-                                @if($footerEmail !== '')
-                                    <li><a class="hover:text-accent transition-colors break-all" href="mailto:{{ $footerEmail }}">{{ $footerEmail }}</a></li>
-                                @endif
-                            </ul>
-                        @endif
-                    </div>
-                    <div>
-                        <h4 class="text-white font-bold mb-6 font-display">Legal</h4>
-                        <ul class="space-y-4 text-slate-500 text-sm">
-                            <li><a class="hover:text-accent transition-colors" href="{{ route('legal') }}">Legal hub</a></li>
-                            <li><a class="hover:text-accent transition-colors" href="{{ route('legal', ['doc' => 'terms']) }}">Terms of Service</a></li>
-                            <li><a class="hover:text-accent transition-colors" href="{{ route('legal', ['doc' => 'privacy']) }}">Privacy Policy</a></li>
                         </ul>
                     </div>
                 </div>
 
-                <div class="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-slate-600 text-xs font-bold uppercase tracking-wider">
-                    <p>© {{ now()->year }} {{ $siteName }}. All rights reserved.</p>
-                    <div class="flex flex-wrap justify-center gap-6">
-                        <a class="hover:text-white transition-colors" href="{{ route('legal', ['doc' => 'terms']) }}">Terms</a>
-                        <a class="hover:text-white transition-colors" href="{{ route('legal', ['doc' => 'privacy']) }}">Privacy</a>
-                        <a class="hover:text-white transition-colors" href="{{ route('help') }}">Help</a>
-                        <a class="hover:text-white transition-colors" href="{{ route('contact') }}">Contact</a>
+                <div class="pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+                    <p>Verified delivery and fixed predefined campaign packages.</p>
+                    <div class="flex flex-wrap items-center justify-center gap-4">
+                        <a class="hover:text-slate-600 transition-colors" href="{{ route('legal') }}">Legal</a>
+                        <a class="hover:text-slate-600 transition-colors" href="{{ route('help') }}">Help</a>
+                        <a class="hover:text-slate-600 transition-colors" href="{{ route('contact') }}">Contact</a>
                     </div>
                 </div>
             </div>
@@ -237,4 +238,3 @@
         @RegisterServiceWorkerScript
     </body>
 </html>
-

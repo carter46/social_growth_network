@@ -96,34 +96,7 @@ class ServiceController extends Controller
             $categoryId = null;
         }
 
-        // Prefer service cards over a flat product grid when no filters (including single-service groups).
-        if ($this->browse->usesDbHierarchy() && $typeFilter === '' && $q === '' && ! $categoryId) {
-            $serviceCategory = $this->browse->findServiceCategory($group);
-            $typeCards = $this->browse->serviceCardsForCategory(
-                $serviceCategory->load([
-                    'services.cardMedia.variants',
-                    'services.bannerMedia.variants',
-                    'services.serviceCategory.cardMedia.variants',
-                    'services.serviceCategory.bannerMedia.variants',
-                ]),
-                $this->content,
-            );
-
-            return view('pages.services-group', [
-                'groupSlug' => $group,
-                'content' => $resolved,
-                'typeKeys' => $typeKeys,
-                'typeCards' => $typeCards,
-                'categories' => $categories,
-                'products' => null,
-                'filters' => [
-                    'q' => $q,
-                    'category' => null,
-                    'type' => null,
-                ],
-            ]);
-        }
-
+        // Always list products on the category page (skip intermediate service cards).
         $products = PlatformProduct::query()
             ->visibleToPublic()
             ->ofTypeMany($activeTypes)
@@ -146,6 +119,7 @@ class ServiceController extends Controller
             'groupSlug' => $group,
             'content' => $resolved,
             'typeKeys' => $typeKeys,
+            'typeCards' => collect(),
             'categories' => $categories,
             'products' => $products,
             'filters' => [

@@ -22,8 +22,8 @@
         }
     }
 @endphp
-{{-- Full-bleed compact page hero. Extra top padding clears the fixed h-20 nav. --}}
-<header class="relative isolate overflow-hidden border-b border-white/10 pt-32 sm:pt-36 pb-10 sm:pb-12 mb-8 sm:mb-10">
+{{-- Compact page hero. Sticky marketing nav sits above this in document flow. --}}
+<header class="relative isolate overflow-hidden border-b border-slate-200 pt-10 sm:pt-12 pb-10 sm:pb-12 mb-8 sm:mb-10">
     {{-- Decorative gradient base first, photo above it — .marketing-page-hero-bg is opaque and must not cover the image --}}
     <div class="pointer-events-none absolute inset-0 z-0 marketing-page-hero-bg" aria-hidden="true"></div>
     <div

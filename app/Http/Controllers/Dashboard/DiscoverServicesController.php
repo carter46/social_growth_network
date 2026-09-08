@@ -85,39 +85,6 @@ class DiscoverServicesController extends Controller
                 return $this->browseType($request, $typeFilter, $segment, $resolved);
             }
 
-            if ($category && $typeFilter === '' && $request->string('q')->toString() === '') {
-                $typeCards = $this->browse->serviceCardsForCategory(
-                    $category->load([
-                        'services.cardMedia.variants',
-                        'services.bannerMedia.variants',
-                        'services.serviceCategory.cardMedia.variants',
-                        'services.serviceCategory.bannerMedia.variants',
-                    ]),
-                    $this->content,
-                )
-                    ->map(function (array $card) use ($segment) {
-                        $card['href'] = route('dashboard.services.browse', [
-                            'segment' => $segment,
-                            'type' => $card['slug'],
-                        ]);
-
-                        return $card;
-                    });
-
-                $this->activity->record($user->id, 'viewed', null, 'services.browse.'.$segment);
-
-                return view('dashboard.user.discover.services-browse', [
-                    'segment' => $segment,
-                    'title' => $resolved['label'] ?? $segment,
-                    'subtitle' => $resolved['short_description'] ?? null,
-                    'typeCards' => $typeCards,
-                    'products' => null,
-                    'filters' => ['q' => '', 'type' => null],
-                    'typeKeys' => $typeKeys,
-                    'wallet' => $user->wallet,
-                ]);
-            }
-
             return $this->browseProducts($request, $typeKeys, $segment, $resolved, $typeFilter !== '' ? $typeFilter : null);
         }
 

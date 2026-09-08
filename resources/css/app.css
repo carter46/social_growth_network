@@ -36,22 +36,56 @@
     --th-icon-bg: rgba(180, 197, 255, 0.18);
     --th-icon-fg: #b4c5ff;
     --th-primary: #2563eb;
-    --th-primary-hover: #3b82f6;
-    --th-accent: #b4c5ff;
-    --th-success: #68dba9;
+    --th-primary-hover: #1d4ed8;
+    --th-accent: #2563eb;
+    --th-success: #059669;
     --th-danger: #ba1a1a;
     --th-warning: #f59e0b;
     --th-surface-rgb: 11 18 32;
     --th-elevated-rgb: 21 34 56;
     --th-muted-rgb: 42 53 72;
     --th-primary-rgb: 37 99 235;
-    --th-primary-hover-rgb: 59 130 246;
-    --th-accent-rgb: 180 197 255;
+    --th-primary-hover-rgb: 29 78 216;
+    --th-accent-rgb: 37 99 235;
     --th-success-rgb: 104 219 169;
     --th-danger-rgb: 186 26 26;
     --th-chart-bg: #0b1220;
     --th-chart-grid: #2a3548;
     --th-chart-labels: #a8b0c0;
+}
+
+/* Public marketing shell — light TaskPulse marketplace branding */
+body.marketing-site {
+    --th-surface: #ffffff;
+    --th-surface-secondary: #f8fafc;
+    --th-elevated: #ffffff;
+    --th-card: #ffffff;
+    --th-muted: #f1f5f9;
+    --th-border-default: #e2e8f0;
+    --th-border-subtle: #f1f5f9;
+    --th-text-primary: #0f172a;
+    --th-text-secondary: #475569;
+    --th-text-muted: #64748b;
+    --th-overlay: rgba(15, 23, 42, 0.45);
+    --th-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    --th-surface-rgb: 255 255 255;
+    --th-elevated-rgb: 255 255 255;
+    --th-muted-rgb: 241 245 249;
+    color: #0f172a;
+    background-color: #ffffff;
+}
+
+body.marketing-site h1,
+body.marketing-site h2,
+body.marketing-site h3,
+body.marketing-site h4,
+body.marketing-site h5,
+body.marketing-site h6 {
+    font-family: 'Plus Jakarta Sans', Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.hero-slide {
+    transition: opacity 0.8s ease-in-out;
 }
 
 /* Dashboard-only polished transitions (scoped — not universal *) */
