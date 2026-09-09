@@ -23,7 +23,7 @@ return [
                 ['type' => 'paragraph', 'content' => 'Open Services to explore campaign categories and predefined packages. Each product page explains deliverables, package tiers, and what Creators must provide (target URL, guidelines, and any geo or audience notes).'],
                 ['type' => 'bullets', 'items' => [
                     'Packages are structured campaign offers — not one-off “do anything” gigs.',
-                    'Pricing and completion rules are shown before checkout so Creators know what they are funding.',
+                    'Pricing and completion rules are shown before you pay so Creators know what they are funding.',
                     'Agents see eligible tasks that match active campaigns once work is available in the marketplace.',
                 ]],
             ],
@@ -36,10 +36,10 @@ return [
                 ['type' => 'checklist', 'items' => [
                     'Select the service and package tier that matches your goal.',
                     'Enter your target URL and clear completion instructions for Agents.',
-                    'Review the order summary, then pay with wallet balance or another enabled checkout method.',
+                    'Review the order summary, then pay with wallet balance or another enabled payment method.',
                     'Monitor progress and proof outcomes from your dashboard after payment clears.',
                 ]],
-                ['type' => 'important', 'title' => 'Secure checkout', 'content' => 'Campaign funds are held securely until tasks are completed and verified against your requirements. Invalid or incomplete proof can be rejected so you are not charged for work that does not meet the package rules.'],
+                ['type' => 'important', 'title' => 'Secure payment', 'content' => 'Campaign funds are held securely until tasks are completed and verified against your requirements. Invalid or incomplete proof can be rejected so you are not charged for work that does not meet the package rules.'],
             ],
         ],
         [
@@ -75,7 +75,7 @@ return [
             'nav' => 'Track progress',
             'title' => 'Tracking orders and progress',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'After checkout, Creators follow campaign status and completions from the dashboard (orders and related campaign views). Agents track claimed tasks, proof status, and earnings from their Agent dashboard.'],
+                ['type' => 'paragraph', 'content' => 'After payment, Creators follow campaign status and completions from the dashboard (orders and related campaign views). Agents track claimed tasks, proof status, and earnings from their Agent dashboard.'],
                 ['type' => 'tip', 'title' => 'Need help?', 'content' => 'Payment or proof disputes should go through support tickets so the operations desk can review wallet and submission records.'],
             ],
         ],

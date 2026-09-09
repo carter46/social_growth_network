@@ -4,8 +4,8 @@ return [
     'slug' => 'for-creators',
     'category_key' => 'creators',
     'title' => 'For Creators',
-    'intro' => 'Launch campaign packages, set clear requirements, fund checkout, and track verified progress from your dashboard.',
-    'summary' => 'Creators buy predefined campaign packages, provide a target URL and instructions, pay at secure checkout, and monitor task completion without managing Agents one by one.',
+    'intro' => 'Launch campaign packages, set clear requirements, pay securely, and track verified progress from your dashboard.',
+    'summary' => 'Creators buy predefined campaign packages, provide a target URL and instructions, complete secure payment, and monitor task completion without managing Agents one by one.',
     'updated_at' => '2026-09-09',
     'hero_image' => 'assets/images/homeslider1.jpg',
     'printable' => true,
@@ -21,7 +21,7 @@ return [
             'nav' => 'Overview',
             'title' => 'What Creators do',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'As a Creator you choose a campaign service, pick a predefined package tier, describe what Agents must complete, and fund the order through Platform checkout.'],
+                ['type' => 'paragraph', 'content' => 'As a Creator you choose a campaign service, pick a predefined package tier, describe what Agents must complete, and pay through the Platform.'],
                 ['type' => 'bullets', 'items' => [
                     'You do not pay Agents directly outside the Platform.',
                     'Clear instructions and realistic proof requirements speed up verification.',
@@ -37,7 +37,7 @@ return [
                 ['type' => 'checklist', 'items' => [
                     'Open Services and select the package that matches your goal.',
                     'Enter your target URL and completion guidelines.',
-                    'Confirm the order summary and complete secure checkout.',
+                    'Confirm the order summary and complete secure payment.',
                     'Track completions and proof outcomes from your dashboard.',
                 ]],
             ],
@@ -52,8 +52,8 @@ return [
             ],
         ],
         [
-            'id' => 'after-checkout',
-            'nav' => 'After checkout',
+            'id' => 'after-payment',
+            'nav' => 'After payment',
             'title' => 'After you pay',
             'blocks' => [
                 ['type' => 'paragraph', 'content' => 'Funds stay protected until verified task completion. Invalid proof can be rejected so you are not charged for work that misses your package rules. Use support tickets for payment or proof disputes with your order references attached.'],

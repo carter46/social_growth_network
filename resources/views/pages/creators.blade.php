@@ -151,7 +151,7 @@
             @foreach([
                 ['n' => '01', 'icon' => 'category', 'title' => 'Choose a Service', 'body' => 'Browse catalog options across our live campaign categories and choose the package that matches your goal.', 'note' => 'Browse live:', 'noteBody' => 'Pick a category, then select a predefined package with clear pricing.', 'tone' => 'text-primary'],
                 ['n' => '02', 'icon' => 'tune', 'title' => 'Set Up Your Campaign', 'body' => 'Enter your target URL or channel, choose your predefined tier, and set any custom submission instructions.', 'note' => 'Precision criteria:', 'noteBody' => 'Duration targets, destination links, and clear package requirements.', 'tone' => 'text-primary'],
-                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Launch & Track', 'body' => 'Pay securely at checkout. Our verified agent network executes the tasks while you monitor progress from your dashboard.', 'note' => 'Protection:', 'noteBody' => 'Payouts release after submissions pass verification.', 'tone' => 'text-emerald-700'],
+                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Launch & Track', 'body' => 'Pay securely when you fund your campaign. Our verified agent network executes the tasks while you monitor progress from your dashboard.', 'note' => 'Protection:', 'noteBody' => 'Payouts release after submissions pass verification.', 'tone' => 'text-emerald-700'],
             ] as $step)
                 <div class="bg-slate-50 p-6 sm:p-8 rounded-2xl flex flex-col">
                     <div class="flex items-center justify-between mb-8">
@@ -182,7 +182,7 @@
                 <div class="hidden sm:block absolute bottom-6 sm:bottom-8 right-4 lg:right-6 bg-white p-4 rounded-xl shadow-lg max-w-[15rem] border border-slate-100 z-10">
                     <div class="flex items-start gap-2 mb-1.5">
                         <span class="material-symbols-outlined text-primary text-[20px] shrink-0" aria-hidden="true">lock</span>
-                        <span class="text-sm font-semibold text-slate-900 leading-snug">Secure checkout</span>
+                        <span class="text-sm font-semibold text-slate-900 leading-snug">Secure payment</span>
                     </div>
                     <p class="text-sm text-slate-600 leading-relaxed">
                         Agent payouts stay protected until submissions pass verification.
@@ -201,7 +201,7 @@
                     @foreach([
                         'Choose your predefined package with clear upfront pricing',
                         'Specify custom completion instructions and target links',
-                        'Secure checkout with payouts after verification',
+                        'Secure payment with payouts after verification',
                         'Live progress tracking and downloadable submission logs',
                         'Instant pause, resume, or scale controls',
                     ] as $item)
@@ -248,7 +248,7 @@
                         $slug = $card['slug'] ?? '';
                         $label = $card['label'] ?? $slug;
                         $href = $card['href'] ?? route('services', array_filter(['category' => $slug ?: null]));
-                        $body = $card['short_description'] ?? $card['hero_subtitle'] ?? 'Predefined packages with upfront pricing and secure checkout.';
+                        $body = $card['short_description'] ?? $card['hero_subtitle'] ?? 'Predefined packages with upfront pricing and secure payment.';
                         $image = $card['card_image'] ?? $card['banner_image'] ?? $card['image'] ?? null;
                         $icon = $categoryIcons[$slug] ?? ($card['icon'] ?? 'category');
                         $badgeClass = $categoryBadgeTones[$slug] ?? 'text-primary';
@@ -324,7 +324,7 @@
                     </h3>
                     <div class="flex flex-col gap-3">
                         @foreach([
-                            ['icon' => 'check_circle', 'bg' => 'bg-primary', 'title' => '1. Campaign Launched', 'meta' => 'Immediate', 'metaClass' => 'text-emerald-600', 'body' => 'Tier selected, target criteria assigned, and payment secured at checkout.'],
+                            ['icon' => 'check_circle', 'bg' => 'bg-primary', 'title' => '1. Campaign Launched', 'meta' => 'Immediate', 'metaClass' => 'text-emerald-600', 'body' => 'Tier selected, target criteria assigned, and payment secured when you pay.'],
                             ['icon' => 'hub', 'bg' => 'bg-primary', 'title' => '2. Distributed to Verified Agents', 'meta' => 'Auto-Dispatched', 'metaClass' => 'text-primary', 'body' => 'Matched instantly with high-reputation human agents based on platform tiering.'],
                             ['icon' => 'fact_check', 'bg' => 'bg-emerald-600', 'title' => '3. Proof Submitted & Inspected', 'meta' => 'Real-Time Validation', 'metaClass' => 'text-emerald-600', 'body' => 'Submissions checked via automated screenshot hashing and telemetry audits.'],
                             ['icon' => 'verified', 'bg' => 'bg-emerald-600', 'title' => '4. Milestone 100% Completed', 'meta' => 'Payout Released', 'metaClass' => 'text-emerald-600', 'body' => 'Clean telemetry exports ready, and agent payouts release after verification.'],

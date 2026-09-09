@@ -23,7 +23,7 @@ return [
         'short_name' => 'Social Growth',
         'background_color' => '#F8F9FF',
         'display' => 'standalone',
-        'description' => 'Social media growth and engagement services with secure checkout.',
+        'description' => 'Social media growth and engagement services with secure payment.',
         'theme_color' => '#004AC6',
         'start_url' => '/',
         'scope' => '/',

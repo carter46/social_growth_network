@@ -1,6 +1,6 @@
 @extends('layouts.marketing')
 
-@section('title', 'Checkout | '.$product->title)
+@section('title', 'Complete payment | '.$product->title)
 
 @section('content')
 @php
@@ -13,7 +13,7 @@
 @endphp
 <section class="py-14 sm:py-20">
     <div class="max-w-form mx-auto px-5 sm:px-6">
-        <h1 class="text-3xl font-bold font-display mb-2">Checkout</h1>
+        <h1 class="text-3xl font-bold font-display mb-2">Complete payment</h1>
         <p class="text-slate-400 mb-8">{{ $product->title }}</p>
 
         <form
@@ -63,7 +63,7 @@
                             <option value="connect">Connect existing domain</option>
                         </select>
                         <input type="text" name="domain_name" x-show="domainMode !== 'none'" placeholder="example.com" class="w-full rounded-xl bg-slate-900/60 border-white/10">
-                        <p class="text-xs text-slate-500 mt-2">Search availability and live pricing are provided at checkout.</p>
+                        <p class="text-xs text-slate-500 mt-2">Search availability and live pricing are provided during payment.</p>
                     </div>
                 @else
                     <input type="hidden" name="domain_mode" value="none">
@@ -80,7 +80,7 @@
 
                 <button type="submit" class="w-full py-3 rounded-xl bg-primary hover:bg-primary-hover font-bold">Pay from wallet</button>
             @else
-                <p class="text-slate-400">Please <a href="{{ route('login') }}" class="text-accent underline">log in</a> to checkout.</p>
+                <p class="text-slate-400">Please <a href="{{ route('login') }}" class="text-accent underline">log in</a> to pay.</p>
             @endauth
         </form>
     </div>

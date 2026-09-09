@@ -10,52 +10,21 @@
         $heroBg = asset('assets/images/homeslider1.jpg');
     }
 
-    $toneStyles = [
-        'primary' => [
-            'card' => 'bg-primary/5 border-primary/20 hover:border-primary/40',
-            'icon' => 'bg-primary text-white',
-            'badge' => 'bg-primary/15 text-primary',
-            'link' => 'text-primary',
-        ],
-        'amber' => [
-            'card' => 'bg-amber-50 border-amber-200 hover:border-amber-300',
-            'icon' => 'bg-amber-500 text-white',
-            'badge' => 'bg-amber-100 text-amber-800',
-            'link' => 'text-amber-800',
-        ],
-        'emerald' => [
-            'card' => 'bg-emerald-50 border-emerald-200 hover:border-emerald-300',
-            'icon' => 'bg-emerald-600 text-white',
-            'badge' => 'bg-emerald-100 text-emerald-800',
-            'link' => 'text-emerald-800',
-        ],
-        'sky' => [
-            'card' => 'bg-sky-50 border-sky-200 hover:border-sky-300',
-            'icon' => 'bg-sky-600 text-white',
-            'badge' => 'bg-sky-100 text-sky-800',
-            'link' => 'text-sky-800',
-        ],
-        'violet' => [
-            'card' => 'bg-violet-50 border-violet-200 hover:border-violet-300',
-            'icon' => 'bg-violet-600 text-white',
-            'badge' => 'bg-violet-100 text-violet-800',
-            'link' => 'text-violet-800',
-        ],
-        'rose' => [
-            'card' => 'bg-rose-50 border-rose-200 hover:border-rose-300',
-            'icon' => 'bg-rose-500 text-white',
-            'badge' => 'bg-rose-100 text-rose-800',
-            'link' => 'text-rose-800',
-        ],
+    $toneIcon = [
+        'primary' => 'bg-primary/10 text-primary',
+        'amber' => 'bg-amber-50 text-amber-600',
+        'emerald' => 'bg-emerald-50 text-emerald-700',
+        'sky' => 'bg-sky-50 text-sky-700',
+        'violet' => 'bg-violet-50 text-violet-700',
+        'rose' => 'bg-rose-50 text-rose-600',
     ];
 
-    $resolvedCategories = collect($categories)->map(function (array $cat) use ($toneStyles) {
+    $resolvedCategories = collect($categories)->map(function (array $cat) use ($toneIcon) {
         $slug = $cat['article'] ?? $cat['key'] ?? null;
-        $tone = $toneStyles[$cat['tone'] ?? 'primary'] ?? $toneStyles['primary'];
 
         return array_merge($cat, [
             'resolved_href' => $slug ? route('help.article', $slug) : route('help'),
-            'styles' => $tone,
+            'icon_class' => $toneIcon[$cat['tone'] ?? 'primary'] ?? $toneIcon['primary'],
             'material_icon' => $cat['icon'] ?? 'help',
         ]);
     })->values();
@@ -66,11 +35,8 @@
 
     $quickTopics = [
         'Fund Wallet',
-        'Monnify Checkout',
-        'Buying a Service',
         'Proof Submission',
         'KYC Verification',
-        'Verified Payouts',
     ];
 @endphp
 
@@ -144,34 +110,24 @@
     class="w-full bg-white"
 >
 
-{{-- Hero with full-bleed background + home-style search --}}
-<section class="relative w-full min-h-[70vh] sm:min-h-[75vh] flex items-end sm:items-center overflow-hidden">
+{{-- Hero: fill viewport below sticky header (same as home) --}}
+<section class="home-hero relative flex items-center overflow-hidden bg-navy-dark">
     <div class="absolute inset-0 z-0">
         <img src="{{ $heroBg }}" alt="" class="w-full h-full object-cover object-center" loading="eager">
-        <div class="absolute inset-0 bg-gradient-to-r from-slate-950/75 via-slate-900/55 to-slate-900/35" aria-hidden="true"></div>
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-black/15" aria-hidden="true"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-slate-950/55 via-slate-900/35 to-slate-900/20" aria-hidden="true"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/50 via-transparent to-black/10" aria-hidden="true"></div>
     </div>
 
-    <div class="relative z-10 max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20 w-full">
-        <div class="flex flex-wrap items-center gap-1.5 text-sm text-slate-300 mb-4">
-            <a href="{{ route('home') }}" class="hover:text-white transition-colors">Home</a>
-            <span class="text-slate-500">/</span>
-            <span class="text-white font-semibold">Help Center</span>
-        </div>
-
-        <div class="max-w-3xl">
-            <div class="inline-flex items-center gap-2 px-3 py-1 bg-primary/90 text-white rounded-full text-[11px] font-bold uppercase tracking-wider mb-4 shadow-sm">
-                <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse" aria-hidden="true"></span>
-                Knowledge Base
-            </div>
-            <h1 class="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-3 leading-tight">
+    <div class="relative z-10 max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16 w-full">
+        <div class="max-w-3xl w-full">
+            <h1 class="font-display text-3xl sm:text-4xl md:text-5xl lg:text-[54px] font-extrabold text-white tracking-tight leading-[1.15] mb-4 sm:mb-5">
                 How can we help you today?
             </h1>
-            <p class="text-base sm:text-lg text-slate-100/90 mb-8 leading-relaxed max-w-2xl">
+            <p class="text-base sm:text-lg lg:text-xl text-slate-100/90 font-normal leading-relaxed mb-6 sm:mb-8 max-w-2xl">
                 Guides for Creators, Agents, wallets, proof, and account security.
             </p>
 
-            <div class="relative w-full max-w-2xl mb-5">
+            <div class="relative w-full max-w-2xl mb-6">
                 <div class="w-full bg-white/45 backdrop-blur-md border border-white/40 rounded-xl p-1.5 shadow-xl flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5">
                     <div class="flex items-center gap-2 px-3 py-2 w-full min-w-0">
                         <span class="material-symbols-outlined text-slate-600/80 shrink-0" aria-hidden="true">search</span>
@@ -246,50 +202,34 @@
     </div>
 </section>
 
-{{-- Compact status strip --}}
-<section class="w-full bg-emerald-600 text-white">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3 text-sm">
-        <div class="inline-flex items-center gap-2 font-semibold">
-            <span class="w-2 h-2 rounded-full bg-white animate-pulse" aria-hidden="true"></span>
-            Platform operational
-        </div>
-        <div class="flex flex-wrap gap-4 text-emerald-50 text-xs sm:text-sm">
-            <span>Support desk · avg. &lt; 8 mins</span>
-            <span class="hidden sm:inline">Monnify settlements active</span>
-        </div>
-    </div>
-</section>
-
-{{-- Categories: 3 columns × 6 compact colorful cards --}}
-<section class="bg-slate-50 border-b border-slate-100">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-        <div class="mb-8">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-wider mb-2">
-                Browse topics
-            </span>
-            <h2 class="font-display text-2xl sm:text-3xl font-bold text-slate-900">Help categories</h2>
-            <p class="text-sm text-slate-600 mt-1 max-w-xl">Six focused guides — pick the path that matches what you need.</p>
+{{-- Categories --}}
+<section class="w-full bg-white border-b border-slate-100">
+    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
+        <div class="mb-10">
+            <span class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-2 block">Browse topics</span>
+            <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Help categories</h2>
+            <p class="text-slate-600 text-base sm:text-lg mt-2 max-w-xl">Six focused guides — pick the path that matches what you need.</p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             @foreach($resolvedCategories as $cat)
                 <a
                     href="{{ $cat['resolved_href'] }}"
-                    class="group rounded-2xl border p-5 sm:p-6 transition-all hover:shadow-md {{ $cat['styles']['card'] }} flex flex-col h-full"
+                    class="group bg-white rounded-2xl border border-slate-100 p-5 sm:p-6 shadow-sm hover:shadow-md hover:border-slate-200 transition-all flex flex-col h-full"
                 >
                     <div class="flex items-start justify-between gap-3 mb-4">
-                        <div class="w-11 h-11 rounded-xl {{ $cat['styles']['icon'] }} flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <div class="w-11 h-11 rounded-xl {{ $cat['icon_class'] }} flex items-center justify-center group-hover:scale-105 transition-transform">
                             <span class="material-symbols-outlined text-2xl" aria-hidden="true">{{ $cat['material_icon'] }}</span>
                         </div>
                         @if(! empty($cat['badge']))
-                            <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full {{ $cat['styles']['badge'] }}">
+                            <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-50 text-slate-600 border border-slate-100">
                                 {{ $cat['badge'] }}
                             </span>
                         @endif
                     </div>
                     <h3 class="font-display text-lg font-bold text-slate-900 mb-1.5">{{ $cat['title'] }}</h3>
                     <p class="text-sm text-slate-600 leading-relaxed flex-1 mb-4">{{ $cat['description'] }}</p>
-                    <span class="inline-flex items-center gap-1 text-sm font-semibold {{ $cat['styles']['link'] }}">
+                    <span class="inline-flex items-center gap-1 text-sm font-semibold text-primary">
                         {{ $cat['cta'] }}
                         <span class="material-symbols-outlined text-base transition-transform group-hover:translate-x-0.5" aria-hidden="true">arrow_forward</span>
                     </span>
@@ -301,21 +241,19 @@
 
 {{-- FAQ --}}
 @if(count($faqs))
-<section id="faqs" class="bg-white scroll-mt-24">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+<section id="faqs" class="w-full bg-slate-50 border-b border-slate-100 scroll-mt-24">
+    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
         <div class="max-w-3xl mx-auto">
-            <div class="text-center mb-8">
-                <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold uppercase tracking-wider mb-2">
-                    FAQ
-                </span>
-                <h2 class="font-display text-2xl sm:text-3xl font-bold text-slate-900">Common questions</h2>
+            <div class="text-center mb-10">
+                <span class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-2 block">FAQ</span>
+                <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Common questions</h2>
             </div>
             <div class="space-y-3">
                 @foreach($faqs as $i => $faq)
-                    <div class="bg-slate-50 rounded-xl border border-slate-100 overflow-hidden">
+                    <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
                         <button
                             type="button"
-                            class="w-full px-5 py-4 text-left flex items-center justify-between gap-4 hover:bg-slate-100/70 transition-colors"
+                            class="w-full px-5 py-4 text-left flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors"
                             @click="faqOpen = faqOpen === {{ $i }} ? -1 : {{ $i }}"
                             :aria-expanded="faqOpen === {{ $i }}"
                         >
@@ -355,92 +293,70 @@
 </section>
 @endif
 
-{{-- PWA install --}}
-<section class="bg-gradient-to-br from-primary to-sky-700 text-white">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14">
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-8">
-            <div class="max-w-2xl">
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-[11px] font-bold uppercase tracking-wider mb-3">
-                    <span class="material-symbols-outlined text-sm" aria-hidden="true">install_mobile</span>
+{{-- Install PWA — same CTA card pattern as Creators / Agents --}}
+<section class="w-full bg-white py-14 sm:py-20">
+    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-primary text-white rounded-3xl p-8 sm:p-12 lg:p-16 shadow-xl relative overflow-hidden text-center flex flex-col items-center">
+            <div class="absolute -right-20 -top-20 w-96 h-96 rounded-full bg-primary-hover/40 blur-3xl pointer-events-none" aria-hidden="true"></div>
+            <div class="absolute -left-20 -bottom-20 w-96 h-96 rounded-full bg-emerald-500/20 blur-3xl pointer-events-none" aria-hidden="true"></div>
+            <div class="relative z-10 max-w-3xl flex flex-col items-center">
+                <span class="text-[11px] font-bold uppercase tracking-widest text-blue-100 mb-3">
                     Progressive Web App
                 </span>
-                <h2 class="font-display text-2xl sm:text-3xl font-bold">
-                    Install {{ $brandName }}
+                <h2 class="font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight mb-4 text-white">
+                    Install {{ $brandName }} on your devices
                 </h2>
-                <p class="text-sm sm:text-base text-white/85 mt-2 leading-relaxed">
+                <p class="text-base sm:text-lg text-blue-100 max-w-2xl mb-8 leading-relaxed">
                     Add the app to your home screen or desktop for faster access to campaigns, tasks, and wallet updates.
                 </p>
-            </div>
-            <div class="shrink-0 flex flex-col sm:flex-row gap-3">
-                <button
-                    type="button"
-                    data-pwa-install="mobile"
-                    class="md:hidden px-5 py-2.5 bg-white text-primary hover:bg-slate-50 rounded-lg font-semibold text-sm transition-colors inline-flex items-center justify-center gap-2 shadow-sm"
-                >
-                    <span class="material-symbols-outlined text-lg" aria-hidden="true">smartphone</span>
-                    <span data-pwa-label>Download Mobile App</span>
-                </button>
-                <button
-                    type="button"
-                    data-pwa-install="desktop"
-                    class="hidden md:inline-flex px-5 py-2.5 bg-white text-primary hover:bg-slate-50 rounded-lg font-semibold text-sm transition-colors items-center justify-center gap-2 shadow-sm"
-                >
-                    <span class="material-symbols-outlined text-lg" aria-hidden="true">desktop_windows</span>
-                    <span data-pwa-label>Download Desktop App</span>
-                </button>
-            </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="bg-white/10 backdrop-blur-sm border border-white/15 rounded-xl p-5">
-                <div class="flex items-center gap-2 mb-3">
-                    <span class="material-symbols-outlined" aria-hidden="true">phone_iphone</span>
-                    <p class="font-semibold">iOS Safari</p>
+                <div class="flex flex-wrap items-center justify-center gap-3 w-full sm:w-auto">
+                    <button
+                        type="button"
+                        data-pwa-install="mobile"
+                        class="md:hidden inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-white text-primary hover:bg-slate-50 px-6 py-3 rounded-lg shadow transition-colors"
+                    >
+                        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">smartphone</span>
+                        <span data-pwa-label>Download Mobile App</span>
+                    </button>
+                    <button
+                        type="button"
+                        data-pwa-install="desktop"
+                        class="hidden md:inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-white text-primary hover:bg-slate-50 px-6 py-3 rounded-lg shadow transition-colors"
+                    >
+                        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">desktop_windows</span>
+                        <span data-pwa-label>Download Desktop App</span>
+                    </button>
                 </div>
-                <p class="text-sm text-white/80 leading-relaxed">Share → Add to Home Screen → Add.</p>
-            </div>
-            <div class="bg-white/10 backdrop-blur-sm border border-white/15 rounded-xl p-5">
-                <div class="flex items-center gap-2 mb-3">
-                    <span class="material-symbols-outlined" aria-hidden="true">android</span>
-                    <p class="font-semibold">Android Chrome</p>
+                <div class="mt-8 pt-6 flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-sm text-blue-100">
+                    <span>• iOS: Share → Add to Home Screen</span>
+                    <span>• Android: Menu → Install app</span>
+                    <span>• Desktop: Install from the address bar</span>
                 </div>
-                <p class="text-sm text-white/80 leading-relaxed">Menu → Install app / Add to home screen.</p>
-            </div>
-            <div class="bg-white/10 backdrop-blur-sm border border-white/15 rounded-xl p-5">
-                <div class="flex items-center gap-2 mb-3">
-                    <span class="material-symbols-outlined" aria-hidden="true">laptop_mac</span>
-                    <p class="font-semibold">Desktop</p>
-                </div>
-                <p class="text-sm text-white/80 leading-relaxed">Use the install icon in the address bar, then Install.</p>
             </div>
         </div>
     </div>
 </section>
 
 {{-- Support CTA --}}
-<section class="bg-white">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-        <div class="rounded-2xl bg-slate-900 text-white p-6 sm:p-8 lg:p-10 overflow-hidden relative">
-            <div class="absolute -top-16 -right-16 w-48 h-48 bg-primary/40 rounded-full blur-3xl pointer-events-none" aria-hidden="true"></div>
-            <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                <div>
-                    <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-white/10 text-[11px] font-bold uppercase tracking-wider mb-3">
-                        Support
-                    </span>
-                    <h2 class="font-display text-2xl sm:text-3xl font-bold mb-2">Still need help?</h2>
-                    <p class="text-sm text-slate-300 leading-relaxed">
-                        Open a ticket for payment or proof issues, or reach us from the Contact page.
-                    </p>
-                </div>
-                <div class="flex flex-col sm:flex-row gap-3 md:justify-end">
-                    <a href="{{ $supportHref }}" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/20 text-sm font-semibold transition-colors">
-                        <span class="material-symbols-outlined text-base" aria-hidden="true">receipt_long</span>
-                        My tickets
-                    </a>
-                    <a href="{{ route('contact') }}" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary hover:bg-primary-hover text-sm font-semibold transition-colors">
-                        <span class="material-symbols-outlined text-base" aria-hidden="true">forum</span>
-                        Contact Support
-                    </a>
-                </div>
+<section class="w-full bg-slate-50 py-14 sm:py-20 border-t border-slate-100">
+    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="w-full bg-slate-900 rounded-2xl p-8 sm:p-12 lg:p-16 text-white shadow-xl flex flex-col items-center text-center">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Support</span>
+            <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-white mt-2 max-w-2xl">
+                Still need help?
+            </h2>
+            <p class="text-base sm:text-lg text-slate-300 mt-3 max-w-xl leading-relaxed">
+                Open a ticket for payment or proof issues, or reach us from the Contact page.
+            </p>
+            <div class="flex flex-wrap items-center justify-center gap-3 mt-8">
+                <a href="{{ $supportHref }}" class="inline-flex items-center gap-1.5 font-semibold text-sm bg-white/10 hover:bg-white/15 border border-white/20 text-white px-6 py-3 rounded-xl transition-colors">
+                    <span class="material-symbols-outlined text-[18px]" aria-hidden="true">receipt_long</span>
+                    <span>My tickets</span>
+                </a>
+                <a href="{{ route('contact') }}" class="inline-flex items-center gap-1.5 font-semibold text-sm bg-primary hover:bg-primary-hover text-white px-6 py-3 rounded-xl transition-colors shadow-md">
+                    <span class="material-symbols-outlined text-[18px]" aria-hidden="true">forum</span>
+                    <span>Contact Support</span>
+                </a>
             </div>
         </div>
     </div>

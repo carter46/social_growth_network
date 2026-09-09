@@ -53,7 +53,7 @@ return [
             'key' => 'creators',
             'article' => 'for-creators',
             'title' => 'For Creators',
-            'description' => 'Pick a package, set requirements, checkout securely, and track progress.',
+            'description' => 'Pick a package, set requirements, pay securely, and track progress.',
             'icon' => 'campaign',
             'cta' => 'Open guide',
             'tone' => 'violet',
@@ -74,23 +74,23 @@ return [
     'faqs' => [
         [
             'q' => 'How do I fund my wallet?',
-            'a' => 'Open your dashboard Wallet, then use Monnify instant checkout or your dedicated reserved virtual bank account when available. Automated bank transfers usually reflect within a few minutes. Offline bank deposits are reviewed and credited by platform administrators during clearing windows.',
+            'a' => 'Open your dashboard Wallet, then use Monnify payment or your dedicated reserved virtual bank account when available. Automated bank transfers usually reflect within a few minutes. Offline bank deposits are reviewed and credited by platform administrators during clearing windows.',
             'article' => 'billing-wallets-payments',
             'section' => 'funding',
             'icon' => 'account_balance_wallet',
         ],
         [
             'q' => 'How do I buy a campaign service?',
-            'a' => 'Browse the Services catalog, select the package that fits your goal, enter your target URL and completion guidelines, then click Buy Now. Review the order summary and confirm payment using your funded wallet balance or another enabled checkout method.',
+            'a' => 'Browse the Services catalog, select the package that fits your goal, enter your target URL and completion guidelines, then click Buy Now. Review the order summary and confirm payment using your funded wallet balance or another enabled payment method.',
             'article' => 'browsing-purchasing-services',
             'section' => 'creator-launch',
-            'icon' => 'shopping_cart_checkout',
+            'icon' => 'shopping_bag',
         ],
         [
-            'q' => 'How does secure checkout protect Creators?',
+            'q' => 'How does secure payment protect Creators?',
             'a' => 'When you launch a campaign, package funds are held securely until work is completed and verified against your defined proof requirements. If an Agent submits incomplete or invalid proof, submissions can be rejected and you may receive a replacement or refund per platform rules.',
             'article' => 'billing-wallets-payments',
-            'section' => 'checkout',
+            'section' => 'payment',
             'icon' => 'verified_user',
         ],
         [

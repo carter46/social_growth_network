@@ -9,7 +9,7 @@
                     <h1 class="text-3xl font-bold text-white tracking-tight group-hover:text-accent transition-colors">{{ $siteName ?? config('app.name') }}</h1>
                 @endif
             </a>
-            <p class="text-text-secondary mt-2">{{ $siteTagline ?? 'Instagram, TikTok, YouTube, Twitter/X, and Facebook growth packs — clear deliverables, secure checkout.' }}</p>
+            <p class="text-text-secondary mt-2">{{ $siteTagline ?? 'Instagram, TikTok, YouTube, Twitter/X, and Facebook growth packs — clear deliverables, secure payment.' }}</p>
         </div>
 
         <x-ui.card class="p-8">

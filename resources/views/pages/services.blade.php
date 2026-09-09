@@ -186,7 +186,7 @@
                             <span class="material-symbols-outlined text-emerald-600 shrink-0" aria-hidden="true">verified_user</span>
                             <div>
                                 <span class="block text-sm font-semibold text-slate-900">Verified campaign packages</span>
-                                <span class="block text-xs text-slate-500 mt-1 leading-relaxed">Clear deliverables and upfront pricing before you checkout.</span>
+                                <span class="block text-xs text-slate-500 mt-1 leading-relaxed">Clear deliverables and upfront pricing before you pay.</span>
                             </div>
                         </div>
                     </div>
@@ -239,13 +239,13 @@
                 </div>
                 <div class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-sm">
                     <span class="material-symbols-outlined text-[18px]" aria-hidden="true">verified</span>
-                    No price negotiation. Transparent checkout.
+                    No price negotiation. Transparent pricing.
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-6">
                 @foreach([
                     ['Pick a package', 'Select quantity and clear fixed upfront pricing from the product page.'],
-                    ['Provide your details', 'Enter your destination link or campaign details at checkout.'],
+                    ['Provide your details', 'Enter your destination link or campaign details when you pay.'],
                     ['Secure payment', 'Pay with wallet, card, or bank transfer when those options are enabled.'],
                     ['Track progress', 'Follow your order and tools from your dashboard after purchase.'],
                 ] as $i => $step)

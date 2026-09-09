@@ -21,7 +21,7 @@ return [
             'blocks' => [
                 ['type' => 'paragraph', 'content' => 'Open Wallet in your dashboard to add Naira balance before buying campaign packages. Available methods depend on site settings and may include:'],
                 ['type' => 'bullets', 'items' => [
-                    'Monnify instant checkout (card or transfer when enabled).',
+                    'Monnify payment (card or transfer when enabled).',
                     'Dedicated reserved / virtual bank account deposits that credit after confirmation.',
                     'Manual bank transfer reviewed by administrators during clearing windows.',
                 ]],
@@ -29,12 +29,12 @@ return [
             ],
         ],
         [
-            'id' => 'checkout',
-            'nav' => 'Campaign checkout',
+            'id' => 'payment',
+            'nav' => 'Campaign payment',
             'title' => 'Paying for campaign packages',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'At checkout, Creators pay for the selected package using wallet balance and/or other enabled payment methods. Review the order summary carefully before confirming.'],
-                ['type' => 'important', 'title' => 'Secure checkout protection', 'content' => 'Funds for a campaign stay protected until tasks are completed and proof is verified. You are not expected to pay Agents directly outside the platform.'],
+                ['type' => 'paragraph', 'content' => 'When you pay, Creators fund the selected package using wallet balance and/or other enabled payment methods. Review the order summary carefully before confirming.'],
+                ['type' => 'important', 'title' => 'Secure payment protection', 'content' => 'Funds for a campaign stay protected until tasks are completed and proof is verified. You are not expected to pay Agents directly outside the platform.'],
                 ['type' => 'checklist', 'items' => [
                     'Confirm package tier, quantity, and target requirements.',
                     'Ensure your wallet has enough balance (or complete gateway payment).',
@@ -69,7 +69,7 @@ return [
             'nav' => 'Payment issues',
             'title' => 'Payment issues and disputes',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'If a deposit does not appear, a checkout fails, or a reward/withdrawal is delayed, open a support ticket with transaction references, screenshots, and timestamps. Do not share passwords or one-time codes with anyone claiming to be support.'],
+                ['type' => 'paragraph', 'content' => 'If a deposit does not appear, a payment fails, or a reward/withdrawal is delayed, open a support ticket with transaction references, screenshots, and timestamps. Do not share passwords or one-time codes with anyone claiming to be support.'],
             ],
         ],
     ],

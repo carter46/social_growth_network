@@ -71,7 +71,7 @@ class HelpCenterTest extends TestCase
             ->assertOk()
             ->assertSee('id="funding"', false)
             ->assertSee('data-help-section', false)
-            ->assertSee('Secure checkout protection');
+            ->assertSee('Secure payment protection');
     }
 
     public function test_legal_terms_describe_creator_agent_marketplace(): void

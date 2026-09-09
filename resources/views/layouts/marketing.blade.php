@@ -8,7 +8,7 @@
         @php
             $siteName = $siteName ?? config('app.name', 'Social Growth Network');
             $defaultDescription = ($siteBranding['meta_description'] ?? null)
-                ?: ($siteName.' — digital campaigns and growth packages with secure checkout.');
+                ?: ($siteName.' — digital campaigns and growth packages with secure payment.');
             $defaultOgDescription = 'Browse predefined campaign packages, pick a plan, and launch in minutes.';
             $pageTitle = trim($__env->yieldContent('title') ?: '');
             $resolvedTitle = $pageTitle !== '' ? ($pageTitle.' | '.$siteName) : $siteName;

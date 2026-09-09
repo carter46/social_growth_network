@@ -206,7 +206,7 @@
                                     <a href="{{ $href }}">{{ $product->title }}</a>
                                 </h3>
                                 <p class="text-slate-600 text-sm leading-relaxed mb-4">
-                                    {{ $product->short_description ?: 'Predefined package with upfront pricing and secure checkout.' }}
+                                    {{ $product->short_description ?: 'Predefined package with upfront pricing and secure payment.' }}
                                 </p>
                             </div>
                         </div>
@@ -258,7 +258,7 @@
                                     <a href="{{ $href }}">{{ $card['label'] ?? 'Campaigns' }}</a>
                                 </h3>
                                 <p class="text-slate-600 text-sm leading-relaxed mb-4">
-                                    {{ $card['short_description'] ?? $card['hero_subtitle'] ?? 'Predefined packages with upfront pricing and secure checkout.' }}
+                                    {{ $card['short_description'] ?? $card['hero_subtitle'] ?? 'Predefined packages with upfront pricing and secure payment.' }}
                                 </p>
                             </div>
                         </div>
@@ -295,7 +295,7 @@
             @foreach([
                 ['n' => '01', 'icon' => 'category', 'title' => 'Choose', 'body' => 'Pick the campaign and predefined quantity that matches your goal with upfront fixed pricing.', 'foot' => 'Step 1 • No haggling'],
                 ['n' => '02', 'icon' => 'tune', 'title' => 'Set Up', 'body' => 'Add your target URL and simple campaign instructions in our streamlined submission form.', 'foot' => 'Step 2 • 2-minute setup'],
-                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Launch', 'body' => 'Pay securely and watch verified task completion in real-time as tasks post to your ledger.', 'foot' => 'Step 3 • Secure checkout'],
+                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Launch', 'body' => 'Pay securely and watch verified task completion in real-time as tasks post to your ledger.', 'foot' => 'Step 3 • Secure payment'],
             ] as $step)
                 <div class="bg-white p-8 rounded-xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
                     <div>
@@ -343,7 +343,7 @@
                     Everything you need to get your campaign moving.
                 </h2>
                 <p class="text-slate-600 text-base sm:text-lg leading-relaxed mb-8">
-                    Stop negotiating with unpredictable freelancers or risking bot farms. {{ $brandName }} gives you fixed upfront packages, secure checkout, and verified human activity.
+                    Stop negotiating with unpredictable freelancers or risking bot farms. {{ $brandName }} gives you fixed upfront packages, secure payment, and verified human activity.
                 </p>
                 <div class="space-y-4 mb-9 w-full">
                     @foreach([

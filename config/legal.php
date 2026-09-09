@@ -15,7 +15,7 @@ return [
             'label' => 'Terms of Service',
             'eyebrow' => 'Compliance & Legal',
             'intro' => 'Rules for using :site_name as a Creator launching campaigns or an Agent completing verified tasks.',
-            'summary' => 'By using :site_name you agree to these marketplace rules for Creators and Agents, wallet and checkout terms, KYC where required, and proof verification standards. Last updated September 2026.',
+            'summary' => 'By using :site_name you agree to these marketplace rules for Creators and Agents, wallet and payment terms, KYC where required, and proof verification standards. Last updated September 2026.',
             'sections' => [
                 [
                     'id' => 'acceptance',
@@ -38,7 +38,7 @@ return [
                     'cards' => [
                         [
                             'title' => 'Creators',
-                            'body' => 'Businesses, brands, organizations, and individuals who purchase predefined campaign packages, set requirements (such as target URL and instructions), fund checkout, and monitor verified progress.',
+                            'body' => 'Businesses, brands, organizations, and individuals who purchase predefined campaign packages, set requirements (such as target URL and instructions), pay through the Platform, and monitor verified progress.',
                         ],
                         [
                             'title' => 'Agents',
@@ -72,7 +72,7 @@ return [
                     'cards' => [
                         [
                             'title' => 'Creator obligations',
-                            'body' => 'Provide accurate campaign targets and instructions. Do not request illegal activity, credential theft, or content that violates third-party platform rules. Fund checkout through official Platform payment flows only.',
+                            'body' => 'Provide accurate campaign targets and instructions. Do not request illegal activity, credential theft, or content that violates third-party platform rules. Pay only through official Platform payment flows.',
                         ],
                         [
                             'title' => 'Agent obligations',
@@ -81,17 +81,17 @@ return [
                     ],
                     'bullets' => [
                         'Campaign status, orders, and task progress are tracked in your dashboard after login.',
-                        'Package descriptions and checkout screens control deliverables and pricing at the time of purchase.',
-                        'The Platform coordinates verification and reward settlement; Creators and Agents must not bypass Platform checkout or payout flows.',
+                        'Package descriptions and payment screens control deliverables and pricing at the time of purchase.',
+                        'The Platform coordinates verification and reward settlement; Creators and Agents must not bypass Platform payment or payout flows.',
                     ],
                 ],
                 [
                     'id' => 'verification',
                     'nav' => '5. Proof & Verification',
-                    'title' => 'Proof, Verification & Secure Checkout',
+                    'title' => 'Proof, Verification & Secure Payment',
                     'number' => '05',
                     'paragraphs' => [
-                        'Creator payments for campaign packages are processed through Platform checkout and held securely until eligible tasks are completed and verified against package and Creator requirements.',
+                        'Creator payments for campaign packages are processed through the Platform and held securely until eligible tasks are completed and verified against package and Creator requirements.',
                         'Agent rewards are released only after proof is approved under Platform review rules. Rejected, fraudulent, or incomplete proof may result in non-payment, resubmission requirements, task reassignment, or account restrictions.',
                         'Disputes about proof, replacements, or refunds are handled under Platform policies and support review. Outcomes depend on evidence, package rules, and applicable law.',
                     ],
@@ -102,7 +102,7 @@ return [
                     'title' => 'Financial Transactions',
                     'number' => '06',
                     'paragraphs' => [
-                        'Wallet funding, campaign checkout, Agent reward credits, and withdrawals are subject to verification, admin review where required, fees, and applicable payment-provider rules (including Monnify and bank partners when enabled).',
+                        'Wallet funding, campaign payment, Agent reward credits, and withdrawals are subject to verification, admin review where required, fees, and applicable payment-provider rules (including Monnify and bank partners when enabled).',
                     ],
                     'bullets' => [
                         'You may fund or pay with wallet balance, card/transfer gateway, reserved virtual account deposit, or manual bank transfer when those methods are enabled.',
@@ -179,7 +179,7 @@ return [
                         'Campaign and order data including package selections, target URLs, instructions, and progress status.',
                         'Agent task activity and proof assets (for example screenshots, links, and metadata needed for verification).',
                         'KYC documents and identity data when required for compliance, funding, or withdrawals.',
-                        'Payment and wallet records, including deposits, checkout, rewards, and withdrawals.',
+                        'Payment and wallet records, including deposits, payments, rewards, and withdrawals.',
                         'Technical logs, device signals, and support communications needed for security and customer service.',
                     ],
                 ],
@@ -192,7 +192,7 @@ return [
                         'We use your information to operate the marketplace and related features, including to:',
                     ],
                     'bullets' => [
-                        'Provide Creator campaign checkout and Agent task fulfillment.',
+                        'Provide Creator campaign payment and Agent task fulfillment.',
                         'Verify proof, prevent fraud, and settle rewards according to Platform rules.',
                         'Process wallet funding, payments, and withdrawals with payment partners.',
                         'Complete KYC and meet legal or compliance obligations.',

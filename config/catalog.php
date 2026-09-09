@@ -19,7 +19,7 @@ return [
             'benefits' => [
                 'Growth and engagement categories',
                 'Clear deliverable descriptions',
-                'Protected platform checkout',
+                'Protected platform payment',
             ],
             'faq' => [
                 ['q' => 'How do I choose Growth vs Engagement?', 'a' => 'Use the category filter: Growth focuses on audience size; Engagement focuses on interaction.'],
@@ -41,7 +41,7 @@ return [
             'benefits' => [
                 'Instagram, TikTok, YouTube, Twitter/X, and Facebook packs',
                 'Clear deliverables before you buy',
-                'Secure platform checkout with wallet or card',
+                'Secure platform payment with wallet or card',
             ],
             'faq' => [
                 ['q' => 'What platforms do you support?', 'a' => 'We offer growth and engagement packs for Instagram, TikTok, YouTube, Twitter/X, and Facebook.'],

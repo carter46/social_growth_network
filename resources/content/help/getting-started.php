@@ -23,10 +23,10 @@ return [
             'blocks' => [
                 ['type' => 'paragraph', 'content' => 'Social Growth Network connects two sides of every campaign:'],
                 ['type' => 'bullets', 'items' => [
-                    'Creators (businesses, brands, organizations, and individuals) choose a campaign service, pick a predefined package, set requirements, pay at checkout, and track progress.',
+                    'Creators (businesses, brands, organizations, and individuals) choose a campaign service, pick a predefined package, set requirements, pay securely, and track progress.',
                     'Agents discover eligible campaign tasks, complete the required activity, submit verifiable proof, and earn rewards when work is approved.',
                 ]],
-                ['type' => 'tip', 'title' => 'Quick tip', 'content' => 'You can explore the Services catalog before registering. Checkout and task claiming require an account.'],
+                ['type' => 'tip', 'title' => 'Quick tip', 'content' => 'You can explore the Services catalog before registering. Payment and task claiming require an account.'],
             ],
         ],
         [
@@ -57,7 +57,7 @@ return [
             'title' => 'Wallet setup',
             'blocks' => [
                 ['type' => 'paragraph', 'content' => 'Your Naira wallet is where Creators fund campaign purchases and where Agents receive approved rewards. Open Wallet from your dashboard after email verification to view balance, funding options, and withdrawal status.'],
-                ['type' => 'tip', 'title' => 'Next step', 'content' => 'See Billing, wallets & payments for Monnify checkout, reserved accounts, and withdrawal basics.'],
+                ['type' => 'tip', 'title' => 'Next step', 'content' => 'See Billing, wallets & payments for Monnify payment, reserved accounts, and withdrawal basics.'],
             ],
         ],
         [
@@ -65,7 +65,7 @@ return [
             'nav' => 'First campaign or task',
             'title' => 'Your first campaign or task',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'Creators: open Services, choose a campaign package (for example YouTube, Instagram, TikTok, Facebook, or X growth), enter your target URL and instructions, then complete secure checkout with your funded wallet or enabled payment method.'],
+                ['type' => 'paragraph', 'content' => 'Creators: open Services, choose a campaign package (for example YouTube, Instagram, TikTok, Facebook, or X growth), enter your target URL and instructions, then complete secure payment with your funded wallet or enabled payment method.'],
                 ['type' => 'paragraph', 'content' => 'Agents: browse available tasks from your dashboard marketplace, claim work you can complete correctly, follow the Creator’s instructions, and submit proof for review.'],
                 ['type' => 'success', 'title' => 'After you start', 'content' => 'Creators track campaign progress from the dashboard. Agents monitor claimed tasks, proof status, and earnings until payouts become withdrawable.'],
             ],
