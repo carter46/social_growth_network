@@ -9,17 +9,68 @@
     $imgCreator = asset('assets/images/homeslider2.jpg');
     $imgAnalytics = asset('assets/images/homeslider3.jpg');
     $imgServices = asset('assets/images/services_1.jpg');
+    $categoryCards = collect($categoryCards ?? [])->values();
+    $categoryIcons = [
+        'youtube' => 'smart_display',
+        'facebook' => 'public',
+        'instagram' => 'photo_camera',
+        'tiktok' => 'music_note',
+        'twitter' => 'chat',
+        'social-media' => 'share',
+    ];
+    $categoryBadgeTones = [
+        'youtube' => 'text-red-600',
+        'facebook' => 'text-blue-600',
+        'instagram' => 'text-pink-600',
+        'tiktok' => 'text-slate-900',
+        'twitter' => 'text-sky-600',
+        'social-media' => 'text-violet-600',
+    ];
 @endphp
 
-{{-- Hero --}}
+{{-- Hero: image first on mobile --}}
 <section class="w-full relative overflow-hidden bg-white">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-            <div class="lg:col-span-7 flex flex-col items-start">
-                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-50 text-primary mb-4">
-                    <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                    <span class="text-[11px] font-bold uppercase tracking-wider">Built for creators &amp; founders</span>
+            {{-- Image column (first on mobile) --}}
+            <div class="lg:col-span-5 relative order-1 lg:order-2">
+                <div class="relative rounded-2xl overflow-hidden shadow-xl bg-slate-100 aspect-[4/3] lg:aspect-[5/4]">
+                    <img src="{{ $imgStudio }}" alt="Creative creator filming in production setup" class="w-full h-full object-cover object-center" loading="eager">
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-transparent" aria-hidden="true"></div>
+
+                    <div class="absolute top-3 right-3 max-w-[10.5rem] sm:max-w-[12rem] bg-white p-2.5 sm:p-3 rounded-xl shadow-md flex items-start gap-2 z-10" aria-hidden="true">
+                        <span class="material-symbols-outlined text-[20px] text-emerald-600 shrink-0 mt-0.5">verified_user</span>
+                        <div class="min-w-0">
+                            <div class="text-xs font-semibold text-slate-900 leading-snug truncate">{{ $brandName }} Guard</div>
+                            <div class="text-[11px] text-slate-500 leading-snug mt-0.5">Human audit active</div>
+                        </div>
+                    </div>
+
+                    <div class="absolute bottom-3 left-3 right-3 bg-white/95 backdrop-blur-md p-3 sm:p-3.5 rounded-xl shadow-lg z-10">
+                        <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-slate-50 flex items-center justify-center text-primary shrink-0">
+                                    <span class="material-symbols-outlined text-[20px] sm:text-[22px]" aria-hidden="true">videocam</span>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="text-sm font-semibold text-slate-900 leading-snug truncate">YouTube Watch Hours Pack</div>
+                                    <div class="text-xs text-emerald-700 flex items-center gap-1.5 mt-0.5 leading-snug">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0"></span>
+                                        <span class="truncate">Milestone 3 of 4 · 92% verified</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="sm:text-right shrink-0 border-t sm:border-t-0 sm:border-l border-slate-100 pt-2 sm:pt-0 sm:pl-3">
+                                <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block">Status</span>
+                                <span class="text-sm font-semibold text-primary">Verified</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+
+            {{-- Copy column --}}
+            <div class="lg:col-span-7 flex flex-col items-start order-2 lg:order-1">
                 <h1 class="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight mb-4">
                     Turn your digital goals into <span class="text-primary">real campaigns</span>.
                 </h1>
@@ -47,38 +98,6 @@
                     <div class="flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-[16px] text-emerald-600" aria-hidden="true">check_circle</span>
                         <span>Fixed upfront packages</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="lg:col-span-5 relative">
-                <div class="relative rounded-2xl overflow-hidden shadow-xl bg-slate-100 aspect-[4/3] lg:aspect-[5/4]">
-                    <img src="{{ $imgStudio }}" alt="Creative creator filming in production setup" class="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700" loading="eager">
-                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent"></div>
-                    <div class="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md p-3.5 rounded-xl shadow-lg flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <div class="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-primary shrink-0">
-                                <span class="material-symbols-outlined text-[22px]" aria-hidden="true">videocam</span>
-                            </div>
-                            <div class="min-w-0">
-                                <div class="text-sm font-semibold text-slate-900 truncate">YouTube Watch Hours Pack</div>
-                                <div class="text-xs text-emerald-700 flex items-center gap-1">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                    Milestone 3 of 4 Active • 92% Verified
-                                </div>
-                            </div>
-                        </div>
-                        <div class="hidden sm:block text-right shrink-0">
-                            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">Escrow State</span>
-                            <span class="text-sm font-semibold text-primary">Secured</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="hidden md:flex absolute -top-3 -right-3 lg:-top-4 lg:-right-4 bg-white p-3.5 rounded-xl shadow-md items-center gap-2.5 z-10" aria-hidden="true">
-                    <span class="material-symbols-outlined text-[22px] text-emerald-600">verified_user</span>
-                    <div>
-                        <div class="text-xs font-semibold text-slate-900">{{ $brandName }} Guard</div>
-                        <div class="text-[11px] text-slate-500">Real Human Audit Active</div>
                     </div>
                 </div>
             </div>
@@ -136,9 +155,9 @@
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             @foreach([
-                ['n' => '01', 'icon' => 'category', 'title' => 'Choose a Service', 'body' => 'Browse catalog options (YouTube Views, Watch Time, Social Engagement, Web Traffic) and choose your target scale.', 'note' => 'Popular picks:', 'noteBody' => 'YouTube High-Retention, Targeted Instagram Visits, Quality Pageviews.', 'tone' => 'text-primary'],
-                ['n' => '02', 'icon' => 'tune', 'title' => 'Set Up Your Campaign', 'body' => 'Enter your target URL or channel, choose your predefined tier, and set any custom submission instructions.', 'note' => 'Precision criteria:', 'noteBody' => 'Duration targets, geo-focus, and optional validation questions.', 'tone' => 'text-primary'],
-                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Launch & Track', 'body' => 'Fund your campaign securely in escrow. Our verified agent network executes the tasks while you monitor progress.', 'note' => 'Protection:', 'noteBody' => 'Escrow payouts release automatically as proofs are validated.', 'tone' => 'text-emerald-700'],
+                ['n' => '01', 'icon' => 'category', 'title' => 'Choose a Service', 'body' => 'Browse catalog options across our live campaign categories and choose the package that matches your goal.', 'note' => 'Browse live:', 'noteBody' => 'Pick a category, then select a predefined package with clear pricing.', 'tone' => 'text-primary'],
+                ['n' => '02', 'icon' => 'tune', 'title' => 'Set Up Your Campaign', 'body' => 'Enter your target URL or channel, choose your predefined tier, and set any custom submission instructions.', 'note' => 'Precision criteria:', 'noteBody' => 'Duration targets, destination links, and clear package requirements.', 'tone' => 'text-primary'],
+                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Launch & Track', 'body' => 'Pay securely at checkout. Our verified agent network executes the tasks while you monitor progress from your dashboard.', 'note' => 'Protection:', 'noteBody' => 'Payouts release after submissions pass verification.', 'tone' => 'text-emerald-700'],
             ] as $step)
                 <div class="bg-slate-50 p-6 sm:p-8 rounded-2xl flex flex-col">
                     <div class="flex items-center justify-between mb-8">
@@ -162,17 +181,17 @@
 <section class="w-full bg-slate-50 py-14 sm:py-20">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-            <div class="lg:col-span-6 relative">
+            <div class="lg:col-span-6 relative pb-6 sm:pb-8">
                 <div class="rounded-2xl overflow-hidden shadow-lg bg-white border border-slate-100">
                     <img src="{{ $imgCreator }}" alt="Creator working with precision digital tools" class="w-full h-auto object-cover aspect-[16/10]" loading="lazy">
                 </div>
-                <div class="hidden sm:block absolute -bottom-6 right-6 bg-white p-5 rounded-xl shadow-lg max-w-xs border border-slate-100">
-                    <div class="flex items-center gap-2 mb-1.5">
-                        <span class="material-symbols-outlined text-primary text-[20px]" aria-hidden="true">lock_clock</span>
-                        <span class="text-sm font-semibold text-slate-900">Escrow Multi-Vault</span>
+                <div class="hidden sm:block absolute -bottom-2 right-4 lg:right-6 bg-white p-4 rounded-xl shadow-lg max-w-[15rem] border border-slate-100">
+                    <div class="flex items-start gap-2 mb-1.5">
+                        <span class="material-symbols-outlined text-primary text-[20px] shrink-0" aria-hidden="true">lock</span>
+                        <span class="text-sm font-semibold text-slate-900 leading-snug">Secure checkout</span>
                     </div>
-                    <p class="text-sm text-slate-600">
-                        Agent payouts remain locked in platform escrow until manual or algorithmic proof check passes.
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                        Agent payouts stay protected until submissions pass verification.
                     </p>
                 </div>
             </div>
@@ -182,14 +201,14 @@
                     Stay in control from campaign setup to completion.
                 </h2>
                 <p class="text-base sm:text-lg text-slate-600 mb-6 leading-relaxed">
-                    You set the requirements, target milestones, and package size. {{ $brandName }} manages the entire agent marketplace, proof verification, and reward settlement — giving you predictable results without contractor headaches.
+                    You set the requirements, target milestones, and package size. {{ $brandName }} manages the agent marketplace, proof verification, and reward settlement — giving you predictable results without contractor headaches.
                 </p>
                 <div class="flex flex-col gap-3.5 w-full mb-8">
                     @foreach([
                         'Choose your predefined package with clear upfront pricing',
                         'Specify custom completion instructions and target links',
-                        'Automatic escrow protection until milestones pass validation',
-                        'Live progress telemetry and downloadable submission logs',
+                        'Secure checkout with payouts after verification',
+                        'Live progress tracking and downloadable submission logs',
                         'Instant pause, resume, or scale controls',
                     ] as $item)
                         <div class="flex items-start gap-2.5">
@@ -208,7 +227,7 @@
     </div>
 </section>
 
-{{-- Categories --}}
+{{-- Categories from live catalog --}}
 <section class="w-full bg-white py-14 sm:py-20">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
@@ -219,39 +238,55 @@
                 </h2>
             </div>
             <p class="text-sm text-slate-600 max-w-md">
-                Explore popular predefined campaign models tailored for creators, startups, and expanding brands.
+                Explore live campaign categories from the {{ $brandName }} catalog.
             </p>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-            @foreach([
-                ['img' => $imgStudio, 'badge' => 'YOUTUBE', 'icon' => 'play_circle', 'badgeClass' => 'text-red-600', 'title' => 'YouTube Campaigns', 'body' => 'Views, watch time hours, authentic subscriber engagement, and high-retention video sessions.', 'packages' => 'View packages', 'href' => route('services', ['category' => 'youtube'])],
-                ['img' => $imgCreator, 'badge' => 'SOCIAL', 'icon' => 'share', 'badgeClass' => 'text-primary', 'title' => 'Social Engagement', 'body' => 'Shares, authentic context-driven comments, profile saves, and cross-platform visibility boosts.', 'packages' => 'View packages', 'href' => route('services', ['category' => 'instagram'])],
-                ['img' => $imgAnalytics, 'badge' => 'TRAFFIC', 'icon' => 'language', 'badgeClass' => 'text-emerald-700', 'title' => 'Website Traffic', 'body' => 'Real human pageviews, extended dwell time, organic blog readership, and product launch visits.', 'packages' => 'View packages', 'href' => route('services')],
-                ['img' => $imgServices, 'badge' => 'MICRO-TASKS', 'icon' => 'checklist', 'badgeClass' => 'text-emerald-600', 'title' => 'Digital Micro-Tasks', 'body' => 'Structured survey feedback, verified app usability testing, onboarding reviews, and test conversions.', 'packages' => 'View packages', 'href' => route('services')],
-            ] as $cat)
-                <a href="{{ $cat['href'] }}" class="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col group">
-                    <div class="h-44 w-full relative overflow-hidden bg-slate-100">
-                        <img src="{{ $cat['img'] }}" alt="{{ $cat['title'] }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
-                        <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm {{ $cat['badgeClass'] }} px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
-                            <span class="material-symbols-outlined text-[14px]" aria-hidden="true">{{ $cat['icon'] }}</span>
-                            {{ $cat['badge'] }}
+
+        @if($categoryCards->isEmpty())
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-8 text-center">
+                <p class="text-slate-600 mb-4">Campaign categories will appear here once published in the catalog.</p>
+                <a href="{{ route('services') }}" class="inline-flex text-sm font-semibold text-primary hover:underline">Browse services</a>
+            </div>
+        @else
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mb-10">
+                @foreach($categoryCards as $i => $card)
+                    @php
+                        $slug = $card['slug'] ?? '';
+                        $label = $card['label'] ?? $slug;
+                        $href = $card['href'] ?? route('services', array_filter(['category' => $slug ?: null]));
+                        $body = $card['short_description'] ?? $card['hero_subtitle'] ?? 'Predefined packages with upfront pricing and secure checkout.';
+                        $image = $card['card_image'] ?? $card['banner_image'] ?? null;
+                        $fallbacks = [$imgStudio, $imgCreator, $imgAnalytics, $imgServices];
+                        $img = $image ?: $fallbacks[$i % count($fallbacks)];
+                        $icon = $categoryIcons[$slug] ?? ($card['icon'] ?? 'category');
+                        $badgeClass = $categoryBadgeTones[$slug] ?? 'text-primary';
+                        $count = (int) ($card['count'] ?? 0);
+                    @endphp
+                    <a href="{{ $href }}" class="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col group">
+                        <div class="h-44 w-full relative overflow-hidden bg-slate-100">
+                            <img src="{{ $img }}" alt="{{ $label }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+                            <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm {{ $badgeClass }} px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 max-w-[calc(100%-1.5rem)]">
+                                <span class="material-symbols-outlined text-[14px] shrink-0" aria-hidden="true">{{ $icon }}</span>
+                                <span class="truncate">{{ $label }}</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="p-5 flex flex-col flex-grow justify-between">
-                        <div>
-                            <h3 class="font-display text-lg font-bold text-slate-900 mb-1.5">{{ $cat['title'] }}</h3>
-                            <p class="text-sm text-slate-600 mb-4 leading-relaxed">{{ $cat['body'] }}</p>
+                        <div class="p-5 flex flex-col flex-grow justify-between">
+                            <div>
+                                <h3 class="font-display text-lg font-bold text-slate-900 mb-1.5">{{ $label }}</h3>
+                                <p class="text-sm text-slate-600 mb-4 leading-relaxed line-clamp-3">{{ $body }}</p>
+                            </div>
+                            <div class="pt-2 flex items-center justify-between text-sm font-semibold text-primary gap-2">
+                                <span>@if($count > 0)View {{ $count }} {{ \Illuminate\Support\Str::plural('package', $count) }}@else View packages@endif</span>
+                                <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform shrink-0" aria-hidden="true">arrow_forward</span>
+                            </div>
                         </div>
-                        <div class="pt-2 flex items-center justify-between text-sm font-semibold text-primary">
-                            <span>{{ $cat['packages'] }}</span>
-                            <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform" aria-hidden="true">arrow_forward</span>
-                        </div>
-                    </div>
-                </a>
-            @endforeach
-        </div>
+                    </a>
+                @endforeach
+            </div>
+        @endif
+
         <div class="flex justify-center">
-            <a href="{{ route('services') }}" class="inline-flex items-center gap-1.5 font-semibold text-sm text-primary hover:text-primary-hover bg-slate-50 hover:bg-slate-100 px-6 py-3 rounded-xl transition-colors">
+            <a href="{{ route('services') }}" class="inline-flex items-center gap-1.5 font-semibold text-sm text-primary hover:text-primary-hover bg-slate-50 hover:bg-slate-100 px-6 py-3 rounded-lg transition-colors">
                 <span>Explore All Services &amp; Packages</span>
                 <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
             </a>
@@ -272,11 +307,11 @@
                     <p class="text-sm sm:text-base text-slate-600 mb-6 leading-relaxed">
                         Whether you are launching your first YouTube series, scaling your digital course, or building app traction, {{ $brandName }} coordinates verified human distribution so you can focus on making great content.
                     </p>
-                    <div class="bg-slate-50 p-3.5 rounded-xl w-full flex items-center gap-3.5">
-                        <img src="{{ $imgCreator }}" alt="Creator portrait" class="w-12 h-12 rounded-full object-cover shrink-0">
-                        <div>
+                    <div class="bg-slate-50 p-3.5 rounded-xl w-full flex items-start gap-3.5">
+                        <img src="{{ $imgCreator }}" alt="" class="w-12 h-12 rounded-full object-cover shrink-0" aria-hidden="true">
+                        <div class="min-w-0">
                             <p class="text-sm italic text-slate-800 leading-relaxed">
-                                “{{ $brandName }} eliminated the messy back-and-forth. I booked a watch-time tier, paid into escrow, and verified proofs rolled in predictably.”
+                                “{{ $brandName }} eliminated the messy back-and-forth. I booked a watch-time tier, paid securely, and verified proofs rolled in predictably.”
                             </p>
                             <span class="text-xs text-slate-500 font-semibold mt-1 block">
                                 Elena Vance • Tech &amp; Design Creator
@@ -290,24 +325,24 @@
                     </h3>
                     <div class="flex flex-col gap-0">
                         @foreach([
-                            ['icon' => 'check', 'bg' => 'bg-primary', 'title' => '1. Campaign Launched', 'meta' => 'Immediate', 'metaClass' => 'text-emerald-700', 'body' => 'Tier selected, target criteria assigned, funds secured in escrow lock.'],
+                            ['icon' => 'check', 'bg' => 'bg-primary', 'title' => '1. Campaign Launched', 'meta' => 'Immediate', 'metaClass' => 'text-emerald-700', 'body' => 'Tier selected, target criteria assigned, and payment secured at checkout.'],
                             ['icon' => 'hub', 'bg' => 'bg-primary', 'title' => '2. Distributed to Verified Agents', 'meta' => 'Auto-Dispatched', 'metaClass' => 'text-primary', 'body' => 'Matched instantly with high-reputation human agents based on platform tiering.'],
                             ['icon' => 'fact_check', 'bg' => 'bg-emerald-600', 'title' => '3. Proof Submitted & Inspected', 'meta' => 'Real-Time Validation', 'metaClass' => 'text-emerald-700', 'body' => 'Submissions checked via automated screenshot hashing and telemetry audits.'],
-                            ['icon' => 'verified', 'bg' => 'bg-emerald-700', 'title' => '4. Milestone 100% Completed', 'meta' => 'Escrow Released', 'metaClass' => 'text-emerald-700', 'body' => 'Clean telemetry exports ready, escrow released cleanly to executing agents.'],
+                            ['icon' => 'verified', 'bg' => 'bg-emerald-700', 'title' => '4. Milestone 100% Completed', 'meta' => 'Payout Released', 'metaClass' => 'text-emerald-700', 'body' => 'Clean telemetry exports ready, and agent payouts release after verification.'],
                         ] as $i => $node)
                             @if($i > 0)
-                                <div class="w-0.5 h-3 bg-primary/30 ml-7 -my-0.5"></div>
+                                <div class="w-0.5 h-3 bg-primary/30 ml-7 -my-0.5" aria-hidden="true"></div>
                             @endif
-                            <div class="flex items-center gap-3.5 p-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
+                            <div class="flex items-start sm:items-center gap-3.5 p-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
                                 <div class="w-8 h-8 rounded-full {{ $node['bg'] }} text-white flex items-center justify-center shrink-0">
                                     <span class="material-symbols-outlined text-[18px]" aria-hidden="true">{{ $node['icon'] }}</span>
                                 </div>
                                 <div class="flex-grow min-w-0">
-                                    <div class="flex items-center justify-between gap-2">
+                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
                                         <span class="text-sm font-semibold text-slate-900">{{ $node['title'] }}</span>
                                         <span class="text-[11px] font-semibold {{ $node['metaClass'] }} shrink-0">{{ $node['meta'] }}</span>
                                     </div>
-                                    <p class="text-sm text-slate-600">{{ $node['body'] }}</p>
+                                    <p class="text-sm text-slate-600 mt-0.5 leading-relaxed">{{ $node['body'] }}</p>
                                 </div>
                             </div>
                         @endforeach
@@ -322,8 +357,8 @@
 <section class="w-full bg-white py-14 sm:py-20">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="bg-primary text-white rounded-3xl p-8 sm:p-12 lg:p-16 shadow-xl relative overflow-hidden text-center flex flex-col items-center">
-            <div class="absolute -right-20 -top-20 w-96 h-96 rounded-full bg-primary-hover/40 blur-3xl pointer-events-none"></div>
-            <div class="absolute -left-20 -bottom-20 w-96 h-96 rounded-full bg-emerald-500/20 blur-3xl pointer-events-none"></div>
+            <div class="absolute -right-20 -top-20 w-96 h-96 rounded-full bg-primary-hover/40 blur-3xl pointer-events-none" aria-hidden="true"></div>
+            <div class="absolute -left-20 -bottom-20 w-96 h-96 rounded-full bg-emerald-500/20 blur-3xl pointer-events-none" aria-hidden="true"></div>
             <div class="relative z-10 max-w-3xl flex flex-col items-center">
                 <span class="text-[11px] font-bold uppercase tracking-widest text-blue-100 mb-3">
                     Launch In 2 Minutes

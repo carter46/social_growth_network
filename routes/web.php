@@ -56,7 +56,14 @@ Route::post('/webhooks/site-integrations/{integrationId}', \App\Http\Controllers
 
 Route::view('/about', 'pages.about')->name('about');
 Route::view('/how-it-works', 'pages.how-it-works')->name('how-it-works');
-Route::view('/creators', 'pages.creators')->name('creators');
+Route::get('/creators', function (
+    \App\Modules\Catalog\Services\CatalogBrowseService $browse,
+    \App\Modules\Catalog\Services\CatalogContentResolver $catalogContent
+) {
+    return view('pages.creators', [
+        'categoryCards' => $browse->groupCards($catalogContent),
+    ]);
+})->name('creators');
 Route::view('/agents', 'pages.agents')->name('agents');
 Route::get('/help', function () {
     return view('pages.help', [

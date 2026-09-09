@@ -295,7 +295,7 @@
             @foreach([
                 ['n' => '01', 'icon' => 'category', 'title' => 'Choose', 'body' => 'Pick the campaign and predefined quantity that matches your goal with upfront fixed pricing.', 'foot' => 'Step 1 • No haggling'],
                 ['n' => '02', 'icon' => 'tune', 'title' => 'Set Up', 'body' => 'Add your target URL and simple campaign instructions in our streamlined submission form.', 'foot' => 'Step 2 • 2-minute setup'],
-                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Launch', 'body' => 'Pay securely and watch verified task completion in real-time as tasks post to your ledger.', 'foot' => 'Step 3 • Escrow protected'],
+                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Launch', 'body' => 'Pay securely and watch verified task completion in real-time as tasks post to your ledger.', 'foot' => 'Step 3 • Secure checkout'],
             ] as $step)
                 <div class="bg-white p-8 rounded-xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
                     <div>
@@ -343,7 +343,7 @@
                     Everything you need to get your campaign moving.
                 </h2>
                 <p class="text-slate-600 text-base sm:text-lg leading-relaxed mb-8">
-                    Stop negotiating with unpredictable freelancers or risking bot farms. {{ $brandName }} gives you fixed upfront packages, escrow protection, and verified human activity.
+                    Stop negotiating with unpredictable freelancers or risking bot farms. {{ $brandName }} gives you fixed upfront packages, secure checkout, and verified human activity.
                 </p>
                 <div class="space-y-4 mb-9 w-full">
                     @foreach([

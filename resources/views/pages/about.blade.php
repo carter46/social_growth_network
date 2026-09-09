@@ -39,20 +39,20 @@
                 <div class="relative rounded-2xl overflow-hidden shadow-xl bg-slate-100 aspect-[16/11]">
                     <img src="{{ $imgTeam }}" alt="Diverse team collaborating on digital campaign strategy" class="w-full h-full object-cover object-center" loading="eager">
                     <div class="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent"></div>
-                    <div class="absolute bottom-4 left-4 right-4 p-3.5 bg-white/95 backdrop-blur rounded-xl shadow-md flex items-center justify-between gap-3">
+                    <div class="absolute bottom-3 left-3 right-3 p-3 sm:p-3.5 bg-white/95 backdrop-blur rounded-xl shadow-md flex items-center justify-between gap-3 z-10">
                         <div class="flex items-center gap-3 min-w-0">
                             <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
                                 <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;" aria-hidden="true">verified</span>
                             </div>
                             <div class="min-w-0">
-                                <p class="text-sm font-semibold text-slate-900 leading-tight">Human Proof Marketplace</p>
-                                <p class="text-xs text-slate-500">Structured task verification &amp; escrow protocol</p>
+                                <p class="text-sm font-semibold text-slate-900 leading-snug truncate">Human Proof Marketplace</p>
+                                <p class="text-xs text-slate-500 leading-snug mt-0.5">Structured task verification &amp; secure payouts</p>
                             </div>
                         </div>
-                        <div class="hidden sm:flex flex-col items-end shrink-0">
+                        <div class="hidden sm:flex flex-col items-end shrink-0 pl-2 border-l border-slate-100">
                             <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</span>
                             <span class="text-sm text-emerald-700 font-semibold flex items-center gap-1">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Active Ecosystem
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0"></span> Active Ecosystem
                             </span>
                         </div>
                     </div>
@@ -96,7 +96,7 @@
                     </div>
                     <div class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white rounded-lg shadow-sm border border-slate-100 text-slate-900">
                         <span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">lock</span>
-                        <span class="text-sm font-semibold">Escrow-Backed Payouts</span>
+                        <span class="text-sm font-semibold">Verified Payouts</span>
                     </div>
                 </div>
             </div>
@@ -155,7 +155,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
             @foreach([
                 ['n' => '01', 'icon' => 'tune', 'title' => 'Choose', 'body' => 'A Creator selects the campaign service and predefined package that fits their goal.', 'tag' => 'Structured specs', 'nClass' => 'text-primary'],
-                ['n' => '02', 'icon' => 'rocket_launch', 'title' => 'Launch', 'body' => 'They provide the required campaign details, fund the campaign, and launch it.', 'tag' => 'Escrow deposited', 'nClass' => 'text-primary'],
+                ['n' => '02', 'icon' => 'rocket_launch', 'title' => 'Launch', 'body' => 'They provide the required campaign details, fund the campaign, and launch it.', 'tag' => 'Payment secured', 'nClass' => 'text-primary'],
                 ['n' => '03', 'icon' => 'task_alt', 'title' => 'Complete & Verify', 'body' => 'Agents complete available tasks, submit proof, and approved work is verified before rewards are released.', 'tag' => 'Automatic settlement', 'nClass' => 'text-emerald-700', 'tagClass' => 'bg-emerald-50 text-emerald-700'],
             ] as $step)
                 <div class="relative bg-white p-6 sm:p-8 rounded-xl shadow-sm border border-slate-100">
@@ -231,7 +231,7 @@
                         <img src="{{ $imgAnalytics }}" alt="UX tester evaluating task application" class="w-full h-full object-cover" loading="lazy">
                         <div class="absolute inset-0 bg-gradient-to-t from-slate-950/40 to-transparent"></div>
                         <div class="absolute bottom-3 left-3 text-white">
-                            <p class="text-sm font-semibold">Escrow guaranteed tasks</p>
+                            <p class="text-sm font-semibold">Verified campaign tasks</p>
                             <p class="text-xs text-slate-200">Get paid reliably on verification</p>
                         </div>
                     </div>
@@ -266,7 +266,7 @@
                         ['icon' => 'badge', 'tone' => 'text-primary', 'title' => 'Task Eligibility', 'body' => 'Only matching, qualified Agents accept specific assignments.'],
                         ['icon' => 'upload_file', 'tone' => 'text-primary', 'title' => 'Proof Submission', 'body' => 'Screenshots, activity links, or audit payloads required.'],
                         ['icon' => 'verified_user', 'tone' => 'text-emerald-600', 'title' => 'Multi-point Verification', 'body' => 'System and review-assisted validation on all submissions.'],
-                        ['icon' => 'account_balance_wallet', 'tone' => 'text-emerald-600', 'title' => 'Structured Settlement', 'body' => 'Automated escrow release directly upon task approval.'],
+                        ['icon' => 'account_balance_wallet', 'tone' => 'text-emerald-600', 'title' => 'Structured Settlement', 'body' => 'Automated payout release directly upon task approval.'],
                     ] as $p)
                         <div class="p-3.5 rounded-xl bg-white shadow-sm border border-slate-100 flex items-start gap-2.5">
                             <span class="material-symbols-outlined {{ $p['tone'] }} text-xl mt-0.5" aria-hidden="true">{{ $p['icon'] }}</span>

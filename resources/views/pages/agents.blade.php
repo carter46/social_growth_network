@@ -37,7 +37,7 @@
                 </div>
                 <div class="mt-4 pt-1 bg-slate-50/80 rounded-xl px-3.5 py-2.5 w-full border border-slate-100">
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-slate-500 text-xs">
-                        @foreach(['Free to join', 'Clear criteria', 'Structured audit', 'Escrow-backed'] as $badge)
+                        @foreach(['Free to join', 'Clear criteria', 'Structured audit', 'Verified payouts'] as $badge)
                             <div class="flex items-center gap-1">
                                 <span class="material-symbols-outlined text-[16px] text-emerald-600" aria-hidden="true">check_circle</span>
                                 <span>{{ $badge }}</span>
@@ -47,28 +47,28 @@
                 </div>
             </div>
 
-            <div class="lg:col-span-6 relative">
+            <div class="lg:col-span-6 relative pb-2 sm:pb-12">
                 <div class="relative rounded-2xl overflow-hidden shadow-xl bg-slate-100">
                     <img src="{{ $imgAgent }}" alt="Digital agent working productively" class="w-full h-[320px] sm:h-[420px] lg:h-[460px] object-cover" loading="eager">
                     <div class="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent"></div>
                 </div>
-                <div class="sm:absolute sm:-bottom-8 sm:-left-4 mt-4 sm:mt-0 w-full sm:max-w-md bg-white/95 backdrop-blur-md rounded-xl p-5 shadow-xl border border-slate-100">
-                    <div class="flex items-center justify-between pb-2">
+                <div class="sm:absolute sm:-bottom-8 sm:left-0 sm:right-auto mt-4 sm:mt-0 w-full sm:max-w-md bg-white/95 backdrop-blur-md rounded-xl p-4 sm:p-5 shadow-xl border border-slate-100 z-10">
+                    <div class="flex flex-wrap items-center justify-between gap-2 pb-2">
                         <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-bold uppercase tracking-wider">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0"></span>
                             Live Campaign Task · Active
                         </div>
-                        <span class="text-[11px] font-medium text-slate-500">Verified Pool</span>
+                        <span class="text-[11px] font-medium text-slate-500 shrink-0">Verified Pool</span>
                     </div>
-                    <h3 class="font-display text-lg font-bold text-slate-900">YouTube Video Engagement</h3>
-                    <div class="flex items-baseline gap-1.5 mt-1">
+                    <h3 class="font-display text-lg font-bold text-slate-900 leading-snug">YouTube Video Engagement</h3>
+                    <div class="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 mt-1">
                         <span class="font-display text-2xl font-bold text-primary">₦250</span>
                         <span class="text-sm text-slate-500">per approved review · Est. 4 mins</span>
                     </div>
-                    <div class="mt-3 pt-2 flex items-center justify-between text-slate-500 text-sm gap-2">
-                        <span class="flex items-center gap-1">
-                            <span class="material-symbols-outlined text-[16px] text-emerald-600" aria-hidden="true">verified_user</span>
-                            Remaining Spots: <strong class="text-slate-900">84 / 200</strong>
+                    <div class="mt-3 pt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between text-slate-500 text-sm gap-2">
+                        <span class="flex items-center gap-1 min-w-0">
+                            <span class="material-symbols-outlined text-[16px] text-emerald-600 shrink-0" aria-hidden="true">verified_user</span>
+                            <span>Remaining Spots: <strong class="text-slate-900">84 / 200</strong></span>
                         </span>
                         <span class="text-xs font-medium text-primary shrink-0">Multi-point validation</span>
                     </div>
@@ -91,7 +91,7 @@
             @foreach([
                 ['v' => '₦48.2M+', 'l' => 'Disbursed to date'],
                 ['v' => '120K+', 'l' => 'Completed reviews'],
-                ['v' => '99.4%', 'l' => 'Escrow release rate'],
+                ['v' => '99.4%', 'l' => 'Payout success rate'],
                 ['v' => '< 4 Hours', 'l' => 'Average audit turnaround'],
             ] as $m)
                 <div class="flex flex-col">
@@ -156,9 +156,9 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
             @foreach([
                 ['n' => '01', 'icon' => 'search', 'title' => 'Find a Task', 'body' => 'Explore active campaigns across YouTube, social media, web visits, and app feedback. Filter by reward or duration.', 'foot' => 'Instant discovery', 'tone' => 'text-primary'],
-                ['n' => '02', 'icon' => 'timer', 'title' => 'Start the Task', 'body' => 'Review clear time limits and completion criteria before accepting. The platform reserves your spot and locks reward escrow.', 'foot' => 'Zero ambiguity', 'tone' => 'text-primary'],
+                ['n' => '02', 'icon' => 'timer', 'title' => 'Start the Task', 'body' => 'Review clear time limits and completion criteria before accepting. The platform reserves your spot and holds the reward until verification.', 'foot' => 'Zero ambiguity', 'tone' => 'text-primary'],
                 ['n' => '03', 'icon' => 'verified', 'title' => 'Submit Proof', 'body' => 'Provide verifiable evidence (timestamps, screenshots, URL logs) through '.$brandName.' structured audit templates.', 'foot' => 'Automated Intake', 'tone' => 'text-primary'],
-                ['n' => '04', 'icon' => 'payments', 'title' => 'Get Verified & Paid', 'body' => 'Structured audit validates your work and unlocks guaranteed escrow funds straight to your withdrawable wallet.', 'foot' => 'Escrow Released', 'tone' => 'text-emerald-700'],
+                ['n' => '04', 'icon' => 'payments', 'title' => 'Get Verified & Paid', 'body' => 'Structured audit validates your work and unlocks your reward straight to your withdrawable wallet.', 'foot' => 'Payout Released', 'tone' => 'text-emerald-700'],
             ] as $step)
                 <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between h-full">
                     <div>
@@ -261,7 +261,7 @@
                     @foreach([
                         ['icon' => 'schedule', 'title' => 'Exact duration requirements displayed upfront', 'body' => 'Know down to the second how much interaction or reading time is expected prior to proof intake.'],
                         ['icon' => 'document_scanner', 'title' => 'Automated proof templates for screenshot & video hash', 'body' => 'Drag and drop proof into preformatted slots with automatic timestamp verification.'],
-                        ['icon' => 'hourglass_top', 'title' => 'Real-time task reservation countdown clock', 'body' => 'Your spot is held in escrow buffer. Complete at your pace without fear of spots vanishing mid-task.'],
+                        ['icon' => 'hourglass_top', 'title' => 'Real-time task reservation countdown clock', 'body' => 'Your spot is reserved while you work. Complete at your pace without fear of spots vanishing mid-task.'],
                         ['icon' => 'published_with_changes', 'title' => 'Transparent feedback if an item requires resubmission', 'body' => 'Clear algorithmic logs specify the exact missing criteria so you can adjust within 24 hours.'],
                     ] as $item)
                         <div class="flex items-start gap-3.5 p-3.5 bg-white rounded-xl shadow-sm border border-slate-100">
@@ -277,12 +277,14 @@
             <div class="lg:col-span-6">
                 <div class="relative rounded-2xl overflow-hidden shadow-lg bg-slate-100">
                     <img src="{{ $imgDash }}" alt="Agent monitoring verified task dashboard" class="w-full h-[360px] sm:h-[480px] object-cover" loading="lazy">
-                    <div class="absolute top-4 right-4 bg-white/95 backdrop-blur-md rounded-xl p-3.5 shadow-md">
-                        <div class="flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-emerald-600 text-[20px]" aria-hidden="true">fact_check</span>
-                            <span class="text-sm font-semibold text-slate-900">99.8% Acceptance Rate</span>
+                    <div class="absolute top-3 right-3 max-w-[11.5rem] sm:max-w-[13rem] bg-white/95 backdrop-blur-md rounded-xl p-2.5 sm:p-3.5 shadow-md z-10">
+                        <div class="flex items-start gap-1.5">
+                            <span class="material-symbols-outlined text-emerald-600 text-[20px] shrink-0 mt-0.5" aria-hidden="true">fact_check</span>
+                            <div class="min-w-0">
+                                <span class="text-sm font-semibold text-slate-900 leading-snug block">99.8% Acceptance Rate</span>
+                                <p class="text-xs sm:text-sm text-slate-500 mt-1 leading-snug">When criteria are strictly matched</p>
+                            </div>
                         </div>
-                        <p class="text-sm text-slate-500 mt-1">When criteria are strictly matched</p>
                     </div>
                 </div>
             </div>
@@ -299,7 +301,7 @@
                 Complete it. Submit it. Get verified.
             </h2>
             <p class="text-sm sm:text-base text-slate-600 mt-3">
-                A seamless chain protected by platform escrow. No client haggling, no payment delays.
+                A seamless chain with payouts after verification. No client haggling, no payment delays.
             </p>
         </div>
         <div class="w-full max-w-5xl bg-slate-50 rounded-2xl p-6 sm:p-8 border border-slate-100">
@@ -354,7 +356,7 @@
             @foreach([
                 ['icon' => 'flex_direction', 'title' => 'Flexible Workload', 'body' => 'Complete tasks on mobile or desktop anytime at your convenience. No minimum hours or compulsory shifts.'],
                 ['icon' => 'rule', 'title' => 'Clear Requirements', 'body' => 'Zero guessing games. Tasks follow strict, objective checklists so you always know what passes inspection.'],
-                ['icon' => 'lock', 'title' => 'Escrow-Protected Payouts', 'body' => 'Campaign budgets are locked into verified platform escrow before tasks are visible on the marketplace.'],
+                ['icon' => 'lock', 'title' => 'Verified Payouts', 'body' => 'Campaign budgets are secured at checkout before tasks go live on the marketplace.'],
                 ['icon' => 'military_tech', 'title' => 'Reputation Growth', 'body' => 'Consistent accuracy unlocks higher-reward campaign tiers, specialized feedback tasks, and priority dispatch.'],
             ] as $b)
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-3.5">
