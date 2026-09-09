@@ -146,9 +146,9 @@
                 Engineered to give organizations scalable output, while delivering fair, verified task rewards to independent contributors.
             </p>
         </div>
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-            <div class="lg:col-span-7 bg-white rounded-2xl shadow-md border border-slate-100 p-6 sm:p-8 lg:p-10 flex flex-col justify-between">
-                <div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 sm:p-8 lg:p-10 flex flex-col h-full">
+                <div class="flex-1 flex flex-col">
                     <div class="flex items-center justify-between gap-3 mb-5">
                         <span class="px-3 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-wider">For Creators</span>
                         <span class="text-xs text-slate-500">Businesses &amp; Brands</span>
@@ -156,10 +156,10 @@
                     <h3 class="font-display text-xl font-bold text-slate-900 mb-2">
                         Businesses, brands, organizations, and individuals who want to run digital campaigns.
                     </h3>
-                    <p class="text-base text-slate-600 mb-6 leading-relaxed">
+                    <p class="text-sm sm:text-base text-slate-600 mb-6 leading-relaxed">
                         Launch campaigns without managing every task yourself. Choose predefined services, provide your requirements, fund your campaign, and monitor progress from one place.
                     </p>
-                    <div class="relative rounded-xl overflow-hidden aspect-[16/9] shadow-sm mb-6 bg-slate-100">
+                    <div class="relative rounded-xl overflow-hidden aspect-[16/10] shadow-sm mb-6 bg-slate-100 mt-auto">
                         <img src="{{ $imgServices }}" alt="Founder working on live campaign review" class="w-full h-full object-cover" loading="lazy">
                         <div class="absolute inset-0 bg-gradient-to-t from-slate-950/40 to-transparent"></div>
                         <div class="absolute bottom-3 left-3 text-white">
@@ -175,8 +175,8 @@
                     </a>
                 </div>
             </div>
-            <div class="lg:col-span-5 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 sm:p-8 lg:p-10 flex flex-col justify-between">
-                <div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 sm:p-8 lg:p-10 flex flex-col h-full">
+                <div class="flex-1 flex flex-col">
                     <div class="flex items-center justify-between gap-3 mb-5">
                         <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold uppercase tracking-wider">For Agents</span>
                         <span class="text-xs text-slate-500">Contributors &amp; Testers</span>
@@ -184,10 +184,10 @@
                     <h3 class="font-display text-xl font-bold text-slate-900 mb-2">
                         People who want to discover available digital tasks and earn by completing them.
                     </h3>
-                    <p class="text-sm text-slate-600 mb-6 leading-relaxed">
+                    <p class="text-sm sm:text-base text-slate-600 mb-6 leading-relaxed">
                         Turn available digital tasks into opportunities. Discover eligible campaigns, complete the required activities, submit proof, and earn when your work is approved.
                     </p>
-                    <div class="relative rounded-xl overflow-hidden aspect-[16/10] shadow-sm mb-6 bg-slate-100">
+                    <div class="relative rounded-xl overflow-hidden aspect-[16/10] shadow-sm mb-6 bg-slate-100 mt-auto">
                         <img src="{{ $imgAnalytics }}" alt="UX tester evaluating task application" class="w-full h-full object-cover" loading="lazy">
                         <div class="absolute inset-0 bg-gradient-to-t from-slate-950/40 to-transparent"></div>
                         <div class="absolute bottom-3 left-3 text-white">

@@ -16,15 +16,17 @@ class HelpCenterTest extends TestCase
             ->assertOk()
             ->assertSee('Help Center')
             ->assertSee('Getting Started')
-            ->assertSee('Contact us');
+            ->assertSee('Campaigns, packages & tasks')
+            ->assertSee('Contact Support');
     }
 
     public function test_help_article_loads(): void
     {
         $this->get(route('help.article', 'getting-started'))
             ->assertOk()
-            ->assertSee('Getting Started with 7th Trade Hub')
-            ->assertSee('Creating an account')
+            ->assertSee('Getting Started')
+            ->assertSee('Creators and Agents')
+            ->assertSee('Creating your account')
             ->assertSee('assets/images/ai-powered-device-concept copy.jpg', false);
     }
 
@@ -65,7 +67,26 @@ class HelpCenterTest extends TestCase
         $this->get(route('help.article', 'billing-wallets-payments'))
             ->assertOk()
             ->assertSee('id="funding"', false)
-            ->assertSee('data-help-section', false);
+            ->assertSee('data-help-section', false)
+            ->assertSee('Secure checkout protection');
+    }
+
+    public function test_legal_terms_describe_creator_agent_marketplace(): void
+    {
+        $this->get(route('legal', ['doc' => 'terms']))
+            ->assertOk()
+            ->assertSee('Creators and Agents')
+            ->assertSee('Campaigns, Packages & Tasks')
+            ->assertDontSee('does not operate a peer-to-peer marketplace', false);
+    }
+
+    public function test_legal_privacy_covers_proof_and_kyc(): void
+    {
+        $this->get(route('legal', ['doc' => 'privacy']))
+            ->assertOk()
+            ->assertSee('Creators and Agents')
+            ->assertSee('proof assets')
+            ->assertSee('KYC');
     }
 
     public function test_search_index_includes_guides_and_sections(): void

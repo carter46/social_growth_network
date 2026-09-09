@@ -23,8 +23,8 @@ class SystemSettingSeeder extends Seeder
             'site_name' => config('app.name', 'Social Growth Network'),
             'site_short_name' => 'Social Growth',
             'site_heading' => 'Grow your social presence',
-            'site_tagline' => 'Instagram, TikTok, YouTube, Twitter/X, and Facebook growth packs — clear deliverables, secure checkout.',
-            'site_meta_description' => 'Buy social media growth and engagement services. Secure checkout with wallet or card.',
+            'site_tagline' => 'Creators launch digital campaigns. Agents complete verified tasks. Secure checkout and payouts in one place.',
+            'site_meta_description' => 'Social Growth Network connects Creators and Agents for campaign packages, proof verification, wallet funding, and secure payouts.',
             'contact_timezone' => 'Africa/Lagos',
         ];
 
