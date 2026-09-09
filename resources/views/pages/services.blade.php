@@ -32,12 +32,15 @@
     x-data="servicesMarketplace(@js($marketplaceConfig))"
     @click.capture="onResultsClick($event)"
 >
-{{-- Marketplace hero --}}
-<section class="relative w-full overflow-hidden bg-slate-800 text-white py-14 md:py-20">
-    <div class="absolute inset-0 bg-cover bg-center opacity-70" style="background-image: url('{{ $heroImage }}');" aria-hidden="true"></div>
-    <div class="absolute inset-0 bg-gradient-to-r from-slate-950/55 via-slate-900/35 to-slate-900/20" aria-hidden="true"></div>
+{{-- Marketplace hero: fill viewport below sticky header --}}
+<section class="home-hero relative flex items-center overflow-hidden bg-slate-900 text-white">
+    <div class="absolute inset-0 z-0">
+        <img src="{{ $heroImage }}" alt="" class="w-full h-full object-cover object-center" loading="eager">
+        <div class="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-900/65 to-slate-900/50" aria-hidden="true"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-900/30 to-black/25" aria-hidden="true"></div>
+    </div>
 
-    <div class="relative max-w-site mx-auto px-4 sm:px-6 lg:px-8 z-10">
+    <div class="relative z-10 max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16 w-full">
         <div class="max-w-3xl w-full flex flex-col items-start">
             <h1 class="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-3 tracking-tight leading-tight">
                 Find the campaign service you need.
@@ -49,7 +52,7 @@
             <form
                 method="GET"
                 action="{{ route('services') }}"
-                class="w-full max-w-full bg-white/45 backdrop-blur-md border border-white/40 rounded-xl p-1.5 shadow-xl flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5"
+                class="w-full max-w-2xl bg-white/45 backdrop-blur-md border border-white/40 rounded-xl p-1.5 shadow-xl flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5"
                 @submit="search($event)"
             >
                 <div class="flex items-center gap-2 px-3 py-2 w-full min-w-0">

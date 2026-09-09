@@ -14,8 +14,8 @@
     $filterCategories = $categoryCards->take(5);
     $marketplaceCards = $categoryCards->take(5);
     $heroSlides = [
-        ['src' => asset('assets/images/home-slider-1.jpg'), 'alt' => 'Creator working on digital campaigns'],
         ['src' => asset('assets/images/home-slider-2.jpg'), 'alt' => 'Team collaborating on campaign growth'],
+        ['src' => asset('assets/images/home-slider-1.jpg'), 'alt' => 'Creator working on digital campaigns'],
         ['src' => asset('assets/images/home-slider-3.jpg'), 'alt' => 'Marketer reviewing campaign performance'],
     ];
     $badgeTones = [
@@ -48,21 +48,19 @@
     <div class="absolute inset-0 z-0">
         @foreach($heroSlides as $index => $slide)
             <div
-                class="hero-slide absolute inset-0"
-                :class="current === {{ $index }} ? 'opacity-100' : 'opacity-0 pointer-events-none'"
-                @if($index !== 0) style="opacity: 0;" @endif
+                class="hero-slide absolute inset-0 transition-opacity duration-700 ease-in-out {{ $index === 0 ? 'opacity-100 z-[1]' : 'opacity-0 z-0 pointer-events-none' }}"
+                :class="current === {{ $index }} ? 'opacity-100 z-[1]' : 'opacity-0 z-0 pointer-events-none'"
             >
                 <img
                     src="{{ $slide['src'] }}"
                     alt="{{ $slide['alt'] }}"
                     class="w-full h-full object-cover object-center"
-                    :class="current === {{ $index }} ? 'transform scale-100 transition-transform duration-[10000ms] ease-out' : ''"
-                    @if($index > 0) loading="lazy" @endif
+                    loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
                 >
             </div>
         @endforeach
-        <div class="absolute inset-0 bg-gradient-to-r from-slate-950/55 via-slate-900/35 to-slate-900/20"></div>
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/50 via-transparent to-black/10"></div>
+        <div class="absolute inset-0 z-[2] bg-gradient-to-r from-slate-950/75 via-slate-900/55 to-slate-900/40"></div>
+        <div class="absolute inset-0 z-[2] bg-gradient-to-t from-slate-950/70 via-slate-900/25 to-black/20"></div>
     </div>
 
     <div class="relative z-10 max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16 w-full">
@@ -322,11 +320,11 @@
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
             <div class="lg:col-span-6 relative">
-                <div class="relative rounded-2xl overflow-hidden shadow-xl border border-slate-100">
+                <div class="relative rounded-2xl overflow-hidden shadow-xl border border-slate-100 min-h-[420px] sm:min-h-[520px] lg:min-h-[600px]">
                     <img
                         src="{{ asset('assets/images/campaign-workspace.jpg') }}"
                         alt="Creator launching campaigns on {{ $brandName }}"
-                        class="w-full h-auto max-h-[580px] object-cover object-center"
+                        class="absolute inset-0 w-full h-full object-cover object-center"
                         loading="lazy"
                     >
                     <div class="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"></div>
@@ -339,7 +337,7 @@
             </div>
             <div class="lg:col-span-6 flex flex-col items-start">
                 <span class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-2">For creators &amp; founders</span>
-                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight mb-5 font-display">
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight mb-5 font-display">
                     Everything you need to get your campaign moving.
                 </h2>
                 <p class="text-slate-600 text-base sm:text-lg leading-relaxed mb-8">
@@ -457,7 +455,7 @@
             class="w-full h-full object-cover object-center"
             loading="lazy"
         >
-        <div class="absolute inset-0 bg-slate-950/70" aria-hidden="true"></div>
+        <div class="absolute inset-0 bg-slate-950/85" aria-hidden="true"></div>
     </div>
     <div class="absolute -top-24 -right-24 w-96 h-96 bg-primary/20 rounded-full blur-3xl pointer-events-none z-[1]"></div>
     <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none z-[1]"></div>

@@ -6,9 +6,10 @@
 @php
     $brandName = $siteName ?? config('app.name', 'Social Growth Network');
     $imgTeam = asset('assets/images/about-hero.jpg');
-    $imgStudio = asset('assets/images/about-hero.jpg');
-    $imgAnalytics = asset('assets/images/about-agents.jpg');
-    $imgServices = asset('assets/images/about-creators.jpg');
+    $imgStudio = asset('assets/images/creators-hero.jpg');
+    $imgCreatorsSide = asset('assets/images/about-creators.jpg');
+    $imgAgentsSide = asset('assets/images/about-agents.jpg');
+    $imgTrust = asset('assets/images/campaign-workspace.jpg');
 @endphp
 
 {{-- Hero --}}
@@ -160,7 +161,7 @@
                         Launch campaigns without managing every task yourself. Choose predefined services, provide your requirements, fund your campaign, and monitor progress from one place.
                     </p>
                     <div class="relative rounded-xl overflow-hidden aspect-[16/10] shadow-sm mb-6 bg-slate-100 mt-auto">
-                        <img src="{{ $imgServices }}" alt="Founder working on live campaign review" class="w-full h-full object-cover" loading="lazy">
+                        <img src="{{ $imgCreatorsSide }}" alt="Founder working on live campaign review" class="w-full h-full object-cover" loading="lazy">
                         <div class="absolute inset-0 bg-gradient-to-t from-slate-950/40 to-transparent"></div>
                         <div class="absolute bottom-3 left-3 text-white">
                             <p class="text-sm font-semibold">Pre-set budgets &amp; real-time oversight</p>
@@ -188,7 +189,7 @@
                         Turn available digital tasks into opportunities. Discover eligible campaigns, complete the required activities, submit proof, and earn when your work is approved.
                     </p>
                     <div class="relative rounded-xl overflow-hidden aspect-[16/10] shadow-sm mb-6 bg-slate-100 mt-auto">
-                        <img src="{{ $imgAnalytics }}" alt="UX tester evaluating task application" class="w-full h-full object-cover" loading="lazy">
+                        <img src="{{ $imgAgentsSide }}" alt="UX tester evaluating task application" class="w-full h-full object-cover" loading="lazy">
                         <div class="absolute inset-0 bg-gradient-to-t from-slate-950/40 to-transparent"></div>
                         <div class="absolute bottom-3 left-3 text-white">
                             <p class="text-sm font-semibold">Verified campaign tasks</p>
@@ -240,7 +241,7 @@
             </div>
             <div class="lg:col-span-5">
                 <div class="relative rounded-2xl overflow-hidden shadow-md bg-slate-100 aspect-[4/3]">
-                    <img src="{{ $imgAnalytics }}" alt="Analyst reviewing campaign performance charts" class="w-full h-full object-cover" loading="lazy">
+                    <img src="{{ $imgTrust }}" alt="Analyst reviewing campaign performance charts" class="w-full h-full object-cover" loading="lazy">
                     <div class="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent"></div>
                     <div class="absolute bottom-4 left-4 right-4 p-3.5 bg-white/90 backdrop-blur rounded-xl">
                         <p class="text-sm font-semibold text-slate-900">Real-Time Progress Tracking</p>
