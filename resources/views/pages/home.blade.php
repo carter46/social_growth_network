@@ -14,9 +14,9 @@
     $filterCategories = $categoryCards->take(5);
     $marketplaceCards = $categoryCards->take(5);
     $heroSlides = [
-        ['src' => asset('assets/images/homeslider1.jpg'), 'alt' => 'Video creator in creative studio'],
-        ['src' => asset('assets/images/homeslider2.jpg'), 'alt' => 'Creator filming with ring light'],
-        ['src' => asset('assets/images/homeslider3.jpg'), 'alt' => 'Entrepreneur reviewing campaign analytics'],
+        ['src' => asset('assets/images/home-slider-1.jpg'), 'alt' => 'Creator working on digital campaigns'],
+        ['src' => asset('assets/images/home-slider-2.jpg'), 'alt' => 'Team collaborating on campaign growth'],
+        ['src' => asset('assets/images/home-slider-3.jpg'), 'alt' => 'Marketer reviewing campaign performance'],
     ];
     $badgeTones = [
         'text-red-600',
@@ -324,7 +324,7 @@
             <div class="lg:col-span-6 relative">
                 <div class="relative rounded-2xl overflow-hidden shadow-xl border border-slate-100">
                     <img
-                        src="{{ asset('assets/images/homeslider2.jpg') }}"
+                        src="{{ asset('assets/images/campaign-workspace.jpg') }}"
                         alt="Creator launching campaigns on {{ $brandName }}"
                         class="w-full h-auto max-h-[580px] object-cover object-center"
                         loading="lazy"
@@ -449,9 +449,18 @@
 </section>
 
 {{-- 7. Final CTA --}}
-<section class="py-20 lg:py-24 bg-navy-dark text-white relative overflow-hidden">
-    <div class="absolute -top-24 -right-24 w-96 h-96 bg-primary/20 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
+<section class="py-20 lg:py-24 text-white relative overflow-hidden">
+    <div class="absolute inset-0 z-0">
+        <img
+            src="{{ asset('assets/images/home-cta.jpg') }}"
+            alt=""
+            class="w-full h-full object-cover object-center"
+            loading="lazy"
+        >
+        <div class="absolute inset-0 bg-slate-950/70" aria-hidden="true"></div>
+    </div>
+    <div class="absolute -top-24 -right-24 w-96 h-96 bg-primary/20 rounded-full blur-3xl pointer-events-none z-[1]"></div>
+    <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none z-[1]"></div>
     <div class="relative z-10 max-w-site mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div class="max-w-2xl mx-auto">
             <div class="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-blue-400 mx-auto mb-6">

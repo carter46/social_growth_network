@@ -4,7 +4,7 @@
 
 @section('content')
 @php
-    $heroImage = asset('assets/images/services_1.jpg');
+    $heroImage = asset('assets/images/services-hero.jpg');
     $groups = collect($groups ?? []);
     $products = $products ?? null;
     $totalVisible = (int) ($totalVisible ?? ($products?->total() ?? 0));

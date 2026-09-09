@@ -5,10 +5,10 @@
 @section('content')
 @php
     $brandName = $siteName ?? config('app.name', 'Social Growth Network');
-    $imgTeam = asset('assets/images/homeslider1.jpg');
-    $imgStudio = asset('assets/images/homeslider2.jpg');
-    $imgAnalytics = asset('assets/images/homeslider3.jpg');
-    $imgServices = asset('assets/images/services_1.jpg');
+    $imgTeam = asset('assets/images/about-hero.jpg');
+    $imgStudio = asset('assets/images/about-hero.jpg');
+    $imgAnalytics = asset('assets/images/about-agents.jpg');
+    $imgServices = asset('assets/images/about-creators.jpg');
 @endphp
 
 {{-- Hero --}}

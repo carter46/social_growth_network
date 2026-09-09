@@ -5,10 +5,10 @@
 @section('content')
 @php
     $brandName = $siteName ?? config('app.name', 'Social Growth Network');
-    $imgStudio = asset('assets/images/homeslider1.jpg');
-    $imgCreator = asset('assets/images/homeslider2.jpg');
-    $imgAnalytics = asset('assets/images/homeslider3.jpg');
-    $imgServices = asset('assets/images/services_1.jpg');
+    $imgStudio = asset('assets/images/creators-hero.jpg');
+    $imgCreator = asset('assets/images/campaign-workspace.jpg');
+    $imgAnalytics = asset('assets/images/home-slider-3.jpg');
+    $imgServices = asset('assets/images/services-hero.jpg');
     $categoryCards = collect($categoryCards ?? [])->values()->take(4);
     $categoryIcons = [
         'youtube' => 'smart_display',
