@@ -6,6 +6,16 @@
 @php
     $status = $status ?? 'active';
 @endphp
+<div
+    x-data="{
+        selected: [],
+        status: @js($status),
+        toggleAll(event, ids) {
+            this.selected = event.target.checked ? [...ids] : [];
+        },
+    }"
+    @dashboard-tab-navigated.window="selected = []; status = $event.detail?.id || status"
+>
 <x-layout.page
     title="User Management"
     subtitle="Member accounts only. Administrators are managed separately."
@@ -53,8 +63,91 @@
         class="mb-4"
     />
 
+    <div class="mb-4 flex flex-wrap items-center gap-2" x-show="selected.length" x-cloak>
+        <form x-ref="bulkSuspendForm" method="POST" action="{{ route('admin.users.bulk-suspend') }}" class="hidden">
+            @csrf
+            <template x-for="id in selected" :key="'suspend-' + id">
+                <input type="hidden" name="ids[]" :value="id">
+            </template>
+        </form>
+        <form x-ref="bulkRestoreForm" method="POST" action="{{ route('admin.users.bulk-restore') }}" class="hidden">
+            @csrf
+            <template x-for="id in selected" :key="'restore-' + id">
+                <input type="hidden" name="ids[]" :value="id">
+            </template>
+        </form>
+        <form x-ref="bulkDestroyForm" method="POST" action="{{ route('admin.users.bulk-destroy') }}" class="hidden">
+            @csrf
+            @method('DELETE')
+            <template x-for="id in selected" :key="'destroy-' + id">
+                <input type="hidden" name="ids[]" :value="id">
+            </template>
+        </form>
+
+        <template x-if="status === 'active'">
+            <x-dashboard.button
+                type="button"
+                variant="danger"
+                size="sm"
+                @click="$dispatch('open-modal', 'bulk-suspend-users')"
+            >
+                Suspend selected (<span x-text="selected.length"></span>)
+            </x-dashboard.button>
+        </template>
+        <template x-if="status === 'suspended'">
+            <div class="flex flex-wrap items-center gap-2">
+                <x-dashboard.button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    @click="$dispatch('open-modal', 'bulk-restore-users')"
+                >
+                    Restore selected (<span x-text="selected.length"></span>)
+                </x-dashboard.button>
+                <x-dashboard.button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    @click="$dispatch('open-modal', 'bulk-delete-users')"
+                >
+                    Permanently delete selected (<span x-text="selected.length"></span>)
+                </x-dashboard.button>
+            </div>
+        </template>
+    </div>
+
     <div id="dashboard-tab-panel">
         @include('dashboard.admin.users._table')
+    </div>
+
+    <div @modal-confirmed.window="
+        if ($event.detail === 'bulk-suspend-users') $refs.bulkSuspendForm?.submit();
+        if ($event.detail === 'bulk-restore-users') $refs.bulkRestoreForm?.submit();
+        if ($event.detail === 'bulk-delete-users') $refs.bulkDestroyForm?.submit();
+    ">
+        <x-dashboard.modal
+            name="bulk-suspend-users"
+            title="Suspend selected users?"
+            variant="danger"
+            confirm-label="Suspend selected"
+        >
+            Suspended users lose access until restored.
+        </x-dashboard.modal>
+        <x-dashboard.modal
+            name="bulk-restore-users"
+            title="Restore selected users?"
+            confirm-label="Restore selected"
+        >
+            Selected accounts will regain access immediately.
+        </x-dashboard.modal>
+        <x-dashboard.modal
+            name="bulk-delete-users"
+            title="Permanently delete selected users?"
+            variant="danger"
+            confirm-label="Permanently delete"
+        >
+            This anonymizes personal data for the selected suspended accounts and cannot be undone.
+        </x-dashboard.modal>
     </div>
 
     {{--
@@ -136,4 +229,5 @@
 
     @include('dashboard.admin.users._manual-purchase-modal')
 </x-layout.page>
+</div>
 @endsection

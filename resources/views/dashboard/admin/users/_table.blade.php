@@ -1,6 +1,7 @@
 @php
     $userRows = $users ?? collect();
     $status = $status ?? 'active';
+    $pageIds = $userRows->pluck('id')->values()->all();
 @endphp
 
 <x-dashboard.table
@@ -11,6 +12,17 @@
     striped
 >
     <x-slot:head>
+        <x-dashboard.th class="w-10">
+            @if ($userRows->isNotEmpty())
+                <input
+                    type="checkbox"
+                    class="rounded border-border-default"
+                    aria-label="Select all users on this page"
+                    @change="toggleAll($event, @js($pageIds))"
+                    :checked="selected.length > 0 && selected.length === {{ count($pageIds) }}"
+                >
+            @endif
+        </x-dashboard.th>
         <x-dashboard.th>User</x-dashboard.th>
         <x-dashboard.th>Email</x-dashboard.th>
         <x-dashboard.th>Status</x-dashboard.th>
@@ -20,6 +32,15 @@
     @foreach ($userRows as $u)
         @php $avatarUrl = $u->avatarUrl(); @endphp
         <tr>
+            <x-dashboard.td>
+                <input
+                    type="checkbox"
+                    class="rounded border-border-default"
+                    value="{{ $u->id }}"
+                    aria-label="Select {{ $u->name }}"
+                    x-model.number="selected"
+                >
+            </x-dashboard.td>
             <x-dashboard.td>
                 <div class="flex items-center gap-3">
                     <span class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border-default bg-primary/15 text-xs font-semibold text-primary">

@@ -127,4 +127,61 @@ class UserManagementTest extends TestCase
             ->assertSee($member->name)
             ->assertSee('Overview');
     }
+
+    public function test_bulk_suspend_suspends_active_members(): void
+    {
+        $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
+        $one = User::factory()->create(['email_verified_at' => now(), 'is_suspended' => false]);
+        $one->assignRole('user');
+        $two = User::factory()->create(['email_verified_at' => now(), 'is_suspended' => false]);
+        $two->assignRole('agent');
+
+        $this->actingAs($admin)
+            ->post(route('admin.users.bulk-suspend'), ['ids' => [$one->id, $two->id]])
+            ->assertRedirect(route('admin.users', ['status' => 'active']));
+
+        $this->assertTrue($one->fresh()->is_suspended);
+        $this->assertTrue($two->fresh()->is_suspended);
+    }
+
+    public function test_bulk_restore_restores_suspended_members(): void
+    {
+        $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
+        $one = User::factory()->create(['email_verified_at' => now(), 'is_suspended' => true]);
+        $one->assignRole('user');
+        $two = User::factory()->create(['email_verified_at' => now(), 'is_suspended' => true]);
+        $two->assignRole('user');
+
+        $this->actingAs($admin)
+            ->post(route('admin.users.bulk-restore'), ['ids' => [$one->id, $two->id]])
+            ->assertRedirect(route('admin.users', ['status' => 'suspended']));
+
+        $this->assertFalse($one->fresh()->is_suspended);
+        $this->assertFalse($two->fresh()->is_suspended);
+    }
+
+    public function test_bulk_destroy_anonymizes_suspended_members_only(): void
+    {
+        $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
+        $suspended = User::factory()->create([
+            'email_verified_at' => now(),
+            'is_suspended' => true,
+            'name' => 'Bulk Delete Me',
+        ]);
+        $suspended->assignRole('user');
+        $active = User::factory()->create([
+            'email_verified_at' => now(),
+            'is_suspended' => false,
+            'name' => 'Still Active',
+        ]);
+        $active->assignRole('user');
+
+        $this->actingAs($admin)
+            ->delete(route('admin.users.bulk-destroy'), ['ids' => [$suspended->id, $active->id]])
+            ->assertRedirect(route('admin.users', ['status' => 'suspended']));
+
+        $this->assertNotNull($suspended->fresh()->anonymized_at);
+        $this->assertNull($active->fresh()->anonymized_at);
+        $this->assertFalse($active->fresh()->is_suspended);
+    }
 }

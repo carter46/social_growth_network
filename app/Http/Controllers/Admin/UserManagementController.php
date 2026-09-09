@@ -982,6 +982,135 @@ class UserManagementController extends Controller
             ->with('status', __('User permanently deleted. They are hidden now and will be fully removed within 24 hours.'));
     }
 
+    public function bulkSuspend(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'exists:users,id'],
+        ]);
+
+        $suspended = 0;
+        $skipped = 0;
+        $adminId = (int) auth()->id();
+
+        foreach ($this->memberUsersByIds($data['ids']) as $user) {
+            if ($user->id === $adminId || $user->is_suspended || $user->anonymized_at !== null) {
+                $skipped++;
+
+                continue;
+            }
+
+            $user->suspend($adminId);
+            $this->audit->log($adminId, 'user.suspended', $user, null, [
+                'user_id' => $user->id,
+                'is_suspended' => true,
+                'bulk' => true,
+            ], $request->ip());
+            $suspended++;
+        }
+
+        $status = __('Suspended :count user(s).', ['count' => $suspended]);
+        if ($skipped > 0) {
+            $status .= ' '.__(':skipped skipped.', ['skipped' => $skipped]);
+        }
+
+        return redirect()
+            ->route('admin.users', ['status' => 'active'])
+            ->with('status', $status);
+    }
+
+    public function bulkRestore(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'exists:users,id'],
+        ]);
+
+        $restored = 0;
+        $skipped = 0;
+        $adminId = (int) auth()->id();
+
+        foreach ($this->memberUsersByIds($data['ids']) as $user) {
+            if (! $user->is_suspended || $user->anonymized_at !== null) {
+                $skipped++;
+
+                continue;
+            }
+
+            $user->restoreAccess();
+            $this->audit->log($adminId, 'user.restored', $user, null, [
+                'user_id' => $user->id,
+                'is_suspended' => false,
+                'bulk' => true,
+            ], $request->ip());
+            $restored++;
+        }
+
+        $status = __('Restored :count user(s).', ['count' => $restored]);
+        if ($skipped > 0) {
+            $status .= ' '.__(':skipped skipped.', ['skipped' => $skipped]);
+        }
+
+        return redirect()
+            ->route('admin.users', ['status' => 'suspended'])
+            ->with('status', $status);
+    }
+
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'exists:users,id'],
+        ]);
+
+        $deleted = 0;
+        $skipped = 0;
+        $adminId = (int) auth()->id();
+
+        foreach ($this->memberUsersByIds($data['ids']) as $user) {
+            if ($user->hasRole('admin') || $user->anonymized_at !== null || ! $user->is_suspended) {
+                $skipped++;
+
+                continue;
+            }
+
+            $oldEmail = $user->email;
+
+            try {
+                $ok = $user->anonymize($adminId);
+            } catch (\Throwable $e) {
+                report($e);
+                $skipped++;
+
+                continue;
+            }
+
+            if (! $ok) {
+                $skipped++;
+
+                continue;
+            }
+
+            $this->audit->log($adminId, 'user.anonymized', $user, [
+                'email' => $oldEmail,
+            ], [
+                'user_id' => $user->id,
+                'anonymized_at' => optional($user->fresh())->anonymized_at?->toIso8601String(),
+                'bulk' => true,
+            ], $request->ip());
+            $deleted++;
+        }
+
+        $status = __('Permanently deleted :count user(s).', ['count' => $deleted]);
+        if ($skipped > 0) {
+            $status .= ' '.__(':skipped skipped.', ['skipped' => $skipped]);
+        }
+
+        return redirect()
+            ->route('admin.users', ['status' => 'suspended'])
+            ->with('status', $status);
+    }
+
     /**
      * Legacy role assignment endpoint — role changes belong on Administrators.
      */
@@ -997,6 +1126,21 @@ class UserManagementController extends Controller
             ($user->hasRole('user') || $user->hasRole('agent')) && ! $user->hasRole('admin'),
             404
         );
+    }
+
+    /**
+     * @param  list<int|string>  $ids
+     * @return \Illuminate\Support\Collection<int, User>
+     */
+    private function memberUsersByIds(array $ids): \Illuminate\Support\Collection
+    {
+        return User::query()
+            ->whereIn('id', $ids)
+            ->role(['user', 'agent'])
+            ->notAnonymized()
+            ->get()
+            ->filter(fn (User $user) => ! $user->hasRole('admin'))
+            ->values();
     }
 
     private function wantsTabPartial(Request $request): bool

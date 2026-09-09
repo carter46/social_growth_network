@@ -383,6 +383,9 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::get('/users', [UserManagementController::class, 'index'])->name('.users');
         Route::get('/users/create', [UserManagementController::class, 'create'])->name('.users.create');
         Route::post('/users', [UserManagementController::class, 'store'])->name('.users.store');
+        Route::post('/users/bulk-suspend', [UserManagementController::class, 'bulkSuspend'])->name('.users.bulk-suspend');
+        Route::post('/users/bulk-restore', [UserManagementController::class, 'bulkRestore'])->name('.users.bulk-restore');
+        Route::delete('/users/bulk', [UserManagementController::class, 'bulkDestroy'])->name('.users.bulk-destroy');
         Route::get('/campaigns', [\App\Http\Controllers\Admin\CampaignAdminController::class, 'index'])->name('.campaigns');
         Route::get('/campaigns/{campaign}', [\App\Http\Controllers\Admin\CampaignAdminController::class, 'show'])->name('.campaigns.show');
         Route::post('/campaigns/{campaign}/status', [\App\Http\Controllers\Admin\CampaignAdminController::class, 'updateStatus'])->name('.campaigns.status');
