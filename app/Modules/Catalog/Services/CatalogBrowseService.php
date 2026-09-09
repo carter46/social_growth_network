@@ -431,7 +431,7 @@ class CatalogBrowseService
      * Rotates randomly on each page load. Empty when no public products exist.
      *
      * @return Collection<int, array{
-     *     icon: string,
+     *     brand: string,
      *     iconBg: string,
      *     label: string,
      *     badge: string,
@@ -448,13 +448,14 @@ class CatalogBrowseService
             return collect();
         }
 
-        $iconMap = [
-            'youtube' => ['icon' => 'smart_display', 'iconBg' => 'bg-red-50 text-red-600'],
-            'facebook' => ['icon' => 'public', 'iconBg' => 'bg-blue-50 text-blue-600'],
-            'instagram' => ['icon' => 'photo_camera', 'iconBg' => 'bg-pink-50 text-pink-600'],
-            'tiktok' => ['icon' => 'music_note', 'iconBg' => 'bg-slate-100 text-slate-900'],
-            'twitter' => ['icon' => 'chat', 'iconBg' => 'bg-sky-50 text-sky-600'],
-            'social-media' => ['icon' => 'share', 'iconBg' => 'bg-violet-50 text-violet-600'],
+        $brandMap = [
+            'youtube' => ['brand' => 'youtube', 'iconBg' => 'bg-red-50'],
+            'facebook' => ['brand' => 'facebook', 'iconBg' => 'bg-blue-50'],
+            'instagram' => ['brand' => 'instagram', 'iconBg' => 'bg-pink-50'],
+            'tiktok' => ['brand' => 'tiktok', 'iconBg' => 'bg-slate-100'],
+            'twitter' => ['brand' => 'twitter', 'iconBg' => 'bg-slate-100'],
+            'x' => ['brand' => 'twitter', 'iconBg' => 'bg-slate-100'],
+            'social-media' => ['brand' => 'social', 'iconBg' => 'bg-violet-50'],
         ];
 
         $poolSize = max($limit * 4, 12);
@@ -477,9 +478,9 @@ class CatalogBrowseService
         $hasAgentReward = Schema::hasColumn('platform_products', 'agent_reward_per_completion');
         $hasEstimatedMinutes = Schema::hasColumn('platform_products', 'estimated_minutes');
 
-        return $products->map(function (PlatformProduct $product) use ($iconMap, $hasAgentReward, $hasEstimatedMinutes) {
+        return $products->map(function (PlatformProduct $product) use ($brandMap, $hasAgentReward, $hasEstimatedMinutes) {
             $slug = $product->categorySlug() ?? '';
-            $style = $iconMap[$slug] ?? ['icon' => 'task_alt', 'iconBg' => 'bg-slate-100 text-slate-600'];
+            $style = $brandMap[$slug] ?? ['brand' => 'social', 'iconBg' => 'bg-slate-100'];
             $label = $product->serviceCategory?->name
                 ?? $product->productType?->serviceCategory?->name
                 ?? 'Campaign';
@@ -496,7 +497,7 @@ class CatalogBrowseService
             $time = $minutes > 0 ? $minutes.' '.($minutes === 1 ? 'min' : 'mins') : 'Flexible';
 
             return [
-                'icon' => $style['icon'],
+                'brand' => $style['brand'],
                 'iconBg' => $style['iconBg'],
                 'label' => $label,
                 'badge' => 'Available',

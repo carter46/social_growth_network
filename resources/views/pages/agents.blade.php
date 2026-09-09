@@ -88,66 +88,91 @@
 {{-- Marketplace preview --}}
 <section class="w-full bg-white py-14 sm:py-20">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+        @php
+            $brandPaths = [
+                'youtube' => 'M23.5 6.2a3 3 0 00-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 00.5 6.2 31.5 31.5 0 000 12a31.5 31.5 0 00.5 5.8 3 3 0 002.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 002.1-2.1A31.5 31.5 0 0024 12a31.5 31.5 0 00-.5-5.8zM9.75 15.5v-7l6.25 3.5-6.25 3.5z',
+                'facebook' => 'M18.77 7.46H15.5v-1.9c0-.9.6-1.1 1-1.1h2.2V2.14S17.36 2 16.14 2C13.6 2 11.9 3.66 11.9 6.54v1.92H9.5v3.4h2.4V22h3.6v-9.14h3l.37-3.4z',
+                'instagram' => 'M12 7a5 5 0 100 10 5 5 0 000-10zm0 8.2A3.2 3.2 0 1112 8.8a3.2 3.2 0 010 6.4zm6.4-8.3a1.16 1.16 0 11-2.32 0 1.16 1.16 0 012.32 0zM12 4.4c-2.07 0-2.33.01-3.14.05-.8.04-1.35.17-1.83.36a3.7 3.7 0 00-1.34.87 3.7 3.7 0 00-.87 1.34c-.19.48-.32 1.03-.36 1.83-.04.81-.05 1.07-.05 3.14s.01 2.33.05 3.14c.04.8.17 1.35.36 1.83.2.49.46.9.87 1.34.44.41.85.67 1.34.87.48.19 1.03.32 1.83.36.81.04 1.07.05 3.14.05s2.33-.01 3.14-.05c.8-.04 1.35-.17 1.83-.36a3.7 3.7 0 001.34-.87 3.7 3.7 0 00.87-1.34c.19-.48.32-1.03.36-1.83.04-.81.05-1.07.05-3.14s-.01-2.33-.05-3.14c-.04-.8-.17-1.35-.36-1.83a3.7 3.7 0 00-.87-1.34 3.7 3.7 0 00-1.34-.87c-.48-.19-1.03-.32-1.83-.36-.81-.04-1.07-.05-3.14-.05zm0 1.62c2.03 0 2.27.01 3.07.05.74.03 1.14.16 1.41.26.36.14.61.3.88.57.27.27.43.52.57.88.1.27.23.67.26 1.41.04.8.05 1.04.05 3.07s-.01 2.27-.05 3.07c-.03.74-.16 1.14-.26 1.41-.14.36-.3.61-.57.88a2.4 2.4 0 01-.88.57c-.27.1-.67.23-1.41.26-.8.04-1.04.05-3.07.05s-2.27-.01-3.07-.05c-.74-.03-1.14-.16-1.41-.26a2.4 2.4 0 01-.88-.57 2.4 2.4 0 01-.57-.88c-.1-.27-.23-.67-.26-1.41-.04-.8-.05-1.04-.05-3.07s.01-2.27.05-3.07c.03-.74.16-1.14.26-1.41.14-.36.3-.61.57-.88.27-.27.52-.43.88-.57.27-.1.67-.23 1.41-.26.8-.04 1.04-.05 3.07-.05z',
+                'tiktok' => 'M19.6 7.2a5.7 5.7 0 01-3.4-1.1v7.4a5.7 5.7 0 11-5.7-5.7c.3 0 .6 0 .9.1v2.9a2.8 2.8 0 100 5.5 2.8 2.8 0 002.8-2.8V2h2.9a5.7 5.7 0 003.4 3.4v1.8z',
+                'twitter' => 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.727-8.835L1.254 2.25H8.08l4.259 5.622L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z',
+                'social' => 'M18 16.1c-.8 0-1.4.3-2 .8l-7.1-4.1c.1-.3.1-.5.1-.8s0-.5-.1-.8l7.1-4.1c.5.5 1.2.8 2 .8 1.7 0 3-1.3 3-3s-1.3-3-3-3-3 1.3-3 3c0 .3 0 .5.1.8L7.9 9.9C7.4 9.4 6.7 9.1 6 9.1c-1.7 0-3 1.3-3 3s1.3 3 3 3c.7 0 1.4-.3 2-.8l7.1 4.1c-.1.3-.1.5-.1.8 0 1.7 1.3 3 3 3s3-1.3 3-3-1.3-3-3-3z',
+            ];
+            $brandColors = [
+                'youtube' => '#FF0000',
+                'facebook' => '#1877F2',
+                'instagram' => '#E4405F',
+                'tiktok' => '#111827',
+                'twitter' => '#111827',
+                'social' => '#6366F1',
+            ];
+            $fallbackTasks = [
+                ['brand' => 'youtube', 'iconBg' => 'bg-red-50', 'label' => 'YouTube Engagement', 'badge' => '142 spots left', 'badgeClass' => 'text-emerald-700 bg-emerald-50', 'title' => 'Watch 3-minute video and share thoughtful feedback', 'reward' => '₦250', 'time' => '5 mins', 'href' => route('register.agent')],
+                ['brand' => 'instagram', 'iconBg' => 'bg-pink-50', 'label' => 'Instagram Growth', 'badge' => 'High Priority', 'badgeClass' => 'text-primary bg-blue-50', 'title' => 'Engage with posts and leave authentic feedback', 'reward' => '₦850', 'time' => '12 mins', 'href' => route('register.agent')],
+                ['brand' => 'tiktok', 'iconBg' => 'bg-slate-100', 'label' => 'TikTok Engagement', 'badge' => 'Open', 'badgeClass' => 'text-slate-600 bg-slate-100', 'title' => 'Watch short clips and complete engagement steps', 'reward' => '₦180', 'time' => '3 mins', 'href' => route('register.agent')],
+            ];
+            $tasks = collect($marketplaceTasks ?? [])->isNotEmpty()
+                ? collect($marketplaceTasks)
+                : collect($fallbackTasks);
+        @endphp
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
             <div class="lg:col-span-5">
-                <div class="relative rounded-2xl overflow-hidden shadow-lg bg-slate-100">
-                    <img src="{{ $imgMobile }}" alt="Agent evaluating campaign work on mobile" class="w-full h-[420px] sm:h-[520px] object-cover" loading="lazy">
-                    <div class="absolute bottom-0 inset-x-0 p-5 bg-gradient-to-t from-slate-950/80 to-transparent text-white">
-                        <span class="text-[11px] font-bold uppercase tracking-wider text-blue-200">Active Session</span>
-                        <p class="font-display text-lg font-bold mt-1">Real-time task validation interface</p>
+                <div class="relative rounded-2xl overflow-hidden shadow-lg bg-slate-100 h-64 sm:h-80 lg:h-full min-h-[280px]">
+                    <img src="{{ $imgMobile }}" alt="Agent evaluating campaign work on mobile" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
+                    <div class="absolute bottom-0 inset-x-0 p-4 sm:p-5 text-white">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-blue-200">Active Session</span>
+                        <p class="font-display text-base sm:text-lg font-bold mt-1 leading-snug">Real-time task validation interface</p>
                     </div>
                 </div>
             </div>
-            <div class="lg:col-span-7 flex flex-col gap-5">
+            <div class="lg:col-span-7 flex flex-col gap-4">
                 <div>
                     <span class="text-[11px] font-bold uppercase tracking-wider text-primary">Live Marketplace Preview</span>
-                    <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
+                    <h2 class="font-display text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">
                         Find tasks that fit you.
                     </h2>
-                    <p class="text-sm sm:text-base text-slate-600 mt-2 leading-relaxed">
+                    <p class="text-sm text-slate-600 mt-1.5 leading-relaxed">
                         Fresh tasks are published every hour across content testing, app usability, and genuine consumer engagement.
                     </p>
                 </div>
-                <div class="flex flex-col gap-3.5">
-                    @php
-                        $fallbackTasks = [
-                            ['icon' => 'smart_display', 'iconBg' => 'bg-red-50 text-red-600', 'label' => 'YouTube Engagement', 'badge' => '142 spots left', 'badgeClass' => 'text-emerald-700 bg-emerald-50', 'title' => 'Watch 3-minute video and share thoughtful feedback', 'reward' => '₦250', 'time' => '5 mins', 'href' => route('register.agent')],
-                            ['icon' => 'smartphone', 'iconBg' => 'bg-slate-100 text-slate-600', 'label' => 'App Usability Feedback', 'badge' => 'High Priority', 'badgeClass' => 'text-primary bg-blue-50', 'title' => 'Test onboarding flow on Android/iOS & record 2 UX bug points', 'reward' => '₦850', 'time' => '12 mins', 'href' => route('register.agent')],
-                            ['icon' => 'public', 'iconBg' => 'bg-emerald-50 text-emerald-700', 'label' => 'Website Visit & Dwell', 'badge' => 'Open', 'badgeClass' => 'text-slate-600 bg-slate-100', 'title' => 'Navigate landing page, browse 3 articles, log 90s dwell', 'reward' => '₦180', 'time' => '3 mins', 'href' => route('register.agent')],
-                        ];
-                        $tasks = collect($marketplaceTasks ?? [])->isNotEmpty()
-                            ? collect($marketplaceTasks)
-                            : collect($fallbackTasks);
-                    @endphp
+                <div class="flex flex-col gap-2.5">
                     @foreach($tasks as $task)
-                        <div class="bg-slate-50 rounded-xl p-5 hover:shadow-md transition-all border border-slate-100">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
+                        @php
+                            $brand = $task['brand'] ?? 'social';
+                            $path = $brandPaths[$brand] ?? $brandPaths['social'];
+                            $fill = $brandColors[$brand] ?? $brandColors['social'];
+                        @endphp
+                        <div class="bg-slate-50 rounded-xl px-3.5 py-3 hover:shadow-sm transition-shadow border border-slate-100">
+                            <div class="flex items-center justify-between gap-2">
                                 <div class="flex items-center gap-2 min-w-0">
-                                    <span class="w-7 h-7 rounded-md {{ $task['iconBg'] }} flex items-center justify-center shrink-0">
-                                        <span class="material-symbols-outlined text-[16px] leading-none" aria-hidden="true">{{ $task['icon'] }}</span>
+                                    <span class="w-7 h-7 rounded-md {{ $task['iconBg'] ?? 'bg-slate-100' }} flex items-center justify-center shrink-0">
+                                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="{{ $fill }}" aria-hidden="true">
+                                            <path d="{{ $path }}"></path>
+                                        </svg>
                                     </span>
-                                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">{{ $task['label'] }}</span>
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate">{{ $task['label'] }}</span>
                                 </div>
-                                <div class="inline-flex items-center gap-1.5 text-xs font-medium {{ $task['badgeClass'] }} px-2.5 py-1 rounded-full self-start shrink-0">
+                                <div class="inline-flex items-center gap-1 text-[10px] font-medium {{ $task['badgeClass'] }} px-2 py-0.5 rounded-full shrink-0">
                                     <span class="w-1.5 h-1.5 rounded-full bg-current opacity-70"></span>
                                     {{ $task['badge'] }}
                                 </div>
                             </div>
-                            <h4 class="font-display text-lg font-bold text-slate-900 mt-2 leading-snug">{{ $task['title'] }}</h4>
-                            <div class="flex flex-wrap items-center justify-between gap-4 mt-4 pt-1">
-                                <div class="flex items-center gap-6">
+                            <h4 class="font-display text-sm sm:text-base font-bold text-slate-900 mt-1.5 leading-snug">{{ $task['title'] }}</h4>
+                            <div class="flex flex-wrap items-center justify-between gap-3 mt-2.5">
+                                <div class="flex items-center gap-5">
                                     <div>
-                                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Reward</span>
-                                        <p class="font-display text-2xl font-bold text-primary">{{ $task['reward'] }}</p>
+                                        <span class="text-[9px] font-bold uppercase tracking-wider text-slate-500">Reward</span>
+                                        <p class="font-display text-base sm:text-lg font-bold text-primary leading-tight">{{ $task['reward'] }}</p>
                                     </div>
                                     <div>
-                                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Est. Time</span>
-                                        <p class="text-sm font-semibold text-slate-900">{{ $task['time'] }}</p>
+                                        <span class="text-[9px] font-bold uppercase tracking-wider text-slate-500">Est. Time</span>
+                                        <p class="text-xs sm:text-sm font-semibold text-slate-900 leading-tight">{{ $task['time'] }}</p>
                                     </div>
                                 </div>
-                                <a href="{{ $task['href'] ?? route('register.agent') }}" class="inline-flex items-center gap-1 font-semibold text-sm text-primary hover:text-primary-hover px-3.5 py-2 bg-white rounded-lg shadow-sm border border-slate-100">
+                                <a href="{{ $task['href'] ?? route('register.agent') }}" class="inline-flex items-center gap-1 font-semibold text-xs text-primary hover:text-primary-hover px-2.5 py-1.5 bg-white rounded-lg shadow-sm border border-slate-100">
                                     <span>View Task</span>
-                                    <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
+                                    <span class="material-symbols-outlined text-[14px]" aria-hidden="true">arrow_forward</span>
                                 </a>
                             </div>
                         </div>

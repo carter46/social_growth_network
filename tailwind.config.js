@@ -98,5 +98,6 @@ export default {
         'w-9', 'h-9', 'bg-emerald-700', 'text-emerald-700',
         'xl:flex', 'xl:hidden', 'xl:space-x-1', 'xl:text-sm', 'xl:px-3',
         'order-1', 'order-2', 'lg:order-1', 'lg:order-2',
+        'lg:h-full', 'sm:h-80', 'h-64', 'min-h-[280px]',
     ],
 };
