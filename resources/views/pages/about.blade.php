@@ -16,10 +16,6 @@
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
             <div class="lg:col-span-6 flex flex-col items-start z-10">
-                <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-primary/10 text-primary mb-4">
-                    <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                    <span class="text-[11px] font-bold uppercase tracking-wider">About {{ $brandName }}</span>
-                </div>
                 <h1 class="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight mb-4 leading-tight">
                     Built to make digital campaigns happen.
                 </h1>
@@ -140,42 +136,6 @@
     </div>
 </section>
 
-{{-- How it works --}}
-<section class="w-full py-14 sm:py-20 bg-white">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
-            <div>
-                <span class="text-[11px] font-bold uppercase tracking-wider text-primary mb-2 block">Execution Flow</span>
-                <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900">A dependable 3-step lifecycle.</h2>
-            </div>
-            <p class="text-sm text-slate-600 max-w-md">
-                Every campaign follows an automated, transparent trajectory from configuration through verified payout.
-            </p>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-            @foreach([
-                ['n' => '01', 'icon' => 'tune', 'title' => 'Choose', 'body' => 'A Creator selects the campaign service and predefined package that fits their goal.', 'tag' => 'Structured specs', 'nClass' => 'text-primary'],
-                ['n' => '02', 'icon' => 'rocket_launch', 'title' => 'Launch', 'body' => 'They provide the required campaign details, fund the campaign, and launch it.', 'tag' => 'Payment secured', 'nClass' => 'text-primary'],
-                ['n' => '03', 'icon' => 'task_alt', 'title' => 'Complete & Verify', 'body' => 'Agents complete available tasks, submit proof, and approved work is verified before rewards are released.', 'tag' => 'Automatic settlement', 'nClass' => 'text-emerald-700', 'tagClass' => 'bg-emerald-50 text-emerald-700'],
-            ] as $step)
-                <div class="relative bg-white p-6 sm:p-8 rounded-xl shadow-sm border border-slate-100">
-                    <div class="flex items-center justify-between mb-5">
-                        <span class="font-display text-3xl font-bold {{ $step['nClass'] }}">{{ $step['n'] }}</span>
-                        <div class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                            <span class="material-symbols-outlined text-xl" aria-hidden="true">{{ $step['icon'] }}</span>
-                        </div>
-                    </div>
-                    <h3 class="font-display text-lg font-bold text-slate-900 mb-2">{{ $step['title'] }}</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">{{ $step['body'] }}</p>
-                    <div class="mt-4">
-                        <span class="inline-block px-2.5 py-1 rounded text-xs font-medium {{ $step['tagClass'] ?? 'bg-slate-100 text-slate-600' }}">{{ $step['tag'] }}</span>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    </div>
-</section>
-
 {{-- Built for two sides --}}
 <section class="w-full py-14 sm:py-20 bg-slate-50">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
@@ -286,72 +246,6 @@
                         <p class="text-sm font-semibold text-slate-900">Real-Time Progress Tracking</p>
                         <p class="text-sm text-slate-600">Transparent dashboards update with every confirmed milestone.</p>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-{{-- Mission --}}
-<section class="w-full py-14 sm:py-20 bg-white">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="max-w-4xl">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-primary mb-4 block">Our Mission</span>
-            <h2 class="font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 leading-tight tracking-tight mb-8">
-                To make digital campaign execution more accessible, structured, and rewarding for everyone involved.
-            </h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <p class="text-base sm:text-lg text-slate-600 leading-relaxed">
-                    We believe businesses should be able to launch digital campaigns without unnecessary complexity, while people should have access to legitimate opportunities to contribute their skills and effort.
-                </p>
-                <p class="text-base sm:text-lg text-slate-600 leading-relaxed">
-                    {{ $brandName }} brings these two sides together through a simple marketplace built around clearly defined tasks, transparent workflows, and verified completion.
-                </p>
-            </div>
-        </div>
-    </div>
-</section>
-
-{{-- Vision --}}
-<section class="w-full py-14 sm:py-20 bg-white">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="bg-slate-50 rounded-2xl p-6 sm:p-8 lg:p-12 border border-slate-100">
-            <div class="max-w-3xl">
-                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-primary text-[11px] font-bold uppercase tracking-wider mb-4 shadow-sm border border-slate-100">
-                    <span class="material-symbols-outlined text-base" aria-hidden="true">visibility</span>
-                    Our Long-term Vision
-                </div>
-                <h3 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 mb-4">
-                    A better way to get digital work done.
-                </h3>
-                <p class="text-base sm:text-lg text-slate-600 leading-relaxed">
-                    We are building {{ $brandName }} into a marketplace where digital campaigns can move from idea to execution through a structured network of businesses and people ready to get the work done.
-                </p>
-            </div>
-        </div>
-    </div>
-</section>
-
-{{-- Final CTA --}}
-<section class="w-full py-14 sm:py-20 bg-white">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="bg-primary text-white rounded-3xl p-8 sm:p-12 lg:p-16 shadow-xl relative overflow-hidden">
-            <div class="absolute -right-16 -top-16 w-80 h-80 rounded-full bg-primary-hover/30 blur-3xl pointer-events-none"></div>
-            <div class="absolute -left-16 -bottom-16 w-80 h-80 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
-            <div class="relative z-10 max-w-2xl">
-                <h2 class="font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight mb-4">
-                    Ready to put your next campaign in motion?
-                </h2>
-                <p class="text-base sm:text-lg text-blue-100 mb-10 leading-relaxed">
-                    Explore available campaign services or join the {{ $brandName }} network as an Agent.
-                </p>
-                <div class="flex flex-wrap items-center gap-3">
-                    <a href="{{ route('services') }}" class="inline-flex items-center justify-center px-6 py-3 bg-white text-primary hover:bg-slate-50 font-semibold text-sm rounded-lg shadow-sm transition-colors">
-                        Explore Services
-                    </a>
-                    <a href="{{ route('register.agent') }}" class="inline-flex items-center justify-center px-6 py-3 bg-transparent hover:bg-white/10 text-white font-semibold text-sm rounded-lg transition-colors">
-                        Become an Agent
-                    </a>
                 </div>
             </div>
         </div>
