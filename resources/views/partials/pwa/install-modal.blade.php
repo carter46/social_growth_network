@@ -34,7 +34,7 @@
                 <li>Tap <strong class="text-slate-200">Install app</strong> or <strong class="text-slate-200">Add to Home screen</strong>.</li>
                 <li>Confirm when prompted.</li>
             </ol>
-            <p class="text-xs text-slate-500">If you already dismissed the install banner, try refreshing this page and tap Download Mobile app again.</p>
+            <p class="text-xs text-slate-500">If you already dismissed the install banner, try refreshing this page and tap Download Mobile App again.</p>
         </div>
 
         <div data-pwa-panel="desktop" class="hidden space-y-4 text-sm text-slate-300">

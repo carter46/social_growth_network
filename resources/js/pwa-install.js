@@ -133,14 +133,14 @@ function setState(next) {
 
         if (mode === 'mobile') {
             if (labelEl) {
-                labelEl.textContent = 'Download Mobile app';
+                labelEl.textContent = 'Download Mobile App';
             }
             if (subEl) {
                 subEl.textContent = 'Install to your home screen';
             }
         } else if (mode === 'desktop') {
             if (labelEl) {
-                labelEl.textContent = 'Download Desktop app';
+                labelEl.textContent = 'Download Desktop App';
             }
             if (subEl) {
                 subEl.textContent = 'Install to your computer';

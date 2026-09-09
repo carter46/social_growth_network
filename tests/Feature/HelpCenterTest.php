@@ -16,8 +16,11 @@ class HelpCenterTest extends TestCase
             ->assertOk()
             ->assertSee('Help Center')
             ->assertSee('Getting Started')
-            ->assertSee('Campaigns, packages & tasks')
-            ->assertSee('Contact Support');
+            ->assertSee('Campaigns & Tasks')
+            ->assertSee('For Creators')
+            ->assertSee('For Agents')
+            ->assertSee('Contact Support')
+            ->assertDontSee('Institutional security', false);
     }
 
     public function test_help_article_loads(): void
