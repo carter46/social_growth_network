@@ -9,7 +9,7 @@
     $imgCreator = asset('assets/images/homeslider2.jpg');
     $imgAnalytics = asset('assets/images/homeslider3.jpg');
     $imgServices = asset('assets/images/services_1.jpg');
-    $categoryCards = collect($categoryCards ?? [])->values();
+    $categoryCards = collect($categoryCards ?? [])->values()->take(4);
     $categoryIcons = [
         'youtube' => 'smart_display',
         'facebook' => 'public',
@@ -32,39 +32,33 @@
 <section class="w-full relative overflow-hidden bg-white">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-            {{-- Image column (first on mobile) --}}
-            <div class="lg:col-span-5 relative order-1 lg:order-2">
+            {{-- Image column (first on mobile); Guard hangs off bottom-right edge --}}
+            <div class="lg:col-span-5 relative order-1 lg:order-2 pb-8 sm:pb-10">
                 <div class="relative rounded-2xl overflow-hidden shadow-xl bg-slate-100 aspect-[4/3] lg:aspect-[5/4]">
                     <img src="{{ $imgStudio }}" alt="Creative creator filming in production setup" class="w-full h-full object-cover object-center" loading="eager">
                     <div class="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-transparent" aria-hidden="true"></div>
 
-                    <div class="absolute top-3 right-3 max-w-[10.5rem] sm:max-w-[12rem] bg-white p-2.5 sm:p-3 rounded-xl shadow-md flex items-start gap-2 z-10" aria-hidden="true">
-                        <span class="material-symbols-outlined text-[20px] text-emerald-600 shrink-0 mt-0.5">verified_user</span>
-                        <div class="min-w-0">
-                            <div class="text-xs font-semibold text-slate-900 leading-snug truncate">{{ $brandName }} Guard</div>
-                            <div class="text-[11px] text-slate-500 leading-snug mt-0.5">Human audit active</div>
+                    <div class="absolute bottom-3 left-3 right-16 sm:right-24 max-w-[16rem] sm:max-w-[18rem] bg-white/95 backdrop-blur-md p-3 sm:p-3.5 rounded-xl shadow-lg z-10">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-slate-50 flex items-center justify-center text-primary shrink-0">
+                                <span class="material-symbols-outlined text-[20px] sm:text-[22px]" aria-hidden="true">videocam</span>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-sm font-semibold text-slate-900 leading-snug truncate">YouTube Watch Hours Pack</div>
+                                <div class="text-xs text-emerald-700 flex items-center gap-1.5 mt-0.5 leading-snug">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0"></span>
+                                    <span class="truncate">Milestone 3 of 4 · 92% verified</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="absolute bottom-3 left-3 right-3 bg-white/95 backdrop-blur-md p-3 sm:p-3.5 rounded-xl shadow-lg z-10">
-                        <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                            <div class="flex items-center gap-2.5 min-w-0">
-                                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-slate-50 flex items-center justify-center text-primary shrink-0">
-                                    <span class="material-symbols-outlined text-[20px] sm:text-[22px]" aria-hidden="true">videocam</span>
-                                </div>
-                                <div class="min-w-0">
-                                    <div class="text-sm font-semibold text-slate-900 leading-snug truncate">YouTube Watch Hours Pack</div>
-                                    <div class="text-xs text-emerald-700 flex items-center gap-1.5 mt-0.5 leading-snug">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0"></span>
-                                        <span class="truncate">Milestone 3 of 4 · 92% verified</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="sm:text-right shrink-0 border-t sm:border-t-0 sm:border-l border-slate-100 pt-2 sm:pt-0 sm:pl-3">
-                                <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block">Status</span>
-                                <span class="text-sm font-semibold text-primary">Verified</span>
-                            </div>
-                        </div>
+                <div class="absolute -bottom-1 right-0 sm:-right-2 max-w-[10.5rem] sm:max-w-[12rem] bg-white p-2.5 sm:p-3 rounded-xl shadow-lg border border-slate-100 flex items-start gap-2 z-20" aria-hidden="true">
+                    <span class="material-symbols-outlined text-[20px] text-emerald-600 shrink-0 mt-0.5">verified_user</span>
+                    <div class="min-w-0">
+                        <div class="text-xs font-semibold text-slate-900 leading-snug">{{ $brandName }} Guard</div>
+                        <div class="text-[11px] text-slate-500 leading-snug mt-0.5">Human audit active</div>
                     </div>
                 </div>
             </div>
@@ -181,11 +175,11 @@
 <section class="w-full bg-slate-50 py-14 sm:py-20">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-            <div class="lg:col-span-6 relative pb-6 sm:pb-8">
+            <div class="lg:col-span-6 relative pb-8 sm:pb-10">
                 <div class="rounded-2xl overflow-hidden shadow-lg bg-white border border-slate-100">
                     <img src="{{ $imgCreator }}" alt="Creator working with precision digital tools" class="w-full h-auto object-cover aspect-[16/10]" loading="lazy">
                 </div>
-                <div class="hidden sm:block absolute -bottom-2 right-4 lg:right-6 bg-white p-4 rounded-xl shadow-lg max-w-[15rem] border border-slate-100">
+                <div class="hidden sm:block absolute bottom-6 sm:bottom-8 right-4 lg:right-6 bg-white p-4 rounded-xl shadow-lg max-w-[15rem] border border-slate-100 z-10">
                     <div class="flex items-start gap-2 mb-1.5">
                         <span class="material-symbols-outlined text-primary text-[20px] shrink-0" aria-hidden="true">lock</span>
                         <span class="text-sm font-semibold text-slate-900 leading-snug">Secure checkout</span>
@@ -248,16 +242,14 @@
                 <a href="{{ route('services') }}" class="inline-flex text-sm font-semibold text-primary hover:underline">Browse services</a>
             </div>
         @else
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mb-10">
-                @foreach($categoryCards as $i => $card)
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+                @foreach($categoryCards as $card)
                     @php
                         $slug = $card['slug'] ?? '';
                         $label = $card['label'] ?? $slug;
                         $href = $card['href'] ?? route('services', array_filter(['category' => $slug ?: null]));
                         $body = $card['short_description'] ?? $card['hero_subtitle'] ?? 'Predefined packages with upfront pricing and secure checkout.';
-                        $image = $card['card_image'] ?? $card['banner_image'] ?? null;
-                        $fallbacks = [$imgStudio, $imgCreator, $imgAnalytics, $imgServices];
-                        $img = $image ?: $fallbacks[$i % count($fallbacks)];
+                        $image = $card['card_image'] ?? $card['banner_image'] ?? $card['image'] ?? null;
                         $icon = $categoryIcons[$slug] ?? ($card['icon'] ?? 'category');
                         $badgeClass = $categoryBadgeTones[$slug] ?? 'text-primary';
                         $count = (int) ($card['count'] ?? 0);
@@ -267,7 +259,11 @@
                     @endphp
                     <a href="{{ $href }}" class="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col group">
                         <div class="h-44 w-full relative overflow-hidden bg-slate-100">
-                            <img src="{{ $img }}" alt="{{ $label }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+                            @if($image)
+                                <img src="{{ $image }}" alt="{{ $label }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+                            @else
+                                <div class="w-full h-full bg-gradient-to-br from-primary/20 via-slate-200 to-slate-100" aria-hidden="true"></div>
+                            @endif
                             <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm {{ $badgeClass }} px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 max-w-[calc(100%-1.5rem)]">
                                 <span class="material-symbols-outlined text-[14px] shrink-0" aria-hidden="true">{{ $icon }}</span>
                                 <span class="truncate">{{ $label }}</span>
@@ -300,52 +296,49 @@
 {{-- Creator experience --}}
 <section class="w-full bg-slate-50 py-14 sm:py-20">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="bg-white rounded-3xl p-6 sm:p-8 lg:p-12 border border-slate-200 shadow-sm">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+        <div class="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-10 lg:p-14 border border-slate-200 shadow-sm overflow-hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start">
                 <div class="lg:col-span-5 flex flex-col items-start">
-                    <span class="text-[11px] font-bold uppercase tracking-widest text-emerald-700 mb-2">Autonomous Oversight</span>
-                    <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-3">
+                    <span class="text-[11px] font-bold uppercase tracking-widest text-emerald-700 mb-3">Autonomous Oversight</span>
+                    <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-4 leading-tight">
                         Built for people with something to grow.
                     </h2>
-                    <p class="text-sm sm:text-base text-slate-600 mb-6 leading-relaxed">
+                    <p class="text-sm sm:text-base text-slate-600 mb-8 leading-relaxed">
                         Whether you are launching your first YouTube series, scaling your digital course, or building app traction, {{ $brandName }} coordinates verified human distribution so you can focus on making great content.
                     </p>
-                    <div class="bg-slate-50 p-3.5 rounded-xl w-full flex items-start gap-3.5">
+                    <div class="bg-slate-50 p-4 sm:p-5 rounded-xl w-full flex items-start gap-4 border border-slate-100">
                         <img src="{{ $imgCreator }}" alt="" class="w-12 h-12 rounded-full object-cover shrink-0" aria-hidden="true">
-                        <div class="min-w-0">
+                        <div class="min-w-0 flex-1">
                             <p class="text-sm italic text-slate-800 leading-relaxed">
                                 “{{ $brandName }} eliminated the messy back-and-forth. I booked a watch-time tier, paid securely, and verified proofs rolled in predictably.”
                             </p>
-                            <span class="text-xs text-slate-500 font-semibold mt-1 block">
+                            <span class="text-xs text-slate-500 font-semibold mt-2 block">
                                 Elena Vance • Tech &amp; Design Creator
                             </span>
                         </div>
                     </div>
                 </div>
-                <div class="lg:col-span-7 flex flex-col justify-center">
-                    <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-5">
+                <div class="lg:col-span-7 flex flex-col justify-center min-w-0">
+                    <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-6">
                         Autonomous Campaign Lifecycle
                     </h3>
-                    <div class="flex flex-col gap-0">
+                    <div class="flex flex-col gap-3">
                         @foreach([
                             ['icon' => 'check', 'bg' => 'bg-primary', 'title' => '1. Campaign Launched', 'meta' => 'Immediate', 'metaClass' => 'text-emerald-700', 'body' => 'Tier selected, target criteria assigned, and payment secured at checkout.'],
                             ['icon' => 'hub', 'bg' => 'bg-primary', 'title' => '2. Distributed to Verified Agents', 'meta' => 'Auto-Dispatched', 'metaClass' => 'text-primary', 'body' => 'Matched instantly with high-reputation human agents based on platform tiering.'],
                             ['icon' => 'fact_check', 'bg' => 'bg-emerald-600', 'title' => '3. Proof Submitted & Inspected', 'meta' => 'Real-Time Validation', 'metaClass' => 'text-emerald-700', 'body' => 'Submissions checked via automated screenshot hashing and telemetry audits.'],
                             ['icon' => 'verified', 'bg' => 'bg-emerald-700', 'title' => '4. Milestone 100% Completed', 'meta' => 'Payout Released', 'metaClass' => 'text-emerald-700', 'body' => 'Clean telemetry exports ready, and agent payouts release after verification.'],
-                        ] as $i => $node)
-                            @if($i > 0)
-                                <div class="w-0.5 h-3 bg-primary/30 ml-7 -my-0.5" aria-hidden="true"></div>
-                            @endif
-                            <div class="flex items-start sm:items-center gap-3.5 p-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
-                                <div class="w-8 h-8 rounded-full {{ $node['bg'] }} text-white flex items-center justify-center shrink-0">
+                        ] as $node)
+                            <div class="flex items-start gap-3.5 sm:gap-4 p-4 sm:p-5 rounded-xl bg-slate-50 border border-slate-100">
+                                <div class="w-9 h-9 rounded-full {{ $node['bg'] }} text-white flex items-center justify-center shrink-0 mt-0.5">
                                     <span class="material-symbols-outlined text-[18px]" aria-hidden="true">{{ $node['icon'] }}</span>
                                 </div>
-                                <div class="flex-grow min-w-0">
-                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
-                                        <span class="text-sm font-semibold text-slate-900">{{ $node['title'] }}</span>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 sm:gap-3">
+                                        <span class="text-sm font-semibold text-slate-900 leading-snug">{{ $node['title'] }}</span>
                                         <span class="text-[11px] font-semibold {{ $node['metaClass'] }} shrink-0">{{ $node['meta'] }}</span>
                                     </div>
-                                    <p class="text-sm text-slate-600 mt-0.5 leading-relaxed">{{ $node['body'] }}</p>
+                                    <p class="text-sm text-slate-600 mt-1.5 leading-relaxed">{{ $node['body'] }}</p>
                                 </div>
                             </div>
                         @endforeach
