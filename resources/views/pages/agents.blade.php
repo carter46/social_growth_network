@@ -5,7 +5,7 @@
 @section('content')
 @php
     $brandName = $siteName ?? config('app.name', 'Social Growth Network');
-    $imgAgent = asset('assets/images/home-slider-3.jpg');
+    $imgAgent = asset('assets/images/agents-hero.jpg');
     $imgMobile = asset('assets/images/campaign-workspace.jpg');
     $imgDash = asset('assets/images/home-slider-1.jpg');
 @endphp

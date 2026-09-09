@@ -6,7 +6,7 @@
 @php
     $brandName = $siteName ?? config('app.name', 'Social Growth Network');
     $imgStudio = asset('assets/images/creators-hero.jpg');
-    $imgCreator = asset('assets/images/campaign-workspace.jpg');
+    $imgCreator = asset('assets/images/creators-operational.jpg');
     $imgAnalytics = asset('assets/images/home-slider-3.jpg');
     $imgServices = asset('assets/images/services-hero.jpg');
     $categoryCards = collect($categoryCards ?? [])->values()->take(4);
@@ -151,7 +151,7 @@
             @foreach([
                 ['n' => '01', 'icon' => 'category', 'title' => 'Choose a Service', 'body' => 'Browse catalog options across our live campaign categories and choose the package that matches your goal.', 'note' => 'Browse live:', 'noteBody' => 'Pick a category, then select a predefined package with clear pricing.', 'tone' => 'text-primary'],
                 ['n' => '02', 'icon' => 'tune', 'title' => 'Set Up Your Campaign', 'body' => 'Enter your target URL or channel, choose your predefined tier, and set any custom submission instructions.', 'note' => 'Precision criteria:', 'noteBody' => 'Duration targets, destination links, and clear package requirements.', 'tone' => 'text-primary'],
-                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Launch & Track', 'body' => 'Pay securely when you fund your campaign. Our verified agent network executes the tasks while you monitor progress from your dashboard.', 'note' => 'Protection:', 'noteBody' => 'Payouts release after submissions pass verification.', 'tone' => 'text-emerald-700'],
+                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Launch & Track', 'body' => 'Pay securely when you fund your campaign. Our verified agent network executes the tasks while you monitor progress from your dashboard.', 'note' => 'Protection:', 'noteBody' => 'Your campaign funds stay protected until submissions pass verification.', 'tone' => 'text-emerald-700'],
             ] as $step)
                 <div class="bg-slate-50 p-6 sm:p-8 rounded-2xl flex flex-col">
                     <div class="flex items-center justify-between mb-8">
@@ -185,7 +185,7 @@
                         <span class="text-sm font-semibold text-slate-900 leading-snug">Secure payment</span>
                     </div>
                     <p class="text-sm text-slate-600 leading-relaxed">
-                        Agent payouts stay protected until submissions pass verification.
+                        Campaign funds stay protected until submissions pass verification.
                     </p>
                 </div>
             </div>
@@ -195,13 +195,13 @@
                     Stay in control from campaign setup to completion.
                 </h2>
                 <p class="text-base sm:text-lg text-slate-600 mb-6 leading-relaxed">
-                    You set the requirements, target milestones, and package size. {{ $brandName }} manages the agent marketplace, proof verification, and reward settlement — giving you predictable results without contractor headaches.
+                    You set the requirements, target milestones, and package size. {{ $brandName }} manages the agent marketplace and proof verification — giving you predictable results without contractor headaches.
                 </p>
                 <div class="flex flex-col gap-3.5 w-full mb-8">
                     @foreach([
                         'Choose your predefined package with clear upfront pricing',
                         'Specify custom completion instructions and target links',
-                        'Secure payment with payouts after verification',
+                        'Secure payment with release after verification',
                         'Live progress tracking and downloadable submission logs',
                         'Instant pause, resume, or scale controls',
                     ] as $item)
@@ -327,7 +327,7 @@
                             ['icon' => 'check_circle', 'bg' => 'bg-primary', 'title' => '1. Campaign Launched', 'meta' => 'Immediate', 'metaClass' => 'text-emerald-600', 'body' => 'Tier selected, target criteria assigned, and payment secured when you pay.'],
                             ['icon' => 'hub', 'bg' => 'bg-primary', 'title' => '2. Distributed to Verified Agents', 'meta' => 'Auto-Dispatched', 'metaClass' => 'text-primary', 'body' => 'Matched instantly with high-reputation human agents based on platform tiering.'],
                             ['icon' => 'fact_check', 'bg' => 'bg-emerald-600', 'title' => '3. Proof Submitted & Inspected', 'meta' => 'Real-Time Validation', 'metaClass' => 'text-emerald-600', 'body' => 'Submissions checked via automated screenshot hashing and telemetry audits.'],
-                            ['icon' => 'verified', 'bg' => 'bg-emerald-600', 'title' => '4. Milestone 100% Completed', 'meta' => 'Payout Released', 'metaClass' => 'text-emerald-600', 'body' => 'Clean telemetry exports ready, and agent payouts release after verification.'],
+                            ['icon' => 'verified', 'bg' => 'bg-emerald-600', 'title' => '4. Milestone 100% Completed', 'meta' => 'Verified Complete', 'metaClass' => 'text-emerald-600', 'body' => 'Clean telemetry exports ready, and campaign delivery is marked complete after verification.'],
                         ] as $node)
                             <div class="flex items-start gap-3 sm:gap-4 p-4 sm:p-5 rounded-xl bg-slate-50 border border-slate-100">
                                 <div class="w-10 h-10 rounded-full {{ $node['bg'] }} text-white flex items-center justify-center shrink-0">

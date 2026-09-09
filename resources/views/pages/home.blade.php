@@ -14,9 +14,9 @@
     $filterCategories = $categoryCards->take(5);
     $marketplaceCards = $categoryCards->take(5);
     $heroSlides = [
+        ['src' => asset('assets/images/creators-hero.jpg'), 'alt' => 'Creator launching digital campaigns'],
         ['src' => asset('assets/images/home-slider-2.jpg'), 'alt' => 'Team collaborating on campaign growth'],
         ['src' => asset('assets/images/home-slider-1.jpg'), 'alt' => 'Creator working on digital campaigns'],
-        ['src' => asset('assets/images/home-slider-3.jpg'), 'alt' => 'Marketer reviewing campaign performance'],
     ];
     $badgeTones = [
         'text-red-600',

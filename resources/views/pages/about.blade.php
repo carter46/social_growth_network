@@ -43,7 +43,7 @@
                             </div>
                             <div class="min-w-0">
                                 <p class="text-sm font-semibold text-slate-900 leading-snug truncate">Human Proof Marketplace</p>
-                                <p class="text-xs text-slate-500 leading-snug mt-0.5">Structured task verification &amp; secure payouts</p>
+                                <p class="text-xs text-slate-500 leading-snug mt-0.5">Structured task verification &amp; secure payments</p>
                             </div>
                         </div>
                         <div class="hidden sm:flex flex-col items-end shrink-0 pl-2 border-l border-slate-100">
@@ -93,7 +93,7 @@
                     </div>
                     <div class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white rounded-lg shadow-sm border border-slate-100 text-slate-900">
                         <span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">lock</span>
-                        <span class="text-sm font-semibold">Verified Payouts</span>
+                        <span class="text-sm font-semibold">Verified Completion</span>
                     </div>
                 </div>
             </div>
@@ -227,7 +227,7 @@
                         ['icon' => 'badge', 'tone' => 'text-primary', 'title' => 'Task Eligibility', 'body' => 'Only matching, qualified Agents accept specific assignments.'],
                         ['icon' => 'upload_file', 'tone' => 'text-primary', 'title' => 'Proof Submission', 'body' => 'Screenshots, activity links, or audit payloads required.'],
                         ['icon' => 'verified_user', 'tone' => 'text-emerald-600', 'title' => 'Multi-point Verification', 'body' => 'System and review-assisted validation on all submissions.'],
-                        ['icon' => 'account_balance_wallet', 'tone' => 'text-emerald-600', 'title' => 'Structured Settlement', 'body' => 'Automated payout release directly upon task approval.'],
+                        ['icon' => 'account_balance_wallet', 'tone' => 'text-emerald-600', 'title' => 'Structured Settlement', 'body' => 'Funds release according to verified task approval rules.'],
                     ] as $p)
                         <div class="p-3.5 rounded-xl bg-white shadow-sm border border-slate-100 flex items-start gap-2.5">
                             <span class="material-symbols-outlined {{ $p['tone'] }} text-xl mt-0.5" aria-hidden="true">{{ $p['icon'] }}</span>
