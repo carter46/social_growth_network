@@ -24,7 +24,6 @@
                 ?? asset('assets/images/originla_logo.png');
             $navHome = route('home');
             $navServices = route('services');
-            $navHow = route('how-it-works');
             $navCreators = route('creators');
             $navAgents = route('agents');
             $navAbout = route('about');
@@ -61,7 +60,6 @@
                     <nav class="hidden xl:flex items-center space-x-0.5 xl:space-x-1 text-[13px] xl:text-sm font-medium text-slate-600">
                         <a class="px-2.5 xl:px-3 py-1.5 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('home') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navHome }}">Home</a>
                         <a class="px-2.5 xl:px-3 py-1.5 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('services*') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navServices }}">Services</a>
-                        <a class="px-2.5 xl:px-3 py-1.5 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('how-it-works') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navHow }}">How It Works</a>
                         <a class="px-2.5 xl:px-3 py-1.5 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('creators') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navCreators }}">For Creators</a>
                         <a class="px-2.5 xl:px-3 py-1.5 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('agents') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navAgents }}">For Agents</a>
                         <a class="px-2.5 xl:px-3 py-1.5 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('about') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navAbout }}">About Us</a>
@@ -145,7 +143,6 @@
                     <div class="flex flex-col divide-y divide-slate-200/40">
                         <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navHome }}" @click="close()">Home</a>
                         <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navServices }}" @click="close()">Services</a>
-                        <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navHow }}" @click="close()">How It Works</a>
                         <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navCreators }}" @click="close()">For Creators</a>
                         <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navAgents }}" @click="close()">For Agents</a>
                         <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navAbout }}" @click="close()">About Us</a>
@@ -186,7 +183,6 @@
                         <ul class="space-y-2.5 text-sm text-slate-600">
                             <li><a class="hover:text-primary transition-colors" href="{{ route('home') }}">Home</a></li>
                             <li><a class="hover:text-primary transition-colors" href="{{ route('services') }}">Services</a></li>
-                            <li><a class="hover:text-primary transition-colors" href="{{ route('how-it-works') }}">How It Works</a></li>
                             <li><a class="hover:text-primary transition-colors" href="{{ route('creators') }}">For Creators</a></li>
                             <li><a class="hover:text-primary transition-colors" href="{{ route('agents') }}">For Agents</a></li>
                             <li><a class="hover:text-primary transition-colors" href="{{ route('about') }}">About Us</a></li>

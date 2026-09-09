@@ -37,7 +37,6 @@ class SitemapController extends Controller
         $staticRoutes = [
             'home' => ['priority' => '1.0', 'changefreq' => 'daily'],
             'about' => ['priority' => '0.5', 'changefreq' => 'monthly'],
-            'how-it-works' => ['priority' => '0.6', 'changefreq' => 'monthly'],
             'creators' => ['priority' => '0.6', 'changefreq' => 'monthly'],
             'agents' => ['priority' => '0.6', 'changefreq' => 'monthly'],
             'help' => ['priority' => '0.5', 'changefreq' => 'monthly'],

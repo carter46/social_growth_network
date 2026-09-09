@@ -257,7 +257,7 @@
                 @endforeach
             </div>
             <div class="mt-8 flex flex-wrap gap-3">
-                <a href="{{ route('how-it-works') }}" class="inline-flex text-sm font-semibold text-primary hover:underline">Learn more →</a>
+                <a href="{{ route('help') }}" class="inline-flex text-sm font-semibold text-primary hover:underline">Learn more →</a>
             </div>
         </div>
     </div>

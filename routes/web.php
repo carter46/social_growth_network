@@ -55,7 +55,7 @@ Route::post('/webhooks/site-integrations/{integrationId}', \App\Http\Controllers
     ->name('webhooks.site-integrations');
 
 Route::view('/about', 'pages.about')->name('about');
-Route::view('/how-it-works', 'pages.how-it-works')->name('how-it-works');
+Route::redirect('/how-it-works', '/help', 301)->name('how-it-works');
 Route::get('/creators', function (
     \App\Modules\Catalog\Services\CatalogBrowseService $browse,
     \App\Modules\Catalog\Services\CatalogContentResolver $catalogContent

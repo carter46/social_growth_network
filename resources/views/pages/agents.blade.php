@@ -26,10 +26,6 @@
                         <span>Become an Agent</span>
                         <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
                     </a>
-                    <a href="#how-it-works" class="inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-white text-slate-900 px-5 py-3 rounded-xl hover:bg-slate-50 transition-colors shadow-sm border border-slate-200">
-                        <span class="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">play_circle</span>
-                        <span>See How It Works</span>
-                    </a>
                 </div>
                 <div class="mt-4 pt-1 bg-slate-50/80 rounded-xl px-3.5 py-2.5 w-full border border-slate-100">
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-slate-500 text-xs">
@@ -83,43 +79,6 @@
                         <h3 class="font-display text-lg font-bold text-slate-900 mt-1">{{ $card['title'] }}</h3>
                     </div>
                     <p class="text-sm text-slate-600 leading-relaxed">{{ $card['body'] }}</p>
-                </div>
-            @endforeach
-        </div>
-    </div>
-</section>
-
-{{-- How it works --}}
-<section class="w-full bg-slate-50 py-14 sm:py-20 scroll-mt-28" id="how-it-works">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-12">
-        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-                <span class="text-[11px] font-bold uppercase tracking-wider text-primary">Deterministic Path</span>
-                <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
-                    From available task to approved reward
-                </h2>
-            </div>
-            <p class="text-sm text-slate-600 max-w-md">
-                A dependable 4-step framework engineered to eliminate client renegotiations and guarantee prompt payouts.
-            </p>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
-            @foreach([
-                ['n' => '01', 'icon' => 'search', 'title' => 'Find a Task', 'body' => 'Explore active campaigns across YouTube, social media, web visits, and app feedback. Filter by reward or duration.', 'foot' => 'Instant discovery', 'tone' => 'text-primary'],
-                ['n' => '02', 'icon' => 'timer', 'title' => 'Start the Task', 'body' => 'Review clear time limits and completion criteria before accepting. The platform reserves your spot and holds the reward until verification.', 'foot' => 'Zero ambiguity', 'tone' => 'text-primary'],
-                ['n' => '03', 'icon' => 'verified', 'title' => 'Submit Proof', 'body' => 'Provide verifiable evidence (timestamps, screenshots, URL logs) through '.$brandName.' structured audit templates.', 'foot' => 'Automated Intake', 'tone' => 'text-primary'],
-                ['n' => '04', 'icon' => 'payments', 'title' => 'Get Verified & Paid', 'body' => 'Structured audit validates your work and unlocks your reward straight to your withdrawable wallet.', 'foot' => 'Payout Released', 'tone' => 'text-emerald-700'],
-            ] as $step)
-                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between h-full">
-                    <div>
-                        <div class="flex items-center justify-between mb-4">
-                            <span class="font-display text-lg font-bold {{ $step['tone'] }}">{{ $step['n'] }}</span>
-                            <span class="material-symbols-outlined {{ $step['tone'] }} text-[24px]" aria-hidden="true">{{ $step['icon'] }}</span>
-                        </div>
-                        <h3 class="font-display text-lg font-bold text-slate-900">{{ $step['title'] }}</h3>
-                        <p class="text-sm text-slate-600 mt-1.5 leading-relaxed">{{ $step['body'] }}</p>
-                    </div>
-                    <div class="mt-4 pt-2 text-[11px] font-bold uppercase tracking-wider {{ $step['tone'] === 'text-emerald-700' ? 'text-emerald-700' : 'text-slate-500' }}">{{ $step['foot'] }}</div>
                 </div>
             @endforeach
         </div>
@@ -193,55 +152,6 @@
     </div>
 </section>
 
-{{-- Know requirements --}}
-<section class="w-full bg-slate-50 py-14 sm:py-20">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-            <div class="lg:col-span-6 flex flex-col gap-5">
-                <div>
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-primary">Radical Predictability</span>
-                    <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
-                        Know what is required before you start.
-                    </h2>
-                    <p class="text-base sm:text-lg text-slate-600 mt-3 leading-relaxed">
-                        Predefined criteria — no surprise rejections. Every campaign publishes its full submission rules upfront.
-                    </p>
-                </div>
-                <div class="flex flex-col gap-3.5">
-                    @foreach([
-                        ['icon' => 'schedule', 'title' => 'Exact duration requirements displayed upfront', 'body' => 'Know down to the second how much interaction or reading time is expected prior to proof intake.'],
-                        ['icon' => 'document_scanner', 'title' => 'Automated proof templates for screenshot & video hash', 'body' => 'Drag and drop proof into preformatted slots with automatic timestamp verification.'],
-                        ['icon' => 'hourglass_top', 'title' => 'Real-time task reservation countdown clock', 'body' => 'Your spot is reserved while you work. Complete at your pace without fear of spots vanishing mid-task.'],
-                        ['icon' => 'published_with_changes', 'title' => 'Transparent feedback if an item requires resubmission', 'body' => 'Clear algorithmic logs specify the exact missing criteria so you can adjust within 24 hours.'],
-                    ] as $item)
-                        <div class="flex items-start gap-3.5 p-3.5 bg-white rounded-xl shadow-sm border border-slate-100">
-                            <span class="material-symbols-outlined text-primary text-[22px] shrink-0 mt-0.5" aria-hidden="true">{{ $item['icon'] }}</span>
-                            <div>
-                                <h4 class="font-display text-base font-bold text-slate-900">{{ $item['title'] }}</h4>
-                                <p class="text-sm text-slate-600 mt-1 leading-relaxed">{{ $item['body'] }}</p>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-            <div class="lg:col-span-6">
-                <div class="relative rounded-2xl overflow-hidden shadow-lg bg-slate-100">
-                    <img src="{{ $imgDash }}" alt="Agent monitoring verified task dashboard" class="w-full h-[360px] sm:h-[480px] object-cover" loading="lazy">
-                    <div class="absolute top-3 right-3 max-w-[11.5rem] sm:max-w-[13rem] bg-white/95 backdrop-blur-md rounded-xl p-2.5 sm:p-3.5 shadow-md z-10">
-                        <div class="flex items-start gap-1.5">
-                            <span class="material-symbols-outlined text-emerald-600 text-[20px] shrink-0 mt-0.5" aria-hidden="true">fact_check</span>
-                            <div class="min-w-0">
-                                <span class="text-sm font-semibold text-slate-900 leading-snug block">99.8% Acceptance Rate</span>
-                                <p class="text-xs sm:text-sm text-slate-500 mt-1 leading-snug">When criteria are strictly matched</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
 {{-- Final CTA --}}
 <section class="w-full bg-white py-14 sm:py-20">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
@@ -258,8 +168,8 @@
                     <span>Become an Agent</span>
                     <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
                 </a>
-                <a href="#how-it-works" class="inline-flex items-center gap-1.5 font-semibold text-sm text-white hover:bg-primary-hover px-6 py-3 rounded-xl transition-colors">
-                    <span>Explore How It Works</span>
+                <a href="{{ route('help') }}" class="inline-flex items-center gap-1.5 font-semibold text-sm text-white hover:bg-primary-hover px-6 py-3 rounded-xl transition-colors">
+                    <span>Visit Help Center</span>
                 </a>
             </div>
             <div class="mt-6 text-blue-100 text-xs font-medium">
