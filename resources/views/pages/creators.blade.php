@@ -261,6 +261,9 @@
                         $icon = $categoryIcons[$slug] ?? ($card['icon'] ?? 'category');
                         $badgeClass = $categoryBadgeTones[$slug] ?? 'text-primary';
                         $count = (int) ($card['count'] ?? 0);
+                        $ctaLabel = $count > 0
+                            ? 'View '.$count.' '.\Illuminate\Support\Str::plural('package', $count)
+                            : 'View packages';
                     @endphp
                     <a href="{{ $href }}" class="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col group">
                         <div class="h-44 w-full relative overflow-hidden bg-slate-100">
@@ -276,7 +279,7 @@
                                 <p class="text-sm text-slate-600 mb-4 leading-relaxed line-clamp-3">{{ $body }}</p>
                             </div>
                             <div class="pt-2 flex items-center justify-between text-sm font-semibold text-primary gap-2">
-                                <span>@if($count > 0)View {{ $count }} {{ \Illuminate\Support\Str::plural('package', $count) }}@else View packages@endif</span>
+                                <span>{{ $ctaLabel }}</span>
                                 <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform shrink-0" aria-hidden="true">arrow_forward</span>
                             </div>
                         </div>
