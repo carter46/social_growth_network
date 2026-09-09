@@ -54,7 +54,7 @@
                     </div>
                 </div>
 
-                <div class="absolute -bottom-1 right-0 sm:-right-2 max-w-[10.5rem] sm:max-w-[12rem] bg-white p-2.5 sm:p-3 rounded-xl shadow-lg border border-slate-100 flex items-start gap-2 z-20" aria-hidden="true">
+                <div class="absolute bottom-5 right-0 sm:-right-2 max-w-[10.5rem] sm:max-w-[12rem] bg-white p-2.5 sm:p-3 rounded-xl shadow-lg border border-slate-100 flex items-start gap-2 z-20" aria-hidden="true">
                     <span class="material-symbols-outlined text-[20px] text-emerald-600 shrink-0 mt-0.5">verified_user</span>
                     <div class="min-w-0">
                         <div class="text-xs font-semibold text-slate-900 leading-snug">{{ $brandName }} Guard</div>
@@ -324,19 +324,23 @@
                     </h3>
                     <div class="flex flex-col gap-3">
                         @foreach([
-                            ['icon' => 'check', 'bg' => 'bg-primary', 'title' => '1. Campaign Launched', 'meta' => 'Immediate', 'metaClass' => 'text-emerald-700', 'body' => 'Tier selected, target criteria assigned, and payment secured at checkout.'],
+                            ['icon' => 'check_circle', 'bg' => 'bg-primary', 'title' => '1. Campaign Launched', 'meta' => 'Immediate', 'metaClass' => 'text-emerald-600', 'body' => 'Tier selected, target criteria assigned, and payment secured at checkout.'],
                             ['icon' => 'hub', 'bg' => 'bg-primary', 'title' => '2. Distributed to Verified Agents', 'meta' => 'Auto-Dispatched', 'metaClass' => 'text-primary', 'body' => 'Matched instantly with high-reputation human agents based on platform tiering.'],
-                            ['icon' => 'fact_check', 'bg' => 'bg-emerald-600', 'title' => '3. Proof Submitted & Inspected', 'meta' => 'Real-Time Validation', 'metaClass' => 'text-emerald-700', 'body' => 'Submissions checked via automated screenshot hashing and telemetry audits.'],
-                            ['icon' => 'verified', 'bg' => 'bg-emerald-700', 'title' => '4. Milestone 100% Completed', 'meta' => 'Payout Released', 'metaClass' => 'text-emerald-700', 'body' => 'Clean telemetry exports ready, and agent payouts release after verification.'],
+                            ['icon' => 'fact_check', 'bg' => 'bg-emerald-600', 'title' => '3. Proof Submitted & Inspected', 'meta' => 'Real-Time Validation', 'metaClass' => 'text-emerald-600', 'body' => 'Submissions checked via automated screenshot hashing and telemetry audits.'],
+                            ['icon' => 'verified', 'bg' => 'bg-emerald-600', 'title' => '4. Milestone 100% Completed', 'meta' => 'Payout Released', 'metaClass' => 'text-emerald-600', 'body' => 'Clean telemetry exports ready, and agent payouts release after verification.'],
                         ] as $node)
-                            <div class="flex items-start gap-3.5 sm:gap-4 p-4 sm:p-5 rounded-xl bg-slate-50 border border-slate-100">
-                                <div class="w-9 h-9 rounded-full {{ $node['bg'] }} text-white flex items-center justify-center shrink-0 mt-0.5">
-                                    <span class="material-symbols-outlined text-[18px]" aria-hidden="true">{{ $node['icon'] }}</span>
+                            <div class="flex items-start gap-3 sm:gap-4 p-4 sm:p-5 rounded-xl bg-slate-50 border border-slate-100">
+                                <div class="w-10 h-10 rounded-full {{ $node['bg'] }} text-white flex items-center justify-center shrink-0">
+                                    <span
+                                        class="material-symbols-outlined text-[18px] leading-none block"
+                                        style="font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 20; line-height: 1;"
+                                        aria-hidden="true"
+                                    >{{ $node['icon'] }}</span>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 sm:gap-3">
+                                    <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                                         <span class="text-sm font-semibold text-slate-900 leading-snug">{{ $node['title'] }}</span>
-                                        <span class="text-[11px] font-semibold {{ $node['metaClass'] }} shrink-0">{{ $node['meta'] }}</span>
+                                        <span class="text-[11px] font-semibold {{ $node['metaClass'] }} shrink-0 sm:pt-0.5">{{ $node['meta'] }}</span>
                                     </div>
                                     <p class="text-sm text-slate-600 mt-1.5 leading-relaxed">{{ $node['body'] }}</p>
                                 </div>

@@ -95,5 +95,7 @@ export default {
         'lg:col-span-3', 'lg:col-span-4', 'lg:col-span-8', 'lg:col-span-9',
         'lg:flex-row', 'lg:w-72', 'xl:w-80', 'lg:sticky', 'lg:top-20',
         'bg-header', 'bg-sidebar', 'bg-overlay', 'bg-surface-secondary',
+        'w-9', 'h-9', 'bg-emerald-700', 'text-emerald-700',
+        'xl:flex', 'xl:hidden', 'xl:space-x-1', 'xl:text-sm', 'xl:px-3',
     ],
 };
