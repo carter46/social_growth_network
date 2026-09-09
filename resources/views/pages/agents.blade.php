@@ -109,25 +109,31 @@
                     </p>
                 </div>
                 <div class="flex flex-col gap-3.5">
-                    @foreach([
-                        ['icon' => 'smart_display', 'iconBg' => 'bg-red-50 text-red-600', 'label' => 'YouTube Engagement', 'badge' => '142 spots left', 'badgeClass' => 'text-emerald-700 bg-emerald-50', 'title' => 'Watch 3-minute video and share thoughtful feedback', 'reward' => '₦250', 'time' => '5 mins'],
-                        ['icon' => 'smartphone', 'iconBg' => 'bg-slate-100 text-slate-600', 'label' => 'App Usability Feedback', 'badge' => 'High Priority', 'badgeClass' => 'text-primary bg-blue-50', 'title' => 'Test onboarding flow on Android/iOS & record 2 UX bug points', 'reward' => '₦850', 'time' => '12 mins'],
-                        ['icon' => 'public', 'iconBg' => 'bg-emerald-50 text-emerald-700', 'label' => 'Website Visit & Dwell', 'badge' => 'Open', 'badgeClass' => 'text-slate-600 bg-slate-100', 'title' => 'Navigate landing page, browse 3 articles, log 90s dwell', 'reward' => '₦180', 'time' => '3 mins'],
-                    ] as $task)
+                    @php
+                        $fallbackTasks = [
+                            ['icon' => 'smart_display', 'iconBg' => 'bg-red-50 text-red-600', 'label' => 'YouTube Engagement', 'badge' => '142 spots left', 'badgeClass' => 'text-emerald-700 bg-emerald-50', 'title' => 'Watch 3-minute video and share thoughtful feedback', 'reward' => '₦250', 'time' => '5 mins', 'href' => route('register.agent')],
+                            ['icon' => 'smartphone', 'iconBg' => 'bg-slate-100 text-slate-600', 'label' => 'App Usability Feedback', 'badge' => 'High Priority', 'badgeClass' => 'text-primary bg-blue-50', 'title' => 'Test onboarding flow on Android/iOS & record 2 UX bug points', 'reward' => '₦850', 'time' => '12 mins', 'href' => route('register.agent')],
+                            ['icon' => 'public', 'iconBg' => 'bg-emerald-50 text-emerald-700', 'label' => 'Website Visit & Dwell', 'badge' => 'Open', 'badgeClass' => 'text-slate-600 bg-slate-100', 'title' => 'Navigate landing page, browse 3 articles, log 90s dwell', 'reward' => '₦180', 'time' => '3 mins', 'href' => route('register.agent')],
+                        ];
+                        $tasks = collect($marketplaceTasks ?? [])->isNotEmpty()
+                            ? collect($marketplaceTasks)
+                            : collect($fallbackTasks);
+                    @endphp
+                    @foreach($tasks as $task)
                         <div class="bg-slate-50 rounded-xl p-5 hover:shadow-md transition-all border border-slate-100">
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
-                                <div class="flex items-center gap-2">
-                                    <span class="w-7 h-7 rounded-md {{ $task['iconBg'] }} flex items-center justify-center">
-                                        <span class="material-symbols-outlined text-[16px]" aria-hidden="true">{{ $task['icon'] }}</span>
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <span class="w-7 h-7 rounded-md {{ $task['iconBg'] }} flex items-center justify-center shrink-0">
+                                        <span class="material-symbols-outlined text-[16px] leading-none" aria-hidden="true">{{ $task['icon'] }}</span>
                                     </span>
-                                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">{{ $task['label'] }}</span>
+                                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">{{ $task['label'] }}</span>
                                 </div>
-                                <div class="inline-flex items-center gap-1.5 text-xs font-medium {{ $task['badgeClass'] }} px-2.5 py-1 rounded-full self-start">
+                                <div class="inline-flex items-center gap-1.5 text-xs font-medium {{ $task['badgeClass'] }} px-2.5 py-1 rounded-full self-start shrink-0">
                                     <span class="w-1.5 h-1.5 rounded-full bg-current opacity-70"></span>
                                     {{ $task['badge'] }}
                                 </div>
                             </div>
-                            <h4 class="font-display text-lg font-bold text-slate-900 mt-2">{{ $task['title'] }}</h4>
+                            <h4 class="font-display text-lg font-bold text-slate-900 mt-2 leading-snug">{{ $task['title'] }}</h4>
                             <div class="flex flex-wrap items-center justify-between gap-4 mt-4 pt-1">
                                 <div class="flex items-center gap-6">
                                     <div>
@@ -139,7 +145,7 @@
                                         <p class="text-sm font-semibold text-slate-900">{{ $task['time'] }}</p>
                                     </div>
                                 </div>
-                                <a href="{{ route('register.agent') }}" class="inline-flex items-center gap-1 font-semibold text-sm text-primary hover:text-primary-hover px-3.5 py-2 bg-white rounded-lg shadow-sm border border-slate-100">
+                                <a href="{{ $task['href'] ?? route('register.agent') }}" class="inline-flex items-center gap-1 font-semibold text-sm text-primary hover:text-primary-hover px-3.5 py-2 bg-white rounded-lg shadow-sm border border-slate-100">
                                     <span>View Task</span>
                                     <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
                                 </a>

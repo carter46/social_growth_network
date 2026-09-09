@@ -64,7 +64,13 @@ Route::get('/creators', function (
         'categoryCards' => $browse->groupCards($catalogContent),
     ]);
 })->name('creators');
-Route::view('/agents', 'pages.agents')->name('agents');
+Route::get('/agents', function (
+    \App\Modules\Catalog\Services\CatalogBrowseService $browse
+) {
+    return view('pages.agents', [
+        'marketplaceTasks' => $browse->agentsMarketplacePreviewCards(3),
+    ]);
+})->name('agents');
 Route::get('/help', function () {
     return view('pages.help', [
         'categories' => config('help.categories', []),
