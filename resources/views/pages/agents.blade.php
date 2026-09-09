@@ -14,11 +14,7 @@
 <section class="w-full bg-white pt-10 sm:pt-14 pb-20 sm:pb-28">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-            <div class="lg:col-span-6 flex flex-col items-start gap-4">
-                <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 text-primary text-[11px] font-bold uppercase tracking-wider">
-                    <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                    Task Marketplace · Earn on Your Schedule
-                </div>
+            <div class="lg:col-span-6 flex flex-col items-start gap-4 order-2 lg:order-1">
                 <h1 class="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
                     Turn digital tasks into <span class="text-primary">real opportunities.</span>
                 </h1>
@@ -47,58 +43,12 @@
                 </div>
             </div>
 
-            <div class="lg:col-span-6 relative pb-2 sm:pb-12">
+            <div class="lg:col-span-6 relative order-1 lg:order-2">
                 <div class="relative rounded-2xl overflow-hidden shadow-xl bg-slate-100">
                     <img src="{{ $imgAgent }}" alt="Digital agent working productively" class="w-full h-[320px] sm:h-[420px] lg:h-[460px] object-cover" loading="eager">
                     <div class="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent"></div>
                 </div>
-                <div class="sm:absolute sm:-bottom-8 sm:left-0 sm:right-auto mt-4 sm:mt-0 w-full sm:max-w-md bg-white/95 backdrop-blur-md rounded-xl p-4 sm:p-5 shadow-xl border border-slate-100 z-10">
-                    <div class="flex flex-wrap items-center justify-between gap-2 pb-2">
-                        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-bold uppercase tracking-wider">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0"></span>
-                            Live Campaign Task · Active
-                        </div>
-                        <span class="text-[11px] font-medium text-slate-500 shrink-0">Verified Pool</span>
-                    </div>
-                    <h3 class="font-display text-lg font-bold text-slate-900 leading-snug">YouTube Video Engagement</h3>
-                    <div class="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 mt-1">
-                        <span class="font-display text-2xl font-bold text-primary">₦250</span>
-                        <span class="text-sm text-slate-500">per approved review · Est. 4 mins</span>
-                    </div>
-                    <div class="mt-3 pt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between text-slate-500 text-sm gap-2">
-                        <span class="flex items-center gap-1 min-w-0">
-                            <span class="material-symbols-outlined text-[16px] text-emerald-600 shrink-0" aria-hidden="true">verified_user</span>
-                            <span>Remaining Spots: <strong class="text-slate-900">84 / 200</strong></span>
-                        </span>
-                        <span class="text-xs font-medium text-primary shrink-0">Multi-point validation</span>
-                    </div>
-                    <div class="mt-4">
-                        <a href="{{ route('register.agent') }}" class="w-full inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-primary text-white py-2.5 rounded-lg hover:bg-primary-hover transition-colors">
-                            <span>Start Task Now</span>
-                            <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
-                        </a>
-                    </div>
-                </div>
             </div>
-        </div>
-    </div>
-</section>
-
-{{-- Metrics --}}
-<section class="w-full bg-slate-50 py-8 sm:py-10">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-            @foreach([
-                ['v' => '₦48.2M+', 'l' => 'Disbursed to date'],
-                ['v' => '120K+', 'l' => 'Completed reviews'],
-                ['v' => '99.4%', 'l' => 'Payout success rate'],
-                ['v' => '< 4 Hours', 'l' => 'Average audit turnaround'],
-            ] as $m)
-                <div class="flex flex-col">
-                    <span class="font-display text-2xl sm:text-3xl font-bold text-slate-900">{{ $m['v'] }}</span>
-                    <span class="text-sm text-slate-500">{{ $m['l'] }}</span>
-                </div>
-            @endforeach
         </div>
     </div>
 </section>
@@ -288,85 +238,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-</section>
-
-{{-- Verification chain --}}
-<section class="w-full bg-white py-14 sm:py-20">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center gap-8">
-        <div class="max-w-2xl">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-primary">Institutional Security</span>
-            <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
-                Complete it. Submit it. Get verified.
-            </h2>
-            <p class="text-sm sm:text-base text-slate-600 mt-3">
-                A seamless chain with payouts after verification. No client haggling, no payment delays.
-            </p>
-        </div>
-        <div class="w-full max-w-5xl bg-slate-50 rounded-2xl p-6 sm:p-8 border border-slate-100">
-            <div class="grid grid-cols-1 sm:grid-cols-7 gap-4 relative items-center">
-                <div class="flex flex-col items-center gap-1.5 text-center">
-                    <div class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">1</div>
-                    <span class="text-sm font-semibold text-slate-900">Task Completed</span>
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">On your device</span>
-                </div>
-                <div class="hidden sm:flex justify-center text-slate-400">
-                    <span class="material-symbols-outlined text-[24px]" aria-hidden="true">trending_flat</span>
-                </div>
-                <div class="flex flex-col items-center gap-1.5 text-center">
-                    <div class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">2</div>
-                    <span class="text-sm font-semibold text-slate-900">Proof Submitted</span>
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Uploaded to form</span>
-                </div>
-                <div class="hidden sm:flex justify-center text-slate-400">
-                    <span class="material-symbols-outlined text-[24px]" aria-hidden="true">trending_flat</span>
-                </div>
-                <div class="flex flex-col items-center gap-1.5 text-center">
-                    <div class="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold">3</div>
-                    <span class="text-sm font-semibold text-slate-900">Verified</span>
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Audit passed</span>
-                </div>
-                <div class="hidden sm:flex justify-center text-slate-400">
-                    <span class="material-symbols-outlined text-[24px]" aria-hidden="true">trending_flat</span>
-                </div>
-                <div class="flex flex-col items-center gap-1.5 text-center">
-                    <div class="w-10 h-10 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold">4</div>
-                    <span class="text-sm font-semibold text-slate-900">Reward Settled</span>
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Wallet updated</span>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-{{-- Why become an agent --}}
-<section class="w-full bg-slate-50 py-14 sm:py-20">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-12">
-        <div class="max-w-2xl">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-primary">Platform Benefits</span>
-            <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
-                Built around fairness and certainty.
-            </h2>
-            <p class="text-base sm:text-lg text-slate-600 mt-3 leading-relaxed">
-                We built {{ $brandName }} to treat online contributors with institutional respect, promptness, and verified rewards.
-            </p>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            @foreach([
-                ['icon' => 'flex_direction', 'title' => 'Flexible Workload', 'body' => 'Complete tasks on mobile or desktop anytime at your convenience. No minimum hours or compulsory shifts.'],
-                ['icon' => 'rule', 'title' => 'Clear Requirements', 'body' => 'Zero guessing games. Tasks follow strict, objective checklists so you always know what passes inspection.'],
-                ['icon' => 'lock', 'title' => 'Verified Payouts', 'body' => 'Campaign budgets are secured at checkout before tasks go live on the marketplace.'],
-                ['icon' => 'military_tech', 'title' => 'Reputation Growth', 'body' => 'Consistent accuracy unlocks higher-reward campaign tiers, specialized feedback tasks, and priority dispatch.'],
-            ] as $b)
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-3.5">
-                    <div class="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-primary">
-                        <span class="material-symbols-outlined text-[22px]" aria-hidden="true">{{ $b['icon'] }}</span>
-                    </div>
-                    <h3 class="font-display text-lg font-bold text-slate-900">{{ $b['title'] }}</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">{{ $b['body'] }}</p>
-                </div>
-            @endforeach
         </div>
     </div>
 </section>

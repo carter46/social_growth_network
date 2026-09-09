@@ -32,23 +32,23 @@
 <section class="w-full relative overflow-hidden bg-white">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-            {{-- Image column (first on mobile); Guard hangs off bottom-right edge --}}
-            <div class="lg:col-span-5 relative order-1 lg:order-2 pb-8 sm:pb-10">
+            {{-- Image column (first on mobile); floating cards hang off edges --}}
+            <div class="lg:col-span-5 relative order-1 lg:order-2 pt-4 pb-8 sm:pt-5 sm:pb-10">
                 <div class="relative rounded-2xl overflow-hidden shadow-xl bg-slate-100 aspect-[4/3] lg:aspect-[5/4]">
                     <img src="{{ $imgStudio }}" alt="Creative creator filming in production setup" class="w-full h-full object-cover object-center" loading="eager">
                     <div class="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-transparent" aria-hidden="true"></div>
+                </div>
 
-                    <div class="absolute bottom-3 left-3 right-16 sm:right-24 max-w-[16rem] sm:max-w-[18rem] bg-white/95 backdrop-blur-md p-3 sm:p-3.5 rounded-xl shadow-lg z-10">
-                        <div class="flex items-center gap-2.5 min-w-0">
-                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-slate-50 flex items-center justify-center text-primary shrink-0">
-                                <span class="material-symbols-outlined text-[20px] sm:text-[22px]" aria-hidden="true">videocam</span>
-                            </div>
-                            <div class="min-w-0">
-                                <div class="text-sm font-semibold text-slate-900 leading-snug truncate">YouTube Watch Hours Pack</div>
-                                <div class="text-xs text-emerald-700 flex items-center gap-1.5 mt-0.5 leading-snug">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0"></span>
-                                    <span class="truncate">Milestone 3 of 4 · 92% verified</span>
-                                </div>
+                <div class="absolute top-0 left-0 sm:-left-2 max-w-[16rem] sm:max-w-[18rem] bg-white/95 backdrop-blur-md p-3 sm:p-3.5 rounded-xl shadow-lg border border-slate-100 z-20">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-primary shrink-0">
+                            <span class="material-symbols-outlined text-[18px] leading-none" aria-hidden="true">videocam</span>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="text-sm font-semibold text-slate-900 leading-snug truncate">YouTube Watch Hours Pack</div>
+                            <div class="text-xs text-emerald-700 flex items-center gap-1.5 mt-0.5 leading-snug">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0"></span>
+                                <span class="truncate">Milestone 3 of 4 · 92% verified</span>
                             </div>
                         </div>
                     </div>
