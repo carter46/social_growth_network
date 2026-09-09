@@ -112,7 +112,7 @@ Route::get('/legal', function (\Illuminate\Http\Request $request) {
 
     array_walk_recursive($document, function (&$value) use ($siteName): void {
         if (is_string($value)) {
-            $value = str_replace(':site_name', $siteName, $value);
+            $value = str_replace([':site_name', ': site_name'], $siteName, $value);
         }
     });
 

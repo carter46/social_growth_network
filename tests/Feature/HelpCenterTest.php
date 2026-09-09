@@ -80,7 +80,8 @@ class HelpCenterTest extends TestCase
             ->assertOk()
             ->assertSee('Creators and Agents')
             ->assertSee('Campaigns, Packages & Tasks')
-            ->assertDontSee('does not operate a peer-to-peer marketplace', false);
+            ->assertDontSee('does not operate a peer-to-peer marketplace', false)
+            ->assertDontSee(':site_name', false);
     }
 
     public function test_legal_privacy_covers_proof_and_kyc(): void
@@ -89,7 +90,8 @@ class HelpCenterTest extends TestCase
             ->assertOk()
             ->assertSee('Creators and Agents')
             ->assertSee('proof assets')
-            ->assertSee('KYC');
+            ->assertSee('KYC')
+            ->assertDontSee(':site_name', false);
     }
 
     public function test_search_index_includes_guides_and_sections(): void

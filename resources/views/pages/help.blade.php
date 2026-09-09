@@ -215,14 +215,14 @@
             @foreach($resolvedCategories as $cat)
                 <a
                     href="{{ $cat['resolved_href'] }}"
-                    class="group bg-white rounded-2xl border border-slate-100 p-5 sm:p-6 shadow-sm hover:shadow-md hover:border-slate-200 transition-all flex flex-col h-full"
+                    class="group bg-slate-50 rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-sm hover:shadow-md hover:bg-slate-100/80 hover:border-slate-300 transition-all flex flex-col h-full"
                 >
                     <div class="flex items-start justify-between gap-3 mb-4">
                         <div class="w-11 h-11 rounded-xl {{ $cat['icon_class'] }} flex items-center justify-center group-hover:scale-105 transition-transform">
                             <span class="material-symbols-outlined text-2xl" aria-hidden="true">{{ $cat['material_icon'] }}</span>
                         </div>
                         @if(! empty($cat['badge']))
-                            <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-50 text-slate-600 border border-slate-100">
+                            <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white text-slate-600 border border-slate-200">
                                 {{ $cat['badge'] }}
                             </span>
                         @endif
@@ -313,7 +313,7 @@
                     <button
                         type="button"
                         data-pwa-install="mobile"
-                        class="md:hidden inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-white text-primary hover:bg-slate-50 px-6 py-3 rounded-lg shadow transition-colors"
+                        class="lg:hidden inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-white text-primary hover:bg-slate-50 px-6 py-3 rounded-lg shadow transition-colors"
                     >
                         <span class="material-symbols-outlined text-[18px]" aria-hidden="true">smartphone</span>
                         <span data-pwa-label>Download Mobile App</span>
@@ -321,7 +321,7 @@
                     <button
                         type="button"
                         data-pwa-install="desktop"
-                        class="hidden md:inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-white text-primary hover:bg-slate-50 px-6 py-3 rounded-lg shadow transition-colors"
+                        class="hidden lg:inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-white text-primary hover:bg-slate-50 px-6 py-3 rounded-lg shadow transition-colors"
                     >
                         <span class="material-symbols-outlined text-[18px]" aria-hidden="true">desktop_windows</span>
                         <span data-pwa-label>Download Desktop App</span>

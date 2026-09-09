@@ -10,16 +10,26 @@
     $legalEmail = config('legal.contact.email')
         ?: ($contact['email_support'] ?? null)
         ?: ($contact['email_info'] ?? null);
+    $brandName = $siteName ?? config('app.name', 'Social Growth Network');
     $activeKey = $activeDoc ?? 'terms';
     if (! isset($documents[$activeKey])) {
         $activeKey = array_key_first($documents) ?: 'terms';
     }
-    $document = $documents[$activeKey] ?? [];
+
+    // Prefer the route-prepared document (placeholders already replaced). Fallback: replace here.
+    if (! isset($document) || ! is_array($document) || $document === []) {
+        $document = $documents[$activeKey] ?? [];
+    }
+    array_walk_recursive($document, function (&$value) use ($brandName): void {
+        if (is_string($value)) {
+            $value = str_replace([':site_name', ': site_name'], $brandName, $value);
+        }
+    });
+
     $sections = $document['sections'] ?? [];
     $ticketHref = auth()->check()
         ? route('dashboard.support.create')
         : route('login');
-    $brandName = $siteName ?? config('app.name', 'Social Growth Network');
 @endphp
 
 <section class="relative w-full bg-slate-50 border-b border-slate-100 overflow-hidden">

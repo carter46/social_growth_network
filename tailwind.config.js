@@ -89,7 +89,7 @@ export default {
         'sm:pb-20', 'sm:pb-24', 'sm:pb-28', 'sm:pb-32', 'sm:pb-36', 'sm:pb-44',
         'lg:pb-32', 'lg:pb-40', 'lg:pb-44',
         'py-14', 'py-16', 'sm:py-16', 'sm:py-20',
-        'hidden', 'block', 'md:block', 'md:hidden', 'lg:block', 'lg:hidden', 'lg:flex', 'lg:grid',
+        'hidden', 'block', 'md:block', 'md:hidden', 'lg:block', 'lg:hidden', 'lg:flex', 'lg:inline-flex', 'lg:grid',
         'grid-cols-12', 'lg:grid-cols-12',
         'col-span-3', 'col-span-8', 'col-span-9', 'col-span-4',
         'lg:col-span-3', 'lg:col-span-4', 'lg:col-span-8', 'lg:col-span-9',
