@@ -187,10 +187,11 @@ class CatalogHierarchyTest extends TestCase
             ->assertDontSee('Facebook Views');
     }
 
-    public function test_admin_can_assign_product_category(): void
+    public function test_admin_cannot_change_product_category(): void
     {
         $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
         $product = $this->seedYoutubeProduct();
+        $youtubeId = $product->service_category_id;
         $tiktok = ServiceCategory::query()->where('slug', 'tiktok')->firstOrFail();
 
         $this->actingAs($admin)
@@ -211,7 +212,7 @@ class CatalogHierarchyTest extends TestCase
             ])
             ->assertRedirect(route('admin.platform-products.edit', $product));
 
-        $this->assertSame($tiktok->id, $product->fresh()->service_category_id);
+        $this->assertSame($youtubeId, $product->fresh()->service_category_id);
         $this->assertNotNull($product->fresh()->product_type_id);
     }
 

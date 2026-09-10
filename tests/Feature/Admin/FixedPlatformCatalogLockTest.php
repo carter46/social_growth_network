@@ -68,7 +68,6 @@ class FixedPlatformCatalogLockTest extends TestCase
             'title' => $product->title,
             'short_description' => $product->short_description,
             'description' => $product->description,
-            'service_category_id' => $product->service_category_id,
             'status' => 'published',
             'variants' => [
                 [
@@ -233,13 +232,13 @@ class FixedPlatformCatalogLockTest extends TestCase
         $this->assertSame('youtube-views', $product->slug);
     }
 
-    public function test_admin_can_assign_product_category_directly(): void
+    public function test_admin_cannot_change_product_category(): void
     {
         $this->seedCatalog();
         $admin = $this->admin();
         $product = PlatformProduct::query()->where('slug', 'youtube-views')->firstOrFail();
+        $youtubeId = $product->service_category_id;
         $tiktok = ServiceCategory::query()->where('slug', 'tiktok')->firstOrFail();
-        $originalTypeId = $product->product_type_id;
 
         $this->actingAs($admin)
             ->put(route('admin.platform-products.update', $product), $this->productUpdatePayload($product, [
@@ -247,9 +246,7 @@ class FixedPlatformCatalogLockTest extends TestCase
             ]))
             ->assertRedirect(route('admin.platform-products.edit', $product));
 
-        $product->refresh();
-        $this->assertSame($tiktok->id, $product->service_category_id);
-        $this->assertSame($originalTypeId, $product->product_type_id);
+        $this->assertSame($youtubeId, $product->fresh()->service_category_id);
     }
 
     public function test_admin_can_toggle_product_featured_and_deactivate(): void

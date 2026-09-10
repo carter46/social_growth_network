@@ -129,57 +129,57 @@
                 @endif
 
                 <div class="border-t border-b border-slate-200 py-4 space-y-4">
-                    <div>
-                        <span class="text-[11px] font-medium uppercase tracking-widest text-slate-500 block">
-                            Selected plan
-                        </span>
-                        <div class="mt-1 flex items-baseline gap-2">
-                            <span
-                                class="text-3xl font-display font-bold text-primary"
-                                x-text="selected ? ('₦' + Number(selected.price).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : '—'"
-                            ></span>
-                        </div>
-                        <p class="mt-1 text-xs text-slate-500">
-                            From ₦{{ number_format($product->displayPrice(), 2) }}
-                        </p>
-                    </div>
-
-                    @if($variants->isNotEmpty())
+                    @if($variants->count() === 1)
+                        @php $only = $variants->first(); @endphp
                         <div>
-                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Choose a plan</p>
-                            <div class="space-y-2">
-                                @foreach($variants as $variant)
-                                    <label
-                                        class="flex cursor-pointer flex-col gap-1 rounded-xl border px-4 py-3 transition-colors"
-                                        :class="Number(variantId) === {{ (int) $variant->id }} ? 'border-primary bg-primary/5' : 'border-slate-200 hover:border-primary/40'"
-                                    >
-                                        <span class="flex items-center justify-between gap-3">
-                                            <span class="flex items-center gap-3">
-                                                <input
-                                                    type="radio"
-                                                    name="preview_variant_id"
-                                                    value="{{ $variant->id }}"
-                                                    class="accent-primary"
-                                                    x-model.number="variantId"
-                                                    @checked((int) $defaultVariant?->id === (int) $variant->id)
-                                                >
-                                                <span class="text-sm font-medium text-slate-900">{{ $variant->displayLabel() }}</span>
-                                            </span>
-                                            <span class="font-semibold text-slate-900">₦{{ number_format((float) $variant->price, 0) }}</span>
-                                        </span>
-                                        @if(filled($variant->description))
-                                            <span
-                                                class="pl-7 text-xs leading-relaxed text-slate-600"
-                                                x-show="Number(variantId) === {{ (int) $variant->id }}"
-                                            >{{ $variant->description }}</span>
-                                        @endif
-                                    </label>
-                                @endforeach
+                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Plan</p>
+                            <div class="rounded-xl border border-primary bg-primary/5 px-4 py-3 space-y-1">
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-sm font-medium text-slate-900">{{ $only->displayLabel() }}</span>
+                                    <span class="font-semibold text-slate-900">₦{{ number_format((float) $only->price, 0) }}</span>
+                                </div>
+                                @if(filled($only->description))
+                                    <p class="text-xs leading-relaxed text-slate-600">{{ $only->description }}</p>
+                                @endif
                             </div>
+                        </div>
+                    @elseif($variants->count() > 1)
+                        <div>
+                            <label for="product-plan-select" class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 block">Choose a plan</label>
+                            <select
+                                id="product-plan-select"
+                                class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                x-model.number="variantId"
+                            >
+                                @foreach($variants as $variant)
+                                    <option value="{{ $variant->id }}" @selected((int) $defaultVariant?->id === (int) $variant->id)>
+                                        {{ $variant->displayLabel() }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <p
+                                class="mt-2 text-xs leading-relaxed text-slate-600 min-h-[1rem]"
+                                x-show="selected && selected.description"
+                                x-text="selected ? selected.description : ''"
+                            ></p>
                         </div>
                     @else
                         <p class="text-sm text-slate-500">No plans are available for this product yet.</p>
                     @endif
+
+                    <div>
+                        <span class="text-[11px] font-medium uppercase tracking-widest text-slate-500 block">
+                            Selected plan
+                        </span>
+                        <p
+                            class="mt-1 text-2xl sm:text-3xl font-display font-bold text-primary"
+                            x-text="selected ? selected.label : '—'"
+                        ></p>
+                        <p
+                            class="mt-1 text-base font-semibold text-slate-900"
+                            x-text="selected ? ('₦' + Number(selected.price).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : ''"
+                        ></p>
+                    </div>
                 </div>
 
                 @if($showAbout)
@@ -197,16 +197,6 @@
                         {{ auth()->check() ? 'Buy Now' : 'Log in to buy' }}
                     </x-ui.button>
                     @include('partials.catalog.view-demo-modal', ['product' => $product])
-                    @auth
-                        <form method="POST" action="{{ route('favorites.toggle') }}">
-                            @csrf
-                            <input type="hidden" name="type" value="platform_product">
-                            <input type="hidden" name="id" value="{{ $product->id }}">
-                            <x-ui.button type="submit" variant="secondary" size="lg" class="!bg-slate-100 !text-slate-800 !border-slate-200 hover:!bg-slate-200">
-                                {{ ($isFavorited ?? false) ? 'Favorited' : 'Favorite' }}
-                            </x-ui.button>
-                        </form>
-                    @endauth
                 </div>
             </div>
         </div>

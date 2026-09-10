@@ -119,7 +119,6 @@ class PlatformProductAdminController extends Controller
         return view('dashboard.admin.platform-product-form', [
             'product' => $platformProduct,
             'lockedCatalog' => true,
-            'serviceCategories' => ServiceCategory::query()->system()->orderBy('sort_order')->orderBy('name')->get(),
         ]);
     }
 
@@ -132,13 +131,10 @@ class PlatformProductAdminController extends Controller
                 ->with('error', __('That product is not under a fixed platform category.'));
         }
 
-        $systemCategoryIds = ServiceCategory::query()->system()->pluck('id')->all();
-
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'short_description' => ['nullable', 'string', 'max:500'],
             'description' => ['nullable', 'string'],
-            'service_category_id' => ['required', 'integer', Rule::in($systemCategoryIds)],
             'status' => ['required', Rule::in([
                 PlatformProductStatus::Draft->value,
                 PlatformProductStatus::Published->value,
@@ -171,9 +167,6 @@ class PlatformProductAdminController extends Controller
         ];
 
         $platformProduct->update($updatePayload);
-        $platformProduct->forceFill([
-            'service_category_id' => (int) $data['service_category_id'],
-        ])->save();
 
         $this->syncVariants($platformProduct, $data['variants']);
         SortOrder::normalize($this->systemProductSiblingsQuery());
