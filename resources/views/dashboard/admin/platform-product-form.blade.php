@@ -5,13 +5,15 @@
 @section('content')
 @php
     $variantRows = old('variants', $product->relationLoaded('variants') && $product->variants->isNotEmpty()
-        ? $product->variants->map(fn ($v) => [
+        ? $product->variants->sortBy('sort_order')->values()->map(fn ($v) => [
             'id' => $v->id,
             'name' => $v->name,
             'price' => $v->price,
             'description' => $v->description,
-        ])->values()->all()
-        : []);
+        ])->all()
+        : [
+            ['id' => null, 'name' => 'Standard', 'price' => $product->base_price ?? 0, 'description' => ''],
+        ]);
     $heroId = old('hero_media_id', $product->hero_media_id);
     $heroPreview = $heroId
         ? \App\Models\MediaAsset::query()->with('variants')->find((int) $heroId)?->thumbnailUrl()
@@ -34,7 +36,23 @@
         @if (session('error'))
             <x-dashboard.alert type="danger" class="mb-4">{{ session('error') }}</x-dashboard.alert>
         @endif
-        <form method="POST" action="{{ route('admin.platform-products.update', $product) }}" class="w-full space-y-4" x-data="{ submitting: false }" @submit="submitting = true">
+        <form
+            method="POST"
+            action="{{ route('admin.platform-products.update', $product) }}"
+            class="w-full space-y-4"
+            x-data="{
+                submitting: false,
+                variants: @js($variantRows),
+                addVariant() {
+                    this.variants.push({ id: null, name: '', price: '', description: '' });
+                },
+                removeVariant(index) {
+                    if (this.variants.length <= 1) return;
+                    this.variants.splice(index, 1);
+                }
+            }"
+            @submit="submitting = true"
+        >
             @csrf
             @method('PUT')
 
@@ -43,6 +61,7 @@
                 @if($product->productType)
                     · Service (legacy/CMS): {{ $product->productType->name }}
                 @endif
+                · Sort #{{ max(1, (int) $product->sort_order) }} (auto-managed)
             </p>
 
             <x-dashboard.select label="Category" name="service_category_id" required>
@@ -93,87 +112,78 @@
                 />
             </div>
 
-            <x-dashboard.input
-                label="Sort position"
-                name="sort_order"
-                type="number"
-                min="1"
-                :max="$siblingMax ?? 1"
-                :value="old('sort_order', $product->sort_order)"
-                required
-            />
-            <p class="text-xs text-text-muted">Global position among all platform products (1–{{ $siblingMax ?? 1 }}). Each number is unique; neighbors shift automatically.</p>
-
             <x-dashboard.media-picker
                 name="hero_media_id"
                 label="Image"
-                hint="Product hero image. Shown full-width without cropping on the product page."
+                hint="Product image shown on the product page (single image, not a gallery)."
                 preview="wide"
                 :value="$heroId"
                 :preview-url="$heroPreview"
             />
 
             <div class="space-y-3 rounded-xl border border-border-subtle px-4 py-4">
-                <div>
-                    <p class="text-sm font-medium text-text-primary">Tutorials</p>
-                    <p class="mt-1 text-xs text-text-muted">Shown as a <strong>Watch tutorial</strong> button next to View Demo on the product page, and on My Tools after purchase. Set once here — not per user.</p>
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <p class="text-sm font-medium text-text-primary">Plans / variants</p>
+                        <p class="text-xs text-text-muted">Add or remove plans. Each plan needs a name, price, and optional description. The storefront shows the lowest price as “from”.</p>
+                    </div>
+                    <button
+                        type="button"
+                        class="inline-flex items-center rounded-lg border border-border-default bg-elevated px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-muted"
+                        @click="addVariant()"
+                    >Add plan</button>
                 </div>
-                <x-dashboard.input
-                    label="Tutorial video URL"
-                    name="tutorial_url"
-                    type="url"
-                    :value="old('tutorial_url', $product->tutorial_url)"
-                    placeholder="https://www.youtube.com/watch?v=…"
-                />
-                <div>
-                    <label for="tutorial_description" class="mb-1 block text-sm font-medium text-text-secondary">Tutorial description</label>
-                    <textarea
-                        id="tutorial_description"
-                        name="tutorial_description"
-                        rows="3"
-                        class="w-full rounded-xl border border-border-default bg-elevated px-3 py-2.5 text-sm"
-                        placeholder="Short note about what this tutorial covers"
-                    >{{ old('tutorial_description', $product->tutorial_description) }}</textarea>
-                </div>
-            </div>
 
-            @if ($variantRows !== [])
-                <div class="space-y-3 rounded-xl border border-border-subtle px-4 py-4">
-                    <p class="text-sm font-medium text-text-primary">Plans / variants</p>
-                    <p class="text-xs text-text-muted">Variant names are fixed. Set price and an optional description for each plan. The storefront shows the lowest price as “from”.</p>
-                    @foreach ($variantRows as $i => $variant)
-                        <div class="space-y-2 rounded-xl border border-border-default bg-muted/20 p-3">
-                            <input type="hidden" name="variants[{{ $i }}][id]" value="{{ $variant['id'] }}">
-                            <div class="grid grid-cols-1 gap-2 md:grid-cols-2 items-end">
-                                <div>
-                                    <label class="block text-xs text-text-muted mb-1">Variant</label>
-                                    <p class="rounded-xl border border-border-default bg-muted/40 px-3 py-2.5 text-sm">{{ $variant['name'] }}</p>
-                                </div>
-                                <x-dashboard.input
-                                    label="Price (NGN)"
-                                    :name="'variants['.$i.'][price]'"
+                <template x-for="(variant, index) in variants" :key="index">
+                    <div class="space-y-2 rounded-xl border border-border-default bg-muted/20 p-3">
+                        <input type="hidden" :name="'variants[' + index + '][id]'" :value="variant.id || ''">
+                        <div class="flex items-center justify-between gap-2">
+                            <p class="text-xs font-medium text-text-muted" x-text="'Plan ' + (index + 1)"></p>
+                            <button
+                                type="button"
+                                class="text-xs font-medium text-danger hover:underline disabled:opacity-40"
+                                @click="removeVariant(index)"
+                                :disabled="variants.length <= 1"
+                            >Remove</button>
+                        </div>
+                        <div class="grid grid-cols-1 gap-2 md:grid-cols-2 items-end">
+                            <div>
+                                <label class="mb-1 block text-xs text-text-muted">Plan name</label>
+                                <input
+                                    type="text"
+                                    class="w-full rounded-xl border border-border-default bg-elevated px-3 py-2.5 text-sm"
+                                    :name="'variants[' + index + '][name]'"
+                                    x-model="variant.name"
+                                    required
+                                    placeholder="Standard"
+                                >
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-xs text-text-muted">Price (NGN)</label>
+                                <input
                                     type="number"
                                     step="0.01"
                                     min="0"
-                                    :value="old('variants.'.$i.'.price', $variant['price'])"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label class="mb-1 block text-xs text-text-muted">Plan description</label>
-                                <textarea
-                                    name="variants[{{ $i }}][description]"
-                                    rows="2"
                                     class="w-full rounded-xl border border-border-default bg-elevated px-3 py-2.5 text-sm"
-                                    placeholder="What this plan includes…"
-                                >{{ old('variants.'.$i.'.description', $variant['description'] ?? '') }}</textarea>
+                                    :name="'variants[' + index + '][price]'"
+                                    x-model="variant.price"
+                                    required
+                                >
                             </div>
                         </div>
-                    @endforeach
-                </div>
-            @else
-                <p class="text-sm text-amber-600">This product has no variants. Pricing cannot be set until plans exist in the catalog seed.</p>
-            @endif
+                        <div>
+                            <label class="mb-1 block text-xs text-text-muted">Plan description</label>
+                            <textarea
+                                rows="2"
+                                class="w-full rounded-xl border border-border-default bg-elevated px-3 py-2.5 text-sm"
+                                :name="'variants[' + index + '][description]'"
+                                x-model="variant.description"
+                                placeholder="What this plan includes…"
+                            ></textarea>
+                        </div>
+                    </div>
+                </template>
+            </div>
 
             <div class="flex flex-wrap gap-2 pt-2">
                 <x-dashboard.button type="submit" variant="primary" x-bind:disabled="submitting">Save</x-dashboard.button>

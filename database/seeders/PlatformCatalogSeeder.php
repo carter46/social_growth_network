@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Enums\PlatformProductStatus;
 use App\Enums\PlatformProductType;
 use App\Models\PlatformProduct;
-use App\Models\PlatformProductImage;
 use App\Models\PlatformProductVariant;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Artisan;
@@ -84,19 +83,23 @@ class PlatformCatalogSeeder extends Seeder
         foreach (self::VIEWS_RENAMES as $row) {
             $product = $this->findOrCreateViewsProduct($row, $type);
             $this->ensureStandardVariant($product, (float) $row['base_price']);
-            $this->ensurePrimaryImage($product);
         }
 
         foreach (self::ADDITIONAL_PRODUCTS as $row) {
             $product = $this->upsertAdditionalProduct($row, $type);
             $this->ensureStandardVariant($product, (float) $row['base_price']);
-            $this->ensurePrimaryImage($product);
         }
 
         $this->clearMarketingJson();
 
         if (Schema::hasColumn('platform_products', 'service_category_id')) {
             Artisan::call('catalog:flatten-category-products');
+        }
+
+        if (Schema::hasTable('platform_products')) {
+            \App\Support\SortOrder::normalize(
+                PlatformProduct::query()->where('product_type', PlatformProductType::SocialService->value)
+            );
         }
     }
 
@@ -242,24 +245,6 @@ class PlatformCatalogSeeder extends Seeder
             'is_default' => true,
             'is_active' => true,
             'sort_order' => 0,
-        ]);
-    }
-
-    private function ensurePrimaryImage(PlatformProduct $product): void
-    {
-        if (! Schema::hasTable('platform_product_images')) {
-            return;
-        }
-
-        if ($product->images()->exists()) {
-            return;
-        }
-
-        PlatformProductImage::query()->create([
-            'platform_product_id' => $product->id,
-            'path' => 'assets/images/Social_Media.jpg',
-            'sort_order' => 0,
-            'is_primary' => true,
         ]);
     }
 

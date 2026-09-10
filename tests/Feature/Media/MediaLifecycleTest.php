@@ -58,6 +58,14 @@ class MediaLifecycleTest extends TestCase
             'status' => 'draft',
             'base_price' => 10,
         ]);
+        $variant = \App\Models\PlatformProductVariant::query()->create([
+            'platform_product_id' => $product->id,
+            'name' => 'Standard',
+            'price' => 10,
+            'is_default' => true,
+            'is_active' => true,
+            'sort_order' => 0,
+        ]);
 
         $this->actingAs($admin)
             ->put(route('admin.platform-products.update', $product), [
@@ -66,8 +74,10 @@ class MediaLifecycleTest extends TestCase
                 'description' => 'Long',
                 'service_category_id' => $youtube->id,
                 'status' => 'draft',
-                'sort_order' => max(1, (int) $product->sort_order),
                 'hero_media_id' => $asset->id,
+                'variants' => [
+                    ['id' => $variant->id, 'name' => 'Standard', 'price' => 10],
+                ],
             ])
             ->assertRedirect();
 
@@ -171,14 +181,24 @@ class MediaLifecycleTest extends TestCase
             'status' => 'draft',
             'base_price' => 10,
         ]);
+        $variant = \App\Models\PlatformProductVariant::query()->create([
+            'platform_product_id' => $product->id,
+            'name' => 'Standard',
+            'price' => 10,
+            'is_default' => true,
+            'is_active' => true,
+            'sort_order' => 0,
+        ]);
 
         $this->actingAs($admin)
             ->put(route('admin.platform-products.update', $product), [
                 'title' => 'Blocked Attach',
                 'service_category_id' => $youtube->id,
                 'status' => 'draft',
-                'sort_order' => max(1, (int) $product->sort_order),
                 'hero_media_id' => $asset->id,
+                'variants' => [
+                    ['id' => $variant->id, 'name' => 'Standard', 'price' => 10],
+                ],
             ])
             ->assertSessionHasErrors('hero_media_id');
     }

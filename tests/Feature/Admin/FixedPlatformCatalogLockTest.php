@@ -70,9 +70,13 @@ class FixedPlatformCatalogLockTest extends TestCase
             'description' => $product->description,
             'service_category_id' => $product->service_category_id,
             'status' => 'published',
-            'sort_order' => max(1, (int) $product->sort_order),
             'variants' => [
-                ['id' => $variant->id, 'price' => (float) $variant->price],
+                [
+                    'id' => $variant->id,
+                    'name' => $variant->name,
+                    'price' => (float) $variant->price,
+                    'description' => $variant->description,
+                ],
             ],
         ], $overrides);
     }
@@ -216,7 +220,7 @@ class FixedPlatformCatalogLockTest extends TestCase
                 'short_description' => 'Updated short',
                 'description' => 'Updated long',
                 'variants' => [
-                    ['id' => $variant->id, 'price' => 5500, 'description' => 'Best starter pack'],
+                    ['id' => $variant->id, 'price' => 5500, 'name' => $variant->name, 'description' => 'Best starter pack'],
                 ],
             ]))
             ->assertRedirect(route('admin.platform-products.edit', $product));
@@ -282,14 +286,12 @@ class FixedPlatformCatalogLockTest extends TestCase
         $this->assertSame(PlatformProductStatus::Published, $product->fresh()->status);
     }
 
-    public function test_admin_cannot_change_provider_or_product_type_via_form(): void
+    public function test_admin_can_rename_variant_via_form(): void
     {
         $this->seedCatalog();
         $admin = $this->admin();
         $product = PlatformProduct::query()->where('slug', 'youtube-views')->firstOrFail();
         $variant = $product->variants()->firstOrFail();
-        $variantName = $variant->name;
-        $typeId = $product->product_type_id;
 
         $this->actingAs($admin)
             ->put(route('admin.platform-products.update', $product), $this->productUpdatePayload($product, [
@@ -300,7 +302,7 @@ class FixedPlatformCatalogLockTest extends TestCase
                 'product_type_id' => 999,
                 'slug' => 'hacked-slug',
                 'variants' => [
-                    ['id' => $variant->id, 'price' => 5000, 'name' => 'Hacked Name'],
+                    ['id' => $variant->id, 'price' => 5000, 'name' => 'Premium'],
                 ],
             ]))
             ->assertRedirect(route('admin.platform-products.edit', $product));
@@ -311,8 +313,42 @@ class FixedPlatformCatalogLockTest extends TestCase
         $this->assertSame('manual', $product->fulfillment_mode);
         $this->assertFalse((bool) $product->auto_renew);
         $this->assertSame('youtube-views', $product->slug);
-        $this->assertSame($typeId, $product->product_type_id);
-        $this->assertSame($variantName, $variant->fresh()->name);
+        $this->assertSame('Premium', $variant->fresh()->name);
+    }
+
+    public function test_admin_can_add_and_remove_variants(): void
+    {
+        $this->seedCatalog();
+        $admin = $this->admin();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views')->firstOrFail();
+        $variant = $product->variants()->firstOrFail();
+
+        $this->actingAs($admin)
+            ->put(route('admin.platform-products.update', $product), $this->productUpdatePayload($product, [
+                'variants' => [
+                    ['id' => $variant->id, 'name' => 'Standard', 'price' => 5000],
+                    ['name' => 'Plus', 'price' => 8000, 'description' => 'Extra reach'],
+                ],
+            ]))
+            ->assertRedirect(route('admin.platform-products.edit', $product));
+
+        $this->assertSame(2, $product->variants()->count());
+        $this->assertDatabaseHas('platform_product_variants', [
+            'platform_product_id' => $product->id,
+            'name' => 'Plus',
+        ]);
+
+        $keep = $product->variants()->where('name', 'Plus')->firstOrFail();
+        $this->actingAs($admin)
+            ->put(route('admin.platform-products.update', $product), $this->productUpdatePayload($product, [
+                'variants' => [
+                    ['id' => $keep->id, 'name' => 'Plus', 'price' => 8000],
+                ],
+            ]))
+            ->assertRedirect(route('admin.platform-products.edit', $product));
+
+        $this->assertSame(1, $product->variants()->count());
+        $this->assertSame('Plus', $product->variants()->first()->name);
     }
 
     public function test_unknown_variant_id_is_rejected(): void
@@ -326,8 +362,8 @@ class FixedPlatformCatalogLockTest extends TestCase
             ->from(route('admin.platform-products.edit', $product))
             ->put(route('admin.platform-products.update', $product), $this->productUpdatePayload($product, [
                 'variants' => [
-                    ['id' => $variant->id, 'price' => 5000],
-                    ['id' => 999999, 'price' => 100],
+                    ['id' => $variant->id, 'name' => $variant->name, 'price' => 5000],
+                    ['id' => 999999, 'name' => 'Ghost', 'price' => 100],
                 ],
             ]))
             ->assertSessionHasErrors('variants');

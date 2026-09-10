@@ -13,25 +13,17 @@
     }
     $crumbs[] = ['label' => $product->title];
 
-    $heroUrl = $product->heroMedia?->url('medium') ?? ($product->hero_image ? asset($product->hero_image) : null);
-
-    $gallery = collect();
-    if ($heroUrl) {
-        $gallery->push(['src' => $heroUrl, 'alt' => $product->title]);
+    $heroUrl = $product->heroMedia?->url('medium')
+        ?? ($product->hero_image ? asset($product->hero_image) : null);
+    if (! $heroUrl) {
+        $fallbackImage = ($product->images ?? collect())->first();
+        if ($fallbackImage) {
+            $heroUrl = asset(ltrim($fallbackImage->path, '/'));
+        }
     }
-    foreach ($product->images ?? [] as $img) {
-        $gallery->push([
-            'src' => asset(ltrim($img->path, '/')),
-            'alt' => $img->alt ?: $product->title,
-        ]);
+    if (! $heroUrl) {
+        $heroUrl = asset('assets/images/Image_ro410gro410gro41.png');
     }
-    if ($gallery->isEmpty()) {
-        $gallery->push([
-            'src' => asset('assets/images/Image_ro410gro410gro41.png'),
-            'alt' => $product->title,
-        ]);
-    }
-    $gallery = $gallery->unique('src')->values();
 
     $subtitle = $product->short_description ?: null;
     $variants = $product->activeVariants->sortBy('price')->values();
@@ -90,14 +82,12 @@
     </div>
 </header>
 
-{{-- Buy box: gallery + selectable variants + live price --}}
+{{-- Buy box: single image + selectable variants + live price --}}
 <section class="bg-white text-slate-900">
     <div class="max-w-marketing mx-auto px-5 sm:px-6 py-10 sm:py-14">
         <div
             class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start"
             x-data="{
-                active: 0,
-                images: {{ Js::from($gallery) }},
                 variants: @js($variantPayload),
                 variantId: {{ (int) ($defaultVariant?->id ?? 0) }},
                 get selected() {
@@ -113,25 +103,11 @@
             <div class="space-y-3">
                 <div class="aspect-[4/3] sm:aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
                     <img
-                        :src="images[active].src"
-                        :alt="images[active].alt"
+                        src="{{ $heroUrl }}"
+                        alt="{{ $product->title }}"
                         class="w-full h-full object-cover"
                     >
                 </div>
-                @if($gallery->count() > 1)
-                    <div class="grid grid-cols-4 sm:grid-cols-5 gap-2">
-                        @foreach($gallery as $i => $shot)
-                            <button
-                                type="button"
-                                @click="active = {{ $i }}"
-                                :class="active === {{ $i }} ? 'ring-2 ring-primary border-primary' : 'border-slate-200 hover:border-slate-300'"
-                                class="aspect-square rounded-lg overflow-hidden border bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                            >
-                                <img src="{{ $shot['src'] }}" alt="" class="w-full h-full object-cover">
-                            </button>
-                        @endforeach
-                    </div>
-                @endif
             </div>
 
             <div class="flex flex-col gap-4 sm:gap-5 lg:pt-1">

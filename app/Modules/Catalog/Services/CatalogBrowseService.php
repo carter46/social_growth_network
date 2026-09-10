@@ -15,7 +15,7 @@ class CatalogBrowseService
 {
     public const HOME_ECOSYSTEM_LIMIT = 8;
 
-    public const HOME_PRODUCT_LIMIT = 12;
+    public const HOME_PRODUCT_LIMIT = 6;
 
     public function usesDbHierarchy(): bool
     {
@@ -401,7 +401,187 @@ class CatalogBrowseService
     }
 
     /**
-     * Featured / catalog products for the public homepage marketplace grid.
+     * Homepage "What do you want to grow?" catalog.
+     * Each filter (all + platform categories) exposes at most $limit products,
+     * reshuffled on every page load. TikTok/Twitter included when they have products.
+     *
+     * @return array{
+     *     filters: list<array{slug: string, label: string}>,
+     *     products: array<string, list<array<string, mixed>>>
+     * }
+     */
+    public function homeMarketplaceCatalog(int $limit = self::HOME_PRODUCT_LIMIT): array
+    {
+        $filters = $this->homeFilterCategories();
+        $productsByFilter = ['all' => []];
+
+        if (! Schema::hasTable('platform_products') || $filters === []) {
+            return ['filters' => $filters, 'products' => $productsByFilter];
+        }
+
+        $with = [
+            'serviceCategory',
+            'productType.serviceCategory',
+            'heroMedia.variants',
+            'activeVariants',
+        ];
+
+        $pools = [];
+        foreach ($filters as $filter) {
+            $slug = $filter['slug'];
+            $categoryId = (int) ($filter['id'] ?? 0);
+
+            $pool = PlatformProduct::query()
+                ->visibleToPublic()
+                ->when(
+                    $categoryId > 0,
+                    fn ($q) => $q->where('service_category_id', $categoryId),
+                    fn ($q) => $q->whereHas('serviceCategory', fn ($c) => $c->where('slug', $slug))
+                )
+                ->with($with)
+                ->get()
+                ->shuffle()
+                ->values();
+
+            $pools[$slug] = $pool;
+            $productsByFilter[$slug] = $pool
+                ->take($limit)
+                ->map(fn (PlatformProduct $product) => $this->mapHomeProductCard($product))
+                ->values()
+                ->all();
+        }
+
+        $productsByFilter['all'] = $this->pickMixedHomeProducts($pools, $limit)
+            ->map(fn (PlatformProduct $product) => $this->mapHomeProductCard($product))
+            ->values()
+            ->all();
+
+        return [
+            'filters' => array_map(
+                fn (array $f) => ['slug' => $f['slug'], 'label' => $f['label']],
+                $filters
+            ),
+            'products' => $productsByFilter,
+        ];
+    }
+
+    /**
+     * Platform categories for homepage filters (excludes legacy social-media umbrella).
+     *
+     * @return list<array{id: int, slug: string, label: string}>
+     */
+    public function homeFilterCategories(): array
+    {
+        $registrySlugs = collect(config('platform_categories', []))
+            ->filter(fn ($meta, $key) => is_array($meta)
+                && ($meta['slug'] ?? '') !== 'social-media'
+                && $key !== 'social')
+            ->map(fn ($meta) => (string) ($meta['slug'] ?? ''))
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($registrySlugs === [] || ! Schema::hasTable('service_categories')) {
+            return [];
+        }
+
+        $categories = ServiceCategory::query()
+            ->system()
+            ->active()
+            ->whereIn('slug', $registrySlugs)
+            ->withPublicProducts()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'slug', 'name']);
+
+        // Keep registry order (youtube → … → twitter).
+        $bySlug = $categories->keyBy('slug');
+
+        $ordered = [];
+        foreach ($registrySlugs as $slug) {
+            $category = $bySlug->get($slug);
+            if (! $category) {
+                continue;
+            }
+            $ordered[] = [
+                'id' => (int) $category->id,
+                'slug' => $category->slug,
+                'label' => $category->name,
+            ];
+        }
+
+        return $ordered;
+    }
+
+    /**
+     * Build the "All" set: one product from each category when possible, then fill to $limit, then shuffle.
+     *
+     * @param  array<string, Collection<int, PlatformProduct>>  $pools
+     * @return Collection<int, PlatformProduct>
+     */
+    private function pickMixedHomeProducts(array $pools, int $limit): Collection
+    {
+        $picked = collect();
+        $usedIds = [];
+
+        foreach ($pools as $pool) {
+            $candidate = $pool->first(fn (PlatformProduct $p) => ! isset($usedIds[$p->id]));
+            if (! $candidate) {
+                continue;
+            }
+            $picked->push($candidate);
+            $usedIds[$candidate->id] = true;
+            if ($picked->count() >= $limit) {
+                break;
+            }
+        }
+
+        if ($picked->count() < $limit) {
+            $remainder = collect();
+            foreach ($pools as $pool) {
+                foreach ($pool as $product) {
+                    if (! isset($usedIds[$product->id])) {
+                        $remainder->push($product);
+                    }
+                }
+            }
+
+            foreach ($remainder->shuffle()->take($limit - $picked->count()) as $product) {
+                $picked->push($product);
+                $usedIds[$product->id] = true;
+            }
+        }
+
+        return $picked->shuffle()->values();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mapHomeProductCard(PlatformProduct $product): array
+    {
+        $categorySlug = $product->categorySlug() ?? '';
+        $categoryLabel = $product->serviceCategory?->name
+            ?? ($product->productType?->serviceCategory?->name ?? 'Campaign');
+        $heroUrl = media_url($product->heroMedia ?? null, $product->hero_image, 'medium');
+        $fromPrice = $product->displayPrice();
+
+        return [
+            'id' => $product->id,
+            'title' => $product->title,
+            'short_description' => $product->short_description
+                ?: 'Predefined package with upfront pricing and secure payment.',
+            'href' => $this->productUrl($product),
+            'hero_url' => $heroUrl,
+            'category_slug' => $categorySlug,
+            'category_label' => $categoryLabel,
+            'from_price' => $fromPrice > 0 ? (float) $fromPrice : null,
+            'is_campaign' => (bool) ($product->is_campaign ?? false),
+        ];
+    }
+
+    /**
+     * Featured / catalog products for legacy callers (popular tags, etc.).
      *
      * @return Collection<int, PlatformProduct>
      */
@@ -419,9 +599,7 @@ class CatalogBrowseService
                 'heroMedia.variants',
                 'activeVariants',
             ])
-            ->orderByDesc('is_featured')
-            ->orderBy('sort_order')
-            ->orderBy('title')
+            ->inRandomOrder()
             ->limit($limit)
             ->get();
     }

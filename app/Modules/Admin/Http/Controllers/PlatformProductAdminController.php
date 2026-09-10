@@ -14,6 +14,8 @@ use App\Services\Media\MediaUsageService;
 use App\Support\SortOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -27,6 +29,11 @@ class PlatformProductAdminController extends Controller
 
     public function index(Request $request): View
     {
+        $siblings = $this->systemProductSiblingsQuery();
+        if ((clone $siblings)->where('sort_order', '<', 1)->exists()) {
+            SortOrder::normalize($siblings);
+        }
+
         $products = PlatformProduct::query()
             ->with(['serviceCategory', 'productType.serviceCategory', 'heroMedia.variants', 'activeVariants'])
             ->when($request->filled('q'), function ($q) use ($request) {
@@ -104,12 +111,14 @@ class PlatformProductAdminController extends Controller
         }
 
         $siblings = $this->systemProductSiblingsQuery();
-        $siblingMax = max(1, (clone $siblings)->count());
+        if ((int) $platformProduct->sort_order < 1 || (clone $siblings)->where('sort_order', '<', 1)->exists()) {
+            SortOrder::normalize($siblings);
+            $platformProduct->refresh();
+        }
 
         return view('dashboard.admin.platform-product-form', [
             'product' => $platformProduct,
             'lockedCatalog' => true,
-            'siblingMax' => $siblingMax,
             'serviceCategories' => ServiceCategory::query()->system()->orderBy('sort_order')->orderBy('name')->get(),
         ]);
     }
@@ -123,9 +132,6 @@ class PlatformProductAdminController extends Controller
                 ->with('error', __('That product is not under a fixed platform category.'));
         }
 
-        $siblings = $this->systemProductSiblingsQuery();
-        $siblingMax = max(1, (clone $siblings)->count());
-
         $systemCategoryIds = ServiceCategory::query()->system()->pluck('id')->all();
 
         $data = $request->validate([
@@ -137,39 +143,19 @@ class PlatformProductAdminController extends Controller
                 PlatformProductStatus::Draft->value,
                 PlatformProductStatus::Published->value,
             ])],
-            'sort_order' => ['required', 'integer', 'min:1', 'max:'.$siblingMax],
             'hero_media_id' => ['nullable', 'integer', $this->mediaPaths->existsRule()],
-            'variants' => ['nullable', 'array'],
-            'variants.*.id' => ['required', 'integer'],
+            'variants' => ['required', 'array', 'min:1'],
+            'variants.*.id' => ['nullable', 'integer'],
+            'variants.*.name' => ['required', 'string', 'max:120'],
             'variants.*.price' => ['required', 'numeric', 'min:0'],
             'variants.*.description' => ['nullable', 'string', 'max:2000'],
-            'tutorial_url' => ['nullable', 'string', 'max:500'],
-            'tutorial_description' => ['nullable', 'string', 'max:2000'],
             'is_campaign' => ['sometimes', 'boolean'],
             'agent_reward_per_completion' => ['nullable', 'numeric', 'min:0'],
             'estimated_minutes' => ['nullable', 'integer', 'min:1', 'max:10080'],
         ]);
 
-        $rawTutorial = trim((string) ($data['tutorial_url'] ?? ''));
-        if ($rawTutorial !== '') {
-            $normalizedTutorial = preg_match('#^https?://#i', $rawTutorial)
-                ? $rawTutorial
-                : 'https://'.$rawTutorial;
-            if (! filter_var($normalizedTutorial, FILTER_VALIDATE_URL)) {
-                throw ValidationException::withMessages([
-                    'tutorial_url' => 'Enter a valid tutorial video URL.',
-                ]);
-            }
-            $data['tutorial_url'] = $normalizedTutorial;
-        }
-
         $heroMediaId = filled($data['hero_media_id'] ?? null) ? (int) $data['hero_media_id'] : null;
         $heroPath = $this->mediaPaths->legacyPathFromMediaId($heroMediaId);
-
-        $tutorialUrl = trim((string) ($data['tutorial_url'] ?? ''));
-        if ($tutorialUrl !== '' && ! preg_match('#^https?://#i', $tutorialUrl)) {
-            $tutorialUrl = 'https://'.$tutorialUrl;
-        }
 
         $updatePayload = [
             'title' => $data['title'],
@@ -179,10 +165,6 @@ class PlatformProductAdminController extends Controller
             'is_featured' => $request->boolean('is_featured'),
             'hero_media_id' => $heroMediaId,
             'hero_image' => $heroPath,
-            'tutorial_url' => $tutorialUrl !== '' ? $tutorialUrl : null,
-            'tutorial_description' => filled($data['tutorial_description'] ?? null)
-                ? trim((string) $data['tutorial_description'])
-                : null,
             'is_campaign' => $request->boolean('is_campaign'),
             'agent_reward_per_completion' => $data['agent_reward_per_completion'] ?? null,
             'estimated_minutes' => $data['estimated_minutes'] ?? null,
@@ -193,9 +175,9 @@ class PlatformProductAdminController extends Controller
             'service_category_id' => (int) $data['service_category_id'],
         ])->save();
 
-        SortOrder::move($platformProduct, (int) $data['sort_order'], $siblings);
+        $this->syncVariants($platformProduct, $data['variants']);
+        SortOrder::normalize($this->systemProductSiblingsQuery());
 
-        $this->updateExistingVariants($platformProduct, $data['variants'] ?? []);
         $this->mediaUsages->syncUsages($platformProduct, [
             'hero' => $heroMediaId,
         ]);
@@ -254,38 +236,74 @@ class PlatformProductAdminController extends Controller
     }
 
     /**
-     * @param  list<array{id: int, price: mixed, description?: string|null}>  $variants
+     * @param  list<array{id?: int|null, name: string, price: mixed, description?: string|null}>  $variants
      */
-    private function updateExistingVariants(PlatformProduct $product, array $variants): void
+    private function syncVariants(PlatformProduct $product, array $variants): void
     {
-        if ($variants === []) {
-            return;
-        }
-
         $existingIds = $product->variants()->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $keepIds = [];
         $prices = [];
 
-        foreach ($variants as $row) {
-            $id = (int) ($row['id'] ?? 0);
-            if ($id <= 0 || ! in_array($id, $existingIds, true)) {
-                throw ValidationException::withMessages([
-                    'variants' => 'Variant structure is fixed. You can only change prices and descriptions of existing variants.',
+        DB::transaction(function () use ($product, $variants, $existingIds, &$keepIds, &$prices) {
+            foreach (array_values($variants) as $index => $row) {
+                $name = trim((string) ($row['name'] ?? ''));
+                if ($name === '') {
+                    throw ValidationException::withMessages([
+                        'variants' => 'Each plan needs a name.',
+                    ]);
+                }
+
+                $price = (float) $row['price'];
+                $prices[] = $price;
+                $description = array_key_exists('description', $row)
+                    ? (trim((string) ($row['description'] ?? '')) ?: null)
+                    : null;
+
+                $id = (int) ($row['id'] ?? 0);
+                if ($id > 0) {
+                    if (! in_array($id, $existingIds, true)) {
+                        throw ValidationException::withMessages([
+                            'variants' => 'One of the plans could not be found for this product.',
+                        ]);
+                    }
+
+                    PlatformProductVariant::query()
+                        ->where('id', $id)
+                        ->where('platform_product_id', $product->id)
+                        ->update([
+                            'name' => $name,
+                            'label' => $name,
+                            'price' => $price,
+                            'description' => $description,
+                            'sort_order' => $index,
+                            'is_active' => true,
+                            'is_default' => $index === 0,
+                        ]);
+
+                    $keepIds[] = $id;
+
+                    continue;
+                }
+
+                $created = PlatformProductVariant::query()->create([
+                    'platform_product_id' => $product->id,
+                    'name' => $name,
+                    'label' => $name,
+                    'sku' => Str::slug($product->slug.'-'.$name).'-'.Str::lower(Str::random(4)),
+                    'price' => $price,
+                    'description' => $description,
+                    'duration_months' => null,
+                    'sort_order' => $index,
+                    'is_default' => $index === 0,
+                    'is_active' => true,
                 ]);
+                $keepIds[] = (int) $created->id;
             }
 
-            $price = (float) $row['price'];
-            $prices[] = $price;
-
-            $payload = ['price' => $price];
-            if (array_key_exists('description', $row)) {
-                $payload['description'] = trim((string) ($row['description'] ?? '')) ?: null;
-            }
-
-            PlatformProductVariant::query()
-                ->where('id', $id)
-                ->where('platform_product_id', $product->id)
-                ->update($payload);
-        }
+            $product->variants()
+                ->whereNotIn('id', $keepIds)
+                ->delete();
+        });
 
         if ($prices !== []) {
             $product->update(['base_price' => min($prices)]);

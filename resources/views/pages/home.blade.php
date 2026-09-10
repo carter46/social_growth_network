@@ -1,4 +1,4 @@
-@extends('layouts.marketing')
+﻿@extends('layouts.marketing')
 
 @section('title', $siteHeading ?? 'Digital Campaign Marketplace')
 
@@ -11,8 +11,12 @@
         : 'Choose the campaign you need, select your preferred package, and get your campaign started in minutes.';
     $categoryCards = collect($categoryCards ?? [])->values();
     $featuredProducts = collect($featuredProducts ?? []);
-    $filterCategories = $categoryCards->take(5);
-    $marketplaceCards = $categoryCards->take(5);
+    $marketplaceCatalog = $marketplaceCatalog ?? ['filters' => [], 'products' => ['all' => []]];
+    $filterCategories = collect($marketplaceCatalog['filters'] ?? []);
+    $marketplaceCards = $categoryCards
+        ->filter(fn ($card) => ($card['slug'] ?? '') !== 'social-media')
+        ->take(5)
+        ->values();
     $heroSlides = [
         ['src' => asset('assets/images/creators-hero.jpg'), 'alt' => 'Creator launching digital campaigns'],
         ['src' => asset('assets/images/home-slider-2.jpg'), 'alt' => 'Team collaborating on campaign growth'],
@@ -23,8 +27,9 @@
         'text-purple-600',
         'text-teal-600',
         'text-emerald-600',
+        'text-sky-600',
     ];
-    $badgeIcons = ['smart_display', 'share', 'public', 'task_alt'];
+    $badgeIcons = ['smart_display', 'share', 'public', 'task_alt', 'campaign'];
     $agentPreview = $featuredProducts->first(fn ($p) => (bool) ($p->is_campaign ?? false))
         ?? $featuredProducts->first();
 @endphp
@@ -85,7 +90,7 @@
                         type="search"
                         name="q"
                         class="w-full min-w-0 bg-transparent text-slate-900 text-sm placeholder:text-slate-600/70 focus:outline-none border-0 focus:ring-0 p-0"
-                        placeholder="Search campaign services…"
+                        placeholder="Search campaign servicesâ€¦"
                     >
                 </div>
                 <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-primary/90 hover:bg-primary text-white text-sm font-semibold rounded-lg transition-colors shrink-0">
@@ -119,7 +124,21 @@
 </section>
 
 {{-- 3. Marketplace catalog: product cards + category filter pills --}}
-<section class="py-20 lg:py-28 bg-white border-b border-slate-100" id="services" x-data="{ filter: 'all' }">
+<section
+    class="py-20 lg:py-28 bg-white border-b border-slate-100"
+    id="services"
+    x-data="{
+        filter: 'all',
+        catalog: @js($marketplaceCatalog),
+        tones: @js($badgeTones),
+        icons: @js($badgeIcons),
+        get products() {
+            return (this.catalog.products && this.catalog.products[this.filter]) ? this.catalog.products[this.filter] : [];
+        },
+        tone(i) { return this.tones[i % this.tones.length]; },
+        icon(i) { return this.icons[i % this.icons.length]; }
+    }"
+>
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
             <div>
@@ -128,7 +147,6 @@
                 <p class="text-slate-600 text-base sm:text-lg mt-2 max-w-xl">Browse predefined packages, see upfront pricing, and launch instantly.</p>
             </div>
             @if($filterCategories->isNotEmpty())
-                {{-- Desktop: wrap pills --}}
                 <div class="hidden md:flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-xl self-start md:self-auto">
                     <button type="button" @click="filter = 'all'" :class="filter === 'all' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600 font-medium hover:text-slate-900'" class="px-4 py-2 rounded-lg text-sm transition-all">All</button>
                     @foreach($filterCategories as $cat)
@@ -141,7 +159,6 @@
                     @endforeach
                 </div>
 
-                {{-- Mobile: All fixed; other categories scroll underneath --}}
                 <div class="md:hidden relative w-full">
                     <div class="absolute inset-y-0 left-0 z-10 flex items-center bg-slate-100 pl-1.5 pr-1 rounded-l-xl">
                         <button
@@ -168,116 +185,80 @@
             @endif
         </div>
 
-        @if($featuredProducts->isNotEmpty())
-            @php $browse = app(\App\Modules\Catalog\Services\CatalogBrowseService::class); @endphp
+        <template x-if="products.length > 0">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-                @foreach($featuredProducts as $product)
-                    @php
-                        $href = $browse->productUrl($product);
-                        $heroUrl = media_url($product->heroMedia ?? null, $product->hero_image, 'medium');
-                        $tone = $badgeTones[$loop->index % count($badgeTones)];
-                        $icon = $badgeIcons[$loop->index % count($badgeIcons)];
-                        $categorySlug = $product->categorySlug() ?? '';
-                        $categoryLabel = $product->serviceCategory?->name
-                            ?? ($product->productType?->serviceCategory?->name ?? 'Campaign');
-                        $fromPrice = $product->displayPrice();
-                    @endphp
-                    <div
-                        class="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
-                        x-show="filter === 'all' || filter === '{{ $categorySlug }}'"
-                    >
+                <template x-for="(product, index) in products" :key="filter + '-' + product.id">
+                    <div class="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
                         <div>
                             <div class="relative h-48 w-full overflow-hidden bg-slate-100">
-                                @if($heroUrl)
-                                    <img src="{{ $heroUrl }}" alt="{{ $product->title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
-                                @else
+                                <template x-if="product.hero_url">
+                                    <img :src="product.hero_url" :alt="product.title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+                                </template>
+                                <template x-if="!product.hero_url">
                                     <div class="w-full h-full bg-gradient-to-br from-primary/25 via-slate-200 to-slate-100"></div>
-                                @endif
+                                </template>
                                 <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
-                                <span class="absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 backdrop-blur-md {{ $tone }} text-xs font-bold shadow-sm">
-                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ $icon }}</span>
-                                    {{ $categoryLabel }}
+                                <span class="absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 backdrop-blur-md text-xs font-bold shadow-sm" :class="tone(index)">
+                                    <span class="material-symbols-outlined text-sm" aria-hidden="true" x-text="icon(index)"></span>
+                                    <span x-text="product.category_label"></span>
                                 </span>
                             </div>
                             <div class="p-5">
                                 <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-primary transition-colors font-display">
-                                    <a href="{{ $href }}">{{ $product->title }}</a>
+                                    <a :href="product.href" x-text="product.title"></a>
                                 </h3>
-                                <p class="text-slate-600 text-sm leading-relaxed mb-4">
-                                    {{ $product->short_description ?: 'Predefined package with upfront pricing and secure payment.' }}
-                                </p>
+                                <p class="text-slate-600 text-sm leading-relaxed mb-4" x-text="product.short_description"></p>
                             </div>
                         </div>
                         <div class="px-5 pb-5 pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
-                            <span class="text-xs font-medium text-slate-500">
-                                @if($fromPrice)
-                                    From ₦{{ number_format((float) $fromPrice, 0) }}
-                                @else
-                                    From predefined packages
-                                @endif
-                            </span>
-                            <a class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline group-hover:translate-x-0.5 transition-transform" href="{{ $href }}">
-                                View package →
-                            </a>
+                            <span class="text-xs font-medium text-slate-500" x-text="product.from_price ? ('From ₦' + Number(product.from_price).toLocaleString('en-NG')) : 'From predefined packages'"></span>
+                            <a class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline group-hover:translate-x-0.5 transition-transform" :href="product.href">View package →</a>
                         </div>
                     </div>
-                @endforeach
+                </template>
             </div>
-        @elseif($marketplaceCards->isNotEmpty())
-            {{-- Fallback: category cards if products are empty --}}
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-                @foreach($marketplaceCards as $card)
-                    @php
-                        $tone = $badgeTones[$loop->index % count($badgeTones)];
-                        $icon = $badgeIcons[$loop->index % count($badgeIcons)];
-                        $image = $card['card_image'] ?? $card['banner_image'] ?? null;
-                        $href = $card['href'] ?? route('services');
-                        $slug = $card['slug'] ?? '';
-                    @endphp
-                    <div
-                        class="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
-                        x-show="filter === 'all' || filter === '{{ $slug }}'"
-                    >
-                        <div>
-                            <div class="relative h-48 w-full overflow-hidden bg-slate-100">
-                                @if($image)
-                                    <img src="{{ $image }}" alt="{{ $card['label'] ?? 'Campaign' }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
-                                @else
-                                    <div class="w-full h-full bg-gradient-to-br from-primary/25 via-slate-200 to-slate-100"></div>
-                                @endif
-                                <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
-                                <span class="absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 backdrop-blur-md {{ $tone }} text-xs font-bold shadow-sm">
-                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ $icon }}</span>
-                                    {{ $card['label'] ?? 'Campaigns' }}
-                                </span>
+        </template>
+
+        <div x-show="products.length === 0" x-cloak>
+            @if($marketplaceCards->isNotEmpty())
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+                    @foreach($marketplaceCards as $card)
+                        @php
+                            $tone = $badgeTones[$loop->index % count($badgeTones)];
+                            $icon = $badgeIcons[$loop->index % count($badgeIcons)];
+                            $image = $card['card_image'] ?? $card['banner_image'] ?? null;
+                            $href = $card['href'] ?? route('services');
+                        @endphp
+                        <div class="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
+                            <div>
+                                <div class="relative h-48 w-full overflow-hidden bg-slate-100">
+                                    @if($image)
+                                        <img src="{{ $image }}" alt="{{ $card['label'] ?? 'Campaign' }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+                                    @else
+                                        <div class="w-full h-full bg-gradient-to-br from-primary/25 via-slate-200 to-slate-100"></div>
+                                    @endif
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                                    <span class="absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 backdrop-blur-md {{ $tone }} text-xs font-bold shadow-sm">
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ $icon }}</span>
+                                        {{ $card['label'] ?? 'Campaigns' }}
+                                    </span>
+                                </div>
+                                <div class="p-5">
+                                    <h3 class="text-xl font-bold text-slate-900 mb-2 font-display">{{ $card['label'] ?? 'Campaigns' }}</h3>
+                                    <p class="text-slate-600 text-sm leading-relaxed mb-4">{{ $card['short_description'] ?? $card['hero_subtitle'] ?? 'Predefined packages with upfront pricing and secure payment.' }}</p>
+                                </div>
                             </div>
-                            <div class="p-5">
-                                <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-primary transition-colors font-display">
-                                    <a href="{{ $href }}">{{ $card['label'] ?? 'Campaigns' }}</a>
-                                </h3>
-                                <p class="text-slate-600 text-sm leading-relaxed mb-4">
-                                    {{ $card['short_description'] ?? $card['hero_subtitle'] ?? 'Predefined packages with upfront pricing and secure payment.' }}
-                                </p>
+                            <div class="px-5 pb-5 pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
+                                <span class="text-xs font-medium text-slate-500">From predefined packages</span>
+                                <a class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline" href="{{ $href }}">Explore Packages →</a>
                             </div>
                         </div>
-                        <div class="px-5 pb-5 pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
-                            <span class="text-xs font-medium text-slate-500">
-                                @if(! empty($card['from_price']))
-                                    From ₦{{ number_format((float) $card['from_price'], 0) }}
-                                @else
-                                    From predefined packages
-                                @endif
-                            </span>
-                            <a class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline group-hover:translate-x-0.5 transition-transform" href="{{ $href }}">
-                                Explore Packages →
-                            </a>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        @else
-            <p class="text-slate-500 text-center py-12">Campaign packages will appear here once published in the catalog.</p>
-        @endif
+                    @endforeach
+                </div>
+            @else
+                <p class="text-slate-500 text-center py-12">Campaign packages will appear here once published in the catalog.</p>
+            @endif
+        </div>
     </div>
 </section>
 
@@ -291,9 +272,9 @@
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
             @foreach([
-                ['n' => '01', 'icon' => 'category', 'title' => 'Choose', 'body' => 'Pick the campaign and predefined quantity that matches your goal with upfront fixed pricing.', 'foot' => 'Step 1 • No haggling'],
-                ['n' => '02', 'icon' => 'tune', 'title' => 'Set Up', 'body' => 'Add your target URL and simple campaign instructions in our streamlined submission form.', 'foot' => 'Step 2 • 2-minute setup'],
-                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Launch', 'body' => 'Pay securely and watch verified task completion in real-time as tasks post to your ledger.', 'foot' => 'Step 3 • Secure payment'],
+                ['n' => '01', 'icon' => 'category', 'title' => 'Choose', 'body' => 'Pick the campaign and predefined quantity that matches your goal with upfront fixed pricing.', 'foot' => 'Step 1 â€¢ No haggling'],
+                ['n' => '02', 'icon' => 'tune', 'title' => 'Set Up', 'body' => 'Add your target URL and simple campaign instructions in our streamlined submission form.', 'foot' => 'Step 2 â€¢ 2-minute setup'],
+                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Launch', 'body' => 'Pay securely and watch verified task completion in real-time as tasks post to your ledger.', 'foot' => 'Step 3 â€¢ Secure payment'],
             ] as $step)
                 <div class="bg-white p-8 rounded-xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
                     <div>
@@ -330,7 +311,7 @@
                     <div class="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"></div>
                     <div class="absolute bottom-6 left-6 right-6 text-white">
                         <p class="font-bold text-lg">Built for creators &amp; founders</p>
-                        <p class="text-sm text-slate-200">Independent creators · Campaign packages · {{ $brandName }}</p>
+                        <p class="text-sm text-slate-200">Independent creators Â· Campaign packages Â· {{ $brandName }}</p>
                     </div>
                 </div>
                 <div class="absolute -bottom-6 -right-6 -z-10 w-64 h-64 bg-blue-100/60 rounded-full blur-3xl pointer-events-none"></div>
@@ -345,7 +326,7 @@
                 </p>
                 <div class="space-y-4 mb-9 w-full">
                     @foreach([
-                        ['title' => 'Upfront predefined pricing — zero bidding wars', 'body' => 'Know exactly what you pay and get before committing any budget.'],
+                        ['title' => 'Upfront predefined pricing â€” zero bidding wars', 'body' => 'Know exactly what you pay and get before committing any budget.'],
                         ['title' => 'Guaranteed verified human activity & proof validation', 'body' => 'Every completion undergoes multi-point telemetry and submission checks.'],
                         ['title' => 'Real-time progress monitoring directly in your account', 'body' => 'Track execution velocity, view completed agent actions, and download reports.'],
                     ] as $point)
@@ -426,11 +407,11 @@
                                 <span class="text-xs text-slate-600 font-medium">Verified Reward</span>
                                 <span class="text-sm font-extrabold text-emerald-600">
                                     @if($reward !== null && (float) $reward > 0)
-                                        ₦{{ number_format((float) $reward, 0) }} per task
+                                        â‚¦{{ number_format((float) $reward, 0) }} per task
                                     @elseif($agentPreview)
-                                        From ₦{{ number_format($agentPreview->displayPrice(), 0) }}
+                                        From â‚¦{{ number_format($agentPreview->displayPrice(), 0) }}
                                     @else
-                                        ₦250 per review · 5 mins
+                                        â‚¦250 per review Â· 5 mins
                                     @endif
                                 </span>
                             </div>

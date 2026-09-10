@@ -200,10 +200,10 @@ class CatalogHierarchyTest extends TestCase
                 'description' => $product->description,
                 'service_category_id' => $tiktok->id,
                 'status' => PlatformProductStatus::Published->value,
-                'sort_order' => 1,
                 'variants' => [
                     [
                         'id' => $product->variants()->first()->id,
+                        'name' => $product->variants()->first()->name,
                         'price' => 3500,
                         'description' => null,
                     ],

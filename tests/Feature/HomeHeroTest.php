@@ -30,10 +30,16 @@ class HomeHeroTest extends TestCase
 
         $response->assertOk()
             ->assertSee('What do you want to grow?', false)
-            ->assertSee('YouTube Views', false)
-            ->assertSee('Instagram Views', false)
-            ->assertSee('>All<', false)
             ->assertSee('YouTube', false)
+            ->assertSee('TikTok', false)
+            ->assertSee('Twitter', false)
+            ->assertSee('>All<', false)
             ->assertDontSee('Crypto Cash Exchange', false);
+
+        $catalog = app(\App\Modules\Catalog\Services\CatalogBrowseService::class)->homeMarketplaceCatalog();
+        $this->assertLessThanOrEqual(6, count($catalog['products']['all'] ?? []));
+        $this->assertArrayHasKey('tiktok', $catalog['products']);
+        $this->assertArrayHasKey('twitter', $catalog['products']);
+        $this->assertLessThanOrEqual(6, count($catalog['products']['youtube'] ?? []));
     }
 }
