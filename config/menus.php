@@ -168,7 +168,6 @@ return [
                 ['route' => 'admin.users', 'match' => ['admin.users', 'admin.users.*'], 'label' => 'Users', 'icon' => 'users', 'keywords' => ['members', 'accounts', 'creators', 'agents'], 'permission' => 'users.manage', 'sort' => 10],
                 ['route' => 'admin.campaigns', 'match' => ['admin.campaigns', 'admin.campaigns.*'], 'label' => 'Campaigns', 'icon' => 'listings', 'keywords' => ['campaigns', 'tasks', 'review'], 'permission' => 'users.manage', 'sort' => 15],
                 ['route' => 'admin.verifications', 'match' => ['admin.verifications', 'admin.verifications.*'], 'label' => 'Task verification', 'icon' => 'verified', 'keywords' => ['verify', 'submissions', 'proof'], 'permission' => 'users.manage', 'sort' => 16],
-                ['route' => 'admin.administrators', 'match' => ['admin.administrators', 'admin.administrators.*'], 'label' => 'Administrators', 'icon' => 'verified', 'keywords' => ['admins', 'staff'], 'permission' => 'admins.manage', 'sort' => 20],
                 ['route' => 'admin.kyc', 'match' => ['admin.kyc', 'admin.kyc.*'], 'label' => 'KYC', 'icon' => 'kyc', 'keywords' => ['identity', 'verification'], 'permission' => 'compliance.manage', 'sort' => 30],
                 ['route' => 'admin.tickets', 'match' => ['admin.tickets', 'admin.tickets.*'], 'label' => 'Support', 'icon' => 'support', 'keywords' => ['help', 'tickets'], 'permission' => 'support.manage', 'sort' => 40],
                 ['route' => 'admin.fees-limits', 'match' => ['admin.fees-limits', 'admin.fees-limits.*'], 'label' => 'Fees & Limits', 'icon' => 'paid', 'keywords' => ['fees', 'limits', 'deposit', 'withdrawal'], 'permission' => 'fees.manage', 'sort' => 45],
@@ -182,9 +181,8 @@ return [
             'icon' => 'storefront',
             'sort' => 20,
             'children' => [
-                ['route' => 'admin.service-categories', 'match' => ['admin.service-categories', 'admin.service-categories.*'], 'label' => 'Service Categories', 'icon' => 'grid', 'keywords' => ['catalog', 'categories'], 'permission' => 'catalog.manage', 'sort' => 10],
-                ['route' => 'admin.services', 'match' => ['admin.services', 'admin.services.*'], 'label' => 'Services', 'icon' => 'listings', 'keywords' => ['catalog', 'services', 'types'], 'permission' => 'catalog.manage', 'sort' => 20],
-                ['route' => 'admin.platform-products', 'match' => ['admin.platform-products', 'admin.platform-products.*'], 'label' => 'Products', 'icon' => 'storefront', 'keywords' => ['prod', 'catalog', 'products'], 'permission' => 'catalog.manage', 'sort' => 30],
+                ['route' => 'admin.service-categories', 'match' => ['admin.service-categories', 'admin.service-categories.*'], 'label' => 'Categories', 'icon' => 'grid', 'keywords' => ['catalog', 'categories'], 'permission' => 'catalog.manage', 'sort' => 10],
+                ['route' => 'admin.platform-products', 'match' => ['admin.platform-products', 'admin.platform-products.*'], 'label' => 'Products', 'icon' => 'storefront', 'keywords' => ['prod', 'catalog', 'products'], 'permission' => 'catalog.manage', 'sort' => 20],
             ],
         ],
         [
@@ -212,6 +210,7 @@ return [
                 ['route' => 'admin.settings', 'match' => ['admin.settings', 'admin.settings.branding', 'admin.settings.contact', 'admin.settings.social', 'admin.settings.google-identity', 'admin.settings.google-identity.test'], 'label' => 'Site Settings', 'icon' => 'settings', 'keywords' => ['platform', 'config', 'branding', 'contact'], 'permission' => 'system.manage', 'sort' => 5],
                 ['route' => 'admin.settings.email-settings', 'match' => ['admin.settings.email-settings', 'admin.settings.email', 'admin.settings.test-mail'], 'label' => 'Email Settings', 'icon' => 'messages', 'keywords' => ['brevo', 'smtp', 'mail'], 'permission' => 'system.manage', 'sort' => 6],
                 ['route' => 'admin.settings.payments', 'match' => ['admin.settings.payments', 'admin.settings.monnify', 'admin.settings.monnify.test', 'admin.settings.manual-bank-transfer'], 'label' => 'Payment Settings', 'icon' => 'wallet', 'keywords' => ['monnify', 'bank transfer', 'gateway'], 'permission' => 'system.manage', 'sort' => 7],
+                ['route' => 'admin.administrators', 'match' => ['admin.administrators', 'admin.administrators.*'], 'label' => 'Administrators', 'icon' => 'verified', 'keywords' => ['admins', 'staff'], 'permission' => 'admins.manage', 'sort' => 8],
                 ['route' => 'admin.analytics', 'match' => ['admin.analytics', 'admin.analytics.*'], 'label' => 'Analytics', 'icon' => 'analytics', 'keywords' => ['reports', 'metrics'], 'permission' => 'analytics.view', 'sort' => 10],
                 ['route' => 'admin.monitoring', 'match' => ['admin.monitoring', 'admin.monitoring.*'], 'label' => 'Monitoring', 'icon' => 'audit', 'keywords' => ['health', 'heartbeat', 'system'], 'permission' => 'system.manage', 'sort' => 12],
                 ['route' => 'admin.media', 'match' => ['admin.media', 'admin.media.*'], 'label' => 'Media Library', 'icon' => 'listings', 'keywords' => ['media', 'images', 'upload'], 'permission' => 'system.manage', 'sort' => 15],

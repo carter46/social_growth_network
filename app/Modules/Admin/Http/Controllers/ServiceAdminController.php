@@ -11,7 +11,6 @@ use App\Support\FaqNormalizer;
 use App\Support\SortOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 
 class ServiceAdminController extends Controller
 {
@@ -20,61 +19,32 @@ class ServiceAdminController extends Controller
         private MediaPathService $mediaPaths,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): RedirectResponse
     {
-        $services = ProductType::query()
-            ->with(['serviceCategory', 'cardMedia.variants', 'bannerMedia.variants'])
-            ->withCount('products')
-            ->whereHas('serviceCategory', fn ($q) => $q->system())
-            ->when($request->filled('category'), fn ($q) => $q->where('service_category_id', $request->integer('category')))
-            ->when($request->filled('q'), function ($q) use ($request) {
-                $term = '%'.$request->string('q')->toString().'%';
-                $q->where(function ($inner) use ($term) {
-                    $inner->where('name', 'like', $term)->orWhere('slug', 'like', $term);
-                });
-            })
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->paginate(20)
-            ->withQueryString();
-
-        return view('dashboard.admin.services.index', [
-            'services' => $services,
-            'categories' => ServiceCategory::query()->system()->orderBy('sort_order')->orderBy('name')->get(),
-        ]);
+        return redirect()
+            ->route('admin.service-categories')
+            ->with('status', __('Services are managed as Categories → Products. Use Categories and Products instead.'));
     }
 
     public function create(): RedirectResponse
     {
         return redirect()
-            ->route('admin.services')
+            ->route('admin.service-categories')
             ->with('error', __('Platform services are fixed. You cannot add new ones.'));
     }
 
     public function store(): RedirectResponse
     {
         return redirect()
-            ->route('admin.services')
+            ->route('admin.service-categories')
             ->with('error', __('Platform services are fixed. You cannot add new ones.'));
     }
 
-    public function edit(ProductType $service): View|RedirectResponse
+    public function edit(ProductType $service): RedirectResponse
     {
-        $service->load(['bannerMedia.variants', 'cardMedia.variants', 'serviceCategory']);
-        if (! $service->serviceCategory?->isSystem()) {
-            return redirect()
-                ->route('admin.services')
-                ->with('error', __('That service is not under a fixed platform category.'));
-        }
-
-        $siblingMax = ProductType::query()
-            ->whereHas('serviceCategory', fn ($q) => $q->system())
-            ->count();
-
-        return view('dashboard.admin.services.edit', [
-            'service' => $service,
-            'siblingMax' => $siblingMax,
-        ]);
+        return redirect()
+            ->route('admin.service-categories')
+            ->with('status', __('Services are managed as Categories → Products. Use Categories and Products instead.'));
     }
 
     public function update(Request $request, ProductType $service): RedirectResponse
@@ -82,12 +52,12 @@ class ServiceAdminController extends Controller
         $service->loadMissing('serviceCategory');
         if (! $service->serviceCategory?->isSystem()) {
             return redirect()
-                ->route('admin.services')
+                ->route('admin.service-categories')
                 ->with('error', __('That service is not under a fixed platform category.'));
         }
 
         $siblings = ProductType::query()->whereHas('serviceCategory', fn ($q) => $q->system());
-        $siblingMax = (clone $siblings)->count();
+        $siblingMax = max(1, (clone $siblings)->count());
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -127,7 +97,7 @@ class ServiceAdminController extends Controller
         SortOrder::move($service, (int) $data['sort_order'], $siblings);
 
         return redirect()
-            ->route('admin.services')
+            ->route('admin.service-categories')
             ->with('status', 'Service updated.');
     }
 
@@ -135,18 +105,22 @@ class ServiceAdminController extends Controller
     {
         $service->loadMissing('serviceCategory');
         if (! $service->serviceCategory?->isSystem()) {
-            return back()->with('error', __('That service is not under a fixed platform category.'));
+            return redirect()
+                ->route('admin.service-categories')
+                ->with('error', __('That service is not under a fixed platform category.'));
         }
 
         $service->update(['is_active' => ! $service->is_active]);
 
-        return back()->with('status', 'Service '.($service->is_active ? 'activated' : 'deactivated').'.');
+        return redirect()
+            ->route('admin.service-categories')
+            ->with('status', 'Service '.($service->is_active ? 'activated' : 'deactivated').'.');
     }
 
     public function destroy(): RedirectResponse
     {
         return redirect()
-            ->route('admin.services')
+            ->route('admin.service-categories')
             ->with('error', __('Platform services cannot be deleted.'));
     }
 }

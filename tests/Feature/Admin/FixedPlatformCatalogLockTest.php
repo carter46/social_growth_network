@@ -160,7 +160,7 @@ class FixedPlatformCatalogLockTest extends TestCase
                 'slug' => 'hacked-slug',
                 'service_category_id' => 999,
             ])
-            ->assertRedirect(route('admin.services'));
+            ->assertRedirect(route('admin.service-categories'));
 
         $service->refresh();
         $this->assertSame('Social Renamed', $service->name);
@@ -169,7 +169,7 @@ class FixedPlatformCatalogLockTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('admin.services.toggle', $service))
-            ->assertRedirect();
+            ->assertRedirect(route('admin.service-categories'));
 
         $this->assertFalse($service->fresh()->is_active);
     }
