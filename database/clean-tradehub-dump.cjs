@@ -37,15 +37,41 @@ const EMPTY_DATA_TABLES = new Set([
 ]);
 
 const KEEP_PRODUCT_TYPES = new Set(['social_service']);
-const KEEP_SERVICE_CATEGORY_SLUGS = new Set(['social-media']);
+const KEEP_SERVICE_CATEGORY_SLUGS = new Set([
+  'social-media',
+  'youtube',
+  'facebook',
+  'instagram',
+  'tiktok',
+  'twitter',
+]);
 const KEEP_PRODUCT_TYPE_SLUGS = new Set(['social_service']);
 
 const SOCIAL_SLUGS = new Set([
+  // Canonical (post-rename)
+  'youtube-views',
+  'youtube-likes',
+  'youtube-comments',
+  'youtube-watch-hours',
+  'youtube-subscribers',
+  'facebook-views',
+  'facebook-likes',
+  'facebook-comments',
+  'instagram-views',
+  'instagram-likes',
+  'instagram-comments',
+  'tiktok-views',
+  'tiktok-likes',
+  'tiktok-comments',
+  'twitter-views',
+  'twitter-likes',
+  'twitter-comments',
+  // Legacy Views slugs (kept so dump import can be renamed by seeder)
+  'youtube-views-lite',
+  'facebook-growth-pack',
   'instagram-growth-pack',
   'tiktok-engagement-boost',
-  'youtube-views-lite',
   'twitter-audience-pack',
-  'facebook-growth-pack',
 ]);
 
 function tableFromHeader(line) {

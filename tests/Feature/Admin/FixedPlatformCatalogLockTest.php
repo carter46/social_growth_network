@@ -29,8 +29,8 @@ class FixedPlatformCatalogLockTest extends TestCase
             'product_type_id' => $service->id,
             'service_category_id' => $youtube->id,
             'product_type' => PlatformProductType::SocialService,
-            'title' => 'YouTube Views Lite',
-            'slug' => 'youtube-views-lite',
+            'title' => 'YouTube Views',
+            'slug' => 'youtube-views',
             'short_description' => 'Test YouTube pack',
             'description' => 'Long description',
             'status' => PlatformProductStatus::Published,
@@ -175,7 +175,7 @@ class FixedPlatformCatalogLockTest extends TestCase
         $this->seedCatalog();
         $admin = $this->admin();
         $service = ProductType::query()->where('slug', 'social_service')->firstOrFail();
-        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views')->firstOrFail();
 
         $this->actingAs($admin)
             ->post('/admin/services', [
@@ -207,7 +207,7 @@ class FixedPlatformCatalogLockTest extends TestCase
     {
         $this->seedCatalog();
         $admin = $this->admin();
-        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views')->firstOrFail();
         $variant = $product->variants()->firstOrFail();
 
         $this->actingAs($admin)
@@ -226,14 +226,14 @@ class FixedPlatformCatalogLockTest extends TestCase
         $this->assertEquals(5500.0, (float) $product->base_price);
         $this->assertEquals(5500.0, (float) $variant->fresh()->price);
         $this->assertSame('Best starter pack', $variant->fresh()->description);
-        $this->assertSame('youtube-views-lite', $product->slug);
+        $this->assertSame('youtube-views', $product->slug);
     }
 
     public function test_admin_can_assign_product_category_directly(): void
     {
         $this->seedCatalog();
         $admin = $this->admin();
-        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views')->firstOrFail();
         $tiktok = ServiceCategory::query()->where('slug', 'tiktok')->firstOrFail();
         $originalTypeId = $product->product_type_id;
 
@@ -252,7 +252,7 @@ class FixedPlatformCatalogLockTest extends TestCase
     {
         $this->seedCatalog();
         $admin = $this->admin();
-        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views')->firstOrFail();
         $product->update(['is_featured' => true]);
 
         $this->actingAs($admin)
@@ -286,7 +286,7 @@ class FixedPlatformCatalogLockTest extends TestCase
     {
         $this->seedCatalog();
         $admin = $this->admin();
-        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views')->firstOrFail();
         $variant = $product->variants()->firstOrFail();
         $variantName = $variant->name;
         $typeId = $product->product_type_id;
@@ -310,7 +310,7 @@ class FixedPlatformCatalogLockTest extends TestCase
         $this->assertNull($product->provider_sku);
         $this->assertSame('manual', $product->fulfillment_mode);
         $this->assertFalse((bool) $product->auto_renew);
-        $this->assertSame('youtube-views-lite', $product->slug);
+        $this->assertSame('youtube-views', $product->slug);
         $this->assertSame($typeId, $product->product_type_id);
         $this->assertSame($variantName, $variant->fresh()->name);
     }
@@ -319,7 +319,7 @@ class FixedPlatformCatalogLockTest extends TestCase
     {
         $this->seedCatalog();
         $admin = $this->admin();
-        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views')->firstOrFail();
         $variant = $product->variants()->firstOrFail();
 
         $this->actingAs($admin)
@@ -339,7 +339,7 @@ class FixedPlatformCatalogLockTest extends TestCase
     {
         $this->seedCatalog();
         $category = ServiceCategory::query()->where('key', 'youtube')->firstOrFail();
-        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views')->firstOrFail();
 
         $this->get(route('services.show', [
             'type' => 'youtube',
@@ -359,7 +359,7 @@ class FixedPlatformCatalogLockTest extends TestCase
     {
         $this->seedCatalog();
         $service = ProductType::query()->where('slug', 'social_service')->firstOrFail();
-        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views')->firstOrFail();
 
         $service->update(['is_active' => false]);
 
@@ -374,7 +374,7 @@ class FixedPlatformCatalogLockTest extends TestCase
     {
         $this->seedCatalog();
         $admin = $this->admin();
-        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views')->firstOrFail();
 
         $product->update(['status' => PlatformProductStatus::Draft]);
 
@@ -386,7 +386,7 @@ class FixedPlatformCatalogLockTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.platform-products', ['status' => 'draft']))
             ->assertOk()
-            ->assertSee('YouTube Views Lite');
+            ->assertSee('YouTube Views');
     }
 
     public function test_backfill_preserves_category_and_service_cms_names(): void
@@ -421,7 +421,7 @@ class FixedPlatformCatalogLockTest extends TestCase
     public function test_mass_assignment_ignores_locked_identity_fields(): void
     {
         $this->seedCatalog();
-        $product = PlatformProduct::query()->where('slug', 'youtube-views-lite')->firstOrFail();
+        $product = PlatformProduct::query()->where('slug', 'youtube-views')->firstOrFail();
         $typeId = $product->product_type_id;
 
         $product->update([
@@ -433,7 +433,7 @@ class FixedPlatformCatalogLockTest extends TestCase
 
         $product->refresh();
         $this->assertSame('Still YouTube', $product->title);
-        $this->assertSame('youtube-views-lite', $product->slug);
+        $this->assertSame('youtube-views', $product->slug);
         $this->assertSame($typeId, $product->product_type_id);
         $this->assertSame('manual', $product->provider);
     }

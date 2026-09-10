@@ -13,31 +13,53 @@ return [
         'slug' => 'youtube',
         'expected_id' => 10,
         'label' => 'YouTube',
-        'products' => ['youtube-views-lite'],
+        'products' => [
+            'youtube-views',
+            'youtube-likes',
+            'youtube-comments',
+            'youtube-watch-hours',
+            'youtube-subscribers',
+        ],
     ],
     'facebook' => [
         'slug' => 'facebook',
         'expected_id' => 11,
         'label' => 'Facebook',
-        'products' => ['facebook-growth-pack'],
+        'products' => [
+            'facebook-views',
+            'facebook-likes',
+            'facebook-comments',
+        ],
     ],
     'instagram' => [
         'slug' => 'instagram',
         'expected_id' => 12,
         'label' => 'Instagram',
-        'products' => ['instagram-growth-pack'],
+        'products' => [
+            'instagram-views',
+            'instagram-likes',
+            'instagram-comments',
+        ],
     ],
     'tiktok' => [
         'slug' => 'tiktok',
         'expected_id' => 13,
         'label' => 'TikTok',
-        'products' => ['tiktok-engagement-boost'],
+        'products' => [
+            'tiktok-views',
+            'tiktok-likes',
+            'tiktok-comments',
+        ],
     ],
     'twitter' => [
         'slug' => 'twitter',
         'expected_id' => 14,
         'label' => 'Twitter',
-        'products' => ['twitter-audience-pack'],
+        'products' => [
+            'twitter-views',
+            'twitter-likes',
+            'twitter-comments',
+        ],
     ],
 
     /**

@@ -7,6 +7,7 @@ use App\Models\PlatformCategory;
 use App\Models\PlatformProduct;
 use App\Modules\Catalog\Services\CatalogBrowseService;
 use App\Modules\Catalog\Services\CatalogContentResolver;
+use App\Support\PlatformProductSlugRedirect;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -278,6 +279,10 @@ class ServiceController extends Controller
     {
         // Canonical: category owns product (Category → Product).
         if ($this->browse->isGroup($category)) {
+            if ($redirect = $this->redirectLegacyProductSlug($service)) {
+                return $redirect;
+            }
+
             $product = PlatformProduct::query()
                 ->visibleToPublic()
                 ->where('slug', $service)
@@ -313,6 +318,10 @@ class ServiceController extends Controller
      */
     public function nestedShow(string $category, string $service, string $productSlug): View|RedirectResponse
     {
+        if ($redirect = $this->redirectLegacyProductSlug($productSlug)) {
+            return $redirect;
+        }
+
         $product = PlatformProduct::query()
             ->visibleToPublic()
             ->where('slug', $productSlug)
@@ -328,6 +337,10 @@ class ServiceController extends Controller
 
     public function show(string $type, string $productSlug): View|RedirectResponse
     {
+        if ($redirect = $this->redirectLegacyProductSlug($productSlug)) {
+            return $redirect;
+        }
+
         $product = PlatformProduct::query()
             ->visibleToPublic()
             ->where('slug', $productSlug)
@@ -415,6 +428,10 @@ class ServiceController extends Controller
             return $this->type(request(), $segment);
         }
 
+        if ($redirect = $this->redirectLegacyProductSlug($segment)) {
+            return $redirect;
+        }
+
         $product = PlatformProduct::query()
             ->visibleToPublic()
             ->where('slug', $segment)
@@ -431,6 +448,29 @@ class ServiceController extends Controller
     private function redirectToCanonicalProduct(PlatformProduct $product): RedirectResponse
     {
         return redirect()->to($this->browse->productUrl($product), 301);
+    }
+
+    /**
+     * 301 old Views product slugs to the owning-category canonical URL.
+     */
+    private function redirectLegacyProductSlug(string $slug): ?RedirectResponse
+    {
+        $canonicalSlug = PlatformProductSlugRedirect::resolve($slug);
+        if ($canonicalSlug === null) {
+            return null;
+        }
+
+        $product = PlatformProduct::query()
+            ->visibleToPublic()
+            ->where('slug', $canonicalSlug)
+            ->with(['serviceCategory', 'productType.serviceCategory'])
+            ->first();
+
+        if ($product) {
+            return $this->redirectToCanonicalProduct($product);
+        }
+
+        return null;
     }
 
     private function isFavorited(PlatformProduct $product): bool

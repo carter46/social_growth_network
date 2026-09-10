@@ -24,7 +24,7 @@ class CatalogHierarchyTest extends TestCase
         return ProductType::query()->where('slug', 'social_service')->firstOrFail();
     }
 
-    private function seedYoutubeProduct(string $slug = 'youtube-views-lite', bool $featured = false): PlatformProduct
+    private function seedYoutubeProduct(string $slug = 'youtube-views', bool $featured = false): PlatformProduct
     {
         $service = $this->seedHierarchy();
         $category = ServiceCategory::query()->where('slug', 'youtube')->firstOrFail();
@@ -33,7 +33,7 @@ class CatalogHierarchyTest extends TestCase
             'product_type_id' => $service->id,
             'service_category_id' => $category->id,
             'product_type' => PlatformProductType::SocialService,
-            'title' => 'YouTube Views Lite',
+            'title' => 'YouTube Views',
             'slug' => $slug,
             'short_description' => 'Grow your YouTube video reach',
             'description' => 'A test YouTube package',
@@ -64,8 +64,8 @@ class CatalogHierarchyTest extends TestCase
     {
         $this->forceCreatePlatformProduct([
             'product_type' => PlatformProductType::SocialService,
-            'title' => 'Instagram Growth Pack',
-            'slug' => 'instagram-growth-pack',
+            'title' => 'Instagram Views',
+            'slug' => 'instagram-views',
             'status' => PlatformProductStatus::Draft,
             'base_price' => 1000,
         ]);
@@ -80,7 +80,7 @@ class CatalogHierarchyTest extends TestCase
         $this->assertSame($services, ProductType::count());
         $this->assertGreaterThanOrEqual(5, $first);
 
-        $product = PlatformProduct::where('slug', 'instagram-growth-pack')->first();
+        $product = PlatformProduct::where('slug', 'instagram-views')->first();
         $this->assertNotNull($product->product_type_id);
         $this->assertSame('social_service', ProductType::find($product->product_type_id)?->slug);
         $this->assertSame('instagram', ServiceCategory::find($product->service_category_id)?->slug);
@@ -97,7 +97,7 @@ class CatalogHierarchyTest extends TestCase
             ->assertOk()
             ->assertSee('YouTube')
             ->assertSee('Available campaign services')
-            ->assertSee('YouTube Views Lite');
+            ->assertSee('YouTube Views');
     }
 
     public function test_group_page_lists_products_by_category(): void
@@ -107,7 +107,7 @@ class CatalogHierarchyTest extends TestCase
         $this->get(route('services.segment', 'youtube'))
             ->assertOk()
             ->assertSee('YouTube')
-            ->assertSee('YouTube Views Lite');
+            ->assertSee('YouTube Views');
     }
 
     public function test_visibility_uses_direct_service_category(): void
@@ -161,7 +161,7 @@ class CatalogHierarchyTest extends TestCase
     public function test_product_filters_by_category_and_status(): void
     {
         $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
-        $youtube = $this->seedYoutubeProduct('youtube-views-lite');
+        $youtube = $this->seedYoutubeProduct('youtube-views');
         $facebook = ServiceCategory::query()->where('slug', 'facebook')->firstOrFail();
         $service = ProductType::query()->where('slug', 'social_service')->firstOrFail();
 
@@ -169,8 +169,8 @@ class CatalogHierarchyTest extends TestCase
             'product_type_id' => $service->id,
             'service_category_id' => $facebook->id,
             'product_type' => PlatformProductType::SocialService,
-            'title' => 'Facebook Growth Pack',
-            'slug' => 'facebook-growth-pack',
+            'title' => 'Facebook Views',
+            'slug' => 'facebook-views',
             'status' => PlatformProductStatus::Draft,
             'base_price' => 2000,
             'provider' => 'manual',
@@ -183,8 +183,8 @@ class CatalogHierarchyTest extends TestCase
                 'status' => 'published',
             ]))
             ->assertOk()
-            ->assertSee('YouTube Views Lite')
-            ->assertDontSee('Facebook Growth Pack');
+            ->assertSee('YouTube Views')
+            ->assertDontSee('Facebook Views');
     }
 
     public function test_admin_can_assign_product_category(): void

@@ -16,7 +16,7 @@ class ServicesHubTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function seedYoutubeProduct(string $slug = 'youtube-views-lite', bool $featured = false): PlatformProduct
+    private function seedYoutubeProduct(string $slug = 'youtube-views', bool $featured = false): PlatformProduct
     {
         Artisan::call('catalog:backfill-hierarchy');
         $service = ProductType::query()->where('slug', 'social_service')->firstOrFail();
@@ -26,7 +26,7 @@ class ServicesHubTest extends TestCase
             'product_type_id' => $service->id,
             'service_category_id' => $category->id,
             'product_type' => PlatformProductType::SocialService,
-            'title' => 'YouTube Views Lite',
+            'title' => 'YouTube Views',
             'slug' => $slug,
             'short_description' => 'Grow your YouTube video reach',
             'description' => 'A test YouTube package',
@@ -61,7 +61,7 @@ class ServicesHubTest extends TestCase
             ->assertSee('Find the campaign service you need')
             ->assertSee('Available campaign services')
             ->assertSee('YouTube')
-            ->assertSee('YouTube Views Lite');
+            ->assertSee('YouTube Views');
     }
 
     public function test_services_landing_filters_by_category(): void
@@ -70,11 +70,11 @@ class ServicesHubTest extends TestCase
 
         $this->get(route('services', ['category' => 'youtube']))
             ->assertOk()
-            ->assertSee('YouTube Views Lite');
+            ->assertSee('YouTube Views');
 
         $this->get(route('services', ['category' => 'facebook']))
             ->assertOk()
-            ->assertDontSee('YouTube Views Lite');
+            ->assertDontSee('YouTube Views');
     }
 
     public function test_services_filter_partial_returns_results_fragment(): void
@@ -86,7 +86,7 @@ class ServicesHubTest extends TestCase
             'X-Requested-With' => 'XMLHttpRequest',
         ])
             ->assertOk()
-            ->assertSee('YouTube Views Lite')
+            ->assertSee('YouTube Views')
             ->assertSee('Available campaign services')
             ->assertDontSee('Find the campaign service you need');
     }
@@ -98,7 +98,7 @@ class ServicesHubTest extends TestCase
         $this->get(route('services.segment', 'youtube'))
             ->assertOk()
             ->assertSee('YouTube')
-            ->assertSee('YouTube Views Lite')
+            ->assertSee('YouTube Views')
             ->assertSee('Products in');
     }
 
@@ -108,41 +108,41 @@ class ServicesHubTest extends TestCase
 
         $this->get(route('services.show', [
             'type' => 'youtube',
-            'productSlug' => 'youtube-views-lite',
+            'productSlug' => 'youtube-views',
         ]))
             ->assertOk()
-            ->assertSee('YouTube Views Lite');
+            ->assertSee('YouTube Views');
     }
 
     public function test_nested_legacy_url_redirects_to_canonical(): void
     {
-        $this->seedYoutubeProduct('youtube-views-lite');
+        $this->seedYoutubeProduct('youtube-views');
 
         $this->get(route('services.nested.show', [
             'category' => 'youtube',
             'service' => 'social_service',
-            'productSlug' => 'youtube-views-lite',
+            'productSlug' => 'youtube-views',
         ]))
-            ->assertRedirect('/services/youtube/youtube-views-lite');
+            ->assertRedirect('/services/youtube/youtube-views');
     }
 
     public function test_legacy_type_product_url_redirects_to_canonical(): void
     {
-        $this->seedYoutubeProduct('youtube-views-lite');
+        $this->seedYoutubeProduct('youtube-views');
 
         $this->get(route('services.show', [
             'type' => 'social_service',
-            'productSlug' => 'youtube-views-lite',
+            'productSlug' => 'youtube-views',
         ]))
-            ->assertRedirect('/services/youtube/youtube-views-lite');
+            ->assertRedirect('/services/youtube/youtube-views');
     }
 
     public function test_product_slug_segment_redirects_to_canonical(): void
     {
-        $this->seedYoutubeProduct('youtube-views-lite');
+        $this->seedYoutubeProduct('youtube-views');
 
-        $this->get('/services/youtube-views-lite')
-            ->assertRedirect('/services/youtube/youtube-views-lite');
+        $this->get('/services/youtube-views')
+            ->assertRedirect('/services/youtube/youtube-views');
     }
 
     public function test_services_search_finds_products(): void
@@ -151,7 +151,7 @@ class ServicesHubTest extends TestCase
 
         $this->get(route('services', ['q' => 'YouTube Views']))
             ->assertOk()
-            ->assertSee('YouTube Views Lite')
+            ->assertSee('YouTube Views')
             ->assertSee('result');
     }
 
@@ -175,9 +175,20 @@ class ServicesHubTest extends TestCase
 
     public function test_wrong_category_in_product_url_redirects_to_canonical(): void
     {
-        $this->seedYoutubeProduct('youtube-views-lite');
+        $this->seedYoutubeProduct('youtube-views');
 
-        $this->get('/services/facebook/youtube-views-lite')
-            ->assertRedirect('/services/youtube/youtube-views-lite');
+        $this->get('/services/facebook/youtube-views')
+            ->assertRedirect('/services/youtube/youtube-views');
+    }
+
+    public function test_old_views_slug_redirects_to_renamed_product(): void
+    {
+        $this->seedYoutubeProduct('youtube-views');
+
+        $this->get('/services/youtube/youtube-views-lite')
+            ->assertRedirect('/services/youtube/youtube-views');
+
+        $this->get('/services/youtube-views-lite')
+            ->assertRedirect('/services/youtube/youtube-views');
     }
 }

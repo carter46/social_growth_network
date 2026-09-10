@@ -4,93 +4,286 @@ namespace Database\Seeders;
 
 use App\Enums\PlatformProductStatus;
 use App\Enums\PlatformProductType;
-use App\Models\PlatformCategory;
 use App\Models\PlatformProduct;
 use App\Models\PlatformProductImage;
 use App\Models\PlatformProductVariant;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 
 class PlatformCatalogSeeder extends Seeder
 {
+    /**
+     * Existing Views products: rename in place (preserve IDs).
+     * Lookup: new slug first → else old slug → else create.
+     *
+     * @var array<int, array{new_slug: string, old_slug: string, title: string, base_price: int, sort_order: int}>
+     */
+    private const VIEWS_RENAMES = [
+        [
+            'new_slug' => 'youtube-views',
+            'old_slug' => 'youtube-views-lite',
+            'title' => 'YouTube Views',
+            'base_price' => 5000,
+            'sort_order' => 0,
+        ],
+        [
+            'new_slug' => 'facebook-views',
+            'old_slug' => 'facebook-growth-pack',
+            'title' => 'Facebook Views',
+            'base_price' => 7500,
+            'sort_order' => 10,
+        ],
+        [
+            'new_slug' => 'instagram-views',
+            'old_slug' => 'instagram-growth-pack',
+            'title' => 'Instagram Views',
+            'base_price' => 10000,
+            'sort_order' => 20,
+        ],
+        [
+            'new_slug' => 'tiktok-views',
+            'old_slug' => 'tiktok-engagement-boost',
+            'title' => 'TikTok Views',
+            'base_price' => 12500,
+            'sort_order' => 30,
+        ],
+        [
+            'new_slug' => 'twitter-views',
+            'old_slug' => 'twitter-audience-pack',
+            'title' => 'Twitter Views',
+            'base_price' => 15000,
+            'sort_order' => 40,
+        ],
+    ];
+
+    /**
+     * New products created when missing (Likes / Comments / YouTube extras).
+     *
+     * @var array<int, array{slug: string, title: string, base_price: int, sort_order: int}>
+     */
+    private const ADDITIONAL_PRODUCTS = [
+        ['slug' => 'youtube-likes', 'title' => 'YouTube Likes', 'base_price' => 5500, 'sort_order' => 1],
+        ['slug' => 'youtube-comments', 'title' => 'YouTube Comments', 'base_price' => 6000, 'sort_order' => 2],
+        ['slug' => 'youtube-watch-hours', 'title' => 'YouTube Watch Hours', 'base_price' => 8000, 'sort_order' => 3],
+        ['slug' => 'youtube-subscribers', 'title' => 'YouTube Subscribers', 'base_price' => 9000, 'sort_order' => 4],
+        ['slug' => 'facebook-likes', 'title' => 'Facebook Likes', 'base_price' => 8000, 'sort_order' => 11],
+        ['slug' => 'facebook-comments', 'title' => 'Facebook Comments', 'base_price' => 8500, 'sort_order' => 12],
+        ['slug' => 'instagram-likes', 'title' => 'Instagram Likes', 'base_price' => 10500, 'sort_order' => 21],
+        ['slug' => 'instagram-comments', 'title' => 'Instagram Comments', 'base_price' => 11000, 'sort_order' => 22],
+        ['slug' => 'tiktok-likes', 'title' => 'TikTok Likes', 'base_price' => 13000, 'sort_order' => 31],
+        ['slug' => 'tiktok-comments', 'title' => 'TikTok Comments', 'base_price' => 13500, 'sort_order' => 32],
+        ['slug' => 'twitter-likes', 'title' => 'Twitter Likes', 'base_price' => 15500, 'sort_order' => 41],
+        ['slug' => 'twitter-comments', 'title' => 'Twitter Comments', 'base_price' => 16000, 'sort_order' => 42],
+    ];
+
     public function run(): void
     {
-        $titles = [
-            'Instagram Growth Pack',
-            'TikTok Engagement Boost',
-            'YouTube Views Lite',
-            'Twitter Audience Pack',
-            'Facebook Growth Pack',
-        ];
-
-        $categorySlugs = [
-            'social-growth',
-            'social-engagement',
-            'social-growth',
-            'social-engagement',
-            'social-growth',
-        ];
-
         $type = PlatformProductType::SocialService->value;
 
-        foreach ($titles as $i => $title) {
-            $slug = Str::slug($title);
-            $categoryId = null;
-            if (Schema::hasTable('platform_categories') && isset($categorySlugs[$i])) {
-                $categoryId = PlatformCategory::where('slug', $categorySlugs[$i])->value('id');
-            }
-
-            $attrs = [
-                'product_type' => $type,
-                'title' => $title,
-                'short_description' => "Ready-to-use {$title} for social growth.",
-                'description' => "Get started quickly with {$title}. Includes setup guidance, support, and clear deliverables. Admin can edit or remove this seeded product anytime.",
-                'status' => PlatformProductStatus::Published,
-                'is_featured' => $i < 2,
-                'sort_order' => $i,
-                'base_price' => 5000 + ($i * 2500),
-                'currency' => 'NGN',
-            ];
-
-            if (Schema::hasColumn('platform_products', 'platform_category_id')) {
-                $attrs['platform_category_id'] = $categoryId;
-            }
-
-            $product = PlatformProduct::query()->updateOrCreate(
-                ['slug' => $slug],
-                $attrs
-            );
-
-            if (Schema::hasTable('platform_product_variants')) {
-                PlatformProductVariant::query()->updateOrCreate(
-                    [
-                        'platform_product_id' => $product->id,
-                        'name' => 'Standard',
-                    ],
-                    [
-                        'price' => $product->base_price,
-                        'duration_months' => 1,
-                        'is_default' => true,
-                        'sort_order' => 0,
-                    ]
-                );
-            }
-
-            if (Schema::hasTable('platform_product_images') && ! $product->images()->exists()) {
-                PlatformProductImage::query()->create([
-                    'platform_product_id' => $product->id,
-                    'path' => 'assets/images/Social_Media.jpg',
-                    'sort_order' => 0,
-                    'is_primary' => true,
-                ]);
-            }
+        foreach (self::VIEWS_RENAMES as $row) {
+            $product = $this->findOrCreateViewsProduct($row, $type);
+            $this->ensureStandardVariant($product, (float) $row['base_price']);
+            $this->ensurePrimaryImage($product);
         }
 
-        // Ownership: Category → Product (keeps product_type_id populated separately).
+        foreach (self::ADDITIONAL_PRODUCTS as $row) {
+            $product = $this->upsertAdditionalProduct($row, $type);
+            $this->ensureStandardVariant($product, (float) $row['base_price']);
+            $this->ensurePrimaryImage($product);
+        }
+
+        $this->clearMarketingJson();
+
         if (Schema::hasColumn('platform_products', 'service_category_id')) {
             Artisan::call('catalog:flatten-category-products');
         }
+    }
+
+    /**
+     * @param  array{new_slug: string, old_slug: string, title: string, base_price: int, sort_order: int}  $row
+     */
+    private function findOrCreateViewsProduct(array $row, string $type): PlatformProduct
+    {
+        $product = PlatformProduct::query()->where('slug', $row['new_slug'])->first()
+            ?? PlatformProduct::query()->where('slug', $row['old_slug'])->first();
+
+        if ($product) {
+            $isRename = $product->slug === $row['old_slug'];
+            $updates = [
+                'slug' => $row['new_slug'],
+                'product_type' => $type,
+            ];
+
+            // Only force catalog title/status when renaming from the retired slug.
+            if ($isRename) {
+                $updates['title'] = $row['title'];
+                $updates['status'] = PlatformProductStatus::Published;
+                $updates['sort_order'] = $row['sort_order'];
+            }
+
+            if (! filled($product->short_description)) {
+                $updates['short_description'] = "Ready-to-use {$row['title']} for social growth.";
+            }
+            if (! filled($product->description)) {
+                $updates['description'] = "Get started quickly with {$row['title']}. Includes setup guidance, support, and clear deliverables.";
+            }
+            if ($product->base_price === null || (float) $product->base_price <= 0) {
+                $updates['base_price'] = $row['base_price'];
+            }
+            if (Schema::hasColumn('platform_products', 'currency') && ! filled($product->currency)) {
+                $updates['currency'] = 'NGN';
+            }
+
+            $product->forceFill($updates)->save();
+
+            return $product->refresh();
+        }
+
+        return $this->forceCreateProduct([
+            'slug' => $row['new_slug'],
+            'title' => $row['title'],
+            'product_type' => $type,
+            'short_description' => "Ready-to-use {$row['title']} for social growth.",
+            'description' => "Get started quickly with {$row['title']}. Includes setup guidance, support, and clear deliverables.",
+            'status' => PlatformProductStatus::Published,
+            'is_featured' => $row['sort_order'] < 20,
+            'sort_order' => $row['sort_order'],
+            'base_price' => $row['base_price'],
+            'currency' => 'NGN',
+            'provider' => 'manual',
+            'fulfillment_mode' => 'manual',
+            'auto_renew' => false,
+        ]);
+    }
+
+    /**
+     * @param  array{slug: string, title: string, base_price: int, sort_order: int}  $row
+     */
+    private function upsertAdditionalProduct(array $row, string $type): PlatformProduct
+    {
+        $existing = PlatformProduct::query()->where('slug', $row['slug'])->first();
+
+        if ($existing) {
+            $updates = [
+                'product_type' => $type,
+            ];
+
+            if (! filled($existing->short_description)) {
+                $updates['short_description'] = "Ready-to-use {$row['title']} for social growth.";
+            }
+            if (! filled($existing->description)) {
+                $updates['description'] = "Get started quickly with {$row['title']}. Includes setup guidance, support, and clear deliverables.";
+            }
+            if ($existing->base_price === null || (float) $existing->base_price <= 0) {
+                $updates['base_price'] = $row['base_price'];
+            }
+            if (Schema::hasColumn('platform_products', 'currency') && ! filled($existing->currency)) {
+                $updates['currency'] = 'NGN';
+            }
+
+            $existing->forceFill($updates)->save();
+
+            return $existing->refresh();
+        }
+
+        return $this->forceCreateProduct([
+            'slug' => $row['slug'],
+            'title' => $row['title'],
+            'product_type' => $type,
+            'short_description' => "Ready-to-use {$row['title']} for social growth.",
+            'description' => "Get started quickly with {$row['title']}. Includes setup guidance, support, and clear deliverables.",
+            'status' => PlatformProductStatus::Published,
+            'is_featured' => false,
+            'sort_order' => $row['sort_order'],
+            'base_price' => $row['base_price'],
+            'currency' => 'NGN',
+            'provider' => 'manual',
+            'fulfillment_mode' => 'manual',
+            'auto_renew' => false,
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $attrs
+     */
+    private function forceCreateProduct(array $attrs): PlatformProduct
+    {
+        if (! Schema::hasColumn('platform_products', 'currency')) {
+            unset($attrs['currency']);
+        }
+
+        $product = new PlatformProduct;
+        $product->forceFill($attrs)->save();
+
+        return $product->refresh();
+    }
+
+    private function ensureStandardVariant(PlatformProduct $product, float $baselinePrice): void
+    {
+        if (! Schema::hasTable('platform_product_variants')) {
+            return;
+        }
+
+        $existing = PlatformProductVariant::query()
+            ->where('platform_product_id', $product->id)
+            ->where('name', 'Standard')
+            ->first();
+
+        if ($existing) {
+            return;
+        }
+
+        PlatformProductVariant::query()->create([
+            'platform_product_id' => $product->id,
+            'name' => 'Standard',
+            'price' => $baselinePrice,
+            'duration_months' => 1,
+            'is_default' => true,
+            'is_active' => true,
+            'sort_order' => 0,
+        ]);
+    }
+
+    private function ensurePrimaryImage(PlatformProduct $product): void
+    {
+        if (! Schema::hasTable('platform_product_images')) {
+            return;
+        }
+
+        if ($product->images()->exists()) {
+            return;
+        }
+
+        PlatformProductImage::query()->create([
+            'platform_product_id' => $product->id,
+            'path' => 'assets/images/Social_Media.jpg',
+            'sort_order' => 0,
+            'is_primary' => true,
+        ]);
+    }
+
+    private function clearMarketingJson(): void
+    {
+        $allowed = config('platform_products.social_service', []);
+        if ($allowed === []) {
+            return;
+        }
+
+        $columns = ['features', 'requirements', 'whats_included', 'faqs', 'support_text'];
+        $payload = [];
+        foreach ($columns as $column) {
+            if (Schema::hasColumn('platform_products', $column)) {
+                $payload[$column] = null;
+            }
+        }
+
+        if ($payload === []) {
+            return;
+        }
+
+        PlatformProduct::query()
+            ->whereIn('slug', $allowed)
+            ->update($payload);
     }
 }

@@ -37,11 +37,12 @@ return new class extends Migration
             return;
         }
 
-        if (PlatformProduct::query()->where('slug', 'facebook-growth-pack')->exists()) {
+        if (PlatformProduct::query()->where('slug', 'facebook-views')->exists()
+            || PlatformProduct::query()->where('slug', 'facebook-growth-pack')->exists()) {
             return;
         }
 
-        $title = 'Facebook Growth Pack';
+        $title = 'Facebook Views';
         $categoryId = null;
 
         if (Schema::hasTable('platform_categories')) {
@@ -55,11 +56,11 @@ return new class extends Migration
             : null;
 
         $attrs = [
-            'slug' => 'facebook-growth-pack',
+            'slug' => 'facebook-views',
             'product_type' => 'social_service',
             'title' => $title,
-            'short_description' => "Ready-to-use {$title} from 7th Trade Hub.",
-            'description' => "Get started quickly with {$title}. Includes setup guidance, support, and clear deliverables. Admin can edit or remove this seeded product anytime.",
+            'short_description' => "Ready-to-use {$title} for social growth.",
+            'description' => "Get started quickly with {$title}. Includes setup guidance, support, and clear deliverables.",
             'status' => PlatformProductStatus::Published,
             'is_featured' => false,
             'sort_order' => 4,
@@ -72,14 +73,11 @@ return new class extends Migration
             'is_responsive' => true,
             'is_seo_ready' => false,
             'support_period' => null,
-            'features' => ['Fast setup', 'NGN wallet checkout', 'Email support'],
-            'requirements' => ['Active 7th Trade Hub account', 'Funded wallet for purchase'],
-            'whats_included' => ['Product access', 'Basic setup guide', 'Support window'],
-            'faqs' => [
-                ['q' => 'How fast is delivery?', 'a' => 'Most digital products are available right after payment.'],
-                ['q' => 'Can I get a refund?', 'a' => 'Refunds follow our support policy for unused digital goods.'],
-            ],
-            'support_text' => 'Open a support ticket from your dashboard if you need help.',
+            'features' => null,
+            'requirements' => null,
+            'whats_included' => null,
+            'faqs' => null,
+            'support_text' => null,
             'base_price' => 15000,
             'meta' => null,
             'provider' => 'manual',

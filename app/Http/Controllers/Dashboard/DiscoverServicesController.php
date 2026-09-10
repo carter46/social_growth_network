@@ -9,6 +9,7 @@ use App\Modules\Catalog\Services\CatalogBrowseService;
 use App\Modules\Catalog\Services\CatalogContentResolver;
 use App\Modules\Catalog\Services\PlatformCheckoutService;
 use App\Services\Analytics\UserActivityRecorder;
+use App\Support\PlatformProductSlugRedirect;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -102,6 +103,11 @@ class DiscoverServicesController extends Controller
 
     public function product(Request $request, string $slug): View|RedirectResponse
     {
+        $canonical = PlatformProductSlugRedirect::resolve($slug);
+        if ($canonical !== null) {
+            return redirect()->route('dashboard.services.product', $canonical, 301);
+        }
+
         $product = PlatformProduct::query()
             ->visibleToPublic()
             ->where('slug', $slug)
@@ -144,6 +150,14 @@ class DiscoverServicesController extends Controller
 
     public function checkout(Request $request, string $slug): View|RedirectResponse
     {
+        $canonical = PlatformProductSlugRedirect::resolve($slug);
+        if ($canonical !== null) {
+            return redirect()->route('dashboard.services.checkout', array_merge(
+                ['slug' => $canonical],
+                $request->query()
+            ), 301);
+        }
+
         $product = PlatformProduct::query()
             ->visibleToPublic()
             ->where('slug', $slug)
@@ -199,6 +213,9 @@ class DiscoverServicesController extends Controller
 
     public function purchase(Request $request, string $slug): RedirectResponse
     {
+        // Canonicalize in place so POST body is preserved.
+        $slug = PlatformProductSlugRedirect::canonical($slug);
+
         $product = PlatformProduct::query()
             ->visibleToPublic()
             ->where('slug', $slug)
@@ -298,6 +315,8 @@ class DiscoverServicesController extends Controller
 
     public function paymentCallback(Request $request, string $slug): RedirectResponse
     {
+        $slug = PlatformProductSlugRedirect::canonical($slug);
+
         $paymentReference = $request->string('paymentReference')->toString()
             ?: $request->string('payment_reference')->toString();
 

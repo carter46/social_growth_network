@@ -30,8 +30,8 @@ class HomeHeroTest extends TestCase
 
         $response->assertOk()
             ->assertSee('What do you want to grow?', false)
-            ->assertSee('YouTube Views Lite', false)
-            ->assertSee('Instagram Growth Pack', false)
+            ->assertSee('YouTube Views', false)
+            ->assertSee('Instagram Views', false)
             ->assertSee('>All<', false)
             ->assertSee('YouTube', false)
             ->assertDontSee('Crypto Cash Exchange', false);

@@ -33,9 +33,12 @@ class PlatformCatalogTrim
         $config = config('platform_products', []);
         $removed = [];
         $allowedTypes = [];
+        // Non-type keys in platform_products.php (not product_type allow-lists).
+        $metaKeys = ['retired_services', 'slug_redirects'];
+        $legacyAliases = PlatformProductSlugRedirect::legacySlugs();
 
         foreach ($config as $typeSlug => $keepSlugs) {
-            if ($typeSlug === 'retired_services' || ! is_array($keepSlugs)) {
+            if (in_array($typeSlug, $metaKeys, true) || ! is_array($keepSlugs)) {
                 continue;
             }
 
@@ -44,7 +47,12 @@ class PlatformCatalogTrim
             $query = DB::table('platform_products')->where('product_type', $typeSlug);
 
             if ($keepSlugs !== []) {
-                $query->whereNotIn('slug', $keepSlugs);
+                // Keep redirect aliases until PlatformCatalogSeeder renames them in place.
+                $allowedSlugs = array_values(array_unique(array_merge(
+                    array_values($keepSlugs),
+                    $typeSlug === 'social_service' ? $legacyAliases : []
+                )));
+                $query->whereNotIn('slug', $allowedSlugs);
             }
 
             $productIds = $query->pluck('id');
