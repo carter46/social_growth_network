@@ -42,25 +42,8 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        return $this->registerWithRole($request, 'user');
-    }
-
-    /**
-     * Handle an incoming agent registration request.
-     *
-     * @throws ValidationException
-     */
-    public function storeAgent(Request $request): RedirectResponse
-    {
-        return $this->registerWithRole($request, 'agent');
-    }
-
-    /**
-     * @throws ValidationException
-     */
-    private function registerWithRole(Request $request, string $role): RedirectResponse
-    {
         $request->validate([
+            'account_type' => ['required', 'in:creator,agent'],
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255', 'unique:users,username', 'alpha_dash'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
@@ -68,6 +51,28 @@ class RegisteredUserController extends Controller
             'terms' => ['accepted'],
         ]);
 
+        $role = $request->string('account_type')->toString() === 'agent' ? 'agent' : 'user';
+
+        return $this->registerWithRole($request, $role);
+    }
+
+    /**
+     * Handle an incoming agent registration request (legacy endpoint).
+     *
+     * @throws ValidationException
+     */
+    public function storeAgent(Request $request): RedirectResponse
+    {
+        $request->merge(['account_type' => 'agent']);
+
+        return $this->store($request);
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function registerWithRole(Request $request, string $role): RedirectResponse
+    {
         $user = User::create([
             'name' => $request->name,
             'username' => $request->username,

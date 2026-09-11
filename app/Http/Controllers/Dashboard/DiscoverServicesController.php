@@ -306,6 +306,12 @@ class DiscoverServicesController extends Controller
                 ->with('success', 'Subscription renewed. Order '.$order->reference.'.');
         }
 
+        if ($product->is_campaign) {
+            return redirect()
+                ->route('dashboard.campaigns')
+                ->with('success', 'Order '.$order->reference.' placed. Your campaign is live for agents.');
+        }
+
         $tool = \App\Models\UserTool::query()
             ->where('order_id', $order->id)
             ->where('user_id', $request->user()->id)
@@ -313,8 +319,8 @@ class DiscoverServicesController extends Controller
 
         if ($tool) {
             return redirect()
-                ->route('dashboard.my-tools.show', $tool)
-                ->with('success', 'Order '.$order->reference.' placed. Your tool is pending setup.');
+                ->route('dashboard.service-orders')
+                ->with('success', 'Order '.$order->reference.' placed successfully.');
         }
 
         return redirect()
@@ -332,7 +338,7 @@ class DiscoverServicesController extends Controller
         if ($paymentReference === '') {
             return redirect()
                 ->route('dashboard.services.checkout', $slug)
-                ->with('error', 'Payment reference missing. If you paid, wait a moment and check My Tools / Service orders.');
+                ->with('error', 'Payment reference missing. If you paid, wait a moment and check My Orders or My Campaigns.');
         }
 
         $order = \App\Models\Order::query()

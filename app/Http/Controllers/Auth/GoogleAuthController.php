@@ -20,10 +20,14 @@ class GoogleAuthController extends Controller
     {
         $validated = $request->validate([
             'credential' => ['required', 'string'],
+            'account_type' => ['nullable', 'in:creator,agent'],
         ]);
 
         try {
-            $result = $this->socialAuth->authenticateWithGoogle($validated['credential']);
+            $result = $this->socialAuth->authenticateWithGoogle(
+                $validated['credential'],
+                $validated['account_type'] ?? null,
+            );
         } catch (\Throwable $e) {
             return $this->failure($request, $e->getMessage());
         }

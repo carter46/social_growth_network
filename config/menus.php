@@ -34,16 +34,6 @@ return [
         ],
         [
             'type' => 'link',
-            'id' => 'my-tools',
-            'label' => 'My Tools',
-            'route' => 'dashboard.my-tools',
-            'match' => ['dashboard.my-tools', 'dashboard.my-tools.*'],
-            'icon' => 'listings',
-            'keywords' => ['tools', 'owned', 'services', 'social'],
-            'sort' => 25,
-        ],
-        [
-            'type' => 'link',
             'id' => 'service-orders',
             'label' => 'My Orders',
             'route' => 'dashboard.service-orders',

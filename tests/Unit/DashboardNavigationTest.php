@@ -146,8 +146,9 @@ class DashboardNavigationTest extends TestCase
         $entries = collect(DashboardNavigation::for('user', $user))->keyBy('id');
 
         $this->assertArrayHasKey('services', $entries);
-        $this->assertArrayHasKey('my-tools', $entries);
+        $this->assertArrayHasKey('campaigns', $entries);
         $this->assertArrayHasKey('service-orders', $entries);
+        $this->assertArrayNotHasKey('my-tools', $entries);
         $this->assertArrayHasKey('wallet', $entries);
         $this->assertArrayHasKey('support', $entries);
         $this->assertArrayHasKey('settings', $entries);

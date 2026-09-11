@@ -63,86 +63,129 @@
         <section class="auth-transition {{ (request()->get('view') === 'signup' || ($showSignup ?? false)) ? '' : 'hidden-section' }}" data-purpose="signup-form-container" id="signup-section">
             <x-ui.card class="!p-8 shadow-2xl">
                 <header class="mb-6">
-                    <h2 class="text-2xl font-semibold text-text-primary">{{ ($registerAsAgent ?? false) ? 'Join as an Agent' : 'Join as a Creator' }}</h2>
-                    <p class="text-text-secondary text-sm">
-                        {{ ($registerAsAgent ?? false)
-                            ? 'Complete tasks, earn rewards, and withdraw to your bank.'
-                            : 'Buy campaign packages and grow your social presence.' }}
-                    </p>
+                    <h2 class="text-2xl font-semibold text-text-primary">Create your account</h2>
+                    <p class="text-text-secondary text-sm">Choose how you want to use {{ $siteName ?? config('app.name') }}, then complete your details.</p>
                 </header>
-                <form action="{{ ($registerAsAgent ?? false) ? route('register.agent.store') : route('register') }}" class="space-y-4" method="POST" x-data="{ submitting: false }" @submit="submitting = true">
-                    @csrf
-                    <x-ui.input
-                        label="Full Name"
-                        name="name"
-                        type="text"
-                        id="signup-name"
-                        placeholder="John Doe"
-                        :value="old('name')"
-                        required
-                    />
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div
+                    class="space-y-4"
+                    x-data="{
+                        submitting: false,
+                        accountType: @js(old('account_type', ($registerAsAgent ?? false) || request()->query('as') === 'agent' ? 'agent' : 'creator'))
+                    }"
+                    :data-account-type="accountType"
+                >
+                    <form
+                        action="{{ route('register') }}"
+                        class="space-y-4"
+                        method="POST"
+                        @submit="submitting = true"
+                    >
+                        @csrf
+                        <input type="hidden" name="account_type" :value="accountType">
+
+                        <fieldset class="space-y-3">
+                            <legend class="text-sm font-medium text-text-primary">I want to join as</legend>
+                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <button
+                                    type="button"
+                                    @click="accountType = 'creator'"
+                                    :class="accountType === 'creator'
+                                        ? 'border-accent bg-accent/10 ring-1 ring-accent'
+                                        : 'border-border-default bg-elevated/40 hover:border-accent/40'"
+                                    class="rounded-xl border p-4 text-left transition-colors"
+                                >
+                                    <span class="block text-sm font-semibold text-text-primary">Creator</span>
+                                    <span class="mt-1 block text-xs leading-relaxed text-text-secondary">
+                                        Buy campaign packages to grow your social media profiles — likes, comments, views, and watch sessions delivered by agents.
+                                    </span>
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="accountType = 'agent'"
+                                    :class="accountType === 'agent'
+                                        ? 'border-accent bg-accent/10 ring-1 ring-accent'
+                                        : 'border-border-default bg-elevated/40 hover:border-accent/40'"
+                                    class="rounded-xl border p-4 text-left transition-colors"
+                                >
+                                    <span class="block text-sm font-semibold text-text-primary">Agent</span>
+                                    <span class="mt-1 block text-xs leading-relaxed text-text-secondary">
+                                        Complete paid tasks for creators (engage with posts, watch videos, and similar work) and earn money you can withdraw.
+                                    </span>
+                                </button>
+                            </div>
+                            @error('account_type')
+                                <p class="text-sm text-danger">{{ $message }}</p>
+                            @enderror
+                        </fieldset>
+
                         <x-ui.input
-                            label="Email"
-                            name="email"
-                            type="email"
-                            id="signup-email"
-                            placeholder="john@example.com"
-                            :value="old('email')"
-                            required
-                        />
-                        <x-ui.input
-                            label="Username"
-                            name="username"
+                            label="Full Name"
+                            name="name"
                             type="text"
-                            id="signup-username"
-                            placeholder="johndoe7"
-                            :value="old('username')"
+                            id="signup-name"
+                            placeholder="John Doe"
+                            :value="old('name')"
                             required
                         />
-                    </div>
-                    <x-ui.input
-                        label="Password"
-                        name="password"
-                        type="password"
-                        id="signup-password"
-                        placeholder="••••••••"
-                        required
-                    />
-                    <x-ui.input
-                        label="Confirm Password"
-                        name="password_confirmation"
-                        type="password"
-                        id="signup-password_confirmation"
-                        placeholder="••••••••"
-                        required
-                    />
-                    <div class="flex items-start">
-                        <div class="flex items-center h-5">
-                            <input class="rounded border-border-default bg-elevated text-accent focus:ring-accent focus:ring-offset-surface h-4 w-4" id="terms" name="terms" type="checkbox" required/>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <x-ui.input
+                                label="Email"
+                                name="email"
+                                type="email"
+                                id="signup-email"
+                                placeholder="john@example.com"
+                                :value="old('email')"
+                                required
+                            />
+                            <x-ui.input
+                                label="Username"
+                                name="username"
+                                type="text"
+                                id="signup-username"
+                                placeholder="johndoe7"
+                                :value="old('username')"
+                                required
+                            />
                         </div>
-                        <div class="ml-3 text-sm">
-                            <label class="text-text-secondary" for="terms">
-                                I agree to the <a class="text-accent hover:underline" href="{{ route('legal', ['doc' => 'terms']) }}">Terms of Service</a> and <a class="text-accent hover:underline" href="{{ route('legal', ['doc' => 'privacy']) }}">Privacy Policy</a>.
-                            </label>
+                        <x-ui.input
+                            label="Password"
+                            name="password"
+                            type="password"
+                            id="signup-password"
+                            placeholder="••••••••"
+                            required
+                        />
+                        <x-ui.input
+                            label="Confirm Password"
+                            name="password_confirmation"
+                            type="password"
+                            id="signup-password_confirmation"
+                            placeholder="••••••••"
+                            required
+                        />
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                <input class="rounded border-border-default bg-elevated text-accent focus:ring-accent focus:ring-offset-surface h-4 w-4" id="terms" name="terms" type="checkbox" required {{ old('terms') ? 'checked' : '' }}/>
+                            </div>
+                            <div class="ml-3 text-sm">
+                                <label class="text-text-secondary" for="terms">
+                                    I agree to the <a class="text-accent hover:underline" href="{{ route('legal', ['doc' => 'terms']) }}">Terms of Service</a> and <a class="text-accent hover:underline" href="{{ route('legal', ['doc' => 'privacy']) }}">Privacy Policy</a>.
+                                </label>
+                            </div>
                         </div>
-                    </div>
-                    <x-ui.button type="submit" class="w-full" size="lg" x-bind:loading="submitting">Create Account</x-ui.button>
-                </form>
-                @include('partials.auth.google-gis', ['mode' => 'button', 'surface' => 'register', 'buttonText' => 'signup_with'])
-                <footer class="mt-6 pt-6 border-t border-border-default text-center space-y-2">
+                        <x-ui.button type="submit" class="w-full" size="lg" x-bind:loading="submitting">
+                            <span x-text="accountType === 'agent' ? 'Create Agent Account' : 'Create Creator Account'"></span>
+                        </x-ui.button>
+                    </form>
+                    @include('partials.auth.google-gis', ['mode' => 'button', 'surface' => 'register', 'buttonText' => 'signup_with'])
+                    <p class="text-center text-xs text-text-secondary" x-text="accountType === 'agent'
+                        ? 'Google signup uses your Agent selection above.'
+                        : 'Google signup uses your Creator selection above.'"></p>
+                </div>
+                <footer class="mt-6 pt-6 border-t border-border-default text-center">
                     <p class="text-text-secondary text-sm">
                         Already have an account?
                         <a href="{{ route('login') }}" class="text-accent hover:text-primary font-semibold transition-colors">Login Here</a>
-                    </p>
-                    <p class="text-text-secondary text-sm">
-                        @if ($registerAsAgent ?? false)
-                            Looking to buy campaigns?
-                            <a href="{{ route('register') }}" class="text-accent hover:text-primary font-semibold transition-colors">Register as Creator</a>
-                        @else
-                            Want to earn by completing tasks?
-                            <a href="{{ route('register.agent') }}" class="text-accent hover:text-primary font-semibold transition-colors">Register as Agent</a>
-                        @endif
                     </p>
                 </footer>
             </x-ui.card>

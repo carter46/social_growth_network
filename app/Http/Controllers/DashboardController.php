@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\DomainRegistration;
 use App\Models\PlatformProduct;
-use App\Models\UserTool;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -28,9 +26,6 @@ class DashboardController extends Controller
             ->where('status', 'processing')
             ->count();
 
-        $myToolsCount = UserTool::query()->ownedBy($user->id)->count()
-            + DomainRegistration::query()->forUser($user->id)->count();
-
         $featuredServices = PlatformProduct::query()
             ->visibleToPublic()
             ->with('heroMedia')
@@ -46,7 +41,6 @@ class DashboardController extends Controller
             'totalNgn' => $totalNgn,
             'activeOrdersCount' => $activeOrdersCount,
             'ordersAwaitingLabel' => $ordersAwaiting > 0 ? "{$ordersAwaiting} in progress" : 'All caught up',
-            'myToolsCount' => $myToolsCount,
             'featuredServices' => $featuredServices,
             'kycLevel' => $user->kyc_level,
             'activeCampaignsCount' => \App\Models\Campaign::query()
@@ -88,10 +82,10 @@ class DashboardController extends Controller
             'orders' => $orders,
             'source' => 'platform',
             'title' => 'My Orders',
-            'breadcrumbParent' => ['Services', route('dashboard.services')],
-            'emptyTitle' => 'No service orders yet',
-            'emptyDescription' => 'When you buy a platform service, it will appear here.',
-            'emptyAction' => ['href' => route('dashboard.services'), 'label' => 'Browse services'],
+            'breadcrumbParent' => ['Campaign packages', route('dashboard.services')],
+            'emptyTitle' => 'No orders yet',
+            'emptyDescription' => 'When you buy a campaign package, it will appear here.',
+            'emptyAction' => ['href' => route('dashboard.services'), 'label' => 'Browse campaign packages'],
         ]);
     }
 

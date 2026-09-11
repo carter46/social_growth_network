@@ -188,6 +188,7 @@ class CreatorAgentAccessTest extends TestCase
     public function test_creator_registration_still_assigns_user_role(): void
     {
         $this->post('/register', [
+            'account_type' => 'creator',
             'name' => 'Creator User',
             'username' => 'creatoruser1',
             'email' => 'creatoruser1@example.com',

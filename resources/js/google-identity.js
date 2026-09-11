@@ -48,6 +48,16 @@ function showError(root, message) {
 }
 
 async function postCredential(root, credential) {
+    const payload = { credential };
+    let accountType = (root.dataset.accountType || '').trim();
+    if (accountType !== 'creator' && accountType !== 'agent') {
+        const host = root.closest('[data-account-type]');
+        accountType = (host?.dataset?.accountType || '').trim();
+    }
+    if (accountType === 'creator' || accountType === 'agent') {
+        payload.account_type = accountType;
+    }
+
     const res = await fetch(root.dataset.endpoint, {
         method: 'POST',
         headers: {
@@ -57,7 +67,7 @@ async function postCredential(root, credential) {
             'X-Requested-With': 'XMLHttpRequest',
         },
         credentials: 'same-origin',
-        body: JSON.stringify({ credential }),
+        body: JSON.stringify(payload),
     });
 
     let data = {};
