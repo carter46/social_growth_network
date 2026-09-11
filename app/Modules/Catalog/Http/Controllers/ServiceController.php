@@ -65,7 +65,6 @@ class ServiceController extends Controller
         if ($q !== '') {
             $productsQuery->where(function ($inner) use ($q) {
                 $inner->where('title', 'like', "%{$q}%")
-                    ->orWhere('short_description', 'like', "%{$q}%")
                     ->orWhere('description', 'like', "%{$q}%");
             });
         }
@@ -141,7 +140,6 @@ class ServiceController extends Controller
             ->when($q !== '', function ($builder) use ($q) {
                 $builder->where(function ($inner) use ($q) {
                     $inner->where('title', 'like', "%{$q}%")
-                        ->orWhere('short_description', 'like', "%{$q}%")
                         ->orWhere('description', 'like', "%{$q}%");
                 });
             })
@@ -226,7 +224,6 @@ class ServiceController extends Controller
             ->when($q !== '', function ($builder) use ($q) {
                 $builder->where(function ($inner) use ($q) {
                     $inner->where('title', 'like', "%{$q}%")
-                        ->orWhere('short_description', 'like', "%{$q}%")
                         ->orWhere('description', 'like', "%{$q}%");
                 });
             })

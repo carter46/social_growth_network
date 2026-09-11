@@ -19,15 +19,27 @@
                 <dd><x-dashboard.badge :status="$campaign->status" /></dd>
             </div>
             <div>
-                <dt class="text-text-muted">Progress</dt>
+                <dt class="text-text-muted">Verified task completions</dt>
                 <dd class="font-semibold">{{ $campaign->completed_count }} / {{ $campaign->quantity }}</dd>
             </div>
+            @if ($campaign->engagement_metric && in_array($campaign->engagement_metric, ['likes', 'comments'], true))
+            <div>
+                <dt class="text-text-muted">Observed {{ $campaign->engagement_metric }} on post</dt>
+                <dd class="font-semibold">
+                    {{ $campaign->last_verified_count ?? '—' }}
+                    @if ($campaign->baseline_count !== null)
+                        <span class="text-text-muted font-normal">(baseline {{ $campaign->baseline_count }})</span>
+                    @endif
+                </dd>
+                <p class="text-xs text-text-muted mt-1">Observed external metric — not individual agent identity proof.</p>
+            </div>
+            @endif
             <div>
                 <dt class="text-text-muted">Your package price</dt>
                 <dd class="font-semibold">₦{{ number_format((float) $campaign->locked_creator_price, 2) }}</dd>
             </div>
             <div>
-                <dt class="text-text-muted">Agent reward</dt>
+                <dt class="text-text-muted">Agent reward (locked)</dt>
                 <dd class="font-semibold">₦{{ number_format((float) $campaign->locked_agent_reward, 2) }}</dd>
             </div>
         </dl>

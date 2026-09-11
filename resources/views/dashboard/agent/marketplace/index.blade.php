@@ -29,7 +29,7 @@
             <tr class="hover:bg-muted/50">
                 <x-dashboard.td class="font-medium">{{ $campaign->title }}</x-dashboard.td>
                 <x-dashboard.td>₦{{ number_format((float) $campaign->locked_agent_reward, 2) }}</x-dashboard.td>
-                <x-dashboard.td>{{ $campaign->remainingSlots() }}</x-dashboard.td>
+                <x-dashboard.td>{{ $campaign->availableStartSlots() }}</x-dashboard.td>
                 <x-dashboard.td>{{ $campaign->estimated_minutes ? $campaign->estimated_minutes.' min' : '—' }}</x-dashboard.td>
                 <x-dashboard.td>
                     <x-dashboard.button :href="route('agent.marketplace.show', $campaign)" variant="link" size="xs">View</x-dashboard.button>

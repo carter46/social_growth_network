@@ -5,7 +5,7 @@
 @include('dashboard.user.partials.catalog-grid-card', [
     'href' => $href,
     'label' => $product->title,
-    'description' => $product->short_description,
+    'description' => \Illuminate\Support\Str::limit(strip_tags((string) ($product->description ?? '')), 160) ?: null,
     'imageSrc' => $heroUrl,
     'ctaLabel' => 'View',
     'price' => $product->displayPrice(),

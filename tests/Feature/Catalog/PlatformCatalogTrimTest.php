@@ -42,7 +42,7 @@ class PlatformCatalogTrimTest extends TestCase
         $this->assertDatabaseHas('platform_products', ['slug' => 'youtube-likes']);
         $this->assertDatabaseHas('platform_products', ['slug' => 'youtube-comments']);
         $this->assertDatabaseHas('platform_products', ['slug' => 'youtube-watch-hours']);
-        $this->assertDatabaseHas('platform_products', ['slug' => 'youtube-subscribers']);
+        $this->assertDatabaseMissing('platform_products', ['slug' => 'youtube-subscribers']);
         $this->assertDatabaseHas('platform_products', ['slug' => 'facebook-views']);
         $this->assertDatabaseHas('platform_products', ['slug' => 'instagram-views']);
         $this->assertDatabaseHas('platform_products', ['slug' => 'tiktok-views']);
@@ -53,7 +53,7 @@ class PlatformCatalogTrimTest extends TestCase
         $this->assertDatabaseMissing('platform_products', ['slug' => 'youtube-views-lite']);
         $this->assertDatabaseMissing('platform_products', ['slug' => 'instagram-growth-pack']);
 
-        $this->assertSame(17, PlatformProduct::query()->ofType(PlatformProductType::SocialService)->count());
+        $this->assertSame(16, PlatformProduct::query()->ofType(PlatformProductType::SocialService)->count());
     }
 
     public function test_trim_keeps_legacy_views_slugs_until_renamed(): void
@@ -83,12 +83,12 @@ class PlatformCatalogTrimTest extends TestCase
         $this->seed(\Database\Seeders\PlatformCatalogSeeder::class);
         $this->seed(\Database\Seeders\PlatformCatalogSeeder::class);
 
-        $this->assertSame(17, PlatformProduct::query()->ofType(PlatformProductType::SocialService)->count());
+        $this->assertSame(16, PlatformProduct::query()->ofType(PlatformProductType::SocialService)->count());
 
         $youtubeId = ServiceCategory::query()->where('slug', 'youtube')->value('id');
         $this->assertNotNull($youtubeId);
         $this->assertSame(
-            5,
+            4,
             PlatformProduct::query()->where('service_category_id', $youtubeId)->count()
         );
 

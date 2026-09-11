@@ -43,6 +43,12 @@ class Campaign extends Model
         'platform_product_variant_id',
         'title',
         'target_url',
+        'engagement_metric',
+        'baseline_count',
+        'baseline_captured_at',
+        'last_verified_count',
+        'verification_mode',
+        'verification_locked_participation_id',
         'quantity',
         'completed_count',
         'locked_creator_price',
@@ -57,11 +63,26 @@ class Campaign extends Model
         return [
             'quantity' => 'integer',
             'completed_count' => 'integer',
+            'baseline_count' => 'integer',
+            'last_verified_count' => 'integer',
+            'baseline_captured_at' => 'datetime',
             'locked_creator_price' => 'decimal:2',
             'locked_agent_reward' => 'decimal:2',
             'estimated_minutes' => 'integer',
             'meta' => 'array',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::updating(function (self $campaign) {
+            if ($campaign->exists && $campaign->isDirty('locked_agent_reward')) {
+                $campaign->locked_agent_reward = $campaign->getOriginal('locked_agent_reward');
+            }
+            if ($campaign->exists && $campaign->isDirty('locked_creator_price')) {
+                $campaign->locked_creator_price = $campaign->getOriginal('locked_creator_price');
+            }
+        });
     }
 
     public function creator(): BelongsTo
@@ -99,15 +120,50 @@ class Campaign extends Model
         return max(0, (int) $this->quantity - (int) $this->completed_count);
     }
 
+    /**
+     * Participations that occupy a campaign slot before/after payment.
+     */
+    public function inFlightCount(): int
+    {
+        return (int) $this->participations()
+            ->whereIn('status', [
+                CampaignParticipation::STATUS_STARTED,
+                CampaignParticipation::STATUS_SUBMITTED,
+                CampaignParticipation::STATUS_UNDER_REVIEW,
+                CampaignParticipation::STATUS_VERIFYING,
+                CampaignParticipation::STATUS_APPROVED,
+                CampaignParticipation::STATUS_PAID,
+            ])
+            ->count();
+    }
+
+    public function availableStartSlots(): int
+    {
+        return max(0, (int) $this->quantity - $this->inFlightCount());
+    }
+
     public function isOpenForAgents(): bool
     {
-        return $this->status === self::STATUS_ACTIVE && $this->remainingSlots() > 0;
+        return $this->status === self::STATUS_ACTIVE
+            && $this->remainingSlots() > 0
+            && $this->availableStartSlots() > 0;
     }
 
     public function scopeOpenForAgents($query)
     {
         return $query
             ->where('status', self::STATUS_ACTIVE)
-            ->whereColumn('completed_count', '<', 'quantity');
+            ->whereColumn('completed_count', '<', 'quantity')
+            ->whereRaw(
+                '(SELECT COUNT(*) FROM campaign_participations WHERE campaign_participations.campaign_id = campaigns.id AND campaign_participations.status IN (?, ?, ?, ?, ?, ?)) < campaigns.quantity',
+                [
+                    CampaignParticipation::STATUS_STARTED,
+                    CampaignParticipation::STATUS_SUBMITTED,
+                    CampaignParticipation::STATUS_UNDER_REVIEW,
+                    CampaignParticipation::STATUS_VERIFYING,
+                    CampaignParticipation::STATUS_APPROVED,
+                    CampaignParticipation::STATUS_PAID,
+                ]
+            );
     }
 }

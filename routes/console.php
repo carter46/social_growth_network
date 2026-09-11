@@ -30,6 +30,10 @@ $scheduleCommand('monitoring:heartbeat', 'monitoring:heartbeat')->everyFiveMinut
 $scheduleCommand('users:purge-anonymized', 'users:purge-anonymized')->hourly();
 $scheduleCommand('site-integrations:expire-user-tools', 'site-integrations:expire-user-tools')->everyFiveMinutes();
 
+$scheduleCommand('campaigns:verify-engagement', 'campaigns:verify-engagement')
+    ->everyMinute()
+    ->withoutOverlapping(5);
+
 Schedule::call(function () {
     \Illuminate\Support\Facades\Cache::forget('sitemap.xml.v2');
 })->dailyAt('02:30')->name('refresh-sitemap-cache');

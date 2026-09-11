@@ -66,9 +66,11 @@ class FixedPlatformCatalogLockTest extends TestCase
 
         return array_merge([
             'title' => $product->title,
-            'short_description' => $product->short_description,
             'description' => $product->description,
             'status' => 'published',
+            'is_campaign' => $product->is_campaign ? '1' : '0',
+            'agent_reward_per_completion' => $product->agent_reward_per_completion ?? 100,
+            'estimated_minutes' => $product->estimated_minutes ?? 5,
             'variants' => [
                 [
                     'id' => $variant->id,
@@ -216,7 +218,6 @@ class FixedPlatformCatalogLockTest extends TestCase
         $this->actingAs($admin)
             ->put(route('admin.platform-products.update', $product), $this->productUpdatePayload($product, [
                 'title' => 'YouTube Views Plus',
-                'short_description' => 'Updated short',
                 'description' => 'Updated long',
                 'variants' => [
                     ['id' => $variant->id, 'price' => 5500, 'name' => $variant->name, 'description' => 'Best starter pack'],

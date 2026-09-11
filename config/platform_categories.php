@@ -18,7 +18,6 @@ return [
             'youtube-likes',
             'youtube-comments',
             'youtube-watch-hours',
-            'youtube-subscribers',
         ],
     ],
     'facebook' => [

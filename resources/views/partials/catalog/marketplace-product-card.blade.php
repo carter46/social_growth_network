@@ -42,7 +42,7 @@
             <a href="{{ $href }}" class="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded">{{ $product->title }}</a>
         </h3>
         <p class="text-sm text-slate-600 mb-4 line-clamp-2 leading-relaxed">
-            {{ $product->short_description ?: 'Predefined package with upfront pricing and secure payment.' }}
+            {{ \Illuminate\Support\Str::limit(strip_tags((string) ($product->description ?? '')), 160) ?: 'Predefined package with upfront pricing and secure payment.' }}
         </p>
 
         @if($variants->isNotEmpty())

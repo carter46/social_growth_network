@@ -41,7 +41,7 @@ class PlatformProductAdminController extends Controller
                 $q->where(function ($inner) use ($term) {
                     $inner->where('title', 'like', $term)
                         ->orWhere('slug', 'like', $term)
-                        ->orWhere('short_description', 'like', $term);
+                        ->orWhere('description', 'like', $term);
                 });
             })
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->get('status')))
@@ -131,9 +131,11 @@ class PlatformProductAdminController extends Controller
                 ->with('error', __('That product is not under a fixed platform category.'));
         }
 
+        $isCampaign = $request->boolean('is_campaign');
+        $metric = \App\Enums\EngagementMetric::fromProductSlug($platformProduct->slug);
+
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'short_description' => ['nullable', 'string', 'max:500'],
             'description' => ['nullable', 'string'],
             'status' => ['required', Rule::in([
                 PlatformProductStatus::Draft->value,
@@ -146,8 +148,21 @@ class PlatformProductAdminController extends Controller
             'variants.*.price' => ['required', 'numeric', 'min:0'],
             'variants.*.description' => ['nullable', 'string', 'max:2000'],
             'is_campaign' => ['sometimes', 'boolean'],
-            'agent_reward_per_completion' => ['nullable', 'numeric', 'min:0'],
-            'estimated_minutes' => ['nullable', 'integer', 'min:1', 'max:10080'],
+            'agent_reward_per_completion' => [
+                Rule::requiredIf($isCampaign),
+                'nullable',
+                'numeric',
+                'min:0.01',
+            ],
+            'estimated_minutes' => [
+                Rule::requiredIf($isCampaign && $metric?->requiresTimedSession(
+                    \App\Enums\EngagementMetric::platformFromProductSlug($platformProduct->slug)
+                )),
+                'nullable',
+                'integer',
+                'min:1',
+                'max:10080',
+            ],
         ]);
 
         $heroMediaId = filled($data['hero_media_id'] ?? null) ? (int) $data['hero_media_id'] : null;
@@ -155,14 +170,13 @@ class PlatformProductAdminController extends Controller
 
         $updatePayload = [
             'title' => $data['title'],
-            'short_description' => $data['short_description'] ?? null,
             'description' => $data['description'] ?? null,
             'status' => $data['status'],
             'is_featured' => $request->boolean('is_featured'),
             'hero_media_id' => $heroMediaId,
             'hero_image' => $heroPath,
-            'is_campaign' => $request->boolean('is_campaign'),
-            'agent_reward_per_completion' => $data['agent_reward_per_completion'] ?? null,
+            'is_campaign' => $isCampaign,
+            'agent_reward_per_completion' => $isCampaign ? ($data['agent_reward_per_completion'] ?? null) : null,
             'estimated_minutes' => $data['estimated_minutes'] ?? null,
         ];
 

@@ -25,7 +25,7 @@
         $heroUrl = asset('assets/images/Image_ro410gro410gro41.png');
     }
 
-    $subtitle = $product->short_description ?: null;
+    $subtitle = null;
     $variants = $product->activeVariants->sortBy('price')->values();
     $defaultVariant = $variants->firstWhere('is_default', true)
         ?? $variants->first();
@@ -36,8 +36,7 @@
         'description' => (string) ($v->description ?? ''),
     ])->values();
 
-    $showAbout = filled($product->description)
-        && (! $subtitle || trim((string) $product->description) !== trim((string) $subtitle));
+    $showAbout = filled($product->description);
 
     $heroBg = $product->hero_image ?: null;
 @endphp

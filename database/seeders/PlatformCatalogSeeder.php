@@ -65,7 +65,6 @@ class PlatformCatalogSeeder extends Seeder
         ['slug' => 'youtube-likes', 'title' => 'YouTube Likes', 'base_price' => 5500, 'sort_order' => 1],
         ['slug' => 'youtube-comments', 'title' => 'YouTube Comments', 'base_price' => 6000, 'sort_order' => 2],
         ['slug' => 'youtube-watch-hours', 'title' => 'YouTube Watch Hours', 'base_price' => 8000, 'sort_order' => 3],
-        ['slug' => 'youtube-subscribers', 'title' => 'YouTube Subscribers', 'base_price' => 9000, 'sort_order' => 4],
         ['slug' => 'facebook-likes', 'title' => 'Facebook Likes', 'base_price' => 8000, 'sort_order' => 11],
         ['slug' => 'facebook-comments', 'title' => 'Facebook Comments', 'base_price' => 8500, 'sort_order' => 12],
         ['slug' => 'instagram-likes', 'title' => 'Instagram Likes', 'base_price' => 10500, 'sort_order' => 21],
@@ -125,9 +124,6 @@ class PlatformCatalogSeeder extends Seeder
                 $updates['sort_order'] = $row['sort_order'];
             }
 
-            if (! filled($product->short_description)) {
-                $updates['short_description'] = "Ready-to-use {$row['title']} for social growth.";
-            }
             if (! filled($product->description)) {
                 $updates['description'] = "Get started quickly with {$row['title']}. Includes setup guidance, support, and clear deliverables.";
             }
@@ -147,7 +143,6 @@ class PlatformCatalogSeeder extends Seeder
             'slug' => $row['new_slug'],
             'title' => $row['title'],
             'product_type' => $type,
-            'short_description' => "Ready-to-use {$row['title']} for social growth.",
             'description' => "Get started quickly with {$row['title']}. Includes setup guidance, support, and clear deliverables.",
             'status' => PlatformProductStatus::Published,
             'is_featured' => $row['sort_order'] < 20,
@@ -172,9 +167,6 @@ class PlatformCatalogSeeder extends Seeder
                 'product_type' => $type,
             ];
 
-            if (! filled($existing->short_description)) {
-                $updates['short_description'] = "Ready-to-use {$row['title']} for social growth.";
-            }
             if (! filled($existing->description)) {
                 $updates['description'] = "Get started quickly with {$row['title']}. Includes setup guidance, support, and clear deliverables.";
             }
@@ -194,7 +186,6 @@ class PlatformCatalogSeeder extends Seeder
             'slug' => $row['slug'],
             'title' => $row['title'],
             'product_type' => $type,
-            'short_description' => "Ready-to-use {$row['title']} for social growth.",
             'description' => "Get started quickly with {$row['title']}. Includes setup guidance, support, and clear deliverables.",
             'status' => PlatformProductStatus::Published,
             'is_featured' => false,

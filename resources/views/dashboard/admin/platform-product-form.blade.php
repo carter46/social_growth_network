@@ -67,7 +67,6 @@
             </p>
 
             <x-dashboard.input label="Title" name="title" :value="old('title', $product->title)" required />
-            <x-dashboard.input label="Short description" name="short_description" :value="old('short_description', $product->short_description)" />
             <div>
                 <label class="block text-sm font-medium mb-1">Description</label>
                 <textarea name="description" rows="6" class="w-full rounded-xl border border-border-default bg-elevated px-3 py-2.5 text-sm">{{ old('description', $product->description) }}</textarea>
@@ -88,21 +87,36 @@
                 Campaign package (creates a campaign agents can work on after purchase)
             </label>
 
+            @php
+                $engagementMetric = \App\Enums\EngagementMetric::fromProductSlug($product->slug);
+                $minutesLabel = $engagementMetric?->requiresTimedSession(
+                    \App\Enums\EngagementMetric::platformFromProductSlug($product->slug)
+                )
+                    ? 'Required watch session (minutes)'
+                    : 'Estimated minutes per task';
+                $minutesHint = $engagementMetric?->requiresTimedSession(
+                    \App\Enums\EngagementMetric::platformFromProductSlug($product->slug)
+                )
+                    ? 'Minutes the agent must complete in the watch session before claiming. Not a guarantee of platform watch hours or views.'
+                    : 'Shown to agents as estimated time — not a retake lock.';
+            @endphp
             <div class="grid gap-4 sm:grid-cols-2">
                 <x-dashboard.input
                     label="Agent reward per completion (NGN)"
                     name="agent_reward_per_completion"
                     type="number"
                     step="0.01"
-                    min="0"
+                    min="0.01"
                     :value="old('agent_reward_per_completion', $product->agent_reward_per_completion)"
+                    hint="Locked into each campaign at purchase. Changing this later does not affect existing campaigns."
                 />
                 <x-dashboard.input
-                    label="Estimated minutes per task"
+                    :label="$minutesLabel"
                     name="estimated_minutes"
                     type="number"
                     min="1"
                     :value="old('estimated_minutes', $product->estimated_minutes)"
+                    :hint="$minutesHint"
                 />
             </div>
 

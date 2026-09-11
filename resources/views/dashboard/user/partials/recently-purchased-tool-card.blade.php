@@ -23,8 +23,8 @@
     </div>
     <div class="flex flex-1 flex-col space-y-2 px-4 pb-4">
         <a href="{{ $href }}" class="block font-semibold text-text-primary line-clamp-2 hover:text-primary">{{ $title }}</a>
-        @if(filled($product?->short_description))
-            <p class="text-sm text-text-secondary line-clamp-2">{{ $product->short_description }}</p>
+        @if(filled($product?->description))
+            <p class="text-sm text-text-secondary line-clamp-2">{{ \Illuminate\Support\Str::limit(strip_tags((string) $product->description), 160) }}</p>
         @endif
         <div class="mt-auto pt-2">
             <x-dashboard.button :href="$href" size="xs" class="w-full sm:w-auto">Open in My Tools</x-dashboard.button>

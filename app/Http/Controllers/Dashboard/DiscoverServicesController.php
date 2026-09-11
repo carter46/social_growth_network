@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Dashboard;
 
+use App\Enums\EngagementMetric;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\PlatformProduct;
@@ -15,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use InvalidArgumentException;
 
@@ -42,7 +44,7 @@ class DiscoverServicesController extends Controller
                 ->with(['serviceCategory', 'productType.serviceCategory', 'activeVariants', 'heroMedia'])
                 ->where(function ($inner) use ($q) {
                     $inner->where('title', 'like', "%{$q}%")
-                        ->orWhere('short_description', 'like', "%{$q}%");
+                        ->orWhere('description', 'like', "%{$q}%");
                 })
                 ->orderByDesc('is_featured')
                 ->orderBy('sort_order')
@@ -246,6 +248,13 @@ class DiscoverServicesController extends Controller
             'idempotency_key' => ['required', 'string', 'uuid', 'max:64'],
             'renew_user_tool_id' => ['nullable', 'integer', 'exists:user_tools,id'],
             'payment_method' => ['nullable', 'in:'.implode(',', $allowedMethods)],
+            'target_url' => [
+                Rule::requiredIf(fn () => (bool) $product->is_campaign && EngagementMetric::fromProductSlug($product->slug)),
+                'nullable',
+                'string',
+                'url',
+                'max:2048',
+            ],
         ];
 
         $data = $request->validate($rules);
@@ -425,7 +434,7 @@ class DiscoverServicesController extends Controller
             ->when($q !== '', function ($builder) use ($q) {
                 $builder->where(function ($inner) use ($q) {
                     $inner->where('title', 'like', "%{$q}%")
-                        ->orWhere('short_description', 'like', "%{$q}%");
+                        ->orWhere('description', 'like', "%{$q}%");
                 });
             })
             ->orderByDesc('is_featured')
@@ -469,7 +478,7 @@ class DiscoverServicesController extends Controller
             ->when($q !== '', function ($builder) use ($q) {
                 $builder->where(function ($inner) use ($q) {
                     $inner->where('title', 'like', "%{$q}%")
-                        ->orWhere('short_description', 'like', "%{$q}%");
+                        ->orWhere('description', 'like', "%{$q}%");
                 });
             })
             ->orderByDesc('is_featured')

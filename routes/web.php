@@ -340,13 +340,17 @@ Route::middleware(['auth', 'verified', 'role:agent'])->prefix('agent')->name('ag
         Route::post('/withdrawal', [WithdrawalController::class, 'store'])->name('.withdrawal.store');
         Route::get('/withdrawal/{withdrawal}', [WithdrawalController::class, 'show'])->name('.withdrawal.show');
         Route::get('/history', [HistoryController::class, 'index'])->name('.history');
+
+        Route::post('/marketplace/{campaign}/start', [\App\Http\Controllers\Agent\MarketplaceController::class, 'start'])
+            ->middleware('throttle:20,1')
+            ->name('.marketplace.start');
+        Route::post('/tasks/{participation}/claim-watch', [\App\Http\Controllers\Agent\TaskController::class, 'claimWatch'])
+            ->middleware('throttle:20,1')
+            ->name('.tasks.claim-watch');
     });
 
     Route::get('/marketplace', [\App\Http\Controllers\Agent\MarketplaceController::class, 'index'])->name('.marketplace');
     Route::get('/marketplace/{campaign}', [\App\Http\Controllers\Agent\MarketplaceController::class, 'show'])->name('.marketplace.show');
-    Route::post('/marketplace/{campaign}/start', [\App\Http\Controllers\Agent\MarketplaceController::class, 'start'])
-        ->middleware('throttle:20,1')
-        ->name('.marketplace.start');
 
     Route::get('/tasks/active', [\App\Http\Controllers\Agent\TaskController::class, 'active'])->name('.tasks.active');
     Route::get('/tasks/incomplete', [\App\Http\Controllers\Agent\TaskController::class, 'incomplete'])->name('.tasks.incomplete');
@@ -355,6 +359,9 @@ Route::middleware(['auth', 'verified', 'role:agent'])->prefix('agent')->name('ag
     Route::post('/tasks/{participation}/submit', [\App\Http\Controllers\Agent\TaskController::class, 'submit'])
         ->middleware('throttle:20,1')
         ->name('.tasks.submit');
+    Route::post('/tasks/{participation}/start-watch', [\App\Http\Controllers\Agent\TaskController::class, 'startWatch'])
+        ->middleware('throttle:20,1')
+        ->name('.tasks.start-watch');
 
     Route::get('/notifications', [UserNotificationController::class, 'index'])->name('.notifications');
     Route::post('/notifications/{notification}/read', [UserNotificationController::class, 'markRead'])->name('.notifications.read');
@@ -546,6 +553,9 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::get('/settings', [AdminSettingsController::class, 'index'])->name('.settings');
         Route::get('/settings/email', [AdminSettingsController::class, 'emailSettings'])->name('.settings.email-settings');
         Route::get('/settings/payments', [AdminSettingsController::class, 'paymentSettings'])->name('.settings.payments');
+        Route::get('/settings/api-integrations', [\App\Modules\Admin\Http\Controllers\ApiIntegrationsController::class, 'index'])->name('.settings.api-integrations');
+        Route::post('/settings/api-integrations', [\App\Modules\Admin\Http\Controllers\ApiIntegrationsController::class, 'update'])->name('.settings.api-integrations.update');
+        Route::post('/settings/api-integrations/test', [\App\Modules\Admin\Http\Controllers\ApiIntegrationsController::class, 'test'])->name('.settings.api-integrations.test');
         Route::post('/settings/branding', [AdminSettingsController::class, 'updateBranding'])->name('.settings.branding');
         Route::post('/settings/contact', [AdminSettingsController::class, 'updateContact'])->name('.settings.contact');
         Route::post('/settings/social', [AdminSettingsController::class, 'updateSocial'])->name('.settings.social');

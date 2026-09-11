@@ -21,6 +21,7 @@ class VerificationAdminController extends Controller
             ->whereIn('status', [
                 CampaignParticipation::STATUS_SUBMITTED,
                 CampaignParticipation::STATUS_UNDER_REVIEW,
+                CampaignParticipation::STATUS_VERIFYING,
             ])
             ->with(['campaign', 'agent'])
             ->orderBy('submitted_at')

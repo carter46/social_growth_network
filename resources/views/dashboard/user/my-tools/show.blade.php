@@ -57,8 +57,8 @@
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-wider text-primary">Your service</p>
                         <h2 class="mt-1 text-2xl font-bold text-text-primary">{{ $product?->title ?? $tool->resolvedDisplayName() }}</h2>
-                        @if (filled($product?->short_description))
-                            <p class="mt-2 text-sm text-text-secondary">{{ $product->short_description }}</p>
+                        @if (filled($product?->description))
+                            <p class="mt-2 text-sm text-text-secondary">{{ \Illuminate\Support\Str::limit(strip_tags((string) $product->description), 200) }}</p>
                         @endif
                     </div>
                     <dl class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">

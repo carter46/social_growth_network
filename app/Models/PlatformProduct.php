@@ -13,9 +13,8 @@ use Illuminate\Support\Facades\Schema;
 
 class PlatformProduct extends Model
 {
-    protected $fillable = [
+        protected $fillable = [
         'title',
-        'short_description',
         'description',
         'status',
         'is_featured',

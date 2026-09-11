@@ -20,7 +20,7 @@
     @endif
 
     <x-dashboard.card class="space-y-3">
-        <p class="text-sm text-text-secondary">{{ $campaign->product?->short_description }}</p>
+        <p class="text-sm">{{ \Illuminate\Support\Str::limit(strip_tags((string) ($campaign->product?->description ?? '')), 200) }}</p>
         <dl class="grid gap-3 sm:grid-cols-3 text-sm">
             <div>
                 <dt class="text-text-muted">Reward</dt>
@@ -28,7 +28,7 @@
             </div>
             <div>
                 <dt class="text-text-muted">Slots left</dt>
-                <dd class="font-semibold text-text-primary">{{ $campaign->remainingSlots() }}</dd>
+                <dd class="font-semibold text-text-primary">{{ $campaign->availableStartSlots() }}</dd>
             </div>
             <div>
                 <dt class="text-text-muted">Estimated time</dt>

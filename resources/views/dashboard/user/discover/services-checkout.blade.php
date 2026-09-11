@@ -70,8 +70,8 @@
         <div>
             <p class="text-xs font-semibold uppercase tracking-wider text-primary mb-1">Platform service</p>
             <h2 class="text-xl font-semibold text-text-primary">{{ $product->title }}</h2>
-            @if(filled($product->short_description))
-                <p class="text-sm text-text-secondary mt-1">{{ $product->short_description }}</p>
+            @if(filled($product->description))
+                <p class="text-sm text-text-secondary mt-1">{{ \Illuminate\Support\Str::limit(strip_tags((string) $product->description), 200) }}</p>
             @endif
         </div>
 
@@ -169,6 +169,24 @@
                         <div>
                             <label class="block text-sm font-medium text-text-secondary mb-2">Quantity</label>
                             <input type="number" name="quantity" min="1" max="100" x-model.number="qty" class="w-32 rounded-lg border-border-default bg-elevated text-text-primary text-sm">
+                        </div>
+                    @endif
+
+                    @if($product->is_campaign ?? false)
+                        <div>
+                            <label class="block text-sm font-medium text-text-secondary mb-2">Post / video URL <span class="text-danger">*</span></label>
+                            <input
+                                type="url"
+                                name="target_url"
+                                value="{{ old('target_url') }}"
+                                required
+                                placeholder="https://…"
+                                class="w-full rounded-lg border-border-default bg-elevated text-text-primary text-sm"
+                            >
+                            <p class="mt-1 text-xs text-text-muted">Must be a public post or video URL for this platform (not a profile page).</p>
+                            @error('target_url')
+                                <p class="mt-1 text-xs text-danger">{{ $message }}</p>
+                            @enderror
                         </div>
                     @endif
 

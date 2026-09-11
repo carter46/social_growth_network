@@ -18,11 +18,20 @@ class CampaignParticipationService
 
     public function start(User $agent, Campaign $campaign): CampaignParticipation
     {
+        $agent->loadMissing('wallet');
+        if ((float) $campaign->locked_agent_reward > 0 && ! $agent->wallet) {
+            throw new InvalidArgumentException('Create a wallet before joining paid campaigns.');
+        }
+
         return DB::transaction(function () use ($agent, $campaign) {
             $campaign = Campaign::query()->whereKey($campaign->id)->lockForUpdate()->firstOrFail();
 
             if (! $campaign->isOpenForAgents()) {
                 throw new InvalidArgumentException('This campaign is not open for agents.');
+            }
+
+            if ($campaign->availableStartSlots() < 1) {
+                throw new InvalidArgumentException('This campaign has no remaining slots.');
             }
 
             $existing = CampaignParticipation::query()
@@ -32,23 +41,7 @@ class CampaignParticipationService
                 ->first();
 
             if ($existing) {
-                if ($existing->status === CampaignParticipation::STATUS_REJECTED) {
-                    $existing->update([
-                        'status' => CampaignParticipation::STATUS_STARTED,
-                        'proof_url' => null,
-                        'proof_notes' => null,
-                        'started_at' => now(),
-                        'submitted_at' => null,
-                        'reviewed_at' => null,
-                        'reviewed_by' => null,
-                        'rejection_reason' => null,
-                        'paid_at' => null,
-                        'reward_amount' => $campaign->locked_agent_reward,
-                    ]);
-
-                    return $existing->fresh();
-                }
-
+                // No retake — including after rejection.
                 throw new InvalidArgumentException('You already joined this campaign.');
             }
 
@@ -73,10 +66,7 @@ class CampaignParticipationService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (! in_array($participation->status, [
-                CampaignParticipation::STATUS_STARTED,
-                CampaignParticipation::STATUS_REJECTED,
-            ], true)) {
+            if ($participation->status !== CampaignParticipation::STATUS_STARTED) {
                 throw new InvalidArgumentException('Participation cannot be submitted in status '.$participation->status);
             }
 
@@ -92,9 +82,9 @@ class CampaignParticipationService
         });
     }
 
-    public function approve(CampaignParticipation $participation, User $reviewer): CampaignParticipation
+    public function approve(CampaignParticipation $participation, ?User $reviewer = null, bool $allowStarted = false): CampaignParticipation
     {
-        return DB::transaction(function () use ($participation, $reviewer) {
+        return DB::transaction(function () use ($participation, $reviewer, $allowStarted) {
             $participation = CampaignParticipation::query()
                 ->whereKey($participation->id)
                 ->lockForUpdate()
@@ -107,10 +97,16 @@ class CampaignParticipationService
                 return $participation;
             }
 
-            if (! in_array($participation->status, [
+            $allowed = [
                 CampaignParticipation::STATUS_SUBMITTED,
                 CampaignParticipation::STATUS_UNDER_REVIEW,
-            ], true)) {
+                CampaignParticipation::STATUS_VERIFYING,
+            ];
+            if ($allowStarted) {
+                $allowed[] = CampaignParticipation::STATUS_STARTED;
+            }
+
+            if (! in_array($participation->status, $allowed, true)) {
                 throw new InvalidArgumentException('Participation cannot be approved in status '.$participation->status);
             }
 
@@ -120,10 +116,14 @@ class CampaignParticipationService
                 throw new InvalidArgumentException('Campaign has no remaining slots.');
             }
 
-            $agent = User::query()->findOrFail($participation->agent_id);
+            $agent = User::query()->with('wallet')->findOrFail($participation->agent_id);
+            // Financial integrity: always pay the participation snapshot, never product price.
             $amount = (float) $participation->reward_amount;
 
             if ($amount > 0) {
+                if (! $agent->wallet) {
+                    throw new InvalidArgumentException('Agent has no wallet to credit.');
+                }
                 $this->walletService->creditReward(
                     $agent,
                     $amount,
@@ -137,12 +137,15 @@ class CampaignParticipationService
             if ($completedCount >= (int) $campaign->quantity) {
                 $campaign->status = Campaign::STATUS_COMPLETED;
             }
+            if ((int) $campaign->verification_locked_participation_id === (int) $participation->id) {
+                $campaign->verification_locked_participation_id = null;
+            }
             $campaign->save();
 
             $participation->update([
                 'status' => CampaignParticipation::STATUS_PAID,
                 'reviewed_at' => now(),
-                'reviewed_by' => $reviewer->id,
+                'reviewed_by' => $reviewer?->id,
                 'rejection_reason' => null,
                 'paid_at' => now(),
             ]);
@@ -151,7 +154,7 @@ class CampaignParticipationService
         });
     }
 
-    public function reject(CampaignParticipation $participation, User $reviewer, string $reason): CampaignParticipation
+    public function reject(CampaignParticipation $participation, ?User $reviewer, string $reason): CampaignParticipation
     {
         return DB::transaction(function () use ($participation, $reviewer, $reason) {
             $participation = CampaignParticipation::query()
@@ -169,14 +172,21 @@ class CampaignParticipationService
             if (! in_array($participation->status, [
                 CampaignParticipation::STATUS_SUBMITTED,
                 CampaignParticipation::STATUS_UNDER_REVIEW,
+                CampaignParticipation::STATUS_VERIFYING,
             ], true)) {
                 throw new InvalidArgumentException('Participation cannot be rejected in status '.$participation->status);
+            }
+
+            $campaign = Campaign::query()->whereKey($participation->campaign_id)->lockForUpdate()->firstOrFail();
+            if ((int) $campaign->verification_locked_participation_id === (int) $participation->id) {
+                $campaign->verification_locked_participation_id = null;
+                $campaign->save();
             }
 
             $participation->update([
                 'status' => CampaignParticipation::STATUS_REJECTED,
                 'reviewed_at' => now(),
-                'reviewed_by' => $reviewer->id,
+                'reviewed_by' => $reviewer?->id,
                 'rejection_reason' => $reason,
             ]);
 

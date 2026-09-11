@@ -20,6 +20,9 @@ class MarketplaceController extends Controller
     {
         $campaigns = Campaign::query()
             ->openForAgents()
+            ->whereDoesntHave('participations', function ($q) {
+                $q->where('agent_id', auth()->id());
+            })
             ->with('product')
             ->orderByDesc('created_at')
             ->paginate(20);

@@ -13,6 +13,8 @@ class CampaignParticipation extends Model
 
     public const STATUS_UNDER_REVIEW = 'under_review';
 
+    public const STATUS_VERIFYING = 'verifying';
+
     public const STATUS_APPROVED = 'approved';
 
     public const STATUS_REJECTED = 'rejected';
@@ -23,6 +25,7 @@ class CampaignParticipation extends Model
         self::STATUS_STARTED,
         self::STATUS_SUBMITTED,
         self::STATUS_UNDER_REVIEW,
+        self::STATUS_VERIFYING,
         self::STATUS_APPROVED,
         self::STATUS_REJECTED,
         self::STATUS_PAID,
@@ -34,6 +37,10 @@ class CampaignParticipation extends Model
         'status',
         'proof_url',
         'proof_notes',
+        'pre_count',
+        'post_count',
+        'verify_attempts',
+        'verification_started_at',
         'started_at',
         'submitted_at',
         'reviewed_at',
@@ -50,7 +57,11 @@ class CampaignParticipation extends Model
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',
             'paid_at' => 'datetime',
+            'verification_started_at' => 'datetime',
             'reward_amount' => 'decimal:2',
+            'pre_count' => 'integer',
+            'post_count' => 'integer',
+            'verify_attempts' => 'integer',
         ];
     }
 

@@ -775,6 +775,20 @@ class PlatformCheckoutService
             'renew_user_tool_id' => $renewTool?->id,
         ];
 
+        if (! empty($data['target_url'])) {
+            $targetUrl = \App\Services\Engagement\TargetUrlValidator::normalize((string) $data['target_url']);
+            if ($product->is_campaign && $targetUrl) {
+                \App\Services\Engagement\TargetUrlValidator::assertValidForProduct($targetUrl, (string) $product->slug);
+                $domainOptions['target_url'] = $targetUrl;
+            } elseif ($targetUrl) {
+                $domainOptions['target_url'] = $targetUrl;
+            } elseif ($product->is_campaign) {
+                throw new InvalidArgumentException('A valid post or video URL is required for this campaign package.');
+            }
+        } elseif ($product->is_campaign && \App\Enums\EngagementMetric::fromProductSlug($product->slug)) {
+            throw new InvalidArgumentException('A post or video URL is required for this campaign package.');
+        }
+
         if (! empty($data['purchased_at'])) {
             $domainOptions['purchased_at'] = $data['purchased_at'];
         }

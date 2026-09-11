@@ -395,6 +395,44 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('watchTaskModal', (opts = {}) => ({
+        requiredSeconds: Number(opts.requiredSeconds || 60),
+        token: opts.token || null,
+        claimUrl: opts.claimUrl || '',
+        csrf: opts.csrf || '',
+        remaining: Number(opts.requiredSeconds || 60),
+        done: false,
+        timer: null,
+        get display() {
+            const s = Math.max(0, this.remaining);
+            const m = Math.floor(s / 60);
+            const r = s % 60;
+            return `${m}:${String(r).padStart(2, '0')}`;
+        },
+        init() {
+            if (!this.token) return;
+            this.remaining = this.requiredSeconds;
+            this.timer = setInterval(() => {
+                if (this.remaining <= 1) {
+                    this.remaining = 0;
+                    this.done = true;
+                    clearInterval(this.timer);
+                    return;
+                }
+                this.remaining -= 1;
+            }, 1000);
+            window.addEventListener('beforeunload', this._warn);
+        },
+        _warn(e) {
+            e.preventDefault();
+            e.returnValue = '';
+        },
+        destroy() {
+            if (this.timer) clearInterval(this.timer);
+            window.removeEventListener('beforeunload', this._warn);
+        },
+    }));
+
     Alpine.data('platformCheckout', (variants = [], options = {}) => assignAlpineHelpers(
         {},
         createDomainSearchHelpers(),

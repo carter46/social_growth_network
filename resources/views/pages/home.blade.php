@@ -385,8 +385,9 @@
                 <div class="lg:col-span-5 w-full">
                     @php
                         $previewTitle = $agentPreview?->title ?? 'YouTube Video Review & Feedback';
-                        $previewBody = $agentPreview?->short_description
-                            ?: 'Watch 3 minutes, provide honest feedback, and verify timestamp.';
+                        $previewBody = filled($agentPreview?->description)
+                            ? \Illuminate\Support\Str::limit(strip_tags((string) $agentPreview->description), 120)
+                            : 'Watch 3 minutes, provide honest feedback, and verify timestamp.';
                         $reward = $agentPreview?->agent_reward_per_completion ?? null;
                         $previewHref = $agentPreview
                             ? app(\App\Modules\Catalog\Services\CatalogBrowseService::class)->productUrl($agentPreview)

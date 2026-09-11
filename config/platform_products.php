@@ -12,7 +12,6 @@ return [
         'youtube-likes',
         'youtube-comments',
         'youtube-watch-hours',
-        'youtube-subscribers',
         'facebook-views',
         'facebook-likes',
         'facebook-comments',

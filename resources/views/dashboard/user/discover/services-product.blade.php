@@ -64,8 +64,6 @@
                 <div class="space-y-4 p-5 sm:p-6">
                     @if(filled($product->description))
                         <div class="prose prose-sm max-w-none text-text-secondary whitespace-pre-line">{{ $product->description }}</div>
-                    @elseif(filled($product->short_description))
-                        <p class="text-text-secondary">{{ $product->short_description }}</p>
                     @endif
                     <div class="pt-1">
                         @include('partials.catalog.product-demo-actions', [

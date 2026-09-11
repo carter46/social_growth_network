@@ -569,8 +569,10 @@ class CatalogBrowseService
         return [
             'id' => $product->id,
             'title' => $product->title,
-            'short_description' => $product->short_description
-                ?: 'Predefined package with upfront pricing and secure payment.',
+            'short_description' => \Illuminate\Support\Str::limit(
+                strip_tags((string) ($product->description ?? '')),
+                160
+            ) ?: 'Predefined package with upfront pricing and secure payment.',
             'href' => $this->productUrl($product),
             'hero_url' => $heroUrl,
             'category_slug' => $categorySlug,
