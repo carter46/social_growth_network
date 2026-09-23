@@ -50,6 +50,7 @@ Route::get('/', function (\App\Modules\Catalog\Services\CatalogBrowseService $br
         'marketplaceCatalog' => $marketplace,
         'youtubeCatalog' => $youtubeCatalog,
         'featuredProducts' => $browse->homeFeaturedProducts(),
+        'agentTaskPreview' => $browse->agentsMarketplacePreviewCards(1)->first(),
         'popularTags' => $browse->homePopularSearchTags(),
     ]);
 })->name('home');
