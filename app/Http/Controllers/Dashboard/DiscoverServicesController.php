@@ -150,6 +150,41 @@ class DiscoverServicesController extends Controller
         abort(422, 'Domain connect is no longer available.');
     }
 
+    /**
+     * Client-side embed template for campaign target_url preview (no remote oEmbed APIs).
+     */
+    public function urlPreview(Request $request, \App\Services\Engagement\CheckoutUrlPreviewResolver $previews): JsonResponse
+    {
+        $data = $request->validate([
+            'url' => ['nullable', 'string', 'max:2048'],
+            'product_slug' => ['required', 'string', 'max:120'],
+        ]);
+
+        $product = PlatformProduct::query()
+            ->visibleToPublic()
+            ->where('slug', $data['product_slug'])
+            ->first();
+
+        $isCampaignStyle = $product
+            && (
+                (bool) ($product->is_campaign ?? false)
+                || EngagementMetric::fromProductSlug($product->slug) !== null
+            );
+
+        if (! $isCampaignStyle) {
+            return response()->json([
+                'mode' => 'open_url',
+                'platform' => 'unknown',
+                'open_url' => (string) ($data['url'] ?? ''),
+                'note' => 'Preview is only available for campaign destinations.',
+            ]);
+        }
+
+        $payload = $previews->resolve($data['url'] ?? null, $product->slug);
+
+        return response()->json($payload);
+    }
+
     public function checkout(Request $request, string $slug): View|RedirectResponse
     {
         $canonical = PlatformProductSlugRedirect::resolve($slug);

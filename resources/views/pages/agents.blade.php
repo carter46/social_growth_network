@@ -7,29 +7,43 @@
     $brandName = $siteName ?? config('app.name', 'Social Growth Network');
     $imgAgent = asset('assets/images/agents-hero.jpg');
     $imgMobile = asset('assets/images/campaign-workspace.jpg');
-    $imgDash = asset('assets/images/home-slider-1.jpg');
+    $youtubeCatalog = $youtubeCatalog ?? ['featured' => null, 'others' => []];
+    $watchHours = $youtubeCatalog['featured'] ?? null;
+    $ytWord = static function (string $text, string $tone = 'red'): string {
+        $class = $tone === 'white' ? 'text-white' : 'text-red-600';
+
+        return preg_replace(
+            '/\bYouTube\b/u',
+            '<span class="'.$class.'">YouTube</span>',
+            e($text)
+        ) ?? e($text);
+    };
 @endphp
 
 {{-- Hero --}}
-<section class="w-full bg-white pt-10 sm:pt-14 pb-20 sm:pb-28">
+<section class="w-full bg-white pt-10 sm:pt-14 pb-16 sm:pb-20 border-b border-slate-100">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
             <div class="lg:col-span-6 flex flex-col items-start gap-4 order-2 lg:order-1">
+                <p class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ $brandName }} Agents</p>
                 <h1 class="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                    Turn digital tasks into <span class="text-primary">real opportunities.</span>
+                    {!! $ytWord('Complete YouTube Watch Hours and other social task sessions.') !!}
                 </h1>
                 <p class="text-base sm:text-lg text-slate-600 max-w-xl leading-relaxed">
-                    Discover available campaign tasks, complete the requirements, submit your verified proof, and earn rewards when your work is approved.
+                    Join {{ $brandName }} task sessions involving YouTube Watch Hours and other social media activities when they are available. Follow each task’s requirements, submit as instructed, and earn rewards when your work is approved.
+                </p>
+                <p class="text-sm text-slate-500 max-w-xl leading-relaxed">
+                    Rewards depend on task requirements and approval. Completing a session does not guarantee official platform metrics, and open tasks are not always available.
                 </p>
                 <div class="flex flex-wrap items-center gap-3 pt-2 w-full sm:w-auto">
-                    <a href="{{ route('register.agent') }}" class="inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-primary text-white px-6 py-3 rounded-xl hover:bg-primary-hover transition-colors shadow-sm">
+                    <a href="{{ route('register.agent') }}" class="inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-red-600 text-white px-6 py-3 rounded-xl hover:bg-red-700 transition-colors shadow-sm">
                         <span>Become an Agent</span>
                         <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
                     </a>
                 </div>
                 <div class="mt-4 pt-1 bg-slate-50/80 rounded-xl px-3.5 py-2.5 w-full border border-slate-100">
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-slate-500 text-xs">
-                        @foreach(['Free to join', 'Clear criteria', 'Structured audit', 'Verified payouts'] as $badge)
+                        @foreach(['Free to join', 'Clear criteria', 'Approval-based rewards', 'Structured sessions'] as $badge)
                             <div class="flex items-center gap-1">
                                 <span class="material-symbols-outlined text-[16px] text-emerald-600" aria-hidden="true">check_circle</span>
                                 <span>{{ $badge }}</span>
@@ -41,8 +55,14 @@
 
             <div class="lg:col-span-6 relative order-1 lg:order-2">
                 <div class="relative rounded-2xl overflow-hidden shadow-xl bg-slate-100">
-                    <img src="{{ $imgAgent }}" alt="Digital agent working productively" class="w-full h-[320px] sm:h-[420px] lg:h-[460px] object-cover" loading="eager">
+                    <img src="{{ $imgAgent }}" alt="Agent completing digital task sessions" class="w-full h-[320px] sm:h-[420px] lg:h-[460px] object-cover" loading="eager">
                     <div class="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent"></div>
+                    @if(is_array($watchHours))
+                        <div class="absolute bottom-4 left-4 right-4 text-white">
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-red-200">Example activity type</p>
+                            <p class="font-display text-base sm:text-lg font-bold mt-0.5">{!! $ytWord($watchHours['title'] ?? 'YouTube Watch Hours', 'white') !!}</p>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -53,22 +73,22 @@
 <section class="w-full bg-white py-14 sm:py-20">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-12">
         <div class="max-w-2xl">
-            <div class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-primary mb-2">
+            <div class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-red-600 mb-2">
                 Clear Purpose · Simple Flow
             </div>
             <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900">
-                Your next task could be waiting.
+                How {{ $brandName }} task sessions work
             </h2>
             <p class="text-base sm:text-lg text-slate-600 mt-3 leading-relaxed">
-                Creators launch digital campaigns on {{ $brandName }}. As an Agent, you help fulfill verified campaign activity by completing predefined requirements and submitting proof.
+                Creators launch digital campaigns. As an Agent, you complete available predefined requirements—Watch Hours sessions and other social activities are examples when those campaigns are open—then submit proof for review.
             </p>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             @foreach([
-                ['step' => 'Step 01', 'stepClass' => 'text-primary', 'icon' => 'explore', 'iconBg' => 'bg-slate-100 text-primary', 'title' => 'Discover', 'body' => 'Browse available digital campaigns and micro-tasks matched to your profile, location, and device setup.'],
-                ['step' => 'Step 02', 'stepClass' => 'text-red-600', 'icon' => 'task_alt', 'iconBg' => 'bg-red-50 text-red-600', 'title' => 'Complete', 'body' => 'Follow clear step-by-step instructions (watch, review, visit, test) with no ambiguity or subjective demands.'],
-                ['step' => 'Step 03', 'stepClass' => 'text-slate-600', 'icon' => 'upload_file', 'iconBg' => 'bg-slate-100 text-slate-600', 'title' => 'Submit', 'body' => 'Upload structured proof directly through the streamlined '.$brandName.' submission flow with built-in timestamping.'],
-                ['step' => 'Step 04', 'stepClass' => 'text-emerald-700', 'icon' => 'account_balance_wallet', 'iconBg' => 'bg-emerald-50 text-emerald-700', 'title' => 'Earn', 'body' => 'Once submissions pass algorithmic and reviewer verification, rewards disburse smoothly to your wallet balance.'],
+                ['step' => 'Step 01', 'stepClass' => 'text-red-600', 'icon' => 'explore', 'iconBg' => 'bg-red-50 text-red-600', 'title' => 'Discover', 'body' => 'Browse available digital campaigns and micro-tasks when they appear in your Agent dashboard.'],
+                ['step' => 'Step 02', 'stepClass' => 'text-red-600', 'icon' => 'task_alt', 'iconBg' => 'bg-red-50 text-red-600', 'title' => 'Complete', 'body' => 'Follow clear step-by-step instructions for the session (for example Watch Hours timing or other social steps).'],
+                ['step' => 'Step 03', 'stepClass' => 'text-slate-600', 'icon' => 'upload_file', 'iconBg' => 'bg-slate-100 text-slate-600', 'title' => 'Submit', 'body' => 'Upload structured proof through the '.$brandName.' submission flow when the task requires it.'],
+                ['step' => 'Step 04', 'stepClass' => 'text-emerald-700', 'icon' => 'account_balance_wallet', 'iconBg' => 'bg-emerald-50 text-emerald-700', 'title' => 'Earn', 'body' => 'When submissions meet requirements and are approved, rewards credit to your wallet. Approval is required — opening or autoplaying alone is not enough.'],
             ] as $card)
                 <div class="bg-slate-50 rounded-xl p-5 flex flex-col gap-3.5 hover:bg-slate-100 transition-colors border border-slate-100">
                     <div class="w-12 h-12 rounded-lg {{ $card['iconBg'] }} flex items-center justify-center">
@@ -86,7 +106,7 @@
 </section>
 
 {{-- Marketplace preview --}}
-<section class="w-full bg-white py-14 sm:py-20">
+<section class="w-full bg-slate-50 py-14 sm:py-20 border-y border-slate-100">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         @php
             $brandPaths = [
@@ -106,9 +126,9 @@
                 'social' => '#6366F1',
             ];
             $fallbackTasks = [
-                ['brand' => 'youtube', 'iconBg' => 'bg-red-50', 'label' => 'YouTube Engagement', 'badge' => '142 spots left', 'badgeClass' => 'text-emerald-700 bg-emerald-50', 'title' => 'Watch 3-minute video and share thoughtful feedback', 'reward' => '₦250', 'time' => '5 mins', 'href' => route('register.agent')],
-                ['brand' => 'instagram', 'iconBg' => 'bg-pink-50', 'label' => 'Instagram Growth', 'badge' => 'High Priority', 'badgeClass' => 'text-primary bg-blue-50', 'title' => 'Engage with posts and leave authentic feedback', 'reward' => '₦850', 'time' => '12 mins', 'href' => route('register.agent')],
-                ['brand' => 'tiktok', 'iconBg' => 'bg-slate-100', 'label' => 'TikTok Engagement', 'badge' => 'Open', 'badgeClass' => 'text-slate-600 bg-slate-100', 'title' => 'Watch short clips and complete engagement steps', 'reward' => '₦180', 'time' => '3 mins', 'href' => route('register.agent')],
+                ['brand' => 'youtube', 'iconBg' => 'bg-red-50', 'label' => 'YouTube Watch Hours', 'badge' => 'Example', 'badgeClass' => 'text-slate-600 bg-slate-100', 'title' => 'Complete a timed Watch Hours task session when available', 'reward' => 'If approved', 'time' => 'Per task', 'href' => route('register.agent')],
+                ['brand' => 'instagram', 'iconBg' => 'bg-pink-50', 'label' => 'Instagram activity', 'badge' => 'Example', 'badgeClass' => 'text-slate-600 bg-slate-100', 'title' => 'Engage with posts according to campaign instructions', 'reward' => 'If approved', 'time' => 'Per task', 'href' => route('register.agent')],
+                ['brand' => 'tiktok', 'iconBg' => 'bg-slate-100', 'label' => 'TikTok activity', 'badge' => 'Example', 'badgeClass' => 'text-slate-600 bg-slate-100', 'title' => 'Complete engagement steps listed in the task brief', 'reward' => 'If approved', 'time' => 'Per task', 'href' => route('register.agent')],
             ];
             $tasks = collect($marketplaceTasks ?? [])->isNotEmpty()
                 ? collect($marketplaceTasks)
@@ -118,22 +138,22 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
             <div class="lg:col-span-5">
                 <div class="relative rounded-2xl overflow-hidden shadow-lg bg-slate-100 h-64 sm:h-80 lg:h-full min-h-[280px]">
-                    <img src="{{ $imgMobile }}" alt="Agent evaluating campaign work on mobile" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
+                    <img src="{{ $imgMobile }}" alt="Agent reviewing a task session on mobile" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
                     <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
                     <div class="absolute bottom-0 inset-x-0 p-4 sm:p-5 text-white">
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-blue-200">Active Session</span>
-                        <p class="font-display text-base sm:text-lg font-bold mt-1 leading-snug">Real-time task validation interface</p>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-red-200">Task sessions</span>
+                        <p class="font-display text-base sm:text-lg font-bold mt-1 leading-snug">Watch Hours and other social activities when open</p>
                     </div>
                 </div>
             </div>
             <div class="lg:col-span-7 flex flex-col gap-4">
                 <div>
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-primary">Live Marketplace Preview</span>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-red-600">Marketplace preview</span>
                     <h2 class="font-display text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">
-                        Find tasks that fit you.
+                        Available tasks when campaigns are live
                     </h2>
                     <p class="text-sm text-slate-600 mt-1.5 leading-relaxed">
-                        Fresh tasks are published every hour across content testing, app usability, and genuine consumer engagement.
+                        Examples below. Actual open tasks vary — availability is not guaranteed.
                     </p>
                 </div>
                 <div class="flex flex-col gap-2.5">
@@ -143,7 +163,7 @@
                             $path = $brandPaths[$brand] ?? $brandPaths['social'];
                             $fill = $brandColors[$brand] ?? $brandColors['social'];
                         @endphp
-                        <div class="bg-slate-50 rounded-xl px-3.5 py-3 hover:shadow-sm transition-shadow border border-slate-100">
+                        <div class="bg-white rounded-xl px-3.5 py-3 hover:shadow-sm transition-shadow border border-slate-100">
                             <div class="flex items-center justify-between gap-2">
                                 <div class="flex items-center gap-2 min-w-0">
                                     <span class="w-7 h-7 rounded-md {{ $task['iconBg'] ?? 'bg-slate-100' }} flex items-center justify-center shrink-0">
@@ -153,7 +173,7 @@
                                     </span>
                                     <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate">{{ $task['label'] }}</span>
                                 </div>
-                                <div class="inline-flex items-center gap-1 text-[10px] font-medium {{ $task['badgeClass'] }} px-2 py-0.5 rounded-full shrink-0">
+                                <div class="inline-flex items-center gap-1 text-[10px] font-medium {{ $task['badgeClass'] ?? 'text-slate-600 bg-slate-100' }} px-2 py-0.5 rounded-full shrink-0">
                                     <span class="w-1.5 h-1.5 rounded-full bg-current opacity-70"></span>
                                     {{ $task['badge'] }}
                                 </div>
@@ -163,14 +183,14 @@
                                 <div class="flex items-center gap-5">
                                     <div>
                                         <span class="text-[9px] font-bold uppercase tracking-wider text-slate-500">Reward</span>
-                                        <p class="font-display text-base sm:text-lg font-bold text-primary leading-tight">{{ $task['reward'] }}</p>
+                                        <p class="font-display text-base sm:text-lg font-bold text-red-600 leading-tight">{{ $task['reward'] }}</p>
                                     </div>
                                     <div>
                                         <span class="text-[9px] font-bold uppercase tracking-wider text-slate-500">Est. Time</span>
                                         <p class="text-xs sm:text-sm font-semibold text-slate-900 leading-tight">{{ $task['time'] }}</p>
                                     </div>
                                 </div>
-                                <a href="{{ $task['href'] ?? route('register.agent') }}" class="inline-flex items-center gap-1 font-semibold text-xs text-primary hover:text-primary-hover px-2.5 py-1.5 bg-white rounded-lg shadow-sm border border-slate-100">
+                                <a href="{{ $task['href'] ?? route('register.agent') }}" class="inline-flex items-center gap-1 font-semibold text-xs text-red-600 hover:text-red-700 px-2.5 py-1.5 bg-white rounded-lg shadow-sm border border-slate-100">
                                     <span>View Task</span>
                                     <span class="material-symbols-outlined text-[14px]" aria-hidden="true">arrow_forward</span>
                                 </a>
@@ -186,25 +206,25 @@
 {{-- Final CTA --}}
 <section class="w-full bg-white py-14 sm:py-20">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="w-full bg-primary rounded-2xl p-8 sm:p-12 lg:p-16 text-white shadow-xl flex flex-col items-center text-center">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-blue-100">Start In Minutes</span>
+        <div class="w-full bg-red-600 rounded-2xl p-8 sm:p-12 lg:p-16 text-white shadow-xl flex flex-col items-center text-center">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-red-100">Start when you are ready</span>
             <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-white mt-2 max-w-2xl">
-                Ready to turn your screen time into real rewards?
+                Ready to join {{ $brandName }} as an Agent?
             </h2>
-            <p class="text-base sm:text-lg text-blue-100 mt-3 max-w-xl leading-relaxed">
-                Join thousands of active {{ $brandName }} Agents completing structured digital campaigns daily.
+            <p class="text-base sm:text-lg text-red-50 mt-3 max-w-xl leading-relaxed">
+                Register to access available task sessions. Rewards are paid when requirements are met and work is approved — not for simply opening or autoplaying content.
             </p>
             <div class="flex flex-wrap items-center justify-center gap-3 mt-8">
-                <a href="{{ route('register.agent') }}" class="inline-flex items-center gap-1.5 font-semibold text-sm bg-white text-primary px-6 py-3 rounded-xl hover:bg-slate-50 transition-colors shadow-md">
+                <a href="{{ route('register.agent') }}" class="inline-flex items-center gap-1.5 font-semibold text-sm bg-white text-red-600 px-6 py-3 rounded-xl hover:bg-slate-50 transition-colors shadow-md">
                     <span>Become an Agent</span>
                     <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
                 </a>
-                <a href="{{ route('help') }}" class="inline-flex items-center gap-1.5 font-semibold text-sm text-white hover:bg-primary-hover px-6 py-3 rounded-xl transition-colors">
+                <a href="{{ route('help') }}" class="inline-flex items-center gap-1.5 font-semibold text-sm text-white hover:bg-red-700 px-6 py-3 rounded-xl transition-colors">
                     <span>Visit Help Center</span>
                 </a>
             </div>
-            <div class="mt-6 text-blue-100 text-xs font-medium">
-                100% free registration · No hidden fees · Fast verified payouts
+            <div class="mt-6 text-red-100 text-xs font-medium">
+                Free registration · Approval-based rewards · No guaranteed earnings or task availability
             </div>
         </div>
     </div>

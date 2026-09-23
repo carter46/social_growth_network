@@ -116,7 +116,7 @@
                             @endif
                             <a
                                 class="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm sm:text-base px-5 py-3 rounded-lg shadow-sm transition-all w-full sm:w-auto"
-                                href="{{ route('register') }}"
+                                href="{{ $watchHoursHref }}"
                             >
                                 <span>Pay For Watch Hours</span>
                                 <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
@@ -240,13 +240,13 @@
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="mb-8 sm:mb-10">
             <span class="text-slate-500 font-bold text-xs sm:text-sm tracking-wider uppercase mb-2 block">Other platforms</span>
-            <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-display">Need Facebook, Instagram, TikTok, or Twitter?</h2>
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-display">Need other social media services?</h2>
             <p class="text-slate-600 text-base sm:text-lg mt-2 max-w-xl">Additional platform packages live here. YouTube is covered in the dedicated section above.</p>
         </div>
 
         @if($filterCategories->isNotEmpty())
-            <div class="mb-10 w-full min-w-0">
-                <div class="overflow-x-auto scrollbar-hide overscroll-x-contain bg-slate-100 rounded-xl -mx-1 px-1">
+            <div class="mb-10 w-full min-w-0 overflow-x-hidden">
+                <div class="overflow-x-auto scrollbar-hide overscroll-x-contain bg-slate-100 rounded-xl px-1">
                     <div class="flex items-center gap-2 p-1.5 w-max min-w-full sm:min-w-0">
                         <button type="button" @click="filter = 'all'" :class="filter === 'all' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600 font-medium hover:text-slate-900'" class="px-4 py-2 rounded-lg text-sm transition-all shrink-0">All</button>
                         @foreach($filterCategories as $cat)
@@ -339,165 +339,75 @@
     </div>
 </section>
 
-{{-- 5. Creators --}}
-<section class="py-20 lg:py-28 bg-white overflow-hidden" id="creators">
+{{-- 5. Agent recruitment (final band) --}}
+<section class="py-20 lg:py-24 bg-slate-50 border-y border-slate-200/60" id="agents">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-            <div class="lg:col-span-6 relative">
-                <div class="relative rounded-2xl overflow-hidden shadow-xl border border-slate-100 min-h-[420px] sm:min-h-[520px] lg:min-h-[600px]">
-                    <img
-                        src="{{ asset('assets/images/campaign-workspace.jpg') }}"
-                        alt="Creator launching campaigns on {{ $brandName }}"
-                        class="absolute inset-0 w-full h-full object-cover object-center"
-                        loading="lazy"
-                    >
-                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"></div>
-                    <div class="absolute bottom-6 left-6 right-6 text-white">
-                        <p class="font-bold text-lg">Built for creators &amp; founders</p>
-                        <p class="text-sm text-slate-200">YouTube Watch Hours · Campaign packages · {{ $brandName }}</p>
-                    </div>
-                </div>
-                <div class="absolute -bottom-6 -right-6 -z-10 w-64 h-64 bg-red-100/50 rounded-full blur-3xl pointer-events-none"></div>
-            </div>
-            <div class="lg:col-span-6 flex flex-col items-start">
-                <span class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-2">For creators &amp; founders</span>
-                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight mb-5 font-display">
-                    {!! $ytWord('Everything you need to get your YouTube campaign moving.') !!}
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+            <div class="{{ $agentTaskPreview ? 'lg:col-span-7' : 'lg:col-span-12' }}">
+                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+                    <span class="material-symbols-outlined text-base text-red-600" aria-hidden="true">handshake</span>
+                    For Agents
+                </span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-display mb-4">
+                    Earn by completing available digital tasks
                 </h2>
-                <p class="text-slate-600 text-base sm:text-lg leading-relaxed mb-8">
-                    Skip unpredictable freelancers and opaque bots. {{ $brandName }} gives you fixed upfront packages, secure payment, and verified task activity you can review in your account.
+                <p class="text-slate-600 text-base sm:text-lg leading-relaxed mb-4 max-w-xl">
+                    Join {{ $brandName }} as an Agent. Complete available task sessions—Watch Hours and other social campaign activities when they are open—then submit according to each task’s requirements.
                 </p>
-                <div class="space-y-4 mb-9 w-full">
-                    @foreach([
-                        ['title' => 'Upfront predefined pricing — zero bidding wars', 'body' => 'Know exactly what you pay and get before committing any budget.'],
-                        ['title' => 'Verified human activity with proof validation', 'body' => 'Completions go through submission checks before they count toward your campaign.'],
-                        ['title' => 'Real-time progress monitoring in your account', 'body' => 'Track campaign progress, view completed actions, and download reports.'],
-                    ] as $point)
-                        <div class="flex items-start gap-3">
-                            <div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
-                                <span class="material-symbols-outlined text-base font-bold" aria-hidden="true">check</span>
-                            </div>
-                            <div>
-                                <h4 class="text-base font-bold text-slate-900">{{ $point['title'] }}</h4>
-                                <p class="text-sm text-slate-500">{{ $point['body'] }}</p>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-                <div class="flex flex-wrap items-center gap-5">
-                    <a class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-base px-6 py-3.5 rounded-lg shadow-sm hover:shadow transition-all" href="{{ route('register') }}">
-                        <span>Pay For Watch Hours</span>
+                <p class="text-slate-500 text-sm leading-relaxed mb-8 max-w-xl">
+                    Approved tasks can earn rewards. Earnings and open tasks are not guaranteed; rewards depend on task requirements and approval.
+                </p>
+                <div class="flex flex-wrap items-center gap-3 sm:gap-4">
+                    <a
+                        class="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm sm:text-base px-5 py-3 sm:px-6 sm:py-3.5 rounded-lg shadow-sm transition-all"
+                        href="{{ route('agents') }}"
+                    >
+                        <span>Learn more</span>
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
                     </a>
-                    <a class="inline-flex items-center gap-1.5 text-slate-700 hover:text-primary font-semibold text-base transition-colors" href="{{ route('agents') }}">
-                        <span>Watch &amp; Earn</span>
-                        <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
+                    <a
+                        class="inline-flex items-center justify-center bg-white hover:bg-slate-50 text-slate-800 font-medium text-sm sm:text-base px-5 py-3 sm:px-6 sm:py-3.5 rounded-lg border border-slate-200 transition-all"
+                        href="{{ route('register.agent') }}"
+                    >
+                        Start earning
                     </a>
                 </div>
             </div>
-        </div>
-    </div>
-</section>
-
-{{-- 6. Agents --}}
-<section class="py-14 bg-slate-50 border-y border-slate-200/60" id="agents">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="bg-white rounded-2xl p-6 sm:p-8 lg:p-10 border border-slate-200/80 shadow-sm">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                <div class="{{ $agentTaskPreview ? 'lg:col-span-7' : 'lg:col-span-12' }}">
-                    <span class="inline-flex items-center gap-1 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                        <span class="material-symbols-outlined text-base text-slate-400" aria-hidden="true">payments</span>
-                        Earn on {{ $brandName }}
-                    </span>
-                    <h3 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-3 font-display">
-                        Want to earn by completing digital tasks?
-                    </h3>
-                    <p class="text-slate-600 text-base leading-relaxed mb-6 max-w-xl">
-                        Join the Agent side of {{ $brandName }}. Discover available tasks on your phone or computer, submit proof, and receive verified fast payouts.
-                    </p>
-                    <div class="flex flex-wrap items-center gap-4">
-                        <a class="inline-flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm sm:text-base px-5 py-2.5 rounded-lg shadow-sm transition-colors" href="{{ route('register.agent') }}">
-                            Become an Agent
-                        </a>
-                        <a class="inline-flex items-center gap-1 text-sm sm:text-base font-semibold text-slate-600 hover:text-slate-900 transition-colors" href="{{ route('register.agent') }}">
-                            <span>See open tasks</span>
-                            <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_forward</span>
-                        </a>
-                    </div>
-                </div>
-                @if($agentTaskPreview)
-                    <div class="lg:col-span-5 w-full">
-                        <div class="bg-slate-50 rounded-xl p-5 border border-slate-200">
-                            <div class="flex items-center justify-between pb-3 border-b border-slate-200/80 text-xs font-semibold text-slate-500">
-                                <span class="flex items-center gap-1">
-                                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                    Live task available
+            @if($agentTaskPreview)
+                <div class="lg:col-span-5 w-full">
+                    <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between pb-3 border-b border-slate-200/80 text-xs font-semibold text-slate-500">
+                            <span class="flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                Example open task
+                            </span>
+                            <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-200 font-bold">{{ $agentTaskPreview['badge'] ?? 'Available' }}</span>
+                        </div>
+                        <div class="py-3">
+                            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">{{ $agentTaskPreview['label'] ?? 'Campaign' }}</p>
+                            <h3 class="font-bold text-slate-900 text-base mb-1">{{ $agentTaskPreview['title'] }}</h3>
+                            <div class="flex items-center justify-between bg-slate-50 px-3 py-2 rounded-lg border border-slate-200/70 mb-3 mt-3">
+                                <span class="text-xs text-slate-600 font-medium">Reward if approved</span>
+                                <span class="text-sm font-extrabold text-emerald-600">
+                                    {{ $agentTaskPreview['reward'] }}
+                                    @if(! empty($agentTaskPreview['time']) && $agentTaskPreview['time'] !== 'Flexible')
+                                        <span class="font-semibold text-slate-400">· {{ $agentTaskPreview['time'] }}</span>
+                                    @endif
                                 </span>
-                                <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-200 font-bold">{{ $agentTaskPreview['badge'] ?? 'Available' }}</span>
                             </div>
-                            <div class="py-3">
-                                <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">{{ $agentTaskPreview['label'] ?? 'Campaign' }}</p>
-                                <h4 class="font-bold text-slate-900 text-base mb-1">{{ $agentTaskPreview['title'] }}</h4>
-                                <div class="flex items-center justify-between bg-white px-3 py-2 rounded-lg border border-slate-200/70 mb-3 mt-3">
-                                    <span class="text-xs text-slate-600 font-medium">Verified reward</span>
-                                    <span class="text-sm font-extrabold text-emerald-600">
-                                        {{ $agentTaskPreview['reward'] }}
-                                        @if(! empty($agentTaskPreview['time']) && $agentTaskPreview['time'] !== 'Flexible')
-                                            <span class="font-semibold text-slate-400">· {{ $agentTaskPreview['time'] }}</span>
-                                        @endif
-                                    </span>
-                                </div>
-                            </div>
-                            <a href="{{ $agentTaskPreview['href'] }}" class="w-full py-2 bg-slate-200/70 hover:bg-slate-900 hover:text-white text-slate-700 font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1">
-                                <span>Preview task requirements</span>
-                                <span class="material-symbols-outlined text-sm" aria-hidden="true">open_in_new</span>
-                            </a>
                         </div>
+                        <a href="{{ route('agents') }}" class="w-full py-2.5 bg-slate-100 hover:bg-slate-900 hover:text-white text-slate-700 font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1">
+                            <span>Learn how tasks work</span>
+                            <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_forward</span>
+                        </a>
                     </div>
-                @endif
-            </div>
+                </div>
+            @endif
         </div>
     </div>
 </section>
 
-{{-- 7. Final CTA --}}
-<section class="py-20 lg:py-24 text-white relative overflow-hidden">
-    <div class="absolute inset-0 z-0">
-        <img
-            src="{{ asset('assets/images/home-cta.jpg') }}"
-            alt=""
-            class="w-full h-full object-cover object-center"
-            loading="lazy"
-        >
-        <div class="absolute inset-0 bg-gradient-to-br from-red-950/90 via-red-900/85 to-slate-950/90" aria-hidden="true"></div>
-    </div>
-    <div class="absolute -top-24 -right-24 w-96 h-96 bg-red-500/25 rounded-full blur-3xl pointer-events-none z-[1]"></div>
-    <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-red-700/20 rounded-full blur-3xl pointer-events-none z-[1]"></div>
-    <div class="relative z-10 max-w-site mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div class="max-w-2xl mx-auto">
-            <div class="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white mx-auto mb-6 overflow-hidden">
-                <img src="{{ asset('assets/images/Social_Media.jpg') }}" alt="" class="w-full h-full object-cover" loading="lazy">
-            </div>
-            <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight mb-4 text-white font-display">
-                {!! $ytWord('Ready to grow YouTube Watch Hours?', 'white') !!}
-            </h2>
-            <p class="text-red-50/90 text-base sm:text-lg mb-8 max-w-xl mx-auto">
-                Choose a package, add your video URL, and launch in minutes.
-            </p>
-            <div class="flex flex-wrap items-center justify-center gap-4">
-                <a class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white font-semibold text-base px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all" href="{{ route('register') }}">
-                    <span>Pay For Watch Hours</span>
-                    <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
-                </a>
-                <a class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium text-base px-6 py-4 rounded-lg border border-white/25 transition-all" href="{{ route('agents') }}">
-                    Watch &amp; Earn
-                </a>
-            </div>
-        </div>
-    </div>
-</section>
-
-{{-- 8. FAQ strip --}}
+{{-- FAQ strip --}}
 <section class="py-12 bg-white" id="faq">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500">
         Have questions? View our comprehensive

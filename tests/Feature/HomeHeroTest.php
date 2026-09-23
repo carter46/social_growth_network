@@ -44,10 +44,16 @@ class HomeHeroTest extends TestCase
             ->assertSee('YouTube Watch Hours', false)
             ->assertSee('home-yt-featured', false)
             ->assertSee('Other platforms', false)
-            ->assertSee('Need Facebook, Instagram, TikTok, or Twitter?', false)
+            ->assertSee('Need other social media services?', false)
+            ->assertSee('Earn by completing available digital tasks', false)
+            ->assertSee('Learn more', false)
+            ->assertSee('Start earning', false)
+            ->assertSee(route('register.agent'), false)
             ->assertSee('>All<', false)
             ->assertSee('TikTok', false)
             ->assertSee('Twitter', false)
+            ->assertDontSee('id="creators"', false)
+            ->assertDontSee('Ready to grow YouTube Watch Hours?', false)
             ->assertDontSee('Guaranteed verified human activity', false)
             ->assertDontSee('Crypto Cash Exchange', false);
 

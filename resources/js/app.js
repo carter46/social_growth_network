@@ -494,6 +494,205 @@ document.addEventListener('alpine:init', () => {
             zip: options.registrantDefaults?.zip ?? '',
             country: options.registrantDefaults?.country ?? 'NG',
         },
+        isCampaign: Boolean(options.isCampaign),
+        urlPreviewUrl: options.urlPreviewUrl ?? '',
+        targetUrl: options.initialTargetUrl ?? '',
+        preview: null,
+        previewLoading: false,
+        previewError: '',
+        previewTimer: null,
+        previewRequestId: 0,
+        init() {
+            if (this.isCampaign && (this.targetUrl || '').trim().length > 8) {
+                this.fetchUrlPreview();
+            }
+        },
+        onTargetUrlInput() {
+            if (! this.isCampaign) return;
+            clearTimeout(this.previewTimer);
+            this.previewTimer = setTimeout(() => this.fetchUrlPreview(), 400);
+        },
+        safeHttpUrl(value) {
+            const url = String(value || '').trim();
+            if (! /^https?:\/\//i.test(url)) return '';
+            try {
+                const parsed = new URL(url);
+                return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : '';
+            } catch {
+                return '';
+            }
+        },
+        async fetchUrlPreview() {
+            const url = (this.targetUrl || '').trim();
+            if (! this.urlPreviewUrl || url.length < 8) {
+                this.previewRequestId += 1;
+                this.preview = null;
+                this.previewError = '';
+                this.previewLoading = false;
+                const widget = this.$refs.previewWidget;
+                if (widget) widget.innerHTML = '';
+                return;
+            }
+            const requestId = ++this.previewRequestId;
+            this.previewLoading = true;
+            this.previewError = '';
+            const fallbackOpen = this.safeHttpUrl(url);
+            try {
+                const res = await fetch(this.urlPreviewUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': this.csrfToken,
+                    },
+                    body: JSON.stringify({
+                        url,
+                        product_slug: this.productSlug,
+                    }),
+                });
+                const data = await res.json().catch(() => null);
+                if (requestId !== this.previewRequestId) return;
+                if (! res.ok || ! data || typeof data !== 'object' || ! data.mode) {
+                    this.preview = {
+                        mode: 'open_url',
+                        open_url: fallbackOpen,
+                        note: 'Preview unavailable — URL still accepted if valid.',
+                    };
+                    this.previewError = (data && data.message) || 'Preview unavailable — URL still accepted if valid.';
+                    return;
+                }
+                if (data.open_url) data.open_url = this.safeHttpUrl(data.open_url) || fallbackOpen;
+                if (data.permalink) data.permalink = this.safeHttpUrl(data.permalink) || '';
+                if (data.iframe_src) data.iframe_src = this.safeHttpUrl(data.iframe_src) || '';
+                this.preview = data;
+                this.$nextTick(() => this.mountPreviewWidget(data, requestId));
+            } catch {
+                if (requestId !== this.previewRequestId) return;
+                this.preview = {
+                    mode: 'open_url',
+                    open_url: fallbackOpen,
+                    note: 'Preview unavailable — URL still accepted if valid.',
+                };
+                this.previewError = 'Preview unavailable — URL still accepted if valid.';
+            } finally {
+                if (requestId === this.previewRequestId) {
+                    this.previewLoading = false;
+                }
+            }
+        },
+        ensureScript(src, globalCheck, matchHint) {
+            if (! window.__checkoutEmbedScripts) {
+                window.__checkoutEmbedScripts = {};
+            }
+            const cache = window.__checkoutEmbedScripts;
+            const key = matchHint || src;
+            if (globalCheck()) {
+                return Promise.resolve(true);
+            }
+            if (cache[key]) {
+                return cache[key];
+            }
+            cache[key] = new Promise((resolve) => {
+                const selector = matchHint
+                    ? `script[data-checkout-embed="${matchHint}"]`
+                    : `script[src="${src}"]`;
+                const existing = document.querySelector(selector);
+                if (existing) {
+                    if (globalCheck()) {
+                        resolve(true);
+                        return;
+                    }
+                    existing.addEventListener('load', () => resolve(Boolean(globalCheck())), { once: true });
+                    existing.addEventListener('error', () => resolve(false), { once: true });
+                    setTimeout(() => resolve(Boolean(globalCheck())), 2000);
+                    return;
+                }
+                const script = document.createElement('script');
+                script.async = true;
+                script.src = src;
+                if (matchHint) script.setAttribute('data-checkout-embed', matchHint);
+                script.onload = () => resolve(Boolean(globalCheck()));
+                script.onerror = () => resolve(false);
+                document.body.appendChild(script);
+            });
+            return cache[key];
+        },
+        async mountPreviewWidget(data, requestId) {
+            const el = this.$refs.previewWidget;
+            if (! el || ! data || data.mode !== 'widget') return;
+            if (requestId !== this.previewRequestId) return;
+            const permalink = this.safeHttpUrl(data.permalink || data.open_url || '');
+            el.innerHTML = '';
+            if (! permalink) return;
+
+            if (data.widget === 'instagram') {
+                const quote = document.createElement('blockquote');
+                quote.className = 'instagram-media';
+                quote.setAttribute('data-instgrm-permalink', permalink);
+                quote.setAttribute('data-instgrm-version', '14');
+                quote.style.maxWidth = '100%';
+                quote.style.width = '100%';
+                quote.style.margin = '0 auto';
+                el.appendChild(quote);
+                const ok = await this.ensureScript(
+                    'https://www.instagram.com/embed.js',
+                    () => Boolean(window.instgrm?.Embeds),
+                    'instagram',
+                );
+                if (requestId !== this.previewRequestId) return;
+                if (ok) {
+                    try { window.instgrm?.Embeds?.process?.(); } catch (_) { /* ignore */ }
+                } else {
+                    this.previewError = 'Preview unavailable — URL still accepted if valid.';
+                }
+                return;
+            }
+
+            if (data.widget === 'facebook') {
+                if (! document.getElementById('fb-root')) {
+                    const root = document.createElement('div');
+                    root.id = 'fb-root';
+                    document.body.prepend(root);
+                }
+                const post = document.createElement('div');
+                post.className = 'fb-post';
+                post.setAttribute('data-href', permalink);
+                post.setAttribute('data-width', 'auto');
+                el.appendChild(post);
+                const ok = await this.ensureScript(
+                    'https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v21.0',
+                    () => Boolean(window.FB?.XFBML),
+                    'facebook',
+                );
+                if (requestId !== this.previewRequestId) return;
+                if (ok) {
+                    try { window.FB?.XFBML?.parse?.(el); } catch (_) { /* ignore */ }
+                } else {
+                    this.previewError = 'Preview unavailable — URL still accepted if valid.';
+                }
+                return;
+            }
+
+            if (data.widget === 'x') {
+                const quote = document.createElement('blockquote');
+                quote.className = 'twitter-tweet';
+                const link = document.createElement('a');
+                link.href = permalink;
+                quote.appendChild(link);
+                el.appendChild(quote);
+                const ok = await this.ensureScript(
+                    'https://platform.twitter.com/widgets.js',
+                    () => Boolean(window.twttr?.widgets),
+                    'x',
+                );
+                if (requestId !== this.previewRequestId) return;
+                if (ok) {
+                    try { window.twttr?.widgets?.load?.(el); } catch (_) { /* ignore */ }
+                } else {
+                    this.previewError = 'Preview unavailable — URL still accepted if valid.';
+                }
+            }
+        },
         get selectedVariant() {
             return this.variants.find((v) => Number(v.id) === Number(this.variantId)) || null;
         },

@@ -728,35 +728,26 @@ class CatalogBrowseService
             ->take($limit)
             ->values();
 
-        $hasAgentReward = Schema::hasColumn('platform_products', 'agent_reward_per_completion');
         $hasEstimatedMinutes = Schema::hasColumn('platform_products', 'estimated_minutes');
 
-        return $products->map(function (PlatformProduct $product) use ($brandMap, $hasAgentReward, $hasEstimatedMinutes) {
+        return $products->map(function (PlatformProduct $product) use ($brandMap, $hasEstimatedMinutes) {
             $slug = $product->categorySlug() ?? '';
             $style = $brandMap[$slug] ?? ['brand' => 'social', 'iconBg' => 'bg-slate-100'];
             $label = $product->serviceCategory?->name
                 ?? $product->productType?->serviceCategory?->name
                 ?? 'Campaign';
 
-            $rewardAmount = $hasAgentReward ? $product->agent_reward_per_completion : null;
-            if ($rewardAmount !== null && (float) $rewardAmount > 0) {
-                $reward = '₦'.number_format((float) $rewardAmount, 0);
-            } else {
-                $from = $product->displayPrice();
-                $reward = $from > 0 ? 'From ₦'.number_format($from, 0) : 'Varies';
-            }
-
             $minutes = $hasEstimatedMinutes ? (int) ($product->estimated_minutes ?? 0) : 0;
-            $time = $minutes > 0 ? $minutes.' '.($minutes === 1 ? 'min' : 'mins') : 'Flexible';
+            $time = $minutes > 0 ? $minutes.' '.($minutes === 1 ? 'min' : 'mins') : 'Per task';
 
             return [
                 'brand' => $style['brand'],
                 'iconBg' => $style['iconBg'],
                 'label' => $label,
-                'badge' => 'Available',
-                'badgeClass' => 'text-emerald-700 bg-emerald-50',
+                'badge' => 'Example',
+                'badgeClass' => 'text-slate-600 bg-slate-100',
                 'title' => $product->title,
-                'reward' => $reward,
+                'reward' => 'If approved',
                 'time' => $time,
                 'href' => route('register.agent'),
             ];

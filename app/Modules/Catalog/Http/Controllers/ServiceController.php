@@ -40,9 +40,14 @@ class ServiceController extends Controller
         $sort = $request->string('sort')->toString() ?: 'popular';
         $budget = $request->string('budget')->toString();
 
-        $groups = $this->browse->groupCards($this->content);
+        $allGroups = $this->browse->groupCards($this->content);
+        $youtubeCatalog = $this->browse->homeYouTubeCatalog();
+        $groups = $allGroups
+            ->filter(fn ($card) => ($card['slug'] ?? '') !== 'youtube')
+            ->values();
 
-        if ($categorySlug !== '' && ! $this->browse->isGroup($categorySlug)) {
+        // YouTube lives in the feature band above — never in Other Social filters/results.
+        if ($categorySlug === 'youtube' || ($categorySlug !== '' && ! $this->browse->isGroup($categorySlug))) {
             $categorySlug = '';
         }
 
@@ -55,11 +60,19 @@ class ServiceController extends Controller
                 'heroMedia.variants',
             ]);
 
+        $youtubeCategory = $this->browse->findServiceCategory('youtube');
+
         if ($categorySlug !== '') {
             $category = $this->browse->findServiceCategory($categorySlug);
             if ($category && Schema::hasColumn('platform_products', 'service_category_id')) {
                 $productsQuery->ofCategory($category);
             }
+        } elseif ($youtubeCategory && Schema::hasColumn('platform_products', 'service_category_id')) {
+            // Other Social Media: exclude YouTube (covered in the feature band above).
+            $productsQuery->where(function ($inner) use ($youtubeCategory) {
+                $inner->whereNull('service_category_id')
+                    ->orWhere('service_category_id', '!=', $youtubeCategory->id);
+            });
         }
 
         if ($q !== '') {
@@ -91,7 +104,16 @@ class ServiceController extends Controller
             ->paginate(12)
             ->withQueryString();
 
-        $totalVisible = PlatformProduct::query()->visibleToPublic()->count();
+        $otherSocialTotal = PlatformProduct::query()
+            ->visibleToPublic()
+            ->when(
+                $youtubeCategory && Schema::hasColumn('platform_products', 'service_category_id'),
+                fn ($q) => $q->where(function ($inner) use ($youtubeCategory) {
+                    $inner->whereNull('service_category_id')
+                        ->orWhere('service_category_id', '!=', $youtubeCategory->id);
+                })
+            )
+            ->count();
 
         $payload = [
             'groups' => $groups,
@@ -100,8 +122,9 @@ class ServiceController extends Controller
             'activeCategory' => $categorySlug,
             'sort' => $sort,
             'budget' => $budget,
-            'totalVisible' => $totalVisible,
+            'totalVisible' => $otherSocialTotal,
             'popularTags' => $this->browse->homePopularSearchTags(5),
+            'youtubeCatalog' => $youtubeCatalog,
         ];
 
         if ($request->headers->get('X-Services-Filter') === '1' || $request->boolean('partial')) {

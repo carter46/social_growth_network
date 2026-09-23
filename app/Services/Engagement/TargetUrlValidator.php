@@ -46,13 +46,29 @@ class TargetUrlValidator
         $host = Str::startsWith($host, 'www.') ? substr($host, 4) : $host;
 
         return match (true) {
-            str_contains($host, 'youtube.com'), $host === 'youtu.be' => 'youtube',
-            str_contains($host, 'facebook.com'), str_contains($host, 'fb.watch'), str_contains($host, 'fb.com') => 'facebook',
-            str_contains($host, 'instagram.com') => 'instagram',
-            str_contains($host, 'tiktok.com') => 'tiktok',
-            str_contains($host, 'twitter.com'), $host === 'x.com' => 'x',
+            self::hostMatches($host, ['youtube.com', 'youtu.be', 'm.youtube.com']) => 'youtube',
+            self::hostMatches($host, ['facebook.com', 'fb.com', 'fb.watch', 'm.facebook.com']) => 'facebook',
+            self::hostMatches($host, ['instagram.com']) => 'instagram',
+            self::hostMatches($host, ['tiktok.com', 'vm.tiktok.com']) => 'tiktok',
+            self::hostMatches($host, ['twitter.com', 'x.com', 'mobile.twitter.com']) => 'x',
             default => null,
         };
+    }
+
+    /**
+     * Exact host or trusted subdomain (avoids notinstagram.com spoofing).
+     *
+     * @param  list<string>  $allowed
+     */
+    private static function hostMatches(string $host, array $allowed): bool
+    {
+        foreach ($allowed as $domain) {
+            if ($host === $domain || str_ends_with($host, '.'.$domain)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -102,7 +118,7 @@ class TargetUrlValidator
         $host = strtolower((string) ($parts['host'] ?? ''));
         $path = (string) ($parts['path'] ?? '');
 
-        if (str_contains($host, 'youtu.be')) {
+        if (self::hostMatches(Str::startsWith($host, 'www.') ? substr($host, 4) : $host, ['youtu.be'])) {
             $id = ltrim($path, '/');
 
             return $id !== '' ? $id : null;

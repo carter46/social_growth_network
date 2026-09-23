@@ -76,6 +76,7 @@ Route::get('/agents', function (
 ) {
     return view('pages.agents', [
         'marketplaceTasks' => $browse->agentsMarketplacePreviewCards(3),
+        'youtubeCatalog' => $browse->homeYouTubeCatalog(),
     ]);
 })->name('agents');
 Route::get('/help', function () {
@@ -227,6 +228,9 @@ Route::middleware(['auth', 'verified', 'role:user'])->prefix('dashboard')->name(
     Route::post('/services/domain-connect-scan', [\App\Http\Controllers\Dashboard\DiscoverServicesController::class, 'domainConnectScan'])
         ->middleware(['verified', 'throttle:30,1'])
         ->name('.services.domain-connect-scan');
+    Route::post('/services/url-preview', [\App\Http\Controllers\Dashboard\DiscoverServicesController::class, 'urlPreview'])
+        ->middleware(['verified', 'throttle:30,1'])
+        ->name('.services.url-preview');
     Route::get('/services/domain-tlds', [\App\Http\Controllers\Dashboard\DiscoverServicesController::class, 'domainTlds'])
         ->middleware(['verified'])
         ->name('.services.domain-tlds');
