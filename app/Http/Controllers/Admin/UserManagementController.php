@@ -461,6 +461,14 @@ class UserManagementController extends Controller
                 'label' => $variant->displayLabel(),
                 'price' => (float) $variant->price,
                 'duration_months' => $variant->duration_months,
+                'per_unit' => $variant->isPerUnit(),
+                'unit_price' => $variant->isPerUnit() ? (float) $variant->billingUnitPrice() : null,
+                'min_units' => $variant->isPerUnit() ? $variant->effectiveMinUnits() : null,
+                'max_units' => $variant->isPerUnit() ? $variant->effectiveMaxUnits() : null,
+                'unit_label_plural' => $variant->resolveUnitLabelPlural(
+                    \App\Enums\EngagementMetric::fromProductSlug($product->slug)
+                ),
+                'starting_from' => $variant->startingFromAmount(),
             ])->values(),
         ])->values();
 
@@ -478,6 +486,7 @@ class UserManagementController extends Controller
         $validated = $request->validate([
             'product_slug' => ['required', 'string', 'max:255'],
             'variant_id' => ['required', 'integer', 'exists:platform_product_variants,id'],
+            'units' => ['nullable', 'integer', 'min:1', 'max:1000000'],
             'mark_paid' => ['nullable', 'boolean'],
             'purchased_at' => ['nullable', 'date', 'before_or_equal:today'],
             'domain_fqdn' => ['nullable', 'string', 'max:255'],
@@ -488,15 +497,27 @@ class UserManagementController extends Controller
             ->where('slug', $validated['product_slug'])
             ->firstOrFail();
 
-        PlatformProductVariant::query()
+        $variant = PlatformProductVariant::query()
             ->whereKey($validated['variant_id'])
             ->where('platform_product_id', $product->id)
             ->where('is_active', true)
             ->firstOrFail();
 
+        $quantity = 1;
+        if ($variant->isPerUnit()) {
+            $quantity = (int) ($validated['units'] ?? $variant->effectiveMinUnits());
+            $min = $variant->effectiveMinUnits();
+            $max = $variant->effectiveMaxUnits();
+            if ($quantity < $min || $quantity > $max) {
+                return redirect()
+                    ->route('admin.users.show', $user)
+                    ->with('error', "Units must be between {$min} and {$max}.");
+            }
+        }
+
         $data = [
             'variant_id' => (int) $validated['variant_id'],
-            'quantity' => 1,
+            'quantity' => $quantity,
             'idempotency_key' => (string) Str::uuid(),
             'payment_method' => Order::PAYMENT_MANUAL_BANK_TRANSFER,
             'admin_skip_domain_validation' => true,

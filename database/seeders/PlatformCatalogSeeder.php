@@ -225,10 +225,20 @@ class PlatformCatalogSeeder extends Seeder
             ->first();
 
         if ($existing) {
+            if ($product->is_campaign
+                && ! $existing->isPerUnit()
+                && $existing->included_units === null
+                && Schema::hasColumn('platform_product_variants', 'included_units')) {
+                $existing->forceFill([
+                    'pricing_mode' => PlatformProductVariant::PRICING_FIXED,
+                    'included_units' => PlatformProductVariant::REFERENCE_UNITS,
+                ])->save();
+            }
+
             return;
         }
 
-        PlatformProductVariant::query()->create([
+        $payload = [
             'platform_product_id' => $product->id,
             'name' => 'Standard',
             'price' => $baselinePrice,
@@ -236,7 +246,16 @@ class PlatformCatalogSeeder extends Seeder
             'is_default' => true,
             'is_active' => true,
             'sort_order' => 0,
-        ]);
+        ];
+
+        if (Schema::hasColumn('platform_product_variants', 'pricing_mode')) {
+            $payload['pricing_mode'] = PlatformProductVariant::PRICING_FIXED;
+        }
+        if (Schema::hasColumn('platform_product_variants', 'included_units') && $product->is_campaign) {
+            $payload['included_units'] = PlatformProductVariant::REFERENCE_UNITS;
+        }
+
+        PlatformProductVariant::query()->create($payload);
     }
 
     private function clearMarketingJson(): void

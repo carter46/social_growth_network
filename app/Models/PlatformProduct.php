@@ -319,9 +319,13 @@ class PlatformProduct extends Model
             ? $this->activeVariants
             : $this->activeVariants()->get();
 
-        $lowest = $variants->sortBy('price')->first();
+        if ($variants->isEmpty()) {
+            return (float) $this->base_price;
+        }
 
-        return (float) ($lowest?->price ?? $this->base_price);
+        return (float) $variants
+            ->map(fn (PlatformProductVariant $v) => $v->startingFromAmount())
+            ->min();
     }
 
     /** Landscape thumb for admin lists — hero image is source of truth. */

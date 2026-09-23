@@ -29,12 +29,8 @@
     $variants = $product->activeVariants->sortBy('price')->values();
     $defaultVariant = $variants->firstWhere('is_default', true)
         ?? $variants->first();
-    $variantPayload = $variants->map(fn ($v) => [
-        'id' => $v->id,
-        'label' => $v->displayLabel(),
-        'price' => (float) $v->price,
-        'description' => (string) ($v->description ?? ''),
-    ])->values();
+    $metric = \App\Enums\EngagementMetric::fromProductSlug($product->slug);
+    $variantPayload = $variants->map(fn ($v) => $v->storefrontPayload($metric))->values();
 
     $showAbout = filled($product->description);
 
@@ -89,13 +85,38 @@
             x-data="{
                 variants: @js($variantPayload),
                 variantId: {{ (int) ($defaultVariant?->id ?? 0) }},
+                units: {{ (int) ($defaultVariant?->isPerUnit() ? $defaultVariant->effectiveMinUnits() : 0) }},
                 get selected() {
                     return this.variants.find(v => Number(v.id) === Number(this.variantId)) || this.variants[0] || null;
+                },
+                get isPerUnit() {
+                    return !!(this.selected && this.selected.per_unit);
+                },
+                get unitsValid() {
+                    if (! this.isPerUnit) return true;
+                    const u = Number(this.units);
+                    const min = Number(this.selected.min_units || 1);
+                    const max = Number(this.selected.max_units || 100000);
+                    return Number.isFinite(u) && u >= min && u <= max;
+                },
+                get estimatedTotal() {
+                    if (! this.selected) return 0;
+                    if (! this.isPerUnit) return Number(this.selected.price) || 0;
+                    return (Number(this.selected.unit_price) || 0) * (Number(this.units) || 0);
+                },
+                onVariantChange() {
+                    if (this.isPerUnit) {
+                        this.units = Number(this.selected.min_units || 1);
+                    }
                 },
                 checkoutUrl() {
                     const base = @js(route('dashboard.services.checkout', $product->slug));
                     if (! this.selected) return base;
-                    return base + (base.includes('?') ? '&' : '?') + 'variant=' + this.selected.id;
+                    let url = base + (base.includes('?') ? '&' : '?') + 'variant=' + this.selected.id;
+                    if (this.isPerUnit) {
+                        url += '&units=' + encodeURIComponent(String(this.units || ''));
+                    }
+                    return url;
                 }
             }"
         >
@@ -135,8 +156,20 @@
                             <div class="rounded-xl border border-primary bg-primary/5 px-4 py-3 space-y-1">
                                 <div class="flex items-center justify-between gap-3">
                                     <span class="text-sm font-medium text-slate-900">{{ $only->displayLabel() }}</span>
-                                    <span class="font-semibold text-slate-900">₦{{ number_format((float) $only->price, 0) }}</span>
+                                    <span class="font-semibold text-slate-900">
+                                        @if($only->isPerUnit())
+                                            From ₦{{ number_format($only->startingFromAmount(), 0) }}
+                                        @else
+                                            ₦{{ number_format((float) $only->price, 0) }}
+                                        @endif
+                                    </span>
                                 </div>
+                                @if($only->isPerUnit())
+                                    <p class="text-xs text-slate-600">
+                                        ₦{{ number_format((float) $only->billingUnitPrice(), 2) }} per {{ $only->resolveUnitLabel($metric) }}
+                                        · min {{ $only->effectiveMinUnits() }}
+                                    </p>
+                                @endif
                                 @if(filled($only->description))
                                     <p class="text-xs leading-relaxed text-slate-600">{{ $only->description }}</p>
                                 @endif
@@ -149,10 +182,15 @@
                                 id="product-plan-select"
                                 class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                                 x-model.number="variantId"
+                                @change="onVariantChange()"
                             >
                                 @foreach($variants as $variant)
                                     <option value="{{ $variant->id }}" @selected((int) $defaultVariant?->id === (int) $variant->id)>
-                                        {{ $variant->displayLabel() }}
+                                        @if($variant->isPerUnit())
+                                            {{ $variant->displayLabel() }} — From ₦{{ number_format($variant->startingFromAmount(), 0) }}
+                                        @else
+                                            {{ $variant->displayLabel() }} — ₦{{ number_format((float) $variant->price, 0) }}
+                                        @endif
                                     </option>
                                 @endforeach
                             </select>
@@ -176,8 +214,27 @@
                         ></p>
                         <p
                             class="mt-1 text-base font-semibold text-slate-900"
-                            x-text="selected ? ('₦' + Number(selected.price).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : ''"
+                            x-text="'₦' + Number(estimatedTotal).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"
                         ></p>
+                    </div>
+
+                    <div class="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4" x-show="isPerUnit" x-cloak>
+                        <label class="block text-sm font-medium text-slate-700">
+                            Enter number of <span x-text="selected ? selected.unit_label_plural : 'units'"></span>
+                        </label>
+                        <input
+                            type="number"
+                            class="w-full max-w-xs rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900"
+                            x-model.number="units"
+                            :min="selected ? selected.min_units : 1"
+                            :max="selected ? selected.max_units : 100000"
+                        >
+                        <p class="text-xs text-slate-500">
+                            Min <span x-text="selected ? selected.min_units : ''"></span>
+                            · Max <span x-text="selected ? selected.max_units : ''"></span>
+                            · <span x-text="selected ? ('₦' + Number(selected.unit_price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 }) + ' each') : ''"></span>
+                        </p>
+                        <p class="text-xs text-red-600" x-show="!unitsValid" x-cloak>Enter a quantity within the allowed range.</p>
                     </div>
                 </div>
 
@@ -192,6 +249,8 @@
                         size="lg"
                         class="!px-8 hover:!bg-primary-hover"
                         x-bind:href="checkoutUrl()"
+                        x-bind:disabled="!unitsValid"
+                        @click="if (!unitsValid) { $event.preventDefault() }"
                     >
                         {{ auth()->check() ? 'Buy Now' : 'Log in to buy' }}
                     </x-ui.button>

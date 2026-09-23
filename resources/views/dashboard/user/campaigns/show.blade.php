@@ -35,7 +35,13 @@
             </div>
             @endif
             <div>
-                <dt class="text-text-muted">Your package price</dt>
+                <dt class="text-text-muted">
+                    @if (($campaign->meta['options']['pricing_mode'] ?? null) === 'per_unit')
+                        Locked price per unit
+                    @else
+                        Your package price
+                    @endif
+                </dt>
                 <dd class="font-semibold">₦{{ number_format((float) $campaign->locked_creator_price, 2) }}</dd>
             </div>
             <div>

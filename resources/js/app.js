@@ -443,7 +443,8 @@ document.addEventListener('alpine:init', () => {
             ?? variants.find((v) => v.is_default)?.id
             ?? variants[0]?.id
             ?? null,
-        qty: 1,
+        qty: Number(options.selectedUnits || 1),
+        productPageUrl: options.productPageUrl || '',
         domainMode: options.domainMode
             ?? (options.requireDomainChoice ? 'buy' : 'none'),
         domainLabel: options.oldDomainLabel ?? '',
@@ -493,10 +494,14 @@ document.addEventListener('alpine:init', () => {
             zip: options.registrantDefaults?.zip ?? '',
             country: options.registrantDefaults?.country ?? 'NG',
         },
+        get selectedVariant() {
+            return this.variants.find((v) => Number(v.id) === Number(this.variantId)) || null;
+        },
         get planUnit() {
-            const row = this.variants.find((v) => Number(v.id) === Number(this.variantId));
-            if (row) return Number(row.price);
-            return this.basePrice;
+            const row = this.selectedVariant;
+            if (! row) return this.basePrice;
+            if (row.per_unit) return Number(row.unit_price || 0);
+            return Number(row.price);
         },
         get domainAddon() {
             if (this.isDomainProduct) return this.domainRetailPrice;
@@ -507,9 +512,23 @@ document.addEventListener('alpine:init', () => {
         },
         get total() {
             if (this.isDomainProduct) return this.domainAddon;
-            let sum = this.planUnit * (Number(this.qty) || 1);
+            const row = this.selectedVariant;
+            let sum;
+            if (row?.per_unit) {
+                sum = this.planUnit * (Number(this.qty) || 0);
+            } else {
+                sum = this.planUnit; // fixed: no package multiplier
+            }
             sum += this.domainAddon;
             return sum;
+        },
+        onCheckoutVariantChange() {
+            const row = this.selectedVariant;
+            if (row?.per_unit && this.productPageUrl) {
+                window.location.href = this.productPageUrl;
+                return;
+            }
+            this.qty = 1;
         },
         get totalFormatted() {
             return new Intl.NumberFormat('en-NG', { maximumFractionDigits: 2 }).format(this.total);

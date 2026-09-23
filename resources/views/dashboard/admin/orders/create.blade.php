@@ -40,7 +40,7 @@
                 <p class="mt-1 text-xs text-text-muted">Domain products require user checkout. Use simple products here.</p>
             </div>
             <x-dashboard.input name="variant_id" type="number" label="Variant ID (optional)" :value="old('variant_id')" />
-            <x-dashboard.input name="quantity" type="number" label="Quantity" :value="old('quantity', 1)" min="1" max="100" required />
+            <x-dashboard.input name="quantity" type="number" label="Quantity / units (1 for fixed plans; total units for per-unit plans)" :value="old('quantity', 1)" min="1" max="1000000" required />
             <input type="hidden" name="mark_paid" value="0">
             <x-dashboard.toggle name="mark_paid" label="Mark paid immediately (fulfill order)" :checked="old('mark_paid')" value="1" />
             <x-dashboard.button type="submit" variant="primary">Create order</x-dashboard.button>

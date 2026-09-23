@@ -84,7 +84,7 @@ class OrderAdminController extends Controller
             'user_id' => ['required', 'integer', 'exists:users,id'],
             'product_slug' => ['required', 'string', 'max:255'],
             'variant_id' => ['nullable', 'integer', 'exists:platform_product_variants,id'],
-            'quantity' => ['required', 'integer', 'min:1', 'max:100'],
+            'quantity' => ['required', 'integer', 'min:1', 'max:1000000'],
             'mark_paid' => ['nullable', 'boolean'],
         ]);
 
@@ -93,19 +93,36 @@ class OrderAdminController extends Controller
             ->where('slug', $validated['product_slug'])
             ->firstOrFail();
 
+        $variant = null;
         if (! empty($validated['variant_id'])) {
-            PlatformProductVariant::query()
+            $variant = PlatformProductVariant::query()
                 ->whereKey($validated['variant_id'])
                 ->where('platform_product_id', $product->id)
                 ->where('is_active', true)
                 ->firstOrFail();
+        } else {
+            $variant = $product->activeVariants()->orderBy('sort_order')->first();
+        }
+
+        $quantity = (int) $validated['quantity'];
+        if ($variant?->isPerUnit()) {
+            $min = $variant->effectiveMinUnits();
+            $max = $variant->effectiveMaxUnits();
+            if ($quantity < $min || $quantity > $max) {
+                return back()->withInput()->with('error', "Units must be between {$min} and {$max}.");
+            }
+        } else {
+            if ($quantity !== 1) {
+                return back()->withInput()->with('error', 'Fixed plans must use quantity 1.');
+            }
+            $quantity = 1;
         }
 
         $user = User::query()->findOrFail((int) $validated['user_id']);
 
         $data = [
-            'variant_id' => $validated['variant_id'] ?? null,
-            'quantity' => (int) $validated['quantity'],
+            'variant_id' => $variant?->id,
+            'quantity' => $quantity,
             'domain_mode' => 'none',
             'idempotency_key' => (string) Str::uuid(),
             'payment_method' => Order::PAYMENT_MANUAL_BANK_TRANSFER,

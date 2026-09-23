@@ -748,8 +748,47 @@ class PlatformCheckoutService
             }
         }
 
+        $metric = \App\Enums\EngagementMetric::fromProductSlug($product->slug);
         $unitPrice = number_format((float) ($variant?->price ?? $product->base_price), 2, '.', '');
-        $qty = max(1, (int) $data['quantity']);
+        $requestedQty = max(1, (int) ($data['quantity'] ?? 1));
+        $qty = $requestedQty;
+        $engagementQuantity = $qty;
+
+        if ($variant?->isPerUnit()) {
+            $unitPrice = $variant->billingUnitPrice();
+            $min = $variant->effectiveMinUnits();
+            $max = $variant->effectiveMaxUnits();
+            if ($qty < $min || $qty > $max) {
+                throw new InvalidArgumentException(
+                    "Quantity must be between {$min} and {$max} {$variant->resolveUnitLabelPlural($metric)}."
+                );
+            }
+            $engagementQuantity = $qty;
+        } elseif ($variant) {
+            // Fixed plan: charge package price once (no package multiplier).
+            if ($requestedQty !== 1) {
+                throw new InvalidArgumentException('This plan is sold as a fixed package. Quantity must be 1.');
+            }
+            $qty = 1;
+            $unitPrice = number_format((float) $variant->price, 2, '.', '');
+            if ($product->is_campaign) {
+                $included = (int) ($variant->included_units ?? 0);
+                if ($included < 1) {
+                    throw new InvalidArgumentException(
+                        'This campaign package is missing included units. Ask an admin to set Included units on the plan.'
+                    );
+                }
+                $engagementQuantity = $included;
+            } else {
+                $engagementQuantity = 1;
+            }
+        } else {
+            if ($requestedQty !== 1) {
+                throw new InvalidArgumentException('Quantity must be 1 for this product.');
+            }
+            $qty = 1;
+            $engagementQuantity = 1;
+        }
 
         $lineTotal = bcmul($unitPrice, (string) $qty, 2);
 
@@ -773,7 +812,16 @@ class PlatformCheckoutService
             'product_title' => $product->title,
             'variant_label' => $variant?->displayLabel(),
             'renew_user_tool_id' => $renewTool?->id,
+            'pricing_mode' => $variant?->isPerUnit()
+                ? PlatformProductVariant::PRICING_PER_UNIT
+                : PlatformProductVariant::PRICING_FIXED,
+            'engagement_quantity' => $engagementQuantity,
         ];
+
+        if ($variant?->isPerUnit()) {
+            $domainOptions['reference_units'] = PlatformProductVariant::REFERENCE_UNITS;
+            $domainOptions['unit_label'] = $variant->resolveUnitLabel($metric);
+        }
 
         if (! empty($data['target_url'])) {
             $targetUrl = \App\Services\Engagement\TargetUrlValidator::normalize((string) $data['target_url']);

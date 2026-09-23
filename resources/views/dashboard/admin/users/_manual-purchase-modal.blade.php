@@ -13,6 +13,7 @@
         serviceId: '',
         productSlug: '',
         variantId: '',
+        units: '',
         domainFqdn: '',
         purchasedAt: new Date().toISOString().slice(0, 10),
         markPaid: true,
@@ -28,6 +29,9 @@
             if (! product) return null;
             return product.variants.find(v => String(v.id) === String(this.variantId)) || null;
         },
+        get isPerUnit() {
+            return !!(this.selectedVariant && this.selectedVariant.per_unit);
+        },
         reset() {
             this.userId = null;
             this.userLabel = '';
@@ -39,6 +43,7 @@
             this.serviceId = '';
             this.productSlug = '';
             this.variantId = '';
+            this.units = '';
             this.domainFqdn = '';
             this.purchasedAt = new Date().toISOString().slice(0, 10);
             this.markPaid = true;
@@ -84,9 +89,19 @@
         },
         onProductChange() {
             this.variantId = '';
+            this.units = '';
             const product = this.selectedProduct;
             if (product?.variants?.length === 1) {
                 this.variantId = String(product.variants[0].id);
+                this.onVariantChange();
+            }
+        },
+        onVariantChange() {
+            const variant = this.selectedVariant;
+            if (variant?.per_unit) {
+                this.units = String(variant.min_units || 1);
+            } else {
+                this.units = '';
             }
         },
     }"
@@ -126,6 +141,16 @@
                         $event.preventDefault();
                         error = 'Select a product and plan.';
                         return;
+                    }
+                    if (isPerUnit) {
+                        const u = Number(units);
+                        const min = Number(selectedVariant?.min_units || 1);
+                        const max = Number(selectedVariant?.max_units || 100000);
+                        if (!Number.isFinite(u) || u < min || u > max) {
+                            $event.preventDefault();
+                            error = 'Enter units between ' + min + ' and ' + max + '.';
+                            return;
+                        }
                     }
                     if (isWebsite && !domainFqdn.trim()) {
                         $event.preventDefault();
@@ -187,6 +212,7 @@
                     <select
                         name="variant_id"
                         x-model="variantId"
+                        x-on:change="onVariantChange()"
                         required
                         class="w-full rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm"
                     >
@@ -194,13 +220,34 @@
                         <template x-for="variant in (selectedProduct?.variants || [])" :key="variant.id">
                             <option
                                 :value="variant.id"
-                                x-text="variant.label + ' — ₦' + Number(variant.price).toLocaleString() + (variant.duration_months ? (' · ' + variant.duration_months + ' mo') : '')"
+                                x-text="variant.label + ' — ' + (variant.per_unit
+                                    ? ('From ₦' + Number(variant.starting_from || 0).toLocaleString())
+                                    : ('₦' + Number(variant.price).toLocaleString())) + (variant.duration_months ? (' · ' + variant.duration_months + ' mo') : '')"
                             ></option>
                         </template>
                     </select>
-                    <p x-show="selectedVariant" x-cloak class="mt-1 text-xs text-text-muted">
+                    <p x-show="selectedVariant && !isPerUnit" x-cloak class="mt-1 text-xs text-text-muted">
                         Selected price: ₦<span x-text="selectedVariant ? Number(selectedVariant.price).toLocaleString(undefined, {minimumFractionDigits: 2}) : ''"></span>
                     </p>
+                    <p x-show="isPerUnit" x-cloak class="mt-1 text-xs text-text-muted">
+                        ₦<span x-text="selectedVariant ? Number(selectedVariant.unit_price || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4}) : ''"></span>
+                        per unit · min <span x-text="selectedVariant?.min_units"></span>
+                    </p>
+                </div>
+
+                <div x-show="isPerUnit" x-cloak>
+                    <label class="mb-1 block text-sm font-medium text-text-secondary">
+                        Units (<span x-text="selectedVariant?.unit_label_plural || 'units'"></span>)
+                    </label>
+                    <input
+                        type="number"
+                        name="units"
+                        x-model="units"
+                        :min="selectedVariant?.min_units || 1"
+                        :max="selectedVariant?.max_units || 100000"
+                        :required="isPerUnit"
+                        class="w-full rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm"
+                    />
                 </div>
 
                 <div x-show="isWebsite" x-cloak class="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">

@@ -8,16 +8,27 @@
     $gatewayOn = (bool) ($gatewayEnabled ?? false);
     $manualBankOn = (bool) ($manualBankTransferEnabled ?? false);
     $defaultMethod = $hasWallet ? 'wallet' : ($gatewayOn ? 'gateway' : ($manualBankOn ? 'manual_bank_transfer' : 'wallet'));
-    $variantPayload = $variants->map(fn ($v) => [
-        'id' => $v->id,
-        'price' => (float) $v->price,
-        'label' => $v->displayLabel(),
-        'description' => (string) ($v->description ?? ''),
-        'is_default' => (bool) $v->is_default,
-    ])->values();
+    $variantPayload = $variants->map(function ($v) use ($product) {
+        $metric = \App\Enums\EngagementMetric::fromProductSlug($product->slug);
+
+        return $v->storefrontPayload($metric) + ['is_default' => (bool) $v->is_default];
+    })->values();
     $selectedVariant = $variants->firstWhere('id', $defaultVariantId);
+    $selectedUnits = (int) ($selectedUnits ?? 1);
+    $engagementMetric = $engagementMetric ?? \App\Enums\EngagementMetric::fromProductSlug($product->slug);
+    $destinationLabel = match ($engagementMetric) {
+        \App\Enums\EngagementMetric::Likes, \App\Enums\EngagementMetric::Comments => 'Post URL',
+        \App\Enums\EngagementMetric::Views, \App\Enums\EngagementMetric::WatchHours => 'Video URL',
+        default => 'Campaign destination URL',
+    };
+    $destinationHelp = match ($engagementMetric) {
+        \App\Enums\EngagementMetric::Likes, \App\Enums\EngagementMetric::Comments => 'Public post URL where you want likes or comments. Profile links are not accepted.',
+        \App\Enums\EngagementMetric::Views, \App\Enums\EngagementMetric::WatchHours => 'Public video URL where you want views or watch sessions. Profile links are not accepted.',
+        default => 'Public post or video URL for this campaign (not a profile page).',
+    };
     $checkoutOptions = [
         'defaultVariantId' => $defaultVariantId,
+        'selectedUnits' => $selectedUnits,
         'basePrice' => $basePrice,
         'paymentMethod' => $defaultMethod,
         'showPlanSummary' => (bool) ($showPlanSummary ?? false),
@@ -54,6 +65,7 @@
         'hasWallet' => $hasWallet,
         'gatewayEnabled' => $gatewayOn,
         'manualBankTransferEnabled' => $manualBankOn,
+        'productPageUrl' => route('dashboard.services.product', $product->slug),
     ];
 @endphp
 <x-layout.page
@@ -124,17 +136,32 @@
                 @else
                     @if(($showPlanSummary ?? false) && $selectedVariant)
                         <input type="hidden" name="variant_id" value="{{ $selectedVariant->id }}">
+                        <input type="hidden" name="quantity" value="{{ $selectedVariant->isPerUnit() ? (int) $selectedUnits : 1 }}">
                         <div class="rounded-xl border border-border-default bg-muted/20 px-4 py-3 space-y-1">
                             <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Selected plan</p>
                             <p class="text-lg font-semibold text-text-primary">{{ $selectedVariant->displayLabel() }}</p>
-                            <p class="text-2xl font-bold text-primary">₦{{ number_format((float) $selectedVariant->price, 0) }}</p>
+                            @if($selectedVariant->isPerUnit())
+                                <p class="text-sm text-text-secondary">
+                                    {{ number_format((int) $selectedUnits) }} {{ $selectedVariant->resolveUnitLabelPlural($engagementMetric) }}
+                                    · ₦{{ number_format((float) $selectedVariant->billingUnitPrice(), 4) }} each
+                                </p>
+                                <p class="text-2xl font-bold text-primary">
+                                    ₦{{ number_format((float) $selectedVariant->billingUnitPrice() * (int) $selectedUnits, 2) }}
+                                </p>
+                            @else
+                                <p class="text-2xl font-bold text-primary">₦{{ number_format((float) $selectedVariant->price, 0) }}</p>
+                            @endif
                             @if(filled($selectedVariant->description))
                                 <p class="text-sm text-text-secondary">{{ $selectedVariant->description }}</p>
                             @endif
+                            <p class="pt-1 text-xs text-text-muted">
+                                <a href="{{ route('dashboard.services.product', $product->slug) }}" class="underline hover:text-primary">Change plan or units</a>
+                            </p>
                         </div>
                     @elseif($variants->isNotEmpty())
                         <div>
                             <label class="block text-sm font-medium text-text-secondary mb-2">Plan / variant</label>
+                            <p class="mb-2 text-xs text-text-muted">For per-unit plans, set units on the product page before checkout.</p>
                             <div class="space-y-2">
                                 @foreach($variants as $variant)
                                     <label
@@ -149,10 +176,17 @@
                                                     value="{{ $variant->id }}"
                                                     @checked((int) $defaultVariantId === (int) $variant->id)
                                                     x-model.number="variantId"
+                                                    @change="onCheckoutVariantChange()"
                                                 >
                                                 <span class="text-sm text-text-primary">{{ $variant->displayLabel() }}</span>
                                             </span>
-                                            <span class="font-semibold text-text-primary">₦{{ number_format($variant->price, 2) }}</span>
+                                            <span class="font-semibold text-text-primary">
+                                                @if($variant->isPerUnit())
+                                                    From ₦{{ number_format($variant->startingFromAmount(), 0) }}
+                                                @else
+                                                    ₦{{ number_format($variant->price, 2) }}
+                                                @endif
+                                            </span>
                                         </span>
                                         @if(filled($variant->description))
                                             <span class="pl-7 text-xs leading-relaxed text-text-secondary">{{ $variant->description }}</span>
@@ -160,21 +194,16 @@
                                     </label>
                                 @endforeach
                             </div>
+                            <input type="hidden" name="quantity" x-bind:value="qty">
                         </div>
-                    @endif
-
-                    @if($isWebsitePackage ?? false)
-                        <input type="hidden" name="quantity" value="1">
                     @else
-                        <div>
-                            <label class="block text-sm font-medium text-text-secondary mb-2">Quantity</label>
-                            <input type="number" name="quantity" min="1" max="100" x-model.number="qty" class="w-32 rounded-lg border-border-default bg-elevated text-text-primary text-sm">
-                        </div>
+                        <input type="hidden" name="quantity" value="1">
                     @endif
 
                     @if($product->is_campaign ?? false)
                         <div>
-                            <label class="block text-sm font-medium text-text-secondary mb-2">Post / video URL <span class="text-danger">*</span></label>
+                            <label class="block text-sm font-medium text-text-secondary mb-2">Campaign destination</label>
+                            <label class="block text-xs font-medium text-text-muted mb-1">{{ $destinationLabel }} <span class="text-danger">*</span></label>
                             <input
                                 type="url"
                                 name="target_url"
@@ -183,7 +212,7 @@
                                 placeholder="https://…"
                                 class="w-full rounded-lg border-border-default bg-elevated text-text-primary text-sm"
                             >
-                            <p class="mt-1 text-xs text-text-muted">Must be a public post or video URL for this platform (not a profile page).</p>
+                            <p class="mt-1 text-xs text-text-muted">{{ $destinationHelp }}</p>
                             @error('target_url')
                                 <p class="mt-1 text-xs text-danger">{{ $message }}</p>
                             @enderror

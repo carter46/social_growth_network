@@ -179,6 +179,20 @@ class DiscoverServicesController extends Controller
         }
 
         $showPlanSummary = $requestedVariantId !== null;
+        $selectedUnits = max(0, $request->integer('units'));
+        $metric = EngagementMetric::fromProductSlug($product->slug);
+
+        if ($defaultVariant?->isPerUnit()) {
+            $min = $defaultVariant->effectiveMinUnits();
+            $max = $defaultVariant->effectiveMaxUnits();
+            if ($selectedUnits < $min || $selectedUnits > $max) {
+                return redirect()
+                    ->route('dashboard.services.product', $product->slug)
+                    ->with('error', "Enter between {$min} and {$max} ".$defaultVariant->resolveUnitLabelPlural($metric).' before checkout.');
+            }
+        } else {
+            $selectedUnits = 1;
+        }
 
         $this->activity->record($request->user()->id, 'viewed', $product, 'service.checkout');
 
@@ -195,6 +209,8 @@ class DiscoverServicesController extends Controller
             'product' => $product,
             'variants' => $variants,
             'defaultVariantId' => $defaultVariant?->id,
+            'selectedUnits' => $selectedUnits,
+            'engagementMetric' => $metric,
             'basePrice' => (float) $product->displayPrice(),
             'showPlanSummary' => $showPlanSummary,
             'isWebsitePackage' => false,
@@ -244,7 +260,7 @@ class DiscoverServicesController extends Controller
 
         $rules = [
             'variant_id' => ['nullable', 'integer', 'exists:platform_product_variants,id'],
-            'quantity' => ['required', 'integer', 'min:1', 'max:100'],
+            'quantity' => ['required', 'integer', 'min:1', 'max:1000000'],
             'idempotency_key' => ['required', 'string', 'uuid', 'max:64'],
             'renew_user_tool_id' => ['nullable', 'integer', 'exists:user_tools,id'],
             'payment_method' => ['nullable', 'in:'.implode(',', $allowedMethods)],
@@ -258,6 +274,39 @@ class DiscoverServicesController extends Controller
         ];
 
         $data = $request->validate($rules);
+
+        $variant = null;
+        if (! empty($data['variant_id'])) {
+            $variant = $product->activeVariants()->whereKey((int) $data['variant_id'])->first();
+            if (! $variant) {
+                return back()->withInput()->with('error', 'Selected plan is unavailable.');
+            }
+        } else {
+            $variant = $product->activeVariants()->orderBy('sort_order')->first();
+        }
+
+        $metric = EngagementMetric::fromProductSlug($product->slug);
+
+        if ($variant?->isPerUnit()) {
+            $units = (int) $data['quantity'];
+            $min = $variant->effectiveMinUnits();
+            $max = $variant->effectiveMaxUnits();
+            if ($units < $min || $units > $max) {
+                return back()->withInput()->with(
+                    'error',
+                    "Quantity must be between {$min} and {$max} ".$variant->resolveUnitLabelPlural($metric).'.'
+                );
+            }
+        } else {
+            if ((int) $data['quantity'] !== 1) {
+                return back()->withInput()->with('error', 'This plan is sold as a fixed package. Quantity must be 1.');
+            }
+            $data['quantity'] = 1;
+        }
+
+        if ($variant) {
+            $data['variant_id'] = $variant->id;
+        }
 
         $data['payment_method'] = $data['payment_method']
             ?? ($hasWallet ? 'wallet' : ($gatewayEnabled ? 'gateway' : ($manualBankEnabled ? Order::PAYMENT_MANUAL_BANK_TRANSFER : null)));

@@ -70,8 +70,9 @@ class CampaignFulfillmentService
             'baseline_captured_at' => null,
             'last_verified_count' => null,
             'verification_mode' => $verificationMode,
-            'quantity' => max(1, (int) $item->quantity),
+            'quantity' => max(1, (int) ($options['engagement_quantity'] ?? $item->quantity)),
             'completed_count' => 0,
+            // Keep order line unit_price (package price for fixed; per-unit rate for per_unit).
             'locked_creator_price' => $item->unit_price,
             'locked_agent_reward' => $agentReward,
             'status' => Campaign::STATUS_ACTIVE,
