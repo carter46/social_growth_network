@@ -181,30 +181,24 @@
 
             {{-- Step 3: password + terms --}}
             <div class="space-y-4" x-show="step === 3" x-cloak>
-                <div class="space-y-1.5">
-                    <label for="signup-password" class="block text-sm font-medium text-slate-600">Password</label>
-                    <input
-                        id="signup-password"
-                        name="password"
-                        type="password"
-                        placeholder="••••••••"
-                        autocomplete="new-password"
-                        class="block w-full h-10 px-3 text-sm rounded-lg border border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus-ring"
-                        :required="step === 3"
-                    >
-                </div>
-                <div class="space-y-1.5">
-                    <label for="signup-password_confirmation" class="block text-sm font-medium text-slate-600">Confirm password</label>
-                    <input
-                        id="signup-password_confirmation"
-                        name="password_confirmation"
-                        type="password"
-                        placeholder="••••••••"
-                        autocomplete="new-password"
-                        class="block w-full h-10 px-3 text-sm rounded-lg border border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus-ring"
-                        :required="step === 3"
-                    >
-                </div>
+                <x-ui.input
+                    label="Password"
+                    name="password"
+                    type="password"
+                    id="signup-password"
+                    placeholder="••••••••"
+                    autocomplete="new-password"
+                    class="!bg-slate-50 !border-slate-200"
+                />
+                <x-ui.input
+                    label="Confirm password"
+                    name="password_confirmation"
+                    type="password"
+                    id="signup-password_confirmation"
+                    placeholder="••••••••"
+                    autocomplete="new-password"
+                    class="!bg-slate-50 !border-slate-200"
+                />
 
                 <label class="flex items-start gap-3 cursor-pointer">
                     <input

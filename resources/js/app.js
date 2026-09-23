@@ -1516,6 +1516,22 @@ document.addEventListener('alpine:init', () => {
             }
             const pw = document.getElementById('signup-password');
             const cpw = document.getElementById('signup-password_confirmation');
+            if (pw && ! pw.value) {
+                event.preventDefault();
+                pw.setCustomValidity('Please enter a password.');
+                pw.reportValidity();
+                pw.setCustomValidity('');
+                pw.focus();
+                return;
+            }
+            if (cpw && ! cpw.value) {
+                event.preventDefault();
+                cpw.setCustomValidity('Please confirm your password.');
+                cpw.reportValidity();
+                cpw.setCustomValidity('');
+                cpw.focus();
+                return;
+            }
             if (pw && cpw && pw.value !== cpw.value) {
                 event.preventDefault();
                 cpw.setCustomValidity('Passwords do not match.');
@@ -1524,6 +1540,12 @@ document.addEventListener('alpine:init', () => {
             }
             if (cpw) {
                 cpw.setCustomValidity('');
+            }
+            const terms = document.getElementById('terms');
+            if (terms && ! terms.checked) {
+                event.preventDefault();
+                terms.reportValidity();
+                return;
             }
             this.submitting = true;
         },
