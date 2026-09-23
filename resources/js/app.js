@@ -1400,6 +1400,134 @@ document.addEventListener('alpine:init', () => {
             }
         },
     }));
+
+    Alpine.data('registerWizard', (opts = {}) => ({
+        step: Number(opts.initialStep || 1),
+        accountType: opts.accountType || '',
+        name: opts.name || '',
+        email: opts.email || '',
+        username: opts.username || '',
+        usernameTouched: Boolean(opts.usernameTouched),
+        submitting: false,
+        get progressLabel() {
+            const labels = {
+                1: 'Step 1 of 3 — Choose your path',
+                2: 'Step 2 of 3 — Your details',
+                3: 'Step 3 of 3 — Password & terms',
+            };
+            return labels[this.step] || '';
+        },
+        slugifyUsername(value) {
+            return String(value || '')
+                .toLowerCase()
+                .normalize('NFKD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]+/g, '_')
+                .replace(/^_+|_+$/g, '')
+                .replace(/_+/g, '_')
+                .slice(0, 30);
+        },
+        syncUsernameFromName() {
+            if (this.usernameTouched) {
+                return;
+            }
+            const generated = this.slugifyUsername(this.name);
+            if (generated) {
+                this.username = generated;
+            }
+        },
+        selectRole(type) {
+            this.accountType = type;
+            this.step = 2;
+            this.$nextTick(() => {
+                document.getElementById('signup-name')?.focus();
+            });
+        },
+        goNext() {
+            if (this.step !== 2) {
+                return;
+            }
+            this.syncUsernameFromName();
+            const nameEl = document.getElementById('signup-name');
+            const emailEl = document.getElementById('signup-email');
+            const userEl = document.getElementById('signup-username');
+            if (userEl) {
+                userEl.setCustomValidity('');
+                if (! this.username || ! /^[A-Za-z0-9_-]+$/.test(this.username)) {
+                    userEl.setCustomValidity('Use letters, numbers, dashes, or underscores only.');
+                }
+            }
+            if (nameEl && ! nameEl.reportValidity()) {
+                return;
+            }
+            if (emailEl && ! emailEl.reportValidity()) {
+                return;
+            }
+            if (userEl && ! userEl.reportValidity()) {
+                return;
+            }
+            this.step = 3;
+            this.$nextTick(() => {
+                document.getElementById('signup-password')?.focus();
+            });
+        },
+        onSubmit(event) {
+            // Enter key on earlier steps should advance, not POST incomplete data.
+            if (this.step === 1) {
+                event.preventDefault();
+                return;
+            }
+            if (this.step === 2) {
+                event.preventDefault();
+                this.goNext();
+                return;
+            }
+            if (this.step !== 3 || ! this.accountType) {
+                event.preventDefault();
+                return;
+            }
+            if (! this.name?.trim() || ! this.email?.trim() || ! this.username?.trim()) {
+                event.preventDefault();
+                this.step = 2;
+                this.$nextTick(() => {
+                    const el = ! this.name?.trim()
+                        ? document.getElementById('signup-name')
+                        : (! this.email?.trim()
+                            ? document.getElementById('signup-email')
+                            : document.getElementById('signup-username'));
+                    el?.reportValidity?.();
+                    el?.focus?.();
+                });
+                return;
+            }
+            const userEl = document.getElementById('signup-username');
+            if (userEl) {
+                userEl.setCustomValidity('');
+                if (! /^[A-Za-z0-9_-]+$/.test(this.username)) {
+                    event.preventDefault();
+                    this.step = 2;
+                    this.$nextTick(() => {
+                        userEl.setCustomValidity('Use letters, numbers, dashes, or underscores only.');
+                        userEl.reportValidity();
+                        userEl.focus();
+                    });
+                    return;
+                }
+            }
+            const pw = document.getElementById('signup-password');
+            const cpw = document.getElementById('signup-password_confirmation');
+            if (pw && cpw && pw.value !== cpw.value) {
+                event.preventDefault();
+                cpw.setCustomValidity('Passwords do not match.');
+                cpw.reportValidity();
+                return;
+            }
+            if (cpw) {
+                cpw.setCustomValidity('');
+            }
+            this.submitting = true;
+        },
+    }));
 });
 
 window.DashboardMedia = {

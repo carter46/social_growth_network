@@ -17,20 +17,19 @@ use Illuminate\View\View;
 class RegisteredUserController extends Controller
 {
     /**
-     * Display the registration view (combined auth with signup section active).
+     * Display the registration view.
      */
     public function create(): View
     {
-        return view('auth.login', ['showSignup' => true]);
+        return view('auth.register');
     }
 
     /**
-     * Display agent registration (combined auth with signup section active).
+     * Display agent registration (pre-selects Agent on step 1).
      */
     public function createAgent(): View
     {
-        return view('auth.login', [
-            'showSignup' => true,
+        return view('auth.register', [
             'registerAsAgent' => true,
         ]);
     }

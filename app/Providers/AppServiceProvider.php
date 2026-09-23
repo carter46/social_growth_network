@@ -167,7 +167,18 @@ class AppServiceProvider extends ServiceProvider
             ]);
         });
 
-        View::composer(['layouts.marketing', 'layouts.auth', 'components.layouts.auth', 'auth.login', 'auth.register', 'pages.home'], function ($view) {
+        View::composer([
+            'layouts.marketing',
+            'layouts.auth',
+            'components.layouts.auth',
+            'auth.login',
+            'auth.register',
+            'auth.forgot-password',
+            'auth.reset-password',
+            'auth.verify-email',
+            'auth.confirm-password',
+            'pages.home',
+        ], function ($view) {
             $branding = app(\App\Services\Branding\SiteBrandingRepository::class)->all();
             $footer = \App\ViewModels\FooterViewModel::make();
             $favicon = $branding['favicon_media_id']
