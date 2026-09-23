@@ -5,23 +5,20 @@
 @section('content')
 @php
     $brandName = $siteName ?? config('app.name', 'Social Growth Network');
-    $heading = filled($siteHeading ?? null) ? $siteHeading : 'Get more from your digital content.';
-    $tagline = filled($siteTagline ?? null)
-        ? $siteTagline
-        : 'Choose the campaign you need, select your preferred package, and get your campaign started in minutes.';
     $categoryCards = collect($categoryCards ?? [])->values();
     $featuredProducts = collect($featuredProducts ?? []);
     $marketplaceCatalog = $marketplaceCatalog ?? ['filters' => [], 'products' => ['all' => []]];
     $filterCategories = collect($marketplaceCatalog['filters'] ?? []);
     $marketplaceCards = $categoryCards
-        ->filter(fn ($card) => ($card['slug'] ?? '') !== 'social-media')
+        ->filter(fn ($card) => ! in_array(($card['slug'] ?? ''), ['social-media', 'youtube'], true))
         ->take(5)
         ->values();
-    $heroSlides = [
-        ['src' => asset('assets/images/creators-hero.jpg'), 'alt' => 'Creator launching digital campaigns'],
-        ['src' => asset('assets/images/home-slider-2.jpg'), 'alt' => 'Team collaborating on campaign growth'],
-        ['src' => asset('assets/images/home-slider-1.jpg'), 'alt' => 'Creator working on digital campaigns'],
-    ];
+    $youtubeCatalog = $youtubeCatalog ?? ['featured' => null, 'others' => []];
+    $watchHours = $youtubeCatalog['featured'] ?? null;
+    $youtubeOthers = collect($youtubeCatalog['others'] ?? []);
+    $watchHoursHref = is_array($watchHours) && filled($watchHours['href'] ?? null)
+        ? $watchHours['href']
+        : '#youtube-services';
     $badgeTones = [
         'text-red-600',
         'text-purple-600',
@@ -34,98 +31,198 @@
         ?? $featuredProducts->first();
 @endphp
 
-{{-- Hero: fills remaining viewport below sticky header on all screen sizes --}}
-<section
-    class="home-hero relative flex items-center overflow-hidden bg-navy-dark"
-    x-data="{
-        current: 0,
-        total: {{ count($heroSlides) }},
-        timer: null,
-        init() {
-            this.timer = setInterval(() => { this.current = (this.current + 1) % this.total }, 6000);
-        },
-        destroy() {
-            if (this.timer) clearInterval(this.timer);
-        },
-        go(i) { this.current = i; }
-    }"
->
-    <div class="absolute inset-0 z-0">
-        @foreach($heroSlides as $index => $slide)
-            <div
-                class="hero-slide absolute inset-0 transition-opacity duration-700 ease-in-out {{ $index === 0 ? 'opacity-100 z-[1]' : 'opacity-0 z-0 pointer-events-none' }}"
-                :class="current === {{ $index }} ? 'opacity-100 z-[1]' : 'opacity-0 z-0 pointer-events-none'"
-            >
-                <img
-                    src="{{ $slide['src'] }}"
-                    alt="{{ $slide['alt'] }}"
-                    class="w-full h-full object-cover object-center"
-                    loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
-                >
-            </div>
-        @endforeach
-        <div class="absolute inset-0 z-[2] bg-gradient-to-r from-slate-950/75 via-slate-900/55 to-slate-900/40"></div>
-        <div class="absolute inset-0 z-[2] bg-gradient-to-t from-slate-950/70 via-slate-900/25 to-black/20"></div>
+{{-- 1. White YouTube Watch Hours hero --}}
+<section class="home-hero relative flex items-center overflow-hidden bg-white border-b border-slate-100">
+    <div class="absolute inset-0 z-0 pointer-events-none" aria-hidden="true">
+        <img
+            src="{{ asset('assets/images/home_whitepng.png') }}"
+            alt=""
+            class="home-hero-white-motif absolute inset-0 w-full h-full"
+            loading="eager"
+            decoding="async"
+        >
+        <div class="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-transparent"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-white/80 via-transparent to-white/40 sm:hidden"></div>
     </div>
 
     <div class="relative z-10 max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16 w-full">
-        <div class="max-w-3xl w-full">
-            <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-[54px] font-extrabold text-white tracking-tight leading-[1.15] mb-4 sm:mb-5 font-display">
-                {{ $heading }}
+        <div class="max-w-2xl w-full">
+            <p class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-3">
+                {{ $brandName }} · YouTube Watch Hours
+            </p>
+            <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-[52px] font-extrabold text-slate-900 tracking-tight leading-[1.12] mb-4 sm:mb-5 font-display">
+                Grow your YouTube watch hours with ready campaign packages.
             </h1>
-            <p class="text-base sm:text-lg lg:text-xl text-slate-100/90 font-normal leading-relaxed mb-6 sm:mb-8 max-w-2xl">
-                {{ $tagline }}
+            <p class="text-base sm:text-lg lg:text-xl text-slate-600 font-normal leading-relaxed mb-8 sm:mb-10 max-w-xl">
+                Launch Watch Hours campaigns with upfront pricing, a clear checkout flow, and progress you can track in your account.
             </p>
 
-            <form
-                action="{{ route('services') }}"
-                method="GET"
-                class="w-full max-w-2xl bg-white/45 backdrop-blur-md border border-white/40 rounded-xl p-1.5 shadow-xl flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 mb-6"
-            >
-                <div class="flex items-center gap-2 px-3 py-2 w-full min-w-0">
-                    <span class="material-symbols-outlined text-slate-600/80 shrink-0" aria-hidden="true">search</span>
-                    <label for="home-services-q" class="sr-only">Search campaigns</label>
-                    <input
-                        id="home-services-q"
-                        type="search"
-                        name="q"
-                        class="w-full min-w-0 bg-transparent text-slate-900 text-sm placeholder:text-slate-600/70 focus:outline-none border-0 focus:ring-0 p-0"
-                        placeholder="Search campaign servicesâ€¦"
-                    >
-                </div>
-                <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-primary/90 hover:bg-primary text-white text-sm font-semibold rounded-lg transition-colors shrink-0">
-                    Search
-                </button>
-            </form>
-
-            <div class="flex flex-wrap items-center gap-2.5 sm:gap-4">
-                <a class="inline-flex items-center gap-1.5 sm:gap-2 bg-primary hover:bg-primary-hover text-white font-semibold text-sm sm:text-base px-4 py-2.5 sm:px-6 sm:py-3.5 rounded-lg shadow-lg hover:shadow-xl transition-all" href="#services">
-                    <span>Explore Services</span>
+            <div class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-4">
+                <a
+                    class="inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-primary hover:bg-primary-hover text-white font-semibold text-sm sm:text-base px-5 py-3 sm:px-6 sm:py-3.5 rounded-lg shadow-sm hover:shadow transition-all"
+                    href="{{ $watchHoursHref }}"
+                >
+                    <span>Start Watch Hours</span>
                     <span class="material-symbols-outlined text-base sm:text-lg" aria-hidden="true">arrow_forward</span>
                 </a>
-                <a class="inline-flex items-center justify-center bg-white/10 hover:bg-white/20 text-white font-medium text-sm sm:text-base px-4 py-2.5 sm:px-6 sm:py-3.5 rounded-lg border border-white/30 backdrop-blur-md transition-all" href="#creators">
-                    Create Campaign
+                <a
+                    class="inline-flex items-center justify-center bg-white hover:bg-slate-50 text-slate-800 font-medium text-sm sm:text-base px-5 py-3 sm:px-6 sm:py-3.5 rounded-lg border border-slate-200 transition-all"
+                    href="#youtube-services"
+                >
+                    Browse YouTube services
                 </a>
             </div>
         </div>
     </div>
+</section>
 
-    <div class="absolute bottom-4 sm:bottom-6 left-0 right-0 z-20 flex justify-center items-center gap-2.5">
-        @foreach($heroSlides as $index => $slide)
-            <button
-                type="button"
-                @click="go({{ $index }})"
-                :class="current === {{ $index }} ? 'h-2 w-8 bg-white' : 'h-2 w-2 bg-white/40 hover:bg-white/70'"
-                class="rounded-full transition-all duration-300"
-                aria-label="Go to slide {{ $index + 1 }}"
-            ></button>
-        @endforeach
+{{-- 2. YouTube services: featured Watch Hours + supporting products --}}
+<section class="py-20 lg:py-28 bg-slate-50 border-b border-slate-100" id="youtube-services">
+    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="mb-12 lg:mb-16 max-w-2xl">
+            <span class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-2 block">YouTube services</span>
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-display">Built around YouTube growth.</h2>
+            <p class="text-slate-600 text-base sm:text-lg mt-2">Watch Hours leads the catalog. Views, Likes, and Comments sit alongside as supporting packages.</p>
+        </div>
+
+        @if(is_array($watchHours))
+            <div class="home-yt-featured mb-12 lg:mb-16 rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+                <div class="grid grid-cols-1 lg:grid-cols-12">
+                    <div class="lg:col-span-6 p-8 sm:p-10 lg:p-12 flex flex-col justify-center order-2 lg:order-1">
+                        <span class="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 uppercase tracking-wider mb-3">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">smart_display</span>
+                            Featured · YouTube
+                        </span>
+                        <h3 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight font-display mb-4">
+                            {{ $watchHours['title'] }}
+                        </h3>
+                        <p class="text-slate-600 text-base sm:text-lg leading-relaxed mb-6 max-w-lg">
+                            {{ $watchHours['short_description'] }}
+                        </p>
+                        <p class="text-sm text-slate-500 mb-6">
+                            At checkout you’ll provide a public video URL where you want watch sessions delivered.
+                        </p>
+                        <div class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-4">
+                            @if(! empty($watchHours['from_price']))
+                                <span class="text-sm font-semibold text-slate-700 sm:mr-1">
+                                    From ₦{{ number_format((float) $watchHours['from_price'], 0) }}
+                                </span>
+                            @endif
+                            <a
+                                class="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white font-semibold text-sm sm:text-base px-5 py-3 rounded-lg shadow-sm transition-all w-full sm:w-auto"
+                                href="{{ $watchHours['href'] }}"
+                            >
+                                <span>View Watch Hours packages</span>
+                                <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-6 relative min-h-[240px] sm:min-h-[320px] lg:min-h-full order-1 lg:order-2 bg-slate-100">
+                        @if(! empty($watchHours['hero_url']))
+                            <img
+                                src="{{ $watchHours['hero_url'] }}"
+                                alt="{{ $watchHours['title'] }}"
+                                class="absolute inset-0 w-full h-full object-cover"
+                                loading="lazy"
+                            >
+                        @else
+                            <div class="absolute inset-0 bg-gradient-to-br from-red-50 via-slate-100 to-slate-200 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-7xl text-red-500/40" aria-hidden="true">smart_display</span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        @if($youtubeOthers->isNotEmpty())
+            <div class="mb-6">
+                <h3 class="text-lg sm:text-xl font-bold text-slate-900 font-display">More YouTube packages</h3>
+                <p class="text-slate-500 text-sm mt-1">Views, Likes, and Comments with the same upfront pricing model.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                @foreach($youtubeOthers as $index => $product)
+                    @php
+                        $tone = $badgeTones[$index % count($badgeTones)];
+                        $icon = $badgeIcons[$index % count($badgeIcons)];
+                    @endphp
+                    <div class="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
+                        <div>
+                            <div class="relative h-48 w-full overflow-hidden bg-slate-100">
+                                @if(! empty($product['hero_url']))
+                                    <img src="{{ $product['hero_url'] }}" alt="{{ $product['title'] }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+                                @else
+                                    <div class="w-full h-full bg-gradient-to-br from-primary/25 via-slate-200 to-slate-100"></div>
+                                @endif
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                                <span class="absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 backdrop-blur-md {{ $tone }} text-xs font-bold shadow-sm">
+                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ $icon }}</span>
+                                    {{ $product['category_label'] ?? 'YouTube' }}
+                                </span>
+                            </div>
+                            <div class="p-5">
+                                <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-primary transition-colors font-display">
+                                    <a href="{{ $product['href'] }}">{{ $product['title'] }}</a>
+                                </h3>
+                                <p class="text-slate-600 text-sm leading-relaxed mb-4">{{ $product['short_description'] }}</p>
+                            </div>
+                        </div>
+                        <div class="px-5 pb-5 pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
+                            <span class="text-xs font-medium text-slate-500">
+                                @if(! empty($product['from_price']))
+                                    From ₦{{ number_format((float) $product['from_price'], 0) }}
+                                @else
+                                    From predefined packages
+                                @endif
+                            </span>
+                            <a class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline group-hover:translate-x-0.5 transition-transform" href="{{ $product['href'] }}">View package →</a>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @elseif(! is_array($watchHours))
+            <p class="text-slate-500 text-center py-12">YouTube packages will appear here once published in the catalog.</p>
+        @endif
     </div>
 </section>
 
-{{-- 3. Marketplace catalog: product cards + category filter pills --}}
+{{-- 3. How it works --}}
+<section class="py-20 lg:py-24 bg-white border-b border-slate-100" id="how-it-works">
+    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center max-w-2xl mx-auto mb-16">
+            <span class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-2 block">How {{ $brandName }} works</span>
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-display">Launch in three simple steps.</h2>
+            <p class="text-slate-600 text-base sm:text-lg mt-2">The same flow for Watch Hours and every other campaign package.</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+            @foreach([
+                ['n' => '01', 'icon' => 'category', 'title' => 'Choose a service', 'body' => 'Pick YouTube Watch Hours or another package and select a predefined quantity with upfront fixed pricing.', 'foot' => 'Step 1 · No haggling'],
+                ['n' => '02', 'icon' => 'link', 'title' => 'Provide campaign details', 'body' => 'Add the required target URL and any campaign instructions in the checkout form.', 'foot' => 'Step 2 · Quick setup'],
+                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Pay and track', 'body' => 'Pay securely, then follow verified task completion and campaign progress in your account.', 'foot' => 'Step 3 · Secure payment'],
+            ] as $step)
+                <div class="bg-slate-50 p-8 rounded-xl border border-slate-200/80 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-6">
+                            <span class="text-3xl font-black text-primary font-display">{{ $step['n'] }}</span>
+                            <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-primary">
+                                <span class="material-symbols-outlined text-2xl" aria-hidden="true">{{ $step['icon'] }}</span>
+                            </div>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 mb-2.5 font-display">{{ $step['title'] }}</h3>
+                        <p class="text-slate-600 text-sm leading-relaxed">{{ $step['body'] }}</p>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-slate-200/80 flex items-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                        <span>{{ $step['foot'] }}</span>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+</section>
+
+{{-- 4. Other platforms (non-YouTube filter catalog) --}}
 <section
-    class="py-20 lg:py-28 bg-white border-b border-slate-100"
+    class="py-20 lg:py-28 bg-[#F8FAFC] border-b border-slate-100"
     id="services"
     x-data="{
         filter: 'all',
@@ -142,9 +239,9 @@
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
             <div>
-                <span class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-2 block">Marketplace catalog</span>
-                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-display">What do you want to grow?</h2>
-                <p class="text-slate-600 text-base sm:text-lg mt-2 max-w-xl">Browse predefined packages, see upfront pricing, and launch instantly.</p>
+                <span class="text-slate-500 font-bold text-xs sm:text-sm tracking-wider uppercase mb-2 block">Other platforms</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-display">Need Facebook, Instagram, TikTok, or Twitter?</h2>
+                <p class="text-slate-600 text-base sm:text-lg mt-2 max-w-xl">Additional platform packages live here. YouTube is covered in the dedicated section above.</p>
             </div>
             @if($filterCategories->isNotEmpty())
                 <div class="hidden md:flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-xl self-start md:self-auto">
@@ -262,40 +359,6 @@
     </div>
 </section>
 
-{{-- 4. How it works --}}
-<section class="py-20 lg:py-24 bg-[#F8FAFC]" id="how-it-works">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center max-w-2xl mx-auto mb-16">
-            <span class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-2 block">How {{ $brandName }} works</span>
-            <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-display">Launch in three simple steps.</h2>
-            <p class="text-slate-600 text-base sm:text-lg mt-2">A predictable, straightforward framework built for zero friction.</p>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-            @foreach([
-                ['n' => '01', 'icon' => 'category', 'title' => 'Choose', 'body' => 'Pick the campaign and predefined quantity that matches your goal with upfront fixed pricing.', 'foot' => 'Step 1 â€¢ No haggling'],
-                ['n' => '02', 'icon' => 'tune', 'title' => 'Set Up', 'body' => 'Add your target URL and simple campaign instructions in our streamlined submission form.', 'foot' => 'Step 2 â€¢ 2-minute setup'],
-                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Launch', 'body' => 'Pay securely and watch verified task completion in real-time as tasks post to your ledger.', 'foot' => 'Step 3 â€¢ Secure payment'],
-            ] as $step)
-                <div class="bg-white p-8 rounded-xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between mb-6">
-                            <span class="text-3xl font-black text-primary font-display">{{ $step['n'] }}</span>
-                            <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-primary">
-                                <span class="material-symbols-outlined text-2xl" aria-hidden="true">{{ $step['icon'] }}</span>
-                            </div>
-                        </div>
-                        <h3 class="text-xl font-bold text-slate-900 mb-2.5 font-display">{{ $step['title'] }}</h3>
-                        <p class="text-slate-600 text-sm leading-relaxed">{{ $step['body'] }}</p>
-                    </div>
-                    <div class="mt-6 pt-4 border-t border-slate-100 flex items-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                        <span>{{ $step['foot'] }}</span>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    </div>
-</section>
-
 {{-- 5. Creators --}}
 <section class="py-20 lg:py-28 bg-white overflow-hidden" id="creators">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
@@ -311,7 +374,7 @@
                     <div class="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"></div>
                     <div class="absolute bottom-6 left-6 right-6 text-white">
                         <p class="font-bold text-lg">Built for creators &amp; founders</p>
-                        <p class="text-sm text-slate-200">Independent creators Â· Campaign packages Â· {{ $brandName }}</p>
+                        <p class="text-sm text-slate-200">YouTube Watch Hours · Campaign packages · {{ $brandName }}</p>
                     </div>
                 </div>
                 <div class="absolute -bottom-6 -right-6 -z-10 w-64 h-64 bg-blue-100/60 rounded-full blur-3xl pointer-events-none"></div>
@@ -319,16 +382,16 @@
             <div class="lg:col-span-6 flex flex-col items-start">
                 <span class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-2">For creators &amp; founders</span>
                 <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight mb-5 font-display">
-                    Everything you need to get your campaign moving.
+                    Everything you need to get your YouTube campaign moving.
                 </h2>
                 <p class="text-slate-600 text-base sm:text-lg leading-relaxed mb-8">
-                    Stop negotiating with unpredictable freelancers or risking bot farms. {{ $brandName }} gives you fixed upfront packages, secure payment, and verified human activity.
+                    Skip unpredictable freelancers and opaque bots. {{ $brandName }} gives you fixed upfront packages, secure payment, and verified task activity you can review in your account.
                 </p>
                 <div class="space-y-4 mb-9 w-full">
                     @foreach([
-                        ['title' => 'Upfront predefined pricing â€” zero bidding wars', 'body' => 'Know exactly what you pay and get before committing any budget.'],
-                        ['title' => 'Guaranteed verified human activity & proof validation', 'body' => 'Every completion undergoes multi-point telemetry and submission checks.'],
-                        ['title' => 'Real-time progress monitoring directly in your account', 'body' => 'Track execution velocity, view completed agent actions, and download reports.'],
+                        ['title' => 'Upfront predefined pricing — zero bidding wars', 'body' => 'Know exactly what you pay and get before committing any budget.'],
+                        ['title' => 'Verified human activity with proof validation', 'body' => 'Completions go through submission checks before they count toward your campaign.'],
+                        ['title' => 'Real-time progress monitoring in your account', 'body' => 'Track campaign progress, view completed actions, and download reports.'],
                     ] as $point)
                         <div class="flex items-start gap-3">
                             <div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
@@ -342,8 +405,8 @@
                     @endforeach
                 </div>
                 <div class="flex flex-wrap items-center gap-5">
-                    <a class="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white font-semibold text-base px-6 py-3.5 rounded-lg shadow-sm hover:shadow transition-all" href="#services">
-                        <span>Start a Campaign</span>
+                    <a class="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white font-semibold text-base px-6 py-3.5 rounded-lg shadow-sm hover:shadow transition-all" href="{{ $watchHoursHref }}">
+                        <span>Start Watch Hours</span>
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
                     </a>
                     <a class="inline-flex items-center gap-1.5 text-slate-700 hover:text-primary font-semibold text-base transition-colors" href="{{ route('help') }}">
@@ -408,11 +471,11 @@
                                 <span class="text-xs text-slate-600 font-medium">Verified Reward</span>
                                 <span class="text-sm font-extrabold text-emerald-600">
                                     @if($reward !== null && (float) $reward > 0)
-                                        â‚¦{{ number_format((float) $reward, 0) }} per task
+                                        ₦{{ number_format((float) $reward, 0) }} per task
                                     @elseif($agentPreview)
-                                        From â‚¦{{ number_format($agentPreview->displayPrice(), 0) }}
+                                        From ₦{{ number_format($agentPreview->displayPrice(), 0) }}
                                     @else
-                                        â‚¦250 per review Â· 5 mins
+                                        ₦250 per review · 5 mins
                                     @endif
                                 </span>
                             </div>
@@ -444,25 +507,28 @@
     <div class="relative z-10 max-w-site mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div class="max-w-2xl mx-auto">
             <div class="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-blue-400 mx-auto mb-6">
-                <span class="material-symbols-outlined text-3xl" aria-hidden="true">campaign</span>
+                <span class="material-symbols-outlined text-3xl" aria-hidden="true">smart_display</span>
             </div>
             <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight mb-4 text-white font-display">
-                Ready to start your campaign?
+                Ready to grow YouTube Watch Hours?
             </h2>
             <p class="text-slate-300 text-base sm:text-lg mb-8 max-w-xl mx-auto">
-                Browse available packages, select your tier, and launch in less than 2 minutes.
+                Choose a package, add your video URL, and launch in minutes.
             </p>
             <div class="flex flex-wrap items-center justify-center gap-4">
-                <a class="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white font-semibold text-base px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all" href="#services">
-                    <span>Explore Services</span>
+                <a class="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white font-semibold text-base px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all" href="{{ $watchHoursHref }}">
+                    <span>Start Watch Hours</span>
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
+                </a>
+                <a class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium text-base px-6 py-4 rounded-lg border border-white/25 transition-all" href="#youtube-services">
+                    Browse YouTube services
                 </a>
             </div>
         </div>
     </div>
 </section>
 
-{{-- 8. FAQ strip (matches design) --}}
+{{-- 8. FAQ strip --}}
 <section class="py-12 bg-white" id="faq">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500">
         Have questions? View our comprehensive

@@ -401,18 +401,78 @@ class CatalogBrowseService
     }
 
     /**
-     * Homepage "What do you want to grow?" catalog.
+     * Homepage YouTube-first catalog: Watch Hours featured, other YouTube products supporting.
+     *
+     * @return array{
+     *     featured: ?array<string, mixed>,
+     *     others: list<array<string, mixed>>
+     * }
+     */
+    public function homeYouTubeCatalog(): array
+    {
+        $empty = ['featured' => null, 'others' => []];
+
+        if (! Schema::hasTable('platform_products')) {
+            return $empty;
+        }
+
+        $youtubeSlugs = config('platform_categories.youtube.products', [
+            'youtube-views',
+            'youtube-likes',
+            'youtube-comments',
+            'youtube-watch-hours',
+        ]);
+
+        if (! is_array($youtubeSlugs) || $youtubeSlugs === []) {
+            return $empty;
+        }
+
+        $products = PlatformProduct::query()
+            ->visibleToPublic()
+            ->whereIn('slug', $youtubeSlugs)
+            ->with([
+                'serviceCategory',
+                'productType.serviceCategory',
+                'heroMedia.variants',
+                'activeVariants',
+            ])
+            ->get()
+            ->keyBy('slug');
+
+        $featured = null;
+        if ($products->has('youtube-watch-hours')) {
+            $featured = $this->mapHomeProductCard($products->get('youtube-watch-hours'));
+        }
+
+        $supportingOrder = ['youtube-views', 'youtube-likes', 'youtube-comments'];
+        $others = [];
+        foreach ($supportingOrder as $slug) {
+            if (! $products->has($slug)) {
+                continue;
+            }
+            $others[] = $this->mapHomeProductCard($products->get($slug));
+        }
+
+        return [
+            'featured' => $featured,
+            'others' => $others,
+        ];
+    }
+
+    /**
+     * Homepage "Other platforms" catalog (excludes YouTube by default).
      * Each filter (all + platform categories) exposes at most $limit products,
      * reshuffled on every page load. TikTok/Twitter included when they have products.
      *
+     * @param  list<string>  $excludeSlugs
      * @return array{
      *     filters: list<array{slug: string, label: string}>,
      *     products: array<string, list<array<string, mixed>>>
      * }
      */
-    public function homeMarketplaceCatalog(int $limit = self::HOME_PRODUCT_LIMIT): array
+    public function homeMarketplaceCatalog(int $limit = self::HOME_PRODUCT_LIMIT, array $excludeSlugs = ['youtube']): array
     {
-        $filters = $this->homeFilterCategories();
+        $filters = $this->homeFilterCategories($excludeSlugs);
         $productsByFilter = ['all' => []];
 
         if (! Schema::hasTable('platform_products') || $filters === []) {
@@ -468,14 +528,21 @@ class CatalogBrowseService
     /**
      * Platform categories for homepage filters (excludes legacy social-media umbrella).
      *
+     * @param  list<string>  $excludeSlugs  Category slugs to omit (e.g. youtube for Other Platforms).
      * @return list<array{id: int, slug: string, label: string}>
      */
-    public function homeFilterCategories(): array
+    public function homeFilterCategories(array $excludeSlugs = []): array
     {
+        $exclude = array_fill_keys(
+            array_map('strval', $excludeSlugs),
+            true
+        );
+
         $registrySlugs = collect(config('platform_categories', []))
             ->filter(fn ($meta, $key) => is_array($meta)
                 && ($meta['slug'] ?? '') !== 'social-media'
-                && $key !== 'social')
+                && $key !== 'social'
+                && ! isset($exclude[(string) ($meta['slug'] ?? '')]))
             ->map(fn ($meta) => (string) ($meta['slug'] ?? ''))
             ->filter()
             ->values()
@@ -485,16 +552,22 @@ class CatalogBrowseService
             return [];
         }
 
-        $categories = ServiceCategory::query()
+        $categoriesQuery = ServiceCategory::query()
             ->system()
             ->active()
-            ->whereIn('slug', $registrySlugs)
-            ->withPublicProducts()
+            ->whereIn('slug', $registrySlugs);
+
+        // withPublicProducts() joins on service_category_id — only when that FK exists.
+        if (Schema::hasColumn('platform_products', 'service_category_id')) {
+            $categoriesQuery->withPublicProducts();
+        }
+
+        $categories = $categoriesQuery
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get(['id', 'slug', 'name']);
 
-        // Keep registry order (youtube → … → twitter).
+        // Keep registry order (facebook → … → twitter when youtube excluded).
         $bySlug = $categories->keyBy('slug');
 
         $ordered = [];

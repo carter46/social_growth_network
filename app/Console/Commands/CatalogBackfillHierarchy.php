@@ -262,13 +262,21 @@ class CatalogBackfillHierarchy extends Command
         );
         $groups++;
 
-        SortOrder::normalize(
-            \App\Models\PlatformProduct::query()
-                ->where(function ($q) {
-                    $q->whereHas('serviceCategory', fn ($cat) => $cat->system())
-                        ->orWhereHas('productType.serviceCategory', fn ($cat) => $cat->system());
-                })
-        );
+        // Dual-read: prefer Category→Product when the FK exists; else ProductType→Category only.
+        if (Schema::hasColumn('platform_products', 'service_category_id')) {
+            SortOrder::normalize(
+                \App\Models\PlatformProduct::query()
+                    ->where(function ($q) {
+                        $q->whereHas('serviceCategory', fn ($cat) => $cat->system())
+                            ->orWhereHas('productType.serviceCategory', fn ($cat) => $cat->system());
+                    })
+            );
+        } else {
+            SortOrder::normalize(
+                \App\Models\PlatformProduct::query()
+                    ->whereHas('productType.serviceCategory', fn ($cat) => $cat->system())
+            );
+        }
         $groups++;
 
         return $groups;
