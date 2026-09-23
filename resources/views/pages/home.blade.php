@@ -44,21 +44,17 @@
 
 {{-- 1. White YouTube Watch Hours hero --}}
 <section class="home-hero relative flex items-center overflow-hidden bg-white border-b border-slate-100">
-    <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <img
-            src="{{ asset('assets/images/home_whitepng.png') }}"
-            alt=""
-            class="home-hero-white-motif absolute inset-0 w-full h-full"
-            loading="eager"
-            decoding="async"
-        >
-        <div class="absolute inset-0 bg-gradient-to-b from-white/70 via-white/55 to-white/80"></div>
-    </div>
+    <div
+        class="home-hero-white-motif absolute inset-0 z-0 pointer-events-none"
+        style="background-image: url('{{ asset('assets/images/home_whitepng.png') }}');"
+        aria-hidden="true"
+    ></div>
+    <div class="absolute inset-0 z-0 pointer-events-none bg-gradient-to-b from-white/55 via-white/40 to-white/65" aria-hidden="true"></div>
 
     <div class="relative z-10 max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16 w-full">
         <div class="max-w-3xl mx-auto w-full text-center">
-            <p class="text-red-600 font-bold text-xs sm:text-sm tracking-wider uppercase mb-3">
-                {{ $brandName }} · YouTube Watch Hours
+            <p class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-3">
+                {{ $brandName }}
             </p>
             <h1 class="text-2xl sm:text-4xl md:text-5xl lg:text-[52px] font-extrabold text-slate-900 tracking-tight leading-[1.15] mb-4 sm:mb-5 font-display">
                 {!! $ytWord('Grow your YouTube watch hours with ready campaign packages.') !!}
@@ -70,16 +66,16 @@
             <div class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-3 sm:gap-4">
                 <a
                     class="inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm sm:text-base px-5 py-3 sm:px-6 sm:py-3.5 rounded-lg shadow-sm hover:shadow transition-all"
-                    href="{{ $watchHoursHref }}"
+                    href="{{ route('register') }}"
                 >
-                    <span>Start Watch Hours</span>
+                    <span>Pay For Watch Hours</span>
                     <span class="material-symbols-outlined text-base sm:text-lg" aria-hidden="true">arrow_forward</span>
                 </a>
                 <a
                     class="inline-flex items-center justify-center bg-white hover:bg-slate-50 text-slate-800 font-medium text-sm sm:text-base px-5 py-3 sm:px-6 sm:py-3.5 rounded-lg border border-slate-200 transition-all"
-                    href="#youtube-services"
+                    href="{{ route('agents') }}"
                 >
-                    Browse YouTube services
+                    Watch &amp; Earn
                 </a>
             </div>
         </div>
@@ -90,7 +86,7 @@
 <section class="py-20 lg:py-28 bg-slate-50 border-b border-slate-100" id="youtube-services">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="mb-12 lg:mb-16 max-w-2xl">
-            <span class="text-red-600 font-bold text-xs sm:text-sm tracking-wider uppercase mb-2 block">YouTube services</span>
+            <span class="text-slate-500 font-bold text-xs sm:text-sm tracking-wider uppercase mb-2 block">YouTube services</span>
             <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-display">{!! $ytWord('Built around YouTube growth.') !!}</h2>
             <p class="text-slate-600 text-base sm:text-lg mt-2">Watch Hours leads the catalog. Views, Likes, and Comments sit alongside as supporting packages.</p>
         </div>
@@ -99,9 +95,9 @@
             <div class="home-yt-featured mb-12 lg:mb-16 rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
                 <div class="grid grid-cols-1 lg:grid-cols-12">
                     <div class="lg:col-span-6 p-8 sm:p-10 lg:p-12 flex flex-col justify-center order-2 lg:order-1">
-                        <span class="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 uppercase tracking-wider mb-3">
-                            <span class="material-symbols-outlined text-base" aria-hidden="true">smart_display</span>
-                            Featured · YouTube
+                        <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+                            <span class="material-symbols-outlined text-base text-red-600" aria-hidden="true">smart_display</span>
+                            Featured
                         </span>
                         <h3 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight font-display mb-4">
                             {!! $ytWord($watchHours['title'] ?? 'YouTube Watch Hours') !!}
@@ -120,9 +116,9 @@
                             @endif
                             <a
                                 class="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm sm:text-base px-5 py-3 rounded-lg shadow-sm transition-all w-full sm:w-auto"
-                                href="{{ $watchHours['href'] }}"
+                                href="{{ route('register') }}"
                             >
-                                <span>View Watch Hours packages</span>
+                                <span>Pay For Watch Hours</span>
                                 <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
                             </a>
                         </div>
@@ -142,7 +138,7 @@
 
         @if($youtubeOthers->isNotEmpty())
             <div class="mb-6">
-                <h3 class="text-lg sm:text-xl font-bold text-slate-900 font-display">{!! $ytWord('More YouTube packages') !!}</h3>
+                <h3 class="text-lg sm:text-xl font-bold text-slate-900 font-display">More YouTube packages</h3>
                 <p class="text-slate-500 text-sm mt-1">Views, Likes, and Comments with the same upfront pricing model.</p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
@@ -166,8 +162,8 @@
                                 </span>
                             </div>
                             <div class="p-5">
-                                <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-red-600 transition-colors font-display">
-                                    <a href="{{ $product['href'] }}">{!! $ytWord($product['title'] ?? '') !!}</a>
+                                <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-primary transition-colors font-display">
+                                    <a href="{{ $product['href'] }}">{{ $product['title'] }}</a>
                                 </h3>
                                 <p class="text-slate-600 text-sm leading-relaxed mb-4">{{ $product['short_description'] }}</p>
                             </div>
@@ -180,7 +176,7 @@
                                     From predefined packages
                                 @endif
                             </span>
-                            <a class="inline-flex items-center gap-1 text-red-600 font-semibold text-sm hover:underline group-hover:translate-x-0.5 transition-transform" href="{{ $product['href'] }}">View package →</a>
+                            <a class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline group-hover:translate-x-0.5 transition-transform" href="{{ $product['href'] }}">View package →</a>
                         </div>
                     </div>
                 @endforeach
@@ -364,7 +360,7 @@
                 <div class="absolute -bottom-6 -right-6 -z-10 w-64 h-64 bg-red-100/50 rounded-full blur-3xl pointer-events-none"></div>
             </div>
             <div class="lg:col-span-6 flex flex-col items-start">
-                <span class="text-red-600 font-bold text-xs sm:text-sm tracking-wider uppercase mb-2">For creators &amp; founders</span>
+                <span class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-2">For creators &amp; founders</span>
                 <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight mb-5 font-display">
                     {!! $ytWord('Everything you need to get your YouTube campaign moving.') !!}
                 </h2>
@@ -389,12 +385,12 @@
                     @endforeach
                 </div>
                 <div class="flex flex-wrap items-center gap-5">
-                    <a class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-base px-6 py-3.5 rounded-lg shadow-sm hover:shadow transition-all" href="{{ $watchHoursHref }}">
-                        <span>Start Watch Hours</span>
+                    <a class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-base px-6 py-3.5 rounded-lg shadow-sm hover:shadow transition-all" href="{{ route('register') }}">
+                        <span>Pay For Watch Hours</span>
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
                     </a>
-                    <a class="inline-flex items-center gap-1.5 text-slate-700 hover:text-red-600 font-semibold text-base transition-colors" href="{{ route('help') }}">
-                        <span>See Sample Reports</span>
+                    <a class="inline-flex items-center gap-1.5 text-slate-700 hover:text-primary font-semibold text-base transition-colors" href="{{ route('agents') }}">
+                        <span>Watch &amp; Earn</span>
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
                     </a>
                 </div>
@@ -489,12 +485,12 @@
                 Choose a package, add your video URL, and launch in minutes.
             </p>
             <div class="flex flex-wrap items-center justify-center gap-4">
-                <a class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white font-semibold text-base px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all" href="{{ $watchHoursHref }}">
-                    <span>Start Watch Hours</span>
+                <a class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white font-semibold text-base px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all" href="{{ route('register') }}">
+                    <span>Pay For Watch Hours</span>
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
                 </a>
-                <a class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium text-base px-6 py-4 rounded-lg border border-white/25 transition-all" href="#youtube-services">
-                    Browse YouTube services
+                <a class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium text-base px-6 py-4 rounded-lg border border-white/25 transition-all" href="{{ route('agents') }}">
+                    Watch &amp; Earn
                 </a>
             </div>
         </div>

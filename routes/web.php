@@ -68,6 +68,7 @@ Route::get('/creators', function (
 ) {
     return view('pages.creators', [
         'categoryCards' => $browse->groupCards($catalogContent),
+        'youtubeCatalog' => $browse->homeYouTubeCatalog(),
     ]);
 })->name('creators');
 Route::get('/agents', function (

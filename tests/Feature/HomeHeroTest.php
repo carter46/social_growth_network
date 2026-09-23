@@ -20,13 +20,15 @@ class HomeHeroTest extends TestCase
             ->assertSee('<span class="text-red-600">YouTube</span>', false)
             ->assertSee('watch hours with ready campaign packages', false)
             ->assertSee('id="youtube-services"', false)
-            ->assertSee('Start Watch Hours', false)
-            ->assertSee('Browse YouTube services', false)
+            ->assertSee('Pay For Watch Hours', false)
+            ->assertSee('Watch &amp; Earn', false)
+            ->assertSee(route('register'), false)
+            ->assertSee(route('agents'), false)
             ->assertSee('bg-red-600', false)
+            ->assertDontSee('· YouTube Watch Hours', false)
+            ->assertDontSee('Browse YouTube services', false)
             ->assertDontSee('assets/images/homeslider1.jpg', false)
-            ->assertDontSee('assets/images/creators-hero.jpg', false)
-            ->assertDontSee('home-services-q', false)
-            ->assertDontSee('Search campaign services', false);
+            ->assertDontSee('home-services-q', false);
     }
 
     public function test_home_marketplace_excludes_youtube_and_surfaces_youtube_catalog(): void
