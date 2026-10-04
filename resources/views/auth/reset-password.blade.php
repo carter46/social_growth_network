@@ -1,8 +1,8 @@
 <x-layouts.auth
-    title="Reset password — {{ $siteName ?? config('app.name') }}"
+    title="Reset password | {{ $siteName ?? config('app.name') }}"
     :panel-image="asset('assets/images/campaign-workspace.jpg')"
     panel-headline="Choose a new password."
-    panel-copy="Pick something strong and unique — then you’re back in."
+    panel-copy="Pick something strong and unique, and you’re back in."
 >
     <div class="mb-6 hidden lg:block">
         <a href="{{ route('login') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-primary transition-colors">

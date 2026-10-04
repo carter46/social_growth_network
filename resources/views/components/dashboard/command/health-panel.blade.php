@@ -33,7 +33,7 @@
                             <circle cx="18" cy="18" fill="transparent" r="16" stroke="rgba(255,255,255,0.05)" stroke-width="3"></circle>
                             <circle cx="18" cy="18" fill="transparent" r="16" stroke="{{ $ring['color'] ?? '#006243' }}" stroke-dasharray="{{ $dash }}" stroke-width="3"></circle>
                         </svg>
-                        <div class="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white">{{ $ring['value'] ?? '—' }}</div>
+                        <div class="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white">{{ $ring['value'] ?? '-' }}</div>
                     </div>
                     <span class="text-[9px] font-black uppercase tracking-wider text-white/50">{{ $ring['label'] ?? '' }}</span>
                 </div>
@@ -53,7 +53,7 @@
                         @endif
                     </div>
                 </div>
-                <span class="shrink-0 font-mono text-[10px] {{ !empty($metric['alert']) ? 'font-black text-red-400' : (!empty($metric['na']) ? 'text-white/35' : 'text-white/45') }}">{{ $metric['value'] ?? '—' }}</span>
+                <span class="shrink-0 font-mono text-[10px] {{ !empty($metric['alert']) ? 'font-black text-red-400' : (!empty($metric['na']) ? 'text-white/35' : 'text-white/45') }}">{{ $metric['value'] ?? '-' }}</span>
             </div>
         @empty
             <p class="text-xs text-white/50">Monitoring not configured for this environment.</p>

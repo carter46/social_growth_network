@@ -147,7 +147,7 @@ export async function setDashboardThemePreference(preference, { persist = true }
             },
             body: JSON.stringify({
                 theme: preference,
-                // Hint only — never authoritative for system paint; client still resolves via matchMedia.
+                // Hint only - never authoritative for system paint; client still resolves via matchMedia.
                 system_theme: preference === 'system' ? systemTheme() : undefined,
             }),
             credentials: 'same-origin',

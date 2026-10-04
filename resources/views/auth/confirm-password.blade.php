@@ -1,5 +1,5 @@
 <x-layouts.auth
-    title="Confirm password — {{ $siteName ?? config('app.name') }}"
+    title="Confirm password | {{ $siteName ?? config('app.name') }}"
     :panel-image="asset('assets/images/campaign-workspace.jpg')"
     panel-headline="Confirm it’s you."
     panel-copy="This is a secure area. Enter your password to continue."

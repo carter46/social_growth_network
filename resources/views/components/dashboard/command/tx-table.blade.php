@@ -55,7 +55,7 @@
                                 <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-500 dark:bg-muted">
                                     <x-dashboard.icon name="paid" class="h-3.5 w-3.5" />
                                 </span>
-                                <span class="font-mono text-xs font-bold text-slate-900 dark:text-text-primary">#{{ $row['reference'] ?? '—' }}</span>
+                                <span class="font-mono text-xs font-bold text-slate-900 dark:text-text-primary">#{{ $row['reference'] ?? '-' }}</span>
                             </div>
                         </td>
                         <td class="px-6 py-4">
@@ -64,7 +64,7 @@
                                     {{ $row['user_initials'] ?? '?' }}
                                 </div>
                                 <div>
-                                    <span class="block font-bold text-slate-700 dark:text-text-secondary">{{ $row['user_name'] ?? '—' }}</span>
+                                    <span class="block font-bold text-slate-700 dark:text-text-secondary">{{ $row['user_name'] ?? '-' }}</span>
                                     @if (! empty($row['type']))
                                         <span class="text-[10px] font-medium text-slate-400">{{ $row['type'] }}</span>
                                     @endif
@@ -75,7 +75,7 @@
                             <span class="text-base font-bold text-slate-900 dark:text-text-primary">{{ number_format((float) ($row['amount'] ?? 0), 2) }}</span>
                         </td>
                         <td class="px-6 py-4">
-                            <span class="rounded-full px-2 py-0.5 text-[10px] font-black uppercase {{ $statusClass[$status] ?? 'bg-slate-100 text-slate-600' }}">{{ $row['status'] ?? '—' }}</span>
+                            <span class="rounded-full px-2 py-0.5 text-[10px] font-black uppercase {{ $statusClass[$status] ?? 'bg-slate-100 text-slate-600' }}">{{ $row['status'] ?? '-' }}</span>
                         </td>
                         <td class="px-6 py-4">
                             <span class="text-[11px] font-medium text-slate-400">{{ $row['created_at'] ?? '' }}</span>

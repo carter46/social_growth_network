@@ -104,7 +104,7 @@ class CheckoutUrlPreviewResolver
             'platform' => 'instagram',
             'open_url' => $safe,
             'permalink' => $safe,
-            'note' => 'Public Instagram posts and Reels can preview here. Private or embed-disabled posts will not load — your URL is still accepted if valid.',
+            'note' => 'Public Instagram posts and Reels can preview here. Private or embed-disabled posts will not load, but your URL is still accepted if it is valid.',
             'host' => 'instagram.com',
             'title' => 'Instagram post',
         ];
@@ -123,7 +123,7 @@ class CheckoutUrlPreviewResolver
             'platform' => 'facebook',
             'open_url' => $safe,
             'permalink' => $safe,
-            'note' => 'Public Facebook posts can preview here. Private posts will not load — your URL is still accepted if valid.',
+            'note' => 'Public Facebook posts can preview here. Private posts will not load, but your URL is still accepted if it is valid.',
             'host' => 'facebook.com',
             'title' => 'Facebook post',
         ];
@@ -142,7 +142,7 @@ class CheckoutUrlPreviewResolver
             'platform' => 'x',
             'open_url' => $safe,
             'permalink' => $safe,
-            'note' => 'Public posts on X can preview here. Restricted posts will not load — your URL is still accepted if valid.',
+            'note' => 'Public posts on X can preview here. Restricted posts will not load, but your URL is still accepted if it is valid.',
             'host' => 'x.com',
             'title' => 'X post',
         ];

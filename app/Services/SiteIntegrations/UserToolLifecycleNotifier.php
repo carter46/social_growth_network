@@ -34,7 +34,7 @@ class UserToolLifecycleNotifier
                 ]),
                 actionUrl: $toolUrl,
                 meta: ['user_tool_id' => $tool->id],
-                emailSubject: __(':product — subscription expired', ['product' => $productName]),
+                emailSubject: __(':product: subscription expired', ['product' => $productName]),
                 dedupeKey: 'tool.subscription_expired.'.$tool->id.'.'.$tool->expires_at?->timestamp,
             ),
             ['database', 'mail']
@@ -68,7 +68,7 @@ class UserToolLifecycleNotifier
                     'user_tool_id' => $tool->id,
                     'expires_at' => $tool->expires_at?->toIso8601String(),
                 ],
-                emailSubject: __(':product — subscription extended', ['product' => $productName]),
+                emailSubject: __(':product: subscription extended', ['product' => $productName]),
                 dedupeKey: 'tool.subscription_extended.'.$tool->id.'.'.$tool->expires_at?->timestamp,
             ),
             ['database', 'mail']

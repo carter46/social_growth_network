@@ -32,7 +32,7 @@
             </div>
             <div>
                 <dt class="text-text-muted">Estimated time</dt>
-                <dd class="font-semibold text-text-primary">{{ $campaign->estimated_minutes ? $campaign->estimated_minutes.' min' : '—' }}</dd>
+                <dd class="font-semibold text-text-primary">{{ $campaign->estimated_minutes ? $campaign->estimated_minutes.' min' : '-' }}</dd>
             </div>
         </dl>
         @if ($campaign->target_url)

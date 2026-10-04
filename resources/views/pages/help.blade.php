@@ -208,7 +208,7 @@
         <div class="mb-10">
             <span class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-2 block">Browse topics</span>
             <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Help categories</h2>
-            <p class="text-slate-600 text-base sm:text-lg mt-2 max-w-xl">Six focused guides — pick the path that matches what you need.</p>
+            <p class="text-slate-600 text-base sm:text-lg mt-2 max-w-xl">Six focused guides. Pick the one that matches what you need.</p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
@@ -293,7 +293,7 @@
 </section>
 @endif
 
-{{-- Install PWA — same CTA card pattern as Creators / Agents --}}
+{{-- Install PWA - same CTA card pattern as Creators / Agents --}}
 <section class="w-full bg-white py-14 sm:py-20">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="bg-primary text-white rounded-3xl p-8 sm:p-12 lg:p-16 shadow-xl relative overflow-hidden text-center flex flex-col items-center">

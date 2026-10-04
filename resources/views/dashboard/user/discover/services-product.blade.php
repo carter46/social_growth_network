@@ -189,7 +189,7 @@
                     <x-dashboard.card class="space-y-4 h-fit">
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Selected plan</p>
-                            <p class="mt-1 text-lg font-semibold text-text-primary" x-text="selected ? selected.label : '—'"></p>
+                            <p class="mt-1 text-lg font-semibold text-text-primary" x-text="selected ? selected.label : 'Not selected'"></p>
                             <p class="text-3xl font-bold text-primary mt-2">
                                 <span x-text="'₦' + Number(estimatedTotal).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"></span>
                             </p>

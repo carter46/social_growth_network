@@ -1,6 +1,6 @@
 @extends('layouts.dashboard-user')
 
-@section('title', 'Checkout — '.$product->title)
+@section('title', 'Checkout | '.$product->title)
 
 @section('content')
 @php
@@ -19,7 +19,7 @@
     $destinationLabel = match ($engagementMetric) {
         \App\Enums\EngagementMetric::Likes, \App\Enums\EngagementMetric::Comments => 'Post URL',
         \App\Enums\EngagementMetric::Views, \App\Enums\EngagementMetric::WatchHours => 'Video URL',
-        default => 'Campaign destination URL',
+        default => 'Campaign link',
     };
     $destinationHelp = match ($engagementMetric) {
         \App\Enums\EngagementMetric::Likes, \App\Enums\EngagementMetric::Comments => 'Public post URL where you want likes or comments. Profile links are not accepted.',
@@ -83,7 +83,7 @@
 >
     <x-dashboard.card class="w-full space-y-5">
         <div>
-            <p class="text-xs font-semibold uppercase tracking-wider text-primary mb-1">Platform service</p>
+            <p class="text-xs font-semibold uppercase tracking-wider text-primary mb-1">Service</p>
             <h2 class="text-xl font-semibold text-text-primary">{{ $product->title }}</h2>
             @if(filled($product->description))
                 <p class="text-sm text-text-secondary mt-1">{{ \Illuminate\Support\Str::limit(strip_tags((string) $product->description), 200) }}</p>
@@ -101,7 +101,7 @@
         @elseif(! $hasWallet && ! $gatewayOn && ! $manualBankOn)
             <x-dashboard.alert type="warning">
                 No payment method is available. <a href="{{ route('dashboard.wallet') }}" class="underline font-medium">Create a wallet</a>
-                or ask an admin to enable card/transfer or bank transfer checkout.
+                to pay, or contact support for help.
             </x-dashboard.alert>
         @else
             <form
@@ -117,7 +117,7 @@
                 @if ($renewTool ?? null)
                     <input type="hidden" name="renew_user_tool_id" value="{{ $renewTool->id }}">
                     <x-dashboard.alert type="info">
-                        Renewing <strong>{{ $renewTool->resolvedDisplayName() }}</strong>. This extends the same tool — it will not create a second instance.
+                        Renewing <strong>{{ $renewTool->resolvedDisplayName() }}</strong>. This extends the same tool. It will not create a second one.
                     </x-dashboard.alert>
                 @endif
 
@@ -128,7 +128,7 @@
 
                     <div class="rounded-xl border border-border-default bg-muted/20 px-4 py-3 space-y-1">
                         <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Domain</p>
-                        <p class="text-lg font-semibold text-text-primary" x-text="domainFqdn || '—'"></p>
+                        <p class="text-lg font-semibold text-text-primary" x-text="domainFqdn || '-'"></p>
                         <p class="text-sm text-text-secondary">
                             Registration · <span x-text="'₦' + retailFormatted"></span>
                             <span x-show="domainPremium" x-cloak class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Premium</span>
@@ -163,7 +163,7 @@
                         </div>
                     @elseif($variants->isNotEmpty())
                         <div>
-                            <label class="block text-sm font-medium text-text-secondary mb-2">Plan / variant</label>
+                            <label class="block text-sm font-medium text-text-secondary mb-2">Plan</label>
                             <p class="mb-2 text-xs text-text-muted">For per-unit plans, set units on the product page before checkout.</p>
                             <div class="space-y-2">
                                 @foreach($variants as $variant)
@@ -205,7 +205,7 @@
 
                     @if($product->is_campaign ?? false)
                         <div>
-                            <label class="block text-sm font-medium text-text-secondary mb-2">Campaign destination</label>
+                            <label class="block text-sm font-medium text-text-secondary mb-2">Campaign link</label>
                             <label class="block text-xs font-medium text-text-muted mb-1">{{ $destinationLabel }} <span class="text-danger">*</span></label>
                             <input
                                 type="url"
@@ -375,7 +375,7 @@
                                         </div>
                                         <p class="text-sm text-text-secondary">
                                             To use this domain with your website, change its nameservers at your current registrar to the required values above.
-                                            Verification happens after purchase in My Domains — you can continue to payment now.
+                                            Verification happens after purchase in My Domains. You can continue to payment now.
                                         </p>
                                         <label class="flex items-start gap-2 text-sm text-text-primary">
                                             <input type="checkbox" class="mt-1 accent-primary" x-model="connectAcknowledged">
@@ -416,7 +416,7 @@
                                 <input type="radio" name="payment_method" value="manual_bank_transfer" x-model="paymentMethod" class="mt-1 accent-primary" @checked($defaultMethod === 'manual_bank_transfer')>
                                 <span>
                                     <span class="block text-sm font-medium text-text-primary">Bank transfer</span>
-                                    <span class="block text-xs text-text-muted">Pay directly to our company account — we confirm manually</span>
+                                    <span class="block text-xs text-text-muted">Pay directly to our company account. We confirm it manually.</span>
                                 </span>
                             </label>
                         @endif

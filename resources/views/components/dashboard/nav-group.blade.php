@@ -8,7 +8,7 @@
 @php
     $groupId = (string) ($group['id'] ?? \Illuminate\Support\Str::slug($group['label'] ?? 'group'));
     $panelId = $idPrefix.'-'.$groupId;
-    // Use Js::from — @js() inside Blade component attributes is escaped and left literal.
+    // Use Js::from - @js() inside Blade component attributes is escaped and left literal.
     $groupIdJs = \Illuminate\Support\Js::from($groupId);
 @endphp
 

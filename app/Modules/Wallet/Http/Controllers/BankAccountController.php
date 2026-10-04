@@ -140,7 +140,7 @@ class BankAccountController extends Controller
 
         return redirect()
             ->route(MemberShell::prefix().'.banks.index')
-            ->with('status', __('My bank updated.'));
+            ->with('status', __('Your bank account has been updated.'));
     }
 
     /**

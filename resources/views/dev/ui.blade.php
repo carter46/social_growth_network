@@ -195,7 +195,7 @@
             <h2 class="text-xl font-semibold">Modal & toast</h2>
             <div class="flex flex-wrap gap-3">
                 <x-ui.button type="button" @click="$dispatch('open-modal', 'demo-modal')">Open modal</x-ui.button>
-                <x-ui.button type="button" variant="secondary" @click="window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: 'Demo toast — auto dismiss in 5s' } }))">Fire toast</x-ui.button>
+                <x-ui.button type="button" variant="secondary" @click="window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: 'Demo toast, auto dismiss in 5s' } }))">Fire toast</x-ui.button>
             </div>
             <x-ui.modal name="demo-modal" title="Approve deposit?" description="This action credits the user wallet." confirm-label="Approve" variant="default" />
         </section>

@@ -15,7 +15,7 @@ export function sanitizeDomainLabel(raw, allowedTlds = new Set()) {
         if (maybeTld) {
             autoTld = maybeTld;
         }
-        error = error ?? 'Do not include an extension here — choose it from the dropdown.';
+        error = error ?? 'Do not include an extension here. Choose it from the dropdown.';
     } else {
         const sanitized = value.replace(/[^a-z0-9-]/g, '');
         if (sanitized !== value) {
@@ -65,7 +65,7 @@ export function formatDomainNgn(amount) {
  * Merge Alpine helper objects while preserving getters.
  * Object spread ({...helpers}) evaluates getters once and can throw
  * (e.g. this.domainLabel.trim() before domainLabel exists), which breaks
- * the entire x-data component — blank buttons, dead x-if panels, etc.
+ * the entire x-data component - blank buttons, dead x-if panels, etc.
  */
 export function assignAlpineHelpers(target, ...sources) {
     for (const source of sources) {

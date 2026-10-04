@@ -57,10 +57,10 @@
                 {{ $brandName }}
             </p>
             <h1 class="text-2xl sm:text-4xl md:text-5xl lg:text-[52px] font-extrabold text-slate-900 tracking-tight leading-[1.15] mb-4 sm:mb-5 font-display">
-                {!! $ytWord('Grow your YouTube watch hours with ready campaign packages.') !!}
+                {!! $ytWord('Get more engagement on your social media content.') !!}
             </h1>
             <p class="text-base sm:text-lg lg:text-xl text-slate-600 font-normal leading-relaxed mb-8 sm:mb-10 max-w-xl mx-auto">
-                Launch Watch Hours campaigns with upfront pricing, a clear checkout flow, and progress you can track in your account.
+                Start with YouTube Watch Hours, our main service, then add views, likes, and comments for your videos and posts. You see the price before you pay and can track your campaign from your account.
             </p>
 
             <div class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-3 sm:gap-4">
@@ -68,7 +68,7 @@
                     class="inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm sm:text-base px-5 py-3 sm:px-6 sm:py-3.5 rounded-lg shadow-sm hover:shadow transition-all"
                     href="{{ route('register') }}"
                 >
-                    <span>Pay For Watch Hours</span>
+                    <span>Buy Watch Hours</span>
                     <span class="material-symbols-outlined text-base sm:text-lg" aria-hidden="true">arrow_forward</span>
                 </a>
                 <a
@@ -88,7 +88,7 @@
         <div class="mb-12 lg:mb-16 max-w-2xl">
             <span class="text-slate-500 font-bold text-xs sm:text-sm tracking-wider uppercase mb-2 block">YouTube services</span>
             <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-display">{!! $ytWord('Built around YouTube growth.') !!}</h2>
-            <p class="text-slate-600 text-base sm:text-lg mt-2">Watch Hours leads the catalog. Views, Likes, and Comments sit alongside as supporting packages.</p>
+            <p class="text-slate-600 text-base sm:text-lg mt-2">YouTube Watch Hours is our main service. You can also order views, likes, and comments for your videos.</p>
         </div>
 
         @if(is_array($watchHours))
@@ -106,7 +106,7 @@
                             {{ $watchHours['short_description'] }}
                         </p>
                         <p class="text-sm text-slate-500 mb-6">
-                            At checkout you’ll provide a public video URL where you want watch sessions delivered.
+                            At checkout, you’ll add the link to a public YouTube video.
                         </p>
                         <div class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-4">
                             @if(! empty($watchHours['from_price']))
@@ -118,7 +118,7 @@
                                 class="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm sm:text-base px-5 py-3 rounded-lg shadow-sm transition-all w-full sm:w-auto"
                                 href="{{ $watchHoursHref }}"
                             >
-                                <span>Pay For Watch Hours</span>
+                                <span>Buy Watch Hours</span>
                                 <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
                             </a>
                         </div>
@@ -143,7 +143,7 @@
         @if($youtubeOthers->isNotEmpty())
             <div class="mb-6">
                 <h3 class="text-lg sm:text-xl font-bold text-slate-900 font-display">More YouTube packages</h3>
-                <p class="text-slate-500 text-sm mt-1">Views, Likes, and Comments with the same upfront pricing model.</p>
+                <p class="text-slate-500 text-sm mt-1">Views, likes, and comments, each with a clear price.</p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
                 @foreach($youtubeOthers as $index => $product)
@@ -177,7 +177,7 @@
                                 @if(! empty($product['from_price']))
                                     From ₦{{ number_format((float) $product['from_price'], 0) }}
                                 @else
-                                    From predefined packages
+                                    See packages
                                 @endif
                             </span>
                             <a class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline group-hover:translate-x-0.5 transition-transform" href="{{ $product['href'] }}">View package →</a>
@@ -186,7 +186,7 @@
                 @endforeach
             </div>
         @elseif(! is_array($watchHours))
-            <p class="text-slate-500 text-center py-12">YouTube packages will appear here once published in the catalog.</p>
+            <p class="text-slate-500 text-center py-12">No YouTube services are available right now. Please check back soon.</p>
         @endif
     </div>
 </section>
@@ -197,13 +197,13 @@
         <div class="text-center max-w-2xl mx-auto mb-16">
             <span class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-2 block">How {{ $brandName }} works</span>
             <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-display">Launch in three simple steps.</h2>
-            <p class="text-slate-600 text-base sm:text-lg mt-2">The same flow for Watch Hours and every other campaign package.</p>
+            <p class="text-slate-600 text-base sm:text-lg mt-2">It works the same way for every service.</p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
             @foreach([
-                ['n' => '01', 'icon' => 'category', 'title' => 'Choose a service', 'body' => 'Pick YouTube Watch Hours or another package and select a predefined quantity with upfront fixed pricing.', 'foot' => 'Step 1 · No haggling'],
-                ['n' => '02', 'icon' => 'link', 'title' => 'Provide campaign details', 'body' => 'Add the required target URL and any campaign instructions in the checkout form.', 'foot' => 'Step 2 · Quick setup'],
-                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Pay and track', 'body' => 'Pay securely, then follow verified task completion and campaign progress in your account.', 'foot' => 'Step 3 · Secure payment'],
+                ['n' => '01', 'icon' => 'category', 'title' => 'Choose a service', 'body' => 'Pick YouTube Watch Hours or another service, then choose a package. You’ll see the price before you pay.', 'foot' => 'Step 1 · No haggling'],
+                ['n' => '02', 'icon' => 'link', 'title' => 'Provide campaign details', 'body' => 'Add the link to your post or video and any campaign instructions at checkout.', 'foot' => 'Step 2 · Quick setup'],
+                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Pay and track', 'body' => 'Pay securely, then follow your campaign’s progress from your account.', 'foot' => 'Step 3 · Secure payment'],
             ] as $step)
                 <div class="bg-slate-50 p-8 rounded-xl border border-slate-200/80 flex flex-col justify-between">
                     <div>
@@ -245,7 +245,7 @@
         <div class="mb-8 sm:mb-10">
             <span class="text-slate-500 font-bold text-xs sm:text-sm tracking-wider uppercase mb-2 block">Other platforms</span>
             <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-display">Need other social media services?</h2>
-            <p class="text-slate-600 text-base sm:text-lg mt-2 max-w-xl">Additional platform packages live here. YouTube is covered in the dedicated section above.</p>
+            <p class="text-slate-600 text-base sm:text-lg mt-2 max-w-xl">We also offer services for Facebook, Instagram, TikTok, and X (Twitter).</p>
         </div>
 
         @if($filterCategories->isNotEmpty())
@@ -292,7 +292,7 @@
                             </div>
                         </div>
                         <div class="px-5 pb-5 pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
-                            <span class="text-xs font-medium text-slate-500" x-text="product.from_price ? ('From ₦' + Number(product.from_price).toLocaleString('en-NG')) : 'From predefined packages'"></span>
+                            <span class="text-xs font-medium text-slate-500" x-text="product.from_price ? ('From ₦' + Number(product.from_price).toLocaleString('en-NG')) : 'See packages'"></span>
                             <a class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline group-hover:translate-x-0.5 transition-transform" :href="product.href">View package →</a>
                         </div>
                     </div>
@@ -326,18 +326,18 @@
                                 </div>
                                 <div class="p-5">
                                     <h3 class="text-xl font-bold text-slate-900 mb-2 font-display">{{ $card['label'] ?? 'Campaigns' }}</h3>
-                                    <p class="text-slate-600 text-sm leading-relaxed mb-4">{{ $card['short_description'] ?? $card['hero_subtitle'] ?? 'Predefined packages with upfront pricing and secure payment.' }}</p>
+                                    <p class="text-slate-600 text-sm leading-relaxed mb-4">{{ $card['short_description'] ?? $card['hero_subtitle'] ?? 'Views, likes, and comments with clear prices.' }}</p>
                                 </div>
                             </div>
                             <div class="px-5 pb-5 pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
-                                <span class="text-xs font-medium text-slate-500">From predefined packages</span>
+                                <span class="text-xs font-medium text-slate-500">See packages</span>
                                 <a class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline" href="{{ $href }}">Explore Packages →</a>
                             </div>
                         </div>
                     @endforeach
                 </div>
             @else
-                <p class="text-slate-500 text-center py-12">Campaign packages will appear here once published in the catalog.</p>
+                <p class="text-slate-500 text-center py-12">No services are available here right now. Please check back soon.</p>
             @endif
         </div>
     </div>
@@ -356,7 +356,7 @@
                     Earn by completing available digital tasks
                 </h2>
                 <p class="text-slate-600 text-base sm:text-lg leading-relaxed mb-4 max-w-xl">
-                    Join {{ $brandName }} as an Agent. Complete available task sessions—Watch Hours and other social campaign activities when they are open—then submit according to each task’s requirements.
+                    Join {{ $brandName }} as an Agent. When campaigns are open, you can take on tasks like watching a YouTube video for a set time or engaging with a social post. Follow each task’s instructions, then submit your proof.
                 </p>
                 <p class="text-slate-500 text-sm leading-relaxed mb-8 max-w-xl">
                     Approved tasks can earn rewards. Earnings and open tasks are not guaranteed; rewards depend on task requirements and approval.
@@ -391,7 +391,7 @@
                             <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">{{ $agentTaskPreview['label'] ?? 'Campaign' }}</p>
                             <h3 class="font-bold text-slate-900 text-base mb-1">{{ $agentTaskPreview['title'] }}</h3>
                             <div class="flex items-center justify-between bg-slate-50 px-3 py-2 rounded-lg border border-slate-200/70 mb-3 mt-3">
-                                <span class="text-xs text-slate-600 font-medium">Reward if approved</span>
+                                <span class="text-xs text-slate-600 font-medium">Reward</span>
                                 <span class="text-sm font-extrabold text-emerald-600">
                                     {{ $agentTaskPreview['reward'] }}
                                     @if(! empty($agentTaskPreview['time']) && $agentTaskPreview['time'] !== 'Flexible')
@@ -414,10 +414,10 @@
 {{-- FAQ strip --}}
 <section class="py-12 bg-white" id="faq">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500">
-        Have questions? View our comprehensive
+        Have questions? Visit our
         <a class="text-primary font-semibold hover:underline" href="{{ route('help') }}">FAQ guide</a>
-        or reach out to
-        <a class="text-primary font-semibold hover:underline" href="{{ route('contact') }}">24/7 campaign support</a>.
+        or
+        <a class="text-primary font-semibold hover:underline" href="{{ route('contact') }}">contact our support team</a>.
     </div>
 </section>
 @endsection

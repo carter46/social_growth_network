@@ -556,9 +556,9 @@ document.addEventListener('alpine:init', () => {
                     this.preview = {
                         mode: 'open_url',
                         open_url: fallbackOpen,
-                        note: 'Preview unavailable — URL still accepted if valid.',
+                        note: 'Preview unavailable. Your URL is still accepted if it is valid.',
                     };
-                    this.previewError = (data && data.message) || 'Preview unavailable — URL still accepted if valid.';
+                    this.previewError = (data && data.message) || 'Preview unavailable. Your URL is still accepted if it is valid.';
                     return;
                 }
                 if (data.open_url) data.open_url = this.safeHttpUrl(data.open_url) || fallbackOpen;
@@ -571,9 +571,9 @@ document.addEventListener('alpine:init', () => {
                 this.preview = {
                     mode: 'open_url',
                     open_url: fallbackOpen,
-                    note: 'Preview unavailable — URL still accepted if valid.',
+                    note: 'Preview unavailable. Your URL is still accepted if it is valid.',
                 };
-                this.previewError = 'Preview unavailable — URL still accepted if valid.';
+                this.previewError = 'Preview unavailable. Your URL is still accepted if it is valid.';
             } finally {
                 if (requestId === this.previewRequestId) {
                     this.previewLoading = false;
@@ -643,7 +643,7 @@ document.addEventListener('alpine:init', () => {
                 if (ok) {
                     try { window.instgrm?.Embeds?.process?.(); } catch (_) { /* ignore */ }
                 } else {
-                    this.previewError = 'Preview unavailable — URL still accepted if valid.';
+                    this.previewError = 'Preview unavailable. Your URL is still accepted if it is valid.';
                 }
                 return;
             }
@@ -668,7 +668,7 @@ document.addEventListener('alpine:init', () => {
                 if (ok) {
                     try { window.FB?.XFBML?.parse?.(el); } catch (_) { /* ignore */ }
                 } else {
-                    this.previewError = 'Preview unavailable — URL still accepted if valid.';
+                    this.previewError = 'Preview unavailable. Your URL is still accepted if it is valid.';
                 }
                 return;
             }
@@ -689,7 +689,7 @@ document.addEventListener('alpine:init', () => {
                 if (ok) {
                     try { window.twttr?.widgets?.load?.(el); } catch (_) { /* ignore */ }
                 } else {
-                    this.previewError = 'Preview unavailable — URL still accepted if valid.';
+                    this.previewError = 'Preview unavailable. Your URL is still accepted if it is valid.';
                 }
             }
         },
@@ -1610,9 +1610,9 @@ document.addEventListener('alpine:init', () => {
         submitting: false,
         get progressLabel() {
             const labels = {
-                1: 'Step 1 of 3 — Choose your path',
-                2: 'Step 2 of 3 — Your details',
-                3: 'Step 3 of 3 — Password & terms',
+                1: 'Step 1 of 3: Choose your path',
+                2: 'Step 2 of 3: Your details',
+                3: 'Step 3 of 3: Password & terms',
             };
             return labels[this.step] || '';
         },

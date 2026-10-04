@@ -133,7 +133,7 @@ class ConnectionCheckService
                 ]),
                 actionUrl: $toolUrl,
                 meta: ['user_tool_id' => $tool->id],
-                emailSubject: __(':product — your website is ready', ['product' => $productName]),
+                emailSubject: __(':product: your website is ready', ['product' => $productName]),
                 dedupeKey: 'tool.setup_complete.'.$tool->id,
             ),
             ['database', 'mail']

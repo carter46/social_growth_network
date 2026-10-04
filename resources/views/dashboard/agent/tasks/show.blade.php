@@ -40,7 +40,7 @@
                     @if ($campaign?->target_url)
                         <a href="{{ $campaign->target_url }}" class="text-accent underline" target="_blank" rel="noopener">Open link</a>
                     @else
-                        —
+                        -
                     @endif
                 </dd>
             </div>
@@ -57,7 +57,7 @@
                 claimUrl: @js(route('agent.tasks.claim-watch', $participation)),
                 csrf: @js(csrf_token()),
             })">
-                <p class="text-sm text-text-secondary">{{ $embed['note'] ?? 'Complete the required watch session, then claim your reward. This verifies a TaskPulse task completion — not a guaranteed platform view or watch-hour credit.' }}</p>
+                <p class="text-sm text-text-secondary">{{ $embed['note'] ?? 'Complete the required watch session, then claim your reward. This confirms you completed the task. It does not guarantee a platform view or watch-hour credit.' }}</p>
 
                 @if (($embed['mode'] ?? '') === 'embed' && !empty($embed['html']))
                     <div class="overflow-hidden rounded-xl border border-border-default">{!! $embed['html'] !!}</div>
@@ -88,7 +88,7 @@
             </div>
         @elseif ($taskMode === 'x_action' && $participation->status === 'started')
             <div class="space-y-3">
-                <p class="text-sm text-text-secondary">Open the post on X and complete the required viewing action. Embedded posts do not add to X view counts — do not treat a timer as proof of an X view.</p>
+                <p class="text-sm text-text-secondary">Open the post on X and complete the required viewing action. Embedded posts do not add to X view counts, so a timer is not proof of an X view.</p>
                 @if ($campaign?->target_url)
                     <a href="{{ $campaign->target_url }}" target="_blank" rel="noopener" class="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white">Open on X</a>
                 @endif

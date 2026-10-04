@@ -43,6 +43,6 @@
                 </button>
             </template>
         </div>
-        <p class="text-xs text-text-muted">Tap a suggestion to switch — your selected extension stays available above.</p>
+        <p class="text-xs text-text-muted">Tap a suggestion to switch. Your selected extension stays available above.</p>
     </div>
 </div>

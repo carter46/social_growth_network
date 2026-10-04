@@ -26,12 +26,12 @@
             <div>
                 <dt class="text-text-muted">Observed {{ $campaign->engagement_metric }} on post</dt>
                 <dd class="font-semibold">
-                    {{ $campaign->last_verified_count ?? '—' }}
+                    {{ $campaign->last_verified_count ?? '-' }}
                     @if ($campaign->baseline_count !== null)
                         <span class="text-text-muted font-normal">(baseline {{ $campaign->baseline_count }})</span>
                     @endif
                 </dd>
-                <p class="text-xs text-text-muted mt-1">Observed external metric — not individual agent identity proof.</p>
+                <p class="text-xs text-text-muted mt-1">Observed external metric. It does not identify individual Agents.</p>
             </div>
             @endif
             <div>
@@ -66,9 +66,9 @@
         </x-slot:head>
         @foreach ($campaign->participations as $participation)
             <tr class="hover:bg-muted/50">
-                <x-dashboard.td>{{ $participation->agent?->name ?? '—' }}</x-dashboard.td>
+                <x-dashboard.td>{{ $participation->agent?->name ?? '-' }}</x-dashboard.td>
                 <x-dashboard.td><x-dashboard.badge :status="$participation->status" /></x-dashboard.td>
-                <x-dashboard.td>{{ $participation->submitted_at?->format('Y-m-d H:i') ?? '—' }}</x-dashboard.td>
+                <x-dashboard.td>{{ $participation->submitted_at?->format('Y-m-d H:i') ?? '-' }}</x-dashboard.td>
             </tr>
         @endforeach
     </x-dashboard.table>

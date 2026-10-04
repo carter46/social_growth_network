@@ -21,10 +21,10 @@ return [
             'nav' => 'Overview',
             'title' => 'What Agents do',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'As an Agent you browse available campaign tasks, claim work you can finish correctly, complete the required activity, and submit proof through the Platform.'],
+                ['type' => 'paragraph', 'content' => 'As an Agent you browse available campaign tasks, claim work you can finish correctly, complete the required activity, and submit proof through the platform.'],
                 ['type' => 'bullets', 'items' => [
                     'Only claim tasks you can complete on time and as written.',
-                    'Rewards unlock after proof approval — not when you claim a task.',
+                    'Rewards unlock after proof approval, not when you claim a task.',
                     'Never ask Creators for off-platform payment.',
                 ]],
             ],
@@ -55,7 +55,7 @@ return [
             'nav' => 'Earnings',
             'title' => 'Earnings and withdrawals',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'Approved rewards credit toward your withdrawable balance. Withdrawals may require KYC and follow scheduled clearing cycles. See Billing, wallets & payments for funding and withdrawal details.'],
+                ['type' => 'paragraph', 'content' => 'Approved rewards credit toward your withdrawable balance. Withdrawals may require KYC and follow our payout schedule. See Billing, wallets & payments for funding and withdrawal details.'],
             ],
         ],
     ],

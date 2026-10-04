@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Legacy public checkout view — PlatformCheckoutController redirects to dashboard checkout.
+ * Legacy public checkout view - PlatformCheckoutController redirects to dashboard checkout.
  * Kept as a stub so stale references fail closed without a package-quantity UI.
  */
 ?>

@@ -18,8 +18,8 @@ return [
             'hero_subtitle' => 'Filter Growth or Engagement packages for the outcome you want.',
             'benefits' => [
                 'Growth and engagement categories',
-                'Clear deliverable descriptions',
-                'Protected platform payment',
+                'See what you get before you pay',
+                'Secure payment',
             ],
             'faq' => [
                 ['q' => 'How do I choose Growth vs Engagement?', 'a' => 'Use the category filter: Growth focuses on audience size; Engagement focuses on interaction.'],
@@ -39,12 +39,12 @@ return [
             'hero_title' => 'Social Media',
             'hero_subtitle' => 'Browse social services, then filter by Growth or Engagement.',
             'benefits' => [
-                'Instagram, TikTok, YouTube, Twitter/X, and Facebook packs',
-                'Clear deliverables before you buy',
-                'Secure platform payment with wallet or card',
+                'Services for YouTube, Instagram, TikTok, Facebook, and X (Twitter)',
+                'See what you get before you pay',
+                'Pay securely with your wallet or card',
             ],
             'faq' => [
-                ['q' => 'What platforms do you support?', 'a' => 'We offer growth and engagement packs for Instagram, TikTok, YouTube, Twitter/X, and Facebook.'],
+                ['q' => 'What platforms do you support?', 'a' => 'We offer growth and engagement packages for YouTube, Instagram, TikTok, Facebook, and X (Twitter).'],
             ],
             'types' => ['social_service'],
         ],

@@ -1,4 +1,4 @@
-{{-- Live chat widget — Smartsupp / Jivo / Chatway via LiveChatManager. --}}
+{{-- Live chat widget - Smartsupp / Jivo / Chatway via LiveChatManager. --}}
 @php
     $chat = app(\App\Services\Communications\LiveChat\LiveChatManager::class)->resolved();
     $provider = $chat['provider'];

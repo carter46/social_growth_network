@@ -45,7 +45,7 @@
         </div>
     </div>
 
-    {{-- Desktop topbar — no brand logo (sidebar owns branding) --}}
+    {{-- Desktop topbar - no brand logo (sidebar owns branding) --}}
     <div class="hidden h-full items-center justify-between gap-4 px-4 sm:px-6 lg:flex lg:px-10">
         <div class="min-w-0">
             <p class="truncate text-sm font-semibold text-text-primary">{{ $context }}</p>

@@ -75,6 +75,44 @@ class PlatformCatalogSeeder extends Seeder
         ['slug' => 'twitter-comments', 'title' => 'Twitter Comments', 'base_price' => 16000, 'sort_order' => 42],
     ];
 
+    public static function descriptionFor(string $slug, string $title): string
+    {
+        [$platform, $metric] = array_pad(explode('-', $slug, 2), 2, '');
+
+        if ($metric === 'watch-hours') {
+            return 'Add watch time to a public YouTube video. Choose a package, add your video link at checkout, and track your campaign from your account.';
+        }
+
+        $name = match ($platform) {
+            'youtube' => 'YouTube',
+            'facebook' => 'Facebook',
+            'instagram' => 'Instagram',
+            'tiktok' => 'TikTok',
+            default => null,
+        };
+
+        $target = match (true) {
+            $platform === 'twitter' => 'post on X (Twitter)',
+            $platform === 'instagram' => 'Instagram Reel or post',
+            $platform === 'tiktok' => 'TikTok video',
+            $metric === 'views' => $name.' video',
+            $name !== null => $name.' post or video',
+            default => null,
+        };
+
+        if ($target === null || ! in_array($metric, ['views', 'likes', 'comments'], true)) {
+            return "Choose a {$title} package, add your link at checkout, and track progress from your account.";
+        }
+
+        if ($metric === 'views') {
+            $link = in_array($platform, ['youtube', 'facebook', 'tiktok'], true) ? 'your video link' : 'the link';
+
+            return "Order views for a public {$target}. Choose a package, add {$link} at checkout, and track your campaign from your account.";
+        }
+
+        return "Order {$metric} for a public {$target}. Choose a package, add the link at checkout, and track progress from your account.";
+    }
+
     public function run(): void
     {
         $type = PlatformProductType::SocialService->value;
@@ -125,7 +163,7 @@ class PlatformCatalogSeeder extends Seeder
             }
 
             if (! filled($product->description)) {
-                $updates['description'] = "Get started quickly with {$row['title']}. Includes setup guidance, support, and clear deliverables.";
+                $updates['description'] = self::descriptionFor($row['new_slug'], $row['title']);
             }
             if ($product->base_price === null || (float) $product->base_price <= 0) {
                 $updates['base_price'] = $row['base_price'];
@@ -143,7 +181,7 @@ class PlatformCatalogSeeder extends Seeder
             'slug' => $row['new_slug'],
             'title' => $row['title'],
             'product_type' => $type,
-            'description' => "Get started quickly with {$row['title']}. Includes setup guidance, support, and clear deliverables.",
+            'description' => self::descriptionFor($row['new_slug'], $row['title']),
             'status' => PlatformProductStatus::Published,
             'is_featured' => $row['sort_order'] < 20,
             'sort_order' => $row['sort_order'],
@@ -168,7 +206,7 @@ class PlatformCatalogSeeder extends Seeder
             ];
 
             if (! filled($existing->description)) {
-                $updates['description'] = "Get started quickly with {$row['title']}. Includes setup guidance, support, and clear deliverables.";
+                $updates['description'] = self::descriptionFor($row['slug'], $row['title']);
             }
             if ($existing->base_price === null || (float) $existing->base_price <= 0) {
                 $updates['base_price'] = $row['base_price'];
@@ -186,7 +224,7 @@ class PlatformCatalogSeeder extends Seeder
             'slug' => $row['slug'],
             'title' => $row['title'],
             'product_type' => $type,
-            'description' => "Get started quickly with {$row['title']}. Includes setup guidance, support, and clear deliverables.",
+            'description' => self::descriptionFor($row['slug'], $row['title']),
             'status' => PlatformProductStatus::Published,
             'is_featured' => false,
             'sort_order' => $row['sort_order'],

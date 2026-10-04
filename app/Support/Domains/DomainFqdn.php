@@ -34,7 +34,7 @@ final class DomainFqdn
             if ($maybeTld !== '') {
                 $detectedTld = $maybeTld;
             }
-            $error = $error ?? 'Do not include an extension here — choose it from the dropdown.';
+            $error = $error ?? 'Do not include an extension here. Choose it from the dropdown.';
         } else {
             $sanitized = preg_replace('/[^a-z0-9-]/', '', $value);
             if ($sanitized !== $value) {

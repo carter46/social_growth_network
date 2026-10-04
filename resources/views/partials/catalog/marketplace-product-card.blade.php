@@ -4,7 +4,7 @@
     $heroUrl = media_url($product->heroMedia ?? null, $product->hero_image, 'medium')
         ?: $product->listThumbnailUrl();
     $categoryLabel = $product->serviceCategory?->name
-        ?? ($product->productType?->serviceCategory?->name ?? 'Campaign');
+        ?? ($product->productType?->serviceCategory?->name ?? 'Service');
     $fromPrice = $product->displayPrice();
     $variants = ($product->relationLoaded('activeVariants') ? $product->activeVariants : $product->activeVariants()->get())
         ->sortBy('price')
@@ -42,7 +42,7 @@
             <a href="{{ $href }}" class="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded">{{ $product->title }}</a>
         </h3>
         <p class="text-sm text-slate-600 mb-4 line-clamp-2 leading-relaxed">
-            {{ \Illuminate\Support\Str::limit(strip_tags((string) ($product->description ?? '')), 160) ?: 'Predefined package with upfront pricing and secure payment.' }}
+            {{ \Illuminate\Support\Str::limit(strip_tags((string) ($product->description ?? '')), 160) ?: 'Choose a package, add your link, and pay securely.' }}
         </p>
 
         @if($variants->isNotEmpty())

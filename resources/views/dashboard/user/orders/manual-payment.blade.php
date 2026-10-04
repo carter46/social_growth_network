@@ -1,6 +1,6 @@
 @extends('layouts.dashboard-user')
 
-@section('title', 'Bank transfer — '.$order->reference)
+@section('title', 'Bank transfer | '.$order->reference)
 
 @section('content')
 @php

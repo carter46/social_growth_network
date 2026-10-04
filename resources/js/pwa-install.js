@@ -1,5 +1,5 @@
 /**
- * PWA install flow — beforeinstallprompt, iOS add-to-home-screen modal, button states.
+ * PWA install flow - beforeinstallprompt, iOS add-to-home-screen modal, button states.
  */
 let deferredPrompt = null;
 let state = 'idle';
@@ -208,7 +208,7 @@ function initPwaInstall() {
         if (isStandalone()) {
             setState('installed');
         } else {
-            // Stale flag after uninstall — trust the browser, not storage alone.
+            // Stale flag after uninstall - trust the browser, not storage alone.
             window.localStorage?.removeItem('pwa-installed');
             setState('idle');
         }

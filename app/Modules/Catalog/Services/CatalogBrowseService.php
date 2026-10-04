@@ -645,7 +645,7 @@ class CatalogBrowseService
             'short_description' => \Illuminate\Support\Str::limit(
                 strip_tags((string) ($product->description ?? '')),
                 160
-            ) ?: 'Predefined package with upfront pricing and secure payment.',
+            ) ?: 'Choose a package, add your link, and pay securely.',
             'href' => $this->productUrl($product),
             'hero_url' => $heroUrl,
             'category_slug' => $categorySlug,
@@ -747,7 +747,7 @@ class CatalogBrowseService
                 'badge' => 'Example',
                 'badgeClass' => 'text-slate-600 bg-slate-100',
                 'title' => $product->title,
-                'reward' => 'If approved',
+                'reward' => 'Paid if approved',
                 'time' => $time,
                 'href' => route('register.agent'),
             ];

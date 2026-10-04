@@ -57,7 +57,7 @@ return [
             'title' => 'Reporting invalid proof or suspicious activity',
             'blocks' => [
                 ['type' => 'paragraph', 'content' => 'If you see fraudulent proof, suspicious tasks, phishing attempts, or unauthorized wallet activity, report it through official support channels with evidence (order IDs, screenshots, timestamps).'],
-                ['type' => 'warning', 'title' => 'Support safety', 'content' => 'Official support will never ask for your password. Use Help Center articles, the Contact page, or dashboard tickets only — not random social DMs claiming to be staff.'],
+                ['type' => 'warning', 'title' => 'Support safety', 'content' => 'Official support will never ask for your password. Use Help Center articles, the Contact page, or dashboard tickets only. Ignore random social DMs claiming to be staff.'],
             ],
         ],
         [

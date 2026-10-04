@@ -14,7 +14,7 @@ export async function copyToClipboard(text) {
             await navigator.clipboard.writeText(value);
             return true;
         } catch {
-            // Lost user-gesture (common on iOS after fetch) — use fallback.
+            // Lost user-gesture (common on iOS after fetch) - use fallback.
         }
     }
 
@@ -24,7 +24,7 @@ export async function copyToClipboard(text) {
 /**
  * Copy text produced asynchronously (e.g. after fetch) without dropping
  * Safari/iOS's user-activation. Call this *from the click handler* and pass
- * a function that returns the string — do not await fetch yourself first.
+ * a function that returns the string - do not await fetch yourself first.
  *
  * Uses ClipboardItem + a Promise (Safari's supported pattern), then
  * copyToClipboard if that is unavailable.

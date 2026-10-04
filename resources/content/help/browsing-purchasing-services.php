@@ -5,7 +5,7 @@ return [
     'category_key' => 'services',
     'title' => 'Campaigns, packages & tasks',
     'intro' => 'How Creators launch campaign packages and how Agents discover tasks, submit proof, and get paid after verification.',
-    'summary' => 'Browse the campaign catalog, buy a predefined package as a Creator, or claim and complete tasks as an Agent with clear proof requirements.',
+    'summary' => 'Browse the campaign catalog, buy a package as a Creator, or claim and complete tasks as an Agent with clear proof requirements.',
     'updated_at' => '2026-09-09',
     'printable' => true,
     'related' => ['getting-started', 'billing-wallets-payments', 'keeping-account-secure'],
@@ -20,9 +20,9 @@ return [
             'nav' => 'Browse campaigns',
             'title' => 'Browse campaign services',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'Open Services to explore campaign categories and predefined packages. Each product page explains deliverables, package tiers, and what Creators must provide (target URL, guidelines, and any geo or audience notes).'],
+                ['type' => 'paragraph', 'content' => 'Open Services to explore campaign categories and packages. Each product page explains deliverables, package tiers, and what Creators must provide (target URL, guidelines, and any geo or audience notes).'],
                 ['type' => 'bullets', 'items' => [
-                    'Packages are structured campaign offers — not one-off “do anything” gigs.',
+                    'Packages are set campaign offers. They are not one-off “do anything” gigs.',
                     'Pricing and completion rules are shown before you pay so Creators know what they are funding.',
                     'Agents see eligible tasks that match active campaigns once work is available in the marketplace.',
                 ]],
@@ -51,7 +51,7 @@ return [
                 ['type' => 'checklist', 'items' => [
                     'Read the Creator’s instructions and proof requirements carefully before starting.',
                     'Complete the required activity on the target platform or URL exactly as specified.',
-                    'Submit proof through the platform submission flow (screenshots, links, or other required evidence).',
+                    'Submit proof from your dashboard (screenshots, links, or other required evidence).',
                     'Wait for automated and/or human review before rewards are released to your earnings balance.',
                 ]],
                 ['type' => 'warning', 'title' => 'Quality matters', 'content' => 'Fake, recycled, or incomplete proof can be rejected. Repeated abuse may limit marketplace access.'],
@@ -76,7 +76,7 @@ return [
             'title' => 'Tracking orders and progress',
             'blocks' => [
                 ['type' => 'paragraph', 'content' => 'After payment, Creators follow campaign status and completions from the dashboard (orders and related campaign views). Agents track claimed tasks, proof status, and earnings from their Agent dashboard.'],
-                ['type' => 'tip', 'title' => 'Need help?', 'content' => 'Payment or proof disputes should go through support tickets so the operations desk can review wallet and submission records.'],
+                ['type' => 'tip', 'title' => 'Need help?', 'content' => 'Payment or proof disputes should go through support tickets so our support team can review wallet and submission records.'],
             ],
         ],
     ],

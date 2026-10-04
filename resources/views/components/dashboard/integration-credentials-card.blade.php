@@ -91,7 +91,7 @@
                 Connection: <span class="font-medium">{{ $connectionStatus }}</span>
             @endif
             @if ($connectionMessage)
-                @if ($connectionStatus) — @endif
+                @if ($connectionStatus) &middot; @endif
                 {{ $connectionMessage }}
             @endif
         </p>

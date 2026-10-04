@@ -63,7 +63,7 @@
                 <p class="text-[11px] font-semibold uppercase tracking-wider text-accent mb-2">Get in touch</p>
                 <h2 class="font-display text-2xl sm:text-3xl font-semibold text-white mb-2">Talk to a real person</h2>
                 <p class="text-sm sm:text-base text-text-secondary max-w-2xl leading-relaxed">
-                    Pick the channel that fits — email for records, WhatsApp or phone for quick questions, tickets for tracked cases.
+                    Pick the channel that fits: email for records, WhatsApp or phone for quick questions, and tickets for tracked cases.
                 </p>
             </div>
 
@@ -84,7 +84,7 @@
                     </a>
                 @empty
                     <div class="rounded-2xl border border-dashed border-border-subtle px-5 py-6 text-sm text-text-muted">
-                        Emails appear once set in Admin → Settings.
+                        Our email addresses will be listed here soon.
                     </div>
                 @endforelse
 
@@ -139,10 +139,10 @@
                 @endif
 
                 @if(($c['phone_support'] ?? '') === '' && ($c['phone_general'] ?? '') === '' && $wa === '' && $emails->isNotEmpty())
-                    {{-- phones empty but emails exist — no extra empty state --}}
+                    {{-- phones empty but emails exist: no extra empty state --}}
                 @elseif(($c['phone_support'] ?? '') === '' && ($c['phone_general'] ?? '') === '' && $wa === '' && $emails->isEmpty())
                     <div class="rounded-2xl border border-dashed border-border-subtle px-5 py-6 text-sm text-text-muted">
-                        Phone numbers appear once set in Admin → Settings.
+                        Our phone numbers will be listed here soon.
                     </div>
                 @endif
             </div>

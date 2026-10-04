@@ -20,7 +20,7 @@
         'facebook' => '#1877F2',
         'instagram' => '#E4405F',
         'twitter' => '#1DA1F2',
-        // Near-black brand marks are unreadable on dark footers / contact — use light fills.
+        // Near-black brand marks are unreadable on dark footers / contact - use light fills.
         'x' => '#F8FAFC',
         'linkedin' => '#0A66C2',
         'youtube' => '#FF0000',

@@ -40,7 +40,7 @@ class VideoEmbedResolver
             'html' => $html,
             'open_url' => $url,
             'platform' => 'youtube',
-            'note' => 'Click the native YouTube play button. Autoplay / scripted play does not count toward YouTube views. Completing the session pays your TaskPulse reward — it does not guarantee a platform view.',
+            'note' => 'Click the native YouTube play button. Autoplay / scripted play does not count toward YouTube views. Completing the session earns your task reward. It does not guarantee a platform view.',
         ];
     }
 
@@ -58,7 +58,7 @@ class VideoEmbedResolver
                 'html' => $html,
                 'open_url' => $url,
                 'platform' => 'tiktok',
-                'note' => 'Prefer watching in the player and also use Open on TikTok. Completing the session is a TaskPulse task completion — not a guaranteed TikTok view.',
+                'note' => 'Prefer watching in the player and also use Open on TikTok. Completing the session completes your task. It does not guarantee a TikTok view.',
             ];
         }
 

@@ -8,8 +8,8 @@
         @php
             $siteName = $siteName ?? config('app.name', 'Social Growth Network');
             $defaultDescription = ($siteBranding['meta_description'] ?? null)
-                ?: ($siteName.' — digital campaigns and growth packages with secure payment.');
-            $defaultOgDescription = 'Browse predefined campaign packages, pick a plan, and launch in minutes.';
+                ?: ($siteName.': digital campaigns and growth packages with secure payment.');
+            $defaultOgDescription = 'Browse campaign packages, pick a plan, and launch in minutes.';
             $pageTitle = trim($__env->yieldContent('title') ?: '');
             $resolvedTitle = $pageTitle !== '' ? ($pageTitle.' | '.$siteName) : $siteName;
             $resolvedOgTitle = $__env->hasSection('og_title')
@@ -172,7 +172,7 @@
                             <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="h-10 w-auto max-w-[200px] object-contain">
                         </a>
                         <p class="text-slate-500 text-sm leading-relaxed mb-4">
-                            {{ $footer->tagline ?? ($siteBranding['tagline'] ?? 'The modern marketplace for structured digital campaigns, verified human micro-tasks, and real results.') }}
+                            {{ $footer->tagline ?? ($siteBranding['tagline'] ?? 'The marketplace for social media campaigns and the people who complete them.') }}
                         </p>
                         <p class="text-xs text-slate-400">
                             © {{ now()->year }} {{ $siteName }}. All rights reserved.
@@ -206,19 +206,19 @@
                             @else
                                 <li><a class="hover:text-primary transition-colors" href="{{ route('login') }}">Log In</a></li>
                                 <li><a class="hover:text-primary transition-colors" href="{{ route('register') }}">Register</a></li>
-                                <li><a class="hover:text-primary transition-colors" href="{{ route('register') }}">Creator Portal</a></li>
-                                <li><a class="hover:text-primary transition-colors" href="{{ route('register.agent') }}">Agent Dashboard</a></li>
+                                <li><a class="hover:text-primary transition-colors" href="{{ route('register') }}">Join as a Creator</a></li>
+                        <li><a class="hover:text-primary transition-colors" href="{{ route('register.agent') }}">Join as an Agent</a></li>
                             @endauth
                         </ul>
                     </div>
                 </div>
 
                 <div class="pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-                    <p>Verified human telemetry and fixed predefined campaign packages.</p>
+                    <p>Fixed-price campaign packages, completed by real people.</p>
                     <div class="flex items-center space-x-4">
                         <a class="hover:text-slate-600 transition-colors" href="{{ route('legal', ['doc' => 'privacy']) }}">Security</a>
-                        <a class="hover:text-slate-600 transition-colors" href="{{ route('help') }}">System Status</a>
-                        <a class="hover:text-slate-600 transition-colors" href="{{ route('legal', ['doc' => 'privacy']) }}">Cookie Preferences</a>
+                        <a class="hover:text-slate-600 transition-colors" href="{{ route('help') }}">Help Center</a>
+                    <a class="hover:text-slate-600 transition-colors" href="{{ route('legal', ['doc' => 'privacy']) }}">Cookies</a>
                     </div>
                 </div>
             </div>

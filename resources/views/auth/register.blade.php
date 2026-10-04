@@ -17,10 +17,10 @@
 @endphp
 
 <x-layouts.auth
-    title="Create account — {{ $siteName ?? config('app.name') }}"
+    title="Create account | {{ $siteName ?? config('app.name') }}"
     :panel-image="asset('assets/images/about-creators.jpg')"
     panel-headline="Join as a Creator or Agent."
-    panel-copy="Buy growth campaigns or complete paid tasks — pick your path and get started in a few steps."
+    panel-copy="Buy growth campaigns or complete tasks for rewards. Pick your path and get started in a few steps."
 >
     <div class="mb-6 hidden lg:block">
         <a href="{{ route('home') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-primary transition-colors">
@@ -31,7 +31,7 @@
 
     <header class="mb-6">
         <h2 class="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Create your account</h2>
-        <p class="mt-2 text-sm sm:text-base text-slate-500">A few short steps — then you’re in.</p>
+        <p class="mt-2 text-sm sm:text-base text-slate-500">A few short steps and you’re in.</p>
     </header>
 
     <div
@@ -89,7 +89,7 @@
                         >
                             <span class="block text-sm font-semibold text-slate-900">Creator</span>
                             <span class="mt-1 block text-xs leading-relaxed text-slate-600">
-                                Buy campaign packages to grow your profiles — likes, comments, views, and watch sessions delivered by agents.
+                                Buy campaign packages to grow your profiles, with likes, comments, views, and watch time completed by Agents.
                             </span>
                         </button>
                         <button
@@ -158,7 +158,7 @@
                         class="block w-full h-10 px-3 text-sm rounded-lg border border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus-ring"
                         :required="step === 2"
                     >
-                    <p class="text-xs text-slate-500">Auto-filled from your name — you can edit it.</p>
+                    <p class="text-xs text-slate-500">Auto-filled from your name. You can edit it.</p>
                 </div>
 
                 <div class="flex flex-col-reverse gap-2 sm:flex-row sm:items-center pt-1">

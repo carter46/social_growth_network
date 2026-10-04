@@ -226,7 +226,7 @@ export function bootGoogleIdentity(scope = document) {
             roots.forEach((root) => initRoot(root));
         })
         .catch(() => {
-            // Silent — guest pages without GIS configured should not throw.
+            // Silent - guest pages without GIS configured should not throw.
         });
 }
 

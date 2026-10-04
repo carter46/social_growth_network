@@ -132,7 +132,7 @@ class TaskController extends Controller
 
         return redirect()
             ->route('agent.tasks.show', $participation)
-            ->with('status', __('Reward claimed. This was a verified task completion on TaskPulse.'));
+            ->with('status', __('Reward claimed. Thanks for completing this task.'));
     }
 
     /**

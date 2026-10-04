@@ -136,7 +136,7 @@
                     <p class="text-xs font-semibold uppercase tracking-wider text-primary mb-2">
                         {{ $product->serviceCategory?->name
                             ?? $product->product_type?->label()
-                            ?? ($product->productType?->name ?? 'Campaign') }}
+                            ?? ($product->productType?->name ?? 'Service') }}
                     </p>
                     <h1 class="font-display text-xl sm:text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight leading-tight">
                         {{ $product->title }}
@@ -188,9 +188,9 @@
                                 @foreach($variants as $variant)
                                     <option value="{{ $variant->id }}" @selected((int) $defaultVariant?->id === (int) $variant->id)>
                                         @if($variant->isPerUnit())
-                                            {{ $variant->displayLabel() }} — From ₦{{ number_format($variant->startingFromAmount(), 0) }}
+                                            {{ $variant->displayLabel() }}: from ₦{{ number_format($variant->startingFromAmount(), 0) }}
                                         @else
-                                            {{ $variant->displayLabel() }} — ₦{{ number_format((float) $variant->price, 0) }}
+                                            {{ $variant->displayLabel() }}: ₦{{ number_format((float) $variant->price, 0) }}
                                         @endif
                                     </option>
                                 @endforeach
@@ -211,7 +211,7 @@
                         </span>
                         <p
                             class="mt-1 text-2xl sm:text-3xl font-display font-bold text-primary"
-                            x-text="selected ? selected.label : '—'"
+                            x-text="selected ? selected.label : 'Not selected'"
                         ></p>
                         <p
                             class="mt-1 text-base font-semibold text-slate-900"

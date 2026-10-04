@@ -34,7 +34,7 @@ class FooterViewModel
 
         return new self(
             siteName: $branding['site_name'],
-            tagline: $branding['tagline'] ?: 'Social media growth and engagement services with clear deliverables and secure checkout.',
+            tagline: $branding['tagline'] ?: 'Growth packages for YouTube, Instagram, TikTok, Facebook, and X (Twitter), with clear prices and secure checkout.',
             metaDescription: $branding['meta_description'],
             logoDarkUrl: $logoDark,
             logoLightUrl: $logoLight,

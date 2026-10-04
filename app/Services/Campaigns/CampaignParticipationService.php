@@ -67,7 +67,7 @@ class CampaignParticipationService
                 ->firstOrFail();
 
             if ($participation->status !== CampaignParticipation::STATUS_STARTED) {
-                throw new InvalidArgumentException('Participation cannot be submitted in status '.$participation->status);
+                throw new InvalidArgumentException('This task can\'t be submitted right now.');
             }
 
             $participation->update([

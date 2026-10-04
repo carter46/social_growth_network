@@ -5,7 +5,7 @@ return [
     'category_key' => 'billing',
     'title' => 'Billing, wallets & payments',
     'intro' => 'Fund your Naira wallet, pay for campaign packages, receive Agent rewards, and withdraw after verification.',
-    'summary' => 'Creators fund campaigns through wallet and Monnify options. Agent rewards unlock after approved proof. Withdrawals follow KYC and clearing rules.',
+    'summary' => 'Creators fund campaigns through wallet and Monnify options. Agent rewards unlock after approved proof. Withdrawals follow KYC checks and our payout schedule.',
     'updated_at' => '2026-09-09',
     'printable' => true,
     'related' => ['getting-started', 'browsing-purchasing-services', 'keeping-account-secure'],
@@ -22,8 +22,8 @@ return [
                 ['type' => 'paragraph', 'content' => 'Open Wallet in your dashboard to add Naira balance before buying campaign packages. Available methods depend on site settings and may include:'],
                 ['type' => 'bullets', 'items' => [
                     'Monnify payment (card or transfer when enabled).',
-                    'Dedicated reserved / virtual bank account deposits that credit after confirmation.',
-                    'Manual bank transfer reviewed by administrators during clearing windows.',
+'Deposits to your dedicated bank account number, credited after confirmation.',
+                'Manual bank transfers, checked by our support team before they are credited.',
                 ]],
                 ['type' => 'tip', 'title' => 'Timing', 'content' => 'Automated deposits often reflect within a few minutes. Manual transfers can take longer while admins verify payment details.'],
             ],
@@ -49,7 +49,7 @@ return [
             'blocks' => [
                 ['type' => 'paragraph', 'content' => 'When an Agent’s proof is approved, the reward for that task is credited toward their withdrawable earnings according to platform rules. Pending or rejected proof does not pay out.'],
                 ['type' => 'bullets', 'items' => [
-                    'Rewards are tied to verified task completion — not to claiming a task alone.',
+                    'Rewards are tied to verified task completion. Claiming a task alone does not earn a reward.',
                     'Earnings appear in wallet / earnings views once released.',
                     'Chargebacks, fraud, or policy violations can reverse or hold payouts.',
                 ]],
@@ -60,7 +60,7 @@ return [
             'nav' => 'Withdrawals',
             'title' => 'Withdrawals',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'Withdrawals move available Naira from your wallet to a verified bank account. Processing depends on KYC status, withdrawal limits, and scheduled clearing cycles.'],
+                ['type' => 'paragraph', 'content' => 'Withdrawals move available Naira from your wallet to a verified bank account. Processing depends on KYC status, withdrawal limits, and our payout schedule.'],
                 ['type' => 'warning', 'title' => 'Bank details', 'content' => 'You are responsible for accurate bank information. Incorrect details you supply can delay or lose funds; contact support immediately if you notice an error.'],
             ],
         ],

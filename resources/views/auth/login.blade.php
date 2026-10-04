@@ -1,5 +1,5 @@
 <x-layouts.auth
-    title="Login — {{ $siteName ?? config('app.name') }}"
+    title="Login | {{ $siteName ?? config('app.name') }}"
     :panel-image="asset('assets/images/creators-hero.jpg')"
     panel-headline="Welcome back."
     panel-copy="Sign in to manage campaigns, track growth, and keep your account secure."

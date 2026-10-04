@@ -168,20 +168,20 @@
         <div class="bg-white rounded-xl p-6 sm:p-8 border border-slate-200 shadow-sm">
             <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
                 <div>
-                    <span class="text-primary text-[11px] font-bold uppercase tracking-wider">Predictable execution</span>
-                    <h3 class="font-display text-xl sm:text-2xl font-bold text-slate-900 mt-1">How predefined packages work</h3>
+                    <span class="text-primary text-[11px] font-bold uppercase tracking-wider">How it works</span>
+                    <h3 class="font-display text-xl sm:text-2xl font-bold text-slate-900 mt-1">How ordering works</h3>
                 </div>
                 <div class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-sm">
                     <span class="material-symbols-outlined text-[18px]" aria-hidden="true">verified</span>
-                    No price negotiation. Transparent pricing.
+                    No price negotiation. The price is shown before you pay.
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-6">
                 @foreach([
-                    ['Pick a package', 'Select quantity and clear fixed upfront pricing from the product page.'],
-                    ['Provide your details', 'Enter your destination link or campaign details when you pay.'],
-                    ['Secure payment', 'Pay with wallet, card, or bank transfer when those options are enabled.'],
-                    ['Track progress', 'Follow your order and tools from your dashboard after purchase.'],
+                    ['Pick a package', 'Choose the package you want on the service page. The price is fixed.'],
+                    ['Provide your details', 'Add the link to your post or video, and any campaign details, at checkout.'],
+                    ['Secure payment', 'Pay with wallet, card, or bank transfer, depending on what\'s available.'],
+                    ['Track progress', 'Follow your order and campaign progress from your dashboard.'],
                 ] as $i => $step)
                     <div class="flex flex-col gap-2">
                         <div class="w-8 h-8 rounded-full bg-blue-50 text-primary font-display text-sm font-bold flex items-center justify-center">{{ $i + 1 }}</div>

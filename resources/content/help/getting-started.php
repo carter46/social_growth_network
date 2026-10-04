@@ -5,7 +5,7 @@ return [
     'category_key' => 'getting-started',
     'title' => 'Getting Started',
     'intro' => 'Create your account as a Creator or Agent, verify your email, set up your wallet, and take your first step on Social Growth Network.',
-    'summary' => 'Social Growth Network is a two-sided campaign marketplace: Creators launch digital campaigns with predefined packages; Agents complete tasks, submit proof, and earn after verification.',
+    'summary' => 'Social Growth Network is a two-sided campaign marketplace: Creators launch digital campaigns by buying packages; Agents complete tasks, submit proof, and earn after verification.',
     'updated_at' => '2026-09-09',
     'hero_image' => 'assets/images/ai-powered-device-concept copy.jpg',
     'printable' => true,
@@ -23,7 +23,7 @@ return [
             'blocks' => [
                 ['type' => 'paragraph', 'content' => 'Social Growth Network connects two sides of every campaign:'],
                 ['type' => 'bullets', 'items' => [
-                    'Creators (businesses, brands, organizations, and individuals) choose a campaign service, pick a predefined package, set requirements, pay securely, and track progress.',
+                    'Creators (businesses, brands, organizations, and individuals) choose a campaign service, pick a package, set requirements, pay securely, and track progress.',
                     'Agents discover eligible campaign tasks, complete the required activity, submit verifiable proof, and earn rewards when work is approved.',
                 ]],
                 ['type' => 'tip', 'title' => 'Quick tip', 'content' => 'You can explore the Services catalog before registering. Payment and task claiming require an account.'],
@@ -37,7 +37,7 @@ return [
                 ['type' => 'paragraph', 'content' => 'Use Register to create a Creator account for launching campaigns, or Apply as Agent if you want to complete tasks and earn. Enter accurate details and agree to the Terms of Service and Privacy Policy.'],
                 ['type' => 'checklist', 'items' => [
                     'Choose the registration path that matches how you will use the platform.',
-                    'Use an email address you can access — verification is required before many dashboard features.',
+                    'Use an email address you can access. Verification is required before many dashboard features.',
                     'Keep your password private and unique to this account.',
                 ]],
             ],
@@ -57,7 +57,7 @@ return [
             'title' => 'Wallet setup',
             'blocks' => [
                 ['type' => 'paragraph', 'content' => 'Your Naira wallet is where Creators fund campaign purchases and where Agents receive approved rewards. Open Wallet from your dashboard after email verification to view balance, funding options, and withdrawal status.'],
-                ['type' => 'tip', 'title' => 'Next step', 'content' => 'See Billing, wallets & payments for Monnify payment, reserved accounts, and withdrawal basics.'],
+                ['type' => 'tip', 'title' => 'Next step', 'content' => 'See Billing, wallets & payments for Monnify payment, dedicated bank account numbers, and withdrawal basics.'],
             ],
         ],
         [

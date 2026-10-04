@@ -1,5 +1,5 @@
 <x-layouts.auth
-    title="Forgot password — {{ $siteName ?? config('app.name') }}"
+    title="Forgot password | {{ $siteName ?? config('app.name') }}"
     :panel-image="asset('assets/images/campaign-workspace.jpg')"
     panel-headline="Reset securely."
     panel-copy="We’ll email you a link so you can choose a new password and get back to work."

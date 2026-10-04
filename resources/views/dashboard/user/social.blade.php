@@ -15,7 +15,7 @@
         @if (isset($items) && $items->isNotEmpty())
             <ul class="divide-y divide-border-default">
                 @foreach ($items as $item)
-                    <li class="px-6 py-4 text-text-primary">{{ $item->name ?? $item['name'] ?? '—' }}</li>
+                    <li class="px-6 py-4 text-text-primary">{{ $item->name ?? $item['name'] ?? '-' }}</li>
                 @endforeach
             </ul>
         @else

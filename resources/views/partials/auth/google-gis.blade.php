@@ -1,5 +1,5 @@
 {{--
-  Google Identity Services partial (markup only — boot lives in resources/js/google-identity.js).
+  Google Identity Services partial (markup only - boot lives in resources/js/google-identity.js).
   @props:
     mode: button|one_tap|both
     surface: home|login|register|link

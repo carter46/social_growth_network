@@ -74,14 +74,14 @@ return [
     'faqs' => [
         [
             'q' => 'How do I fund my wallet?',
-            'a' => 'Open your dashboard Wallet, then use Monnify payment or your dedicated reserved virtual bank account when available. Automated bank transfers usually reflect within a few minutes. Offline bank deposits are reviewed and credited by platform administrators during clearing windows.',
+            'a' => 'Open your dashboard Wallet, then use Monnify payment or your dedicated bank account number when available. Automated bank transfers usually reflect within a few minutes. Offline bank deposits are checked by our team and added to your wallet.',
             'article' => 'billing-wallets-payments',
             'section' => 'funding',
             'icon' => 'account_balance_wallet',
         ],
         [
             'q' => 'How do I buy a campaign service?',
-            'a' => 'Browse the Services catalog, select the package that fits your goal, enter your target URL and completion guidelines, then click Buy Now. Review the order summary and confirm payment using your funded wallet balance or another enabled payment method.',
+            'a' => 'Browse the Services catalog, select the package that fits your goal, enter the link to your post or video and any campaign instructions, then click Buy Now. Review the order summary and confirm payment using your funded wallet balance or another enabled payment method.',
             'article' => 'browsing-purchasing-services',
             'section' => 'creator-launch',
             'icon' => 'shopping_bag',
@@ -95,14 +95,14 @@ return [
         ],
         [
             'q' => 'How do Agents submit proof and receive rewards?',
-            'a' => 'After claiming an eligible task, follow the Creator’s instructions carefully. Submit verifiable screenshots, tracking URLs, or other required proof through the submission flow. Once reviewed and approved, rewards release to your withdrawable earnings balance.',
+            'a' => 'After claiming an eligible task, follow the Creator’s instructions carefully. Submit verifiable screenshots, tracking URLs, or other required proof from your dashboard. Once reviewed and approved, your reward is added to your withdrawable earnings.',
             'article' => 'for-agents',
             'section' => 'submit-proof',
             'icon' => 'upload_file',
         ],
         [
             'q' => 'What are the KYC and withdrawal requirements?',
-            'a' => 'Basic activity usually requires a verified email. Higher-tier payouts and larger withdrawal volumes may require KYC (government-issued identification and related verification) to reduce fraud and protect the marketplace. Withdrawal requests are processed to verified bank accounts within scheduled clearing cycles.',
+            'a' => 'Basic activity usually requires a verified email. Higher-tier payouts and larger withdrawal volumes may require KYC (government-issued identification and related verification) to reduce fraud and protect the marketplace. Withdrawal requests are processed to verified bank accounts on our regular payout schedule.',
             'article' => 'keeping-account-secure',
             'section' => 'kyc',
             'icon' => 'badge',

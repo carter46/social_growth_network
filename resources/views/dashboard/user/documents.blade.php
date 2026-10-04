@@ -15,7 +15,7 @@
         @if (isset($templates) && $templates->isNotEmpty())
             <ul class="divide-y divide-border-default">
                 @foreach ($templates as $template)
-                    <li class="px-6 py-4 text-text-primary">{{ $template->name ?? $template['name'] ?? '—' }}</li>
+                    <li class="px-6 py-4 text-text-primary">{{ $template->name ?? $template['name'] ?? '-' }}</li>
                 @endforeach
             </ul>
         @else

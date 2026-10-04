@@ -11,7 +11,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $title ?? (config('app.name').' — Sign in') }}</title>
+    <title>{{ $title ?? ('Sign in | '.config('app.name')) }}</title>
     @include('partials.branding.head-icons')
     @include('partials.branding.social-meta')
 
@@ -25,7 +25,7 @@
 </head>
 @php
     $site = $siteName ?? config('app.name');
-    $tagline = $siteTagline ?? 'Grow social profiles with clear deliverables and secure payment.';
+    $tagline = $siteTagline ?? 'Grow your social profiles with clear prices and secure payment.';
     $resolvedPanelImage = $panelImage ?: asset('assets/images/creators-hero.jpg');
     $resolvedHeadline = $panelHeadline ?: 'Grow with clarity.';
     $resolvedCopy = $panelCopy ?: $tagline;
@@ -68,7 +68,7 @@
             </div>
         </aside>
 
-        {{-- Form panel (right desktop / full mobile) — white, no image --}}
+        {{-- Form panel (right desktop / full mobile) - white, no image --}}
         <div class="flex flex-1 flex-col justify-center lg:justify-start px-5 py-8 sm:px-8 sm:py-10 lg:px-14 lg:py-10 xl:px-20 bg-white lg:overflow-y-auto">
             <div class="mx-auto w-full max-w-md">
                 <div class="mb-6 flex items-center justify-between gap-3 lg:hidden">

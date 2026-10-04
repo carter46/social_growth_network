@@ -5,7 +5,7 @@ return [
     'category_key' => 'creators',
     'title' => 'For Creators',
     'intro' => 'Launch campaign packages, set clear requirements, pay securely, and track verified progress from your dashboard.',
-    'summary' => 'Creators buy predefined campaign packages, provide a target URL and instructions, complete secure payment, and monitor task completion without managing Agents one by one.',
+    'summary' => 'Creators buy campaign packages, provide a target URL and instructions, complete secure payment, and monitor task completion without managing Agents one by one.',
     'updated_at' => '2026-09-09',
     'hero_image' => 'assets/images/homeslider1.jpg',
     'printable' => true,
@@ -21,9 +21,9 @@ return [
             'nav' => 'Overview',
             'title' => 'What Creators do',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'As a Creator you choose a campaign service, pick a predefined package tier, describe what Agents must complete, and pay through the Platform.'],
+                ['type' => 'paragraph', 'content' => 'As a Creator you choose a campaign service, pick a package tier, describe what Agents must complete, and pay through the platform.'],
                 ['type' => 'bullets', 'items' => [
-                    'You do not pay Agents directly outside the Platform.',
+                    'You do not pay Agents directly outside the platform.',
                     'Clear instructions and realistic proof requirements speed up verification.',
                     'Progress and order status live in your dashboard after payment.',
                 ]],

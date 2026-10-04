@@ -290,7 +290,7 @@ class DiscoverServicesController extends Controller
         }
 
         if ($allowedMethods === []) {
-            return back()->withInput()->with('error', 'No payment method is available. Create a wallet, enable card/transfer checkout, or ask support about bank transfer for orders.');
+            return back()->withInput()->with('error', 'No payment method is available right now. Create a wallet or contact support for help.');
         }
 
         $rules = [
@@ -370,7 +370,7 @@ class DiscoverServicesController extends Controller
 
         if ($order->payment_method === 'gateway' && in_array($order->status, ['pending', 'processing'], true)) {
             if (! filled($order->checkout_url)) {
-                return back()->withInput()->with('error', 'Unable to start payment gateway checkout.');
+                return back()->withInput()->with('error', 'We couldn\'t start your payment. Please try again.');
             }
 
             return redirect()->away($order->checkout_url);
@@ -459,7 +459,7 @@ class DiscoverServicesController extends Controller
         if ($order->status !== 'paid') {
             return redirect()
                 ->route('dashboard.services.checkout', $slug)
-                ->with('error', 'Payment is still pending. If you completed payment, refresh shortly or check Service orders.');
+                ->with('error', 'Payment is still pending. If you completed payment, refresh shortly or check My Orders or My Campaigns.');
         }
 
         $tool = \App\Models\UserTool::query()

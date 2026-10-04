@@ -64,7 +64,7 @@
                             <div class="text-sm font-semibold text-slate-900 leading-snug truncate">Watch Hours packages</div>
                             <div class="text-xs text-emerald-700 flex items-center gap-1.5 mt-0.5 leading-snug">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0"></span>
-                                <span class="truncate">Upfront pricing · Track in-account</span>
+                                <span class="truncate">Clear prices · Track from your account</span>
                             </div>
                         </div>
                     </div>
@@ -74,14 +74,14 @@
             <div class="lg:col-span-7 flex flex-col items-start order-2 lg:order-1">
                 <p class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-3">{{ $brandName }}</p>
                 <h1 class="font-display text-2xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight mb-4">
-                    {!! $ytWord('Grow YouTube Watch Hours — then expand to views, likes, and comments.') !!}
+                    {!! $ytWord('Increase engagement on your social media') !!}
                 </h1>
                 <p class="text-base sm:text-lg text-slate-600 max-w-2xl mb-8 leading-relaxed">
-                    Start with Watch Hours campaign packages, add engagement services when you need them, and track verified task progress from your account.
+                    Start with YouTube Watch Hours, one of our main services, then add views, likes, comments, and services for other platforms whenever you need them. Pay securely and track your campaign from your account.
                 </p>
                 <div class="flex flex-wrap items-center gap-3 mb-8 w-full sm:w-auto">
                     <a href="{{ route('register') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-sm transition-colors">
-                        Pay For Watch Hours
+                        Buy Watch Hours
                         <span class="material-symbols-outlined ml-1.5 text-[18px]" aria-hidden="true">arrow_forward</span>
                     </a>
                     <a href="{{ route('agents') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-white text-slate-900 hover:bg-slate-50 px-6 py-3 rounded-lg border border-slate-200 shadow-sm transition-colors">
@@ -99,7 +99,7 @@
                     </div>
                     <div class="flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-[16px] text-emerald-600" aria-hidden="true">check_circle</span>
-                        <span>Fixed upfront packages</span>
+                        <span>Fixed-price packages</span>
                     </div>
                 </div>
             </div>
@@ -115,7 +115,7 @@
             <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
                 {!! $ytWord('Built around YouTube Watch Hours.') !!}
             </h2>
-            <p class="text-slate-600 text-base sm:text-lg mt-2">Lead with Watch Hours, then use Views, Likes, and Comments as supporting packages.</p>
+            <p class="text-slate-600 text-base sm:text-lg mt-2">Start with Watch Hours, then add views, likes, or comments if you want more.</p>
         </div>
 
         @if(is_array($watchHours))
@@ -132,7 +132,7 @@
                         @endif
                         <div class="flex flex-wrap gap-3">
                             <a href="{{ route('register') }}" class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm px-5 py-3 rounded-lg transition-colors">
-                                Pay For Watch Hours
+                                Buy Watch Hours
                                 <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
                             </a>
                             <a href="{{ $watchHoursHref }}" class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline">
@@ -183,7 +183,7 @@
         <div class="flex flex-col items-center text-center max-w-3xl mx-auto mb-12">
             <span class="text-[11px] font-bold uppercase tracking-widest text-primary mb-2">Simple Workflow</span>
             <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-3">
-                Launch Watch Hours in three steps.
+                Launch your campaign in three steps.
             </h2>
             <p class="text-base sm:text-lg text-slate-600">
                 The same flow works for Views, Likes, Comments, and other platforms.
@@ -191,9 +191,9 @@
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             @foreach([
-                ['n' => '01', 'icon' => 'category', 'title' => 'Choose a service', 'body' => 'Start with YouTube Watch Hours or pick another package with upfront fixed pricing.'],
-                ['n' => '02', 'icon' => 'link', 'title' => 'Provide campaign details', 'body' => 'Add your public video URL and any instructions in the checkout form.'],
-                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Pay and track', 'body' => 'Pay securely, then follow verified task completion in your account.'],
+                ['n' => '01', 'icon' => 'category', 'title' => 'Choose a service', 'body' => 'Pick YouTube Watch Hours or another service, then choose a package. You’ll see the price before you pay.'],
+                ['n' => '02', 'icon' => 'link', 'title' => 'Provide campaign details', 'body' => 'Add the link to your post or video and any campaign instructions at checkout.'],
+                ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Pay and track', 'body' => 'Pay securely, then follow your campaign’s progress from your account.'],
             ] as $step)
                 <div class="bg-slate-50 p-6 sm:p-8 rounded-2xl flex flex-col border border-slate-200/80">
                     <div class="flex items-center justify-between mb-6">
@@ -217,7 +217,7 @@
             <div>
                 <span class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2 block">Other platforms</span>
                 <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                    Also grow on Facebook, Instagram, TikTok, and Twitter.
+                    Also grow on Facebook, Instagram, TikTok, and X (Twitter).
                 </h2>
             </div>
             <p class="text-sm text-slate-600 max-w-md">
@@ -237,7 +237,7 @@
                         $slug = $card['slug'] ?? '';
                         $label = $card['label'] ?? $slug;
                         $href = $card['href'] ?? route('services', array_filter(['category' => $slug ?: null]));
-                        $body = $card['short_description'] ?? $card['hero_subtitle'] ?? 'Predefined packages with upfront pricing and secure payment.';
+                        $body = $card['short_description'] ?? $card['hero_subtitle'] ?? 'Views, likes, and comments with clear prices.';
                         $image = $card['card_image'] ?? $card['banner_image'] ?? $card['image'] ?? null;
                         $icon = $categoryIcons[$slug] ?? ($card['icon'] ?? 'category');
                         $badgeClass = $categoryBadgeTones[$slug] ?? 'text-primary';
@@ -294,16 +294,16 @@
             <div class="lg:col-span-6 flex flex-col items-start lg:pl-4">
                 <span class="text-[11px] font-bold uppercase tracking-widest text-primary mb-2">Stay in control</span>
                 <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-4">
-                    {!! $ytWord('From Watch Hours setup to verified completion.') !!}
+                    {!! $ytWord('From Watch Hours setup to completed work.') !!}
                 </h2>
                 <p class="text-base sm:text-lg text-slate-600 mb-6 leading-relaxed">
-                    You choose the package and provide the video URL. {{ $brandName }} handles verified task activity and progress you can review in your account.
+                    You choose the package and provide the video URL. {{ $brandName }} handles the tasks, and you can review progress in your account.
                 </p>
                 <div class="flex flex-col gap-3.5 w-full mb-8">
                     @foreach([
                         'Upfront Watch Hours packages with clear pricing',
                         'Public video URL at checkout',
-                        'Secure payment and verified task activity',
+                        'Secure payment, with work checked before it counts',
                         'Live progress tracking in your account',
                     ] as $item)
                         <div class="flex items-start gap-2.5">
@@ -315,7 +315,7 @@
                     @endforeach
                 </div>
                 <a href="{{ route('register') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-sm transition-colors">
-                    Pay For Watch Hours
+                    Buy Watch Hours
                 </a>
             </div>
         </div>
@@ -340,7 +340,7 @@
                 </p>
                 <div class="flex flex-wrap items-center justify-center gap-3 w-full sm:w-auto">
                     <a href="{{ route('register') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-red-600 text-white hover:bg-red-500 px-6 py-3 rounded-lg shadow transition-colors">
-                        Pay For Watch Hours
+                        Buy Watch Hours
                         <span class="material-symbols-outlined ml-1.5 text-[18px]" aria-hidden="true">arrow_forward</span>
                     </a>
                     <a href="{{ route('agents') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-white/15 text-white hover:bg-white/25 border border-white/30 px-6 py-3 rounded-lg transition-colors">
