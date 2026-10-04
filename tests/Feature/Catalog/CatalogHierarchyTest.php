@@ -96,7 +96,7 @@ class CatalogHierarchyTest extends TestCase
         $this->get(route('services'))
             ->assertOk()
             ->assertSee('YouTube')
-            ->assertSee('Available campaign services')
+            ->assertSee('Other YouTube services')
             ->assertSee('YouTube Views');
     }
 

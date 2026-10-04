@@ -141,12 +141,16 @@
                         </div>
                     </div>
                     <div class="lg:col-span-6 relative min-h-[220px] sm:min-h-[280px] order-1 lg:order-2 bg-slate-100">
-                        <img
-                            src="{{ ! empty($watchHours['hero_url']) ? $watchHours['hero_url'] : $imgSocial }}"
-                            alt="{{ $watchHours['title'] ?? 'YouTube Watch Hours' }}"
-                            class="absolute inset-0 w-full h-full object-cover"
-                            loading="lazy"
-                        >
+                        @if(! empty($watchHours['hero_url']))
+                            <img
+                                src="{{ $watchHours['hero_url'] }}"
+                                alt="{{ $watchHours['title'] ?? 'YouTube Watch Hours' }}"
+                                class="absolute inset-0 w-full h-full object-cover"
+                                loading="lazy"
+                            >
+                        @else
+                            <div class="absolute inset-0 bg-gradient-to-br from-primary/20 via-slate-200 to-slate-100" aria-hidden="true"></div>
+                        @endif
                     </div>
                 </div>
             </div>

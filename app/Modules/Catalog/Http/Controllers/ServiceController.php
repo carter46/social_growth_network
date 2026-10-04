@@ -40,17 +40,74 @@ class ServiceController extends Controller
         $sort = $request->string('sort')->toString() ?: 'popular';
         $budget = $request->string('budget')->toString();
 
-        $allGroups = $this->browse->groupCards($this->content);
-        $youtubeCatalog = $this->browse->homeYouTubeCatalog();
-        $groups = $allGroups
-            ->filter(fn ($card) => ($card['slug'] ?? '') !== 'youtube')
+        $groups = $this->browse->groupCards($this->content)
+            ->sortBy(fn ($card) => ($card['slug'] ?? '') === 'youtube' ? 0 : 1)
             ->values();
 
-        // YouTube lives in the feature band above — never in Other Social filters/results.
-        if ($categorySlug === 'youtube' || ($categorySlug !== '' && ! $this->browse->isGroup($categorySlug))) {
+        if ($categorySlug !== '' && ! $this->browse->isGroup($categorySlug)) {
             $categorySlug = '';
         }
 
+        $hasCategoryColumn = Schema::hasColumn('platform_products', 'service_category_id');
+        $youtubeCategory = $hasCategoryColumn ? $this->browse->findServiceCategory('youtube') : null;
+        $showYouTube = $categorySlug === '' || $categorySlug === 'youtube';
+        $showOtherSocial = $categorySlug !== 'youtube';
+
+        $youtubeCatalog = ['featured' => null, 'others' => collect()];
+        if ($showYouTube) {
+            $youtubeCatalog = $this->youtubeCatalog($youtubeCategory, $q, $budget, $sort);
+        }
+
+        $products = null;
+        if ($showOtherSocial) {
+            $productsQuery = $this->listingQuery($q, $budget, $sort);
+
+            if ($categorySlug !== '') {
+                $category = $this->browse->findServiceCategory($categorySlug);
+                if ($category && $hasCategoryColumn) {
+                    $productsQuery->ofCategory($category);
+                }
+            } elseif ($youtubeCategory) {
+                // "All": YouTube renders in its own blocks above, so keep it out of this grid.
+                $productsQuery->where(function ($inner) use ($youtubeCategory) {
+                    $inner->whereNull('service_category_id')
+                        ->orWhere('service_category_id', '!=', $youtubeCategory->id);
+                });
+            }
+
+            $products = $productsQuery
+                ->paginate(12)
+                ->withQueryString();
+        }
+
+        $payload = [
+            'groups' => $groups,
+            'products' => $products,
+            'q' => $q,
+            'activeCategory' => $categorySlug,
+            'sort' => $sort,
+            'budget' => $budget,
+            'totalVisible' => PlatformProduct::query()->visibleToPublic()->count(),
+            'popularTags' => $this->browse->homePopularSearchTags(5),
+            'youtubeCatalog' => $youtubeCatalog,
+            'showYouTube' => $showYouTube,
+            'showOtherSocial' => $showOtherSocial,
+        ];
+
+        if ($request->headers->get('X-Services-Filter') === '1' || $request->boolean('partial')) {
+            return view('partials.catalog.services-results', $payload);
+        }
+
+        return view('pages.services', $payload);
+    }
+
+    /**
+     * Public products with the shared Services search, budget, and sort applied.
+     *
+     * @return \Illuminate\Database\Eloquent\Builder<PlatformProduct>
+     */
+    private function listingQuery(string $q, string $budget, string $sort)
+    {
         $productsQuery = PlatformProduct::query()
             ->visibleToPublic()
             ->with([
@@ -59,21 +116,6 @@ class ServiceController extends Controller
                 'activeVariants',
                 'heroMedia.variants',
             ]);
-
-        $youtubeCategory = $this->browse->findServiceCategory('youtube');
-
-        if ($categorySlug !== '') {
-            $category = $this->browse->findServiceCategory($categorySlug);
-            if ($category && Schema::hasColumn('platform_products', 'service_category_id')) {
-                $productsQuery->ofCategory($category);
-            }
-        } elseif ($youtubeCategory && Schema::hasColumn('platform_products', 'service_category_id')) {
-            // Other Social Media: exclude YouTube (covered in the feature band above).
-            $productsQuery->where(function ($inner) use ($youtubeCategory) {
-                $inner->whereNull('service_category_id')
-                    ->orWhere('service_category_id', '!=', $youtubeCategory->id);
-            });
-        }
 
         if ($q !== '') {
             $productsQuery->where(function ($inner) use ($q) {
@@ -100,38 +142,38 @@ class ServiceController extends Controller
                 ->orderBy('title'),
         };
 
-        $products = $productsQuery
-            ->paginate(12)
-            ->withQueryString();
+        return $productsQuery;
+    }
 
-        $otherSocialTotal = PlatformProduct::query()
-            ->visibleToPublic()
-            ->when(
-                $youtubeCategory && Schema::hasColumn('platform_products', 'service_category_id'),
-                fn ($q) => $q->where(function ($inner) use ($youtubeCategory) {
-                    $inner->whereNull('service_category_id')
-                        ->orWhere('service_category_id', '!=', $youtubeCategory->id);
-                })
-            )
-            ->count();
+    /**
+     * Watch Hours as the featured card plus every other public YouTube product, filtered like the main grid.
+     *
+     * @return array{featured: ?array<string, mixed>, others: \Illuminate\Support\Collection<int, PlatformProduct>}
+     */
+    private function youtubeCatalog(?\App\Models\ServiceCategory $youtubeCategory, string $q, string $budget, string $sort): array
+    {
+        $query = $this->listingQuery($q, $budget, $sort);
 
-        $payload = [
-            'groups' => $groups,
-            'products' => $products,
-            'q' => $q,
-            'activeCategory' => $categorySlug,
-            'sort' => $sort,
-            'budget' => $budget,
-            'totalVisible' => $otherSocialTotal,
-            'popularTags' => $this->browse->homePopularSearchTags(5),
-            'youtubeCatalog' => $youtubeCatalog,
-        ];
-
-        if ($request->headers->get('X-Services-Filter') === '1' || $request->boolean('partial')) {
-            return view('partials.catalog.services-results', $payload);
+        if ($youtubeCategory) {
+            $query->ofCategory($youtubeCategory);
+        } else {
+            $query->whereIn('slug', config('platform_categories.youtube.products', [
+                'youtube-views',
+                'youtube-likes',
+                'youtube-comments',
+                'youtube-watch-hours',
+            ]));
         }
 
-        return view('pages.services', $payload);
+        $youtubeProducts = $query->get();
+        $watchHours = $youtubeProducts->firstWhere('slug', 'youtube-watch-hours');
+
+        return [
+            'featured' => $watchHours ? $this->browse->mapHomeProductCard($watchHours) : null,
+            'others' => $youtubeProducts
+                ->reject(fn (PlatformProduct $product) => $product->slug === 'youtube-watch-hours')
+                ->values(),
+        ];
     }
 
     /**

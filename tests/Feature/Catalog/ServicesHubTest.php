@@ -58,10 +58,10 @@ class ServicesHubTest extends TestCase
 
         $this->get(route('services'))
             ->assertOk()
-            ->assertSee('Find the campaign service you need')
-            ->assertSee('Available campaign services')
+            ->assertSee('Other YouTube services')
             ->assertSee('YouTube')
-            ->assertSee('YouTube Views');
+            ->assertSee('YouTube Views')
+            ->assertDontSee('Find the campaign service you need');
     }
 
     public function test_services_landing_filters_by_category(): void
@@ -87,8 +87,9 @@ class ServicesHubTest extends TestCase
         ])
             ->assertOk()
             ->assertSee('YouTube Views')
-            ->assertSee('Available campaign services')
-            ->assertDontSee('Find the campaign service you need');
+            ->assertSee('Other YouTube services')
+            ->assertDontSee('Other social media services')
+            ->assertDontSee('id="services-filters-panel"', false);
     }
 
     public function test_group_page_lists_category_products(): void

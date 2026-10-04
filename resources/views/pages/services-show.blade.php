@@ -21,9 +21,6 @@
             $heroUrl = asset(ltrim($fallbackImage->path, '/'));
         }
     }
-    if (! $heroUrl) {
-        $heroUrl = asset('assets/images/Image_ro410gro410gro41.png');
-    }
 
     $subtitle = null;
     $variants = $product->activeVariants->sortBy('price')->values();
@@ -122,11 +119,15 @@
         >
             <div class="space-y-3">
                 <div class="aspect-[4/3] sm:aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
-                    <img
-                        src="{{ $heroUrl }}"
-                        alt="{{ $product->title }}"
-                        class="w-full h-full object-cover"
-                    >
+                    @if($heroUrl)
+                        <img
+                            src="{{ $heroUrl }}"
+                            alt="{{ $product->title }}"
+                            class="w-full h-full object-cover"
+                        >
+                    @else
+                        <div class="w-full h-full bg-gradient-to-br from-primary/20 via-slate-200 to-slate-100" aria-hidden="true"></div>
+                    @endif
                 </div>
             </div>
 

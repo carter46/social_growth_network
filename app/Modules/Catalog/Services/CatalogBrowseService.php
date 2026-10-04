@@ -631,7 +631,7 @@ class CatalogBrowseService
     /**
      * @return array<string, mixed>
      */
-    private function mapHomeProductCard(PlatformProduct $product): array
+    public function mapHomeProductCard(PlatformProduct $product): array
     {
         $categorySlug = $product->categorySlug() ?? '';
         $categoryLabel = $product->serviceCategory?->name
