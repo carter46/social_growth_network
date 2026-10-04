@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\PlatformProduct;
 use App\Modules\Catalog\Services\CatalogBrowseService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -82,5 +83,30 @@ class HomeHeroTest extends TestCase
         $this->assertContains('YouTube Views', $otherTitles);
         $this->assertContains('YouTube Likes', $otherTitles);
         $this->assertContains('YouTube Comments', $otherTitles);
+    }
+
+    public function test_home_youtube_cards_without_admin_image_render_no_stock_image(): void
+    {
+        Artisan::call('catalog:backfill-hierarchy');
+        $this->seed(\Database\Seeders\PlatformCatalogSeeder::class);
+        Artisan::call('catalog:backfill-hierarchy');
+
+        PlatformProduct::query()
+            ->where('slug', 'like', 'youtube-%')
+            ->update(['hero_image' => null, 'hero_media_id' => null]);
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $start = strpos($html, 'id="youtube-services"');
+        $end = strpos($html, 'id="services"');
+        $this->assertNotFalse($start);
+        $this->assertNotFalse($end);
+        $youtubeChunk = substr($html, $start, $end - $start);
+
+        $this->assertStringContainsString('More YouTube packages', $youtubeChunk);
+        $this->assertStringContainsString('YouTube Likes', $youtubeChunk);
+        $this->assertStringContainsString('YouTube Comments', $youtubeChunk);
+        $this->assertStringNotContainsString('Social_Media.jpg', $youtubeChunk);
+        $this->assertStringNotContainsString('<img', $youtubeChunk);
     }
 }

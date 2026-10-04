@@ -20,7 +20,7 @@
         : '#youtube-services';
     $youtubeFeatureImage = (is_array($watchHours) && filled($watchHours['hero_url'] ?? null))
         ? $watchHours['hero_url']
-        : asset('assets/images/Social_Media.jpg');
+        : null;
     $badgeTones = [
         'text-red-600',
         'text-purple-600',
@@ -124,13 +124,17 @@
                         </div>
                     </div>
                     <div class="lg:col-span-6 relative min-h-[240px] sm:min-h-[320px] lg:min-h-full order-1 lg:order-2 bg-slate-100">
-                        <img
-                            src="{{ $youtubeFeatureImage }}"
-                            alt="{{ $watchHours['title'] ?? 'YouTube Watch Hours' }}"
-                            class="absolute inset-0 w-full h-full object-cover"
-                            loading="lazy"
-                        >
-                        <div class="absolute inset-0 bg-gradient-to-t from-red-950/35 via-transparent to-transparent" aria-hidden="true"></div>
+                        @if($youtubeFeatureImage)
+                            <img
+                                src="{{ $youtubeFeatureImage }}"
+                                alt="{{ $watchHours['title'] ?? 'YouTube Watch Hours' }}"
+                                class="absolute inset-0 w-full h-full object-cover"
+                                loading="lazy"
+                            >
+                            <div class="absolute inset-0 bg-gradient-to-t from-red-950/35 via-transparent to-transparent" aria-hidden="true"></div>
+                        @else
+                            <div class="absolute inset-0 bg-gradient-to-br from-primary/25 via-slate-200 to-slate-100" aria-hidden="true"></div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -152,10 +156,10 @@
                             <div class="relative h-48 w-full overflow-hidden bg-slate-100">
                                 @if(! empty($product['hero_url']))
                                     <img src="{{ $product['hero_url'] }}" alt="{{ $product['title'] }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
                                 @else
-                                    <img src="{{ asset('assets/images/Social_Media.jpg') }}" alt="{{ $product['title'] }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+                                    <div class="w-full h-full bg-gradient-to-br from-primary/25 via-slate-200 to-slate-100"></div>
                                 @endif
-                                <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
                                 <span class="absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 backdrop-blur-md {{ $tone }} text-xs font-bold shadow-sm">
                                     <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ $icon }}</span>
                                     {{ $product['category_label'] ?? 'YouTube' }}
