@@ -17,8 +17,12 @@
             :value="'₦' . number_format($balanceNgn ?? 0, 2)"
             :hint="'Locked: ₦' . number_format($lockedNgn ?? 0, 2)"
             icon="wallet"
-            :href="route('dashboard.wallet')"
-        />
+        >
+            <div class="mt-4 flex flex-wrap gap-2">
+                <x-dashboard.button :href="route('dashboard.deposit.index')" size="sm" icon="deposit">Top up</x-dashboard.button>
+                <x-dashboard.button :href="route('dashboard.wallet')" variant="secondary" size="sm">View wallet</x-dashboard.button>
+            </div>
+        </x-dashboard.stats-card>
 
         <div class="grid grid-cols-2 gap-4 lg:grid-cols-2">
             <x-dashboard.stats-card

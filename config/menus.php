@@ -47,7 +47,7 @@ return [
             'id' => 'wallet',
             'label' => 'My Wallet',
             'route' => 'dashboard.wallet',
-            'match' => ['dashboard.wallet', 'dashboard.wallet.*', 'dashboard.deposit.*', 'dashboard.withdrawal.*', 'dashboard.history'],
+            'match' => ['dashboard.wallet', 'dashboard.wallet.*', 'dashboard.deposit.*', 'dashboard.history'],
             'icon' => 'wallet',
             'keywords' => ['balance', 'funds', 'deposit', 'withdraw', 'history'],
             'sort' => 55,

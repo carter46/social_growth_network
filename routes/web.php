@@ -212,12 +212,6 @@ Route::middleware(['auth', 'verified', 'role:user'])->prefix('dashboard')->name(
         Route::post('/banks/replace/verify-otp', [BankAccountController::class, 'verifyOtp'])->middleware('throttle:10,10')->name('.banks.replace.verify-otp');
         Route::post('/banks/replace/resolve', [BankAccountController::class, 'resolve'])->middleware('throttle:10,1')->name('.banks.replace.resolve');
         Route::post('/banks/replace/confirm', [BankAccountController::class, 'confirm'])->middleware('throttle:5,1')->name('.banks.replace.confirm');
-        Route::get('/withdrawal', [WithdrawalController::class, 'index'])->name('.withdrawal.index');
-        Route::get('/withdrawal/create', [WithdrawalController::class, 'create'])->name('.withdrawal.create');
-        Route::post('/withdrawal/otp', [WithdrawalController::class, 'sendOtp'])->middleware('throttle:5,10')->name('.withdrawal.otp');
-        Route::post('/withdrawal/verify-otp', [WithdrawalController::class, 'verifyOtp'])->middleware('throttle:10,10')->name('.withdrawal.verify-otp');
-        Route::post('/withdrawal', [WithdrawalController::class, 'store'])->name('.withdrawal.store');
-        Route::get('/withdrawal/{withdrawal}', [WithdrawalController::class, 'show'])->name('.withdrawal.show');
         Route::get('/history', [HistoryController::class, 'index'])->name('.history');
     });
     Route::get('/social', [DashboardController::class, 'social'])->name('.social');

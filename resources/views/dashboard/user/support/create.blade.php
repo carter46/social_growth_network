@@ -17,8 +17,8 @@
         <form method="POST" action="{{ route($prefix.'.support.store') }}" enctype="multipart/form-data" class="w-full space-y-4" x-data="{ submitting: false }" @submit="submitting = true">
             @csrf
             <x-dashboard.select label="Category" name="category">
-                @foreach ($categories as $c)
-                    <option value="{{ $c }}">{{ ucfirst(str_replace('_', ' ', $c)) }}</option>
+                @foreach ($categories as $value => $label)
+                    <option value="{{ $value }}" @selected(old('category') === $value)>{{ $label }}</option>
                 @endforeach
             </x-dashboard.select>
             <x-dashboard.input label="Subject" name="subject" required />

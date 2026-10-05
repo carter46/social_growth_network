@@ -14,6 +14,7 @@ use App\Support\MemberShell;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -47,7 +48,7 @@ class SupportTicketController extends Controller
     public function create(): View
     {
         return view('dashboard.user.support.create', [
-            'categories' => SupportTicket::CATEGORIES,
+            'categories' => SupportTicket::categoriesForType(SupportTicket::typeForUser(auth()->user())),
             'layout' => MemberShell::layout(),
             'prefix' => MemberShell::prefix(),
         ]);
@@ -56,7 +57,7 @@ class SupportTicketController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'category' => ['required', 'in:'.implode(',', SupportTicket::CATEGORIES)],
+            'category' => ['required', Rule::in(array_keys(SupportTicket::categoriesForType(SupportTicket::typeForUser($request->user()))))],
             'subject' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string'],
             'attachments' => ['nullable', 'array', 'max:'.SupportAttachmentService::MAX_FILES],

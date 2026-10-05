@@ -23,7 +23,7 @@ class WithdrawalConfirmationTest extends TestCase
             'email_verified_at' => now(),
             'password' => Hash::make('password-123'),
         ]);
-        $user->assignRole('user');
+        $user->assignRole('agent');
         app(WalletProvisioningService::class)->createWallet($user);
         app(WalletService::class)->adminAdjust($user->fresh()->wallet, 5000, 'Test', 1);
 
@@ -46,7 +46,7 @@ class WithdrawalConfirmationTest extends TestCase
         [$user, $bank] = $this->userWithBank();
 
         $this->actingAs($user)
-            ->post(route('dashboard.withdrawal.otp'), [
+            ->post(route('agent.withdrawal.otp'), [
                 'password' => 'wrong-password',
                 'amount' => 1000,
                 'user_bank_account_id' => $bank->id,
@@ -54,12 +54,12 @@ class WithdrawalConfirmationTest extends TestCase
             ->assertSessionHasErrors('password');
 
         $this->actingAs($user)
-            ->post(route('dashboard.withdrawal.otp'), [
+            ->post(route('agent.withdrawal.otp'), [
                 'password' => 'password-123',
                 'amount' => 1000,
                 'user_bank_account_id' => $bank->id,
             ])
-            ->assertRedirect(route('dashboard.withdrawal.create'));
+            ->assertRedirect(route('agent.withdrawal.create'));
 
         DB::table('security_verification_codes')
             ->where('user_id', $user->id)
@@ -67,7 +67,7 @@ class WithdrawalConfirmationTest extends TestCase
             ->update(['code_hash' => Hash::make('123456')]);
 
         $this->actingAs($user)
-            ->post(route('dashboard.withdrawal.verify-otp'), ['otp' => '123456'])
+            ->post(route('agent.withdrawal.verify-otp'), ['otp' => '123456'])
             ->assertRedirect();
 
         $withdrawal = Withdrawal::where('user_id', $user->id)->first();
@@ -84,11 +84,11 @@ class WithdrawalConfirmationTest extends TestCase
         [$user, $bank] = $this->userWithBank();
 
         $this->actingAs($user)
-            ->post(route('dashboard.withdrawal.store'), [
+            ->post(route('agent.withdrawal.store'), [
                 'amount' => 500,
                 'user_bank_account_id' => $bank->id,
             ])
-            ->assertRedirect(route('dashboard.withdrawal.create'))
+            ->assertRedirect(route('agent.withdrawal.create'))
             ->assertSessionHas('error');
     }
 }

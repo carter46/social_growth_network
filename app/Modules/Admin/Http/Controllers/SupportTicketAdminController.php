@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Modules\Admin\Services\AuditLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class SupportTicketAdminController extends Controller
@@ -59,44 +60,68 @@ class SupportTicketAdminController extends Controller
 
     public function create(Request $request): View
     {
-        $users = User::role('user')
-            ->notAnonymized()
-            ->orderBy('name')
-            ->limit(200)
-            ->get(['id', 'name', 'email']);
+        $prefillUserId = $request->integer('user_id') ?: null;
+        $prefill = $prefillUserId
+            ? User::query()->notAnonymized()->whereKey($prefillUserId)->first(['id', 'name', 'email'])
+            : null;
+        $prefillType = $prefill ? SupportTicket::typeForUser($prefill) : SupportTicket::TYPE_CREATOR;
 
-        $prefillUserId = $request->query('user_id');
-        if ($prefillUserId && ! $users->contains('id', (int) $prefillUserId)) {
-            $extra = User::query()->notAnonymized()->whereKey((int) $prefillUserId)->first(['id', 'name', 'email']);
-            if ($extra) {
-                $users = $users->prepend($extra)->unique('id')->values();
+        $usersByType = [];
+        foreach ([SupportTicket::TYPE_CREATOR, SupportTicket::TYPE_AGENT] as $type) {
+            $users = $this->membersOfType($type)
+                ->orderBy('name')
+                ->limit(200)
+                ->get(['id', 'name', 'email']);
+
+            if ($prefill && $prefillType === $type && ! $users->contains('id', $prefill->id)) {
+                $users = $users->prepend($prefill)->values();
             }
+
+            $usersByType[$type] = $users
+                ->map(fn (User $u) => ['id' => $u->id, 'label' => $u->name.' ('.$u->email.')'])
+                ->values()
+                ->all();
         }
 
         return view('dashboard.admin.tickets.create', [
-            'users' => $users,
-            'prefillUserId' => $prefillUserId ? (int) $prefillUserId : null,
+            'usersByType' => $usersByType,
+            'categoriesByType' => [
+                SupportTicket::TYPE_CREATOR => SupportTicket::CREATOR_CATEGORIES,
+                SupportTicket::TYPE_AGENT => SupportTicket::AGENT_CATEGORIES,
+            ],
+            'prefillUserId' => $prefill?->id,
+            'prefillType' => $prefillType,
         ]);
+    }
+
+    private function membersOfType(string $type)
+    {
+        return User::role($type === SupportTicket::TYPE_AGENT ? 'agent' : 'user')->notAnonymized();
     }
 
     public function store(Request $request): RedirectResponse
     {
+        $type = $request->input('user_type') === SupportTicket::TYPE_AGENT
+            ? SupportTicket::TYPE_AGENT
+            : SupportTicket::TYPE_CREATOR;
+
         $validated = $request->validate([
+            'user_type' => ['required', Rule::in([SupportTicket::TYPE_CREATOR, SupportTicket::TYPE_AGENT])],
             'user_id' => ['required', 'integer', 'exists:users,id'],
-            'category' => ['required', 'string', 'max:30'],
+            'category' => ['required', Rule::in(array_keys(SupportTicket::categoriesForType($type)))],
             'subject' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string'],
             'priority' => ['nullable', 'string', 'max:20'],
         ]);
 
-        $member = User::query()
-            ->role('user')
-            ->notAnonymized()
+        $member = $this->membersOfType($type)
             ->whereKey($validated['user_id'])
             ->first();
 
         if (! $member) {
-            return back()->withInput()->with('error', __('Select an active member account.'));
+            return back()->withInput()->with('error', $type === SupportTicket::TYPE_AGENT
+                ? __('Select an active agent account.')
+                : __('Select an active creator account.'));
         }
 
         $ticket = SupportTicket::create([

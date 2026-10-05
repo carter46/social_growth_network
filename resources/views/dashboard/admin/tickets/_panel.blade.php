@@ -22,7 +22,7 @@
                 <a href="{{ route('admin.tickets.show', $ticket) }}" class="text-primary hover:underline font-medium">#{{ $ticket->id }}</a>
             </x-dashboard.td>
             <x-dashboard.td>{{ \App\Models\User::labelFor($ticket->user) }}</x-dashboard.td>
-            <x-dashboard.td class="text-text-muted text-xs">{{ $ticket->category }}</x-dashboard.td>
+            <x-dashboard.td class="text-text-muted text-xs">{{ \App\Models\SupportTicket::categoryLabel($ticket->category) }}</x-dashboard.td>
             <x-dashboard.td>
                 <a href="{{ route('admin.tickets.show', $ticket) }}" class="text-text-primary hover:text-primary hover:underline">{{ $ticket->subject }}</a>
             </x-dashboard.td>

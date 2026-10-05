@@ -86,7 +86,7 @@ class AnalyticsOpsAuditFixesTest extends TestCase
 
         $this->actingAs($user)
             ->post(route('dashboard.support.store'), [
-                'category' => 'wallet',
+                'category' => 'deposit',
                 'subject' => 'Need help',
                 'body' => 'Please assist.',
             ])

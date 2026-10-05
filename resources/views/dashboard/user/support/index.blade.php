@@ -88,7 +88,7 @@
                 @foreach ($tickets as $t)
                     <tr class="hover:bg-muted/50">
                         <x-dashboard.td class="font-medium">{{ $t->subject }}</x-dashboard.td>
-                        <x-dashboard.td>{{ $t->category }}</x-dashboard.td>
+                        <x-dashboard.td>{{ \App\Models\SupportTicket::categoryLabel($t->category) }}</x-dashboard.td>
                         <x-dashboard.td>
                             <x-dashboard.badge :status="$t->status === 'open' ? 'pending' : 'completed'">{{ $t->status }}</x-dashboard.badge>
                         </x-dashboard.td>

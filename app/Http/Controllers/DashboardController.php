@@ -29,8 +29,7 @@ class DashboardController extends Controller
         $featuredServices = PlatformProduct::query()
             ->visibleToPublic()
             ->with('heroMedia')
-            ->orderByDesc('is_featured')
-            ->orderBy('sort_order')
+            ->inRandomOrder()
             ->limit(4)
             ->get();
 

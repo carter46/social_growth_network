@@ -79,9 +79,7 @@ class NotifyUsersFromEvent
                     'amount' => number_format($event->amount, 2),
                     'currency' => $event->currency,
                 ]),
-                actionUrl: Route::has('dashboard.withdrawal.index')
-                    ? route('dashboard.withdrawal.index')
-                    : (Route::has('dashboard.wallet') ? route('dashboard.wallet') : null),
+                actionUrl: $this->withdrawalsUrl($user),
                 meta: [
                     'withdrawal_id' => $event->withdrawalId,
                     'transaction_id' => $event->transactionId,
@@ -132,9 +130,7 @@ class NotifyUsersFromEvent
                 type: $type,
                 title: $title,
                 body: $body,
-                actionUrl: Route::has('dashboard.withdrawal.index')
-                    ? route('dashboard.withdrawal.index')
-                    : (Route::has('dashboard.wallet') ? route('dashboard.wallet') : null),
+                actionUrl: $this->withdrawalsUrl($user),
                 meta: ['withdrawal_id' => $event->withdrawalId],
                 emailSubject: $title,
             ),
@@ -188,13 +184,22 @@ class NotifyUsersFromEvent
                 type: 'ticket.replied',
                 title: __('Support replied'),
                 body: __('A staff member replied to ticket #:id.', ['id' => $ticket->id]),
-                actionUrl: Route::has('dashboard.support.show')
-                    ? route('dashboard.support.show', $ticket)
-                    : null,
+                actionUrl: $ticket->user->hasRole('agent') && Route::has('agent.support.show')
+                    ? route('agent.support.show', $ticket)
+                    : (Route::has('dashboard.support.show') ? route('dashboard.support.show', $ticket) : null),
                 meta: ['ticket_id' => $ticket->id],
                 emailSubject: __('Support replied to your ticket'),
             ),
             ['database', 'mail']
         );
+    }
+
+    private function withdrawalsUrl(User $user): ?string
+    {
+        if ($user->hasRole('agent') && Route::has('agent.withdrawal.index')) {
+            return route('agent.withdrawal.index');
+        }
+
+        return Route::has('dashboard.wallet') ? route('dashboard.wallet') : null;
     }
 }

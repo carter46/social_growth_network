@@ -38,7 +38,6 @@
             >
                 <div class="mt-4 flex flex-col gap-2">
                     <x-dashboard.button :href="route('dashboard.deposit.index')" variant="secondary" size="sm" icon="deposit">Deposit Money</x-dashboard.button>
-                    <x-dashboard.button :href="route('dashboard.withdrawal.create')" variant="secondary" size="sm" icon="withdraw">Withdraw to Bank</x-dashboard.button>
                 </div>
             </x-dashboard.stats-card>
             <x-dashboard.stats-card

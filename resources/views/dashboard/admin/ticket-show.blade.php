@@ -5,7 +5,7 @@
 @section('content')
 <x-layout.page
     :title="$ticket->subject"
-    :subtitle="$ticket->category . ' — ' . \App\Models\User::labelFor($ticket->user) . ' — opened ' . $ticket->created_at->format('M j, Y H:i')"
+    :subtitle="\App\Models\SupportTicket::categoryLabel($ticket->category) . ' · ' . \App\Models\User::labelFor($ticket->user) . ' · opened ' . $ticket->created_at->format('M j, Y H:i')"
     width="full"
     :breadcrumb="[
         ['Admin', route('admin')],
