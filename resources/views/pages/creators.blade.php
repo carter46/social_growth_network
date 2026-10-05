@@ -77,7 +77,7 @@
                     {!! $ytWord('Increase engagement on your social media') !!}
                 </h1>
                 <p class="text-base sm:text-lg text-slate-600 max-w-2xl mb-8 leading-relaxed">
-                    Start with YouTube Watch Hours, one of our main services, then add views, likes, comments, and services for other platforms whenever you need them. Pay securely and track your campaign from your account.
+                    Buy YouTube Watch Hours, views, likes, and comments, plus services for other platforms. Pay securely and track your campaign from your account.
                 </p>
                 <div class="flex flex-wrap items-center gap-3 mb-8 w-full sm:w-auto">
                     <a href="{{ route('register') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-sm transition-colors">
@@ -91,7 +91,7 @@
                 <div class="pt-2 flex flex-wrap items-center gap-x-6 gap-y-2 text-slate-500 text-sm">
                     <div class="flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-[16px] text-emerald-600" aria-hidden="true">check_circle</span>
-                        <span>Watch Hours first</span>
+                        <span>YouTube Watch Hours</span>
                     </div>
                     <div class="flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-[16px] text-emerald-600" aria-hidden="true">check_circle</span>
@@ -113,9 +113,9 @@
         <div class="mb-10 max-w-2xl">
             <span class="text-slate-500 font-bold text-xs tracking-wider uppercase mb-2 block">YouTube services</span>
             <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                {!! $ytWord('Built around YouTube Watch Hours.') !!}
+                {!! $ytWord('Grow your YouTube channel.') !!}
             </h2>
-            <p class="text-slate-600 text-base sm:text-lg mt-2">Start with Watch Hours, then add views, likes, or comments if you want more.</p>
+            <p class="text-slate-600 text-base sm:text-lg mt-2">Watch hours, views, likes, and comments for your YouTube channel.</p>
         </div>
 
         @if(is_array($watchHours))

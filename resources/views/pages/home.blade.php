@@ -60,7 +60,7 @@
                 {!! $ytWord('Get more engagement on your social media content.') !!}
             </h1>
             <p class="text-base sm:text-lg lg:text-xl text-slate-600 font-normal leading-relaxed mb-8 sm:mb-10 max-w-xl mx-auto">
-                Start with YouTube Watch Hours, our main service, then add views, likes, and comments for your videos and posts. You see the price before you pay and can track your campaign from your account.
+                Buy YouTube Watch Hours, views, likes, and comments for your videos and posts. You see the price before you pay and can track your campaign from your account.
             </p>
 
             <div class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-3 sm:gap-4">
@@ -88,7 +88,7 @@
         <div class="mb-12 lg:mb-16 max-w-2xl">
             <span class="text-slate-500 font-bold text-xs sm:text-sm tracking-wider uppercase mb-2 block">YouTube services</span>
             <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-display">{!! $ytWord('Built around YouTube growth.') !!}</h2>
-            <p class="text-slate-600 text-base sm:text-lg mt-2">YouTube Watch Hours is our main service. You can also order views, likes, and comments for your videos.</p>
+            <p class="text-slate-600 text-base sm:text-lg mt-2">Order watch hours, views, likes, and comments for your YouTube videos.</p>
         </div>
 
         @if(is_array($watchHours))
