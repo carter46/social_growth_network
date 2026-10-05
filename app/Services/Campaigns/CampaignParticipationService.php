@@ -70,6 +70,8 @@ class CampaignParticipationService
                 throw new InvalidArgumentException('This task can\'t be submitted right now.');
             }
 
+            Campaign::query()->whereKey($participation->campaign_id)->firstOrFail()->assertAllowsAgentWork();
+
             $participation->update([
                 'status' => CampaignParticipation::STATUS_SUBMITTED,
                 'proof_url' => $data['proof_url'] ?? $participation->proof_url,
@@ -111,6 +113,7 @@ class CampaignParticipationService
             }
 
             $campaign = Campaign::query()->whereKey($participation->campaign_id)->lockForUpdate()->firstOrFail();
+            $campaign->assertAllowsAgentWork();
 
             if ($campaign->remainingSlots() < 1) {
                 throw new InvalidArgumentException('Campaign has no remaining slots.');

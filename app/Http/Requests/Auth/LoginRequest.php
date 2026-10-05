@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -28,9 +29,36 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            'email' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
         ];
+    }
+
+    public function attributes(): array
+    {
+        return [
+            'email' => 'email or username',
+        ];
+    }
+
+    /**
+     * The login field accepts an email or a username. Usernames are alpha_dash, so an "@" means email.
+     *
+     * @return array<string, string>
+     */
+    private function credentials(): array
+    {
+        $identifier = trim((string) $this->input('email'));
+
+        if (str_contains($identifier, '@')) {
+            return ['email' => $identifier, 'password' => (string) $this->input('password')];
+        }
+
+        $username = User::query()
+            ->whereRaw('LOWER(username) = ?', [mb_strtolower($identifier)])
+            ->value('username');
+
+        return ['username' => $username ?? $identifier, 'password' => (string) $this->input('password')];
     }
 
     /**
@@ -42,7 +70,7 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        if (! Auth::attempt($this->credentials(), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

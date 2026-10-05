@@ -31,11 +31,13 @@
         @csrf
 
         <x-ui.input
-            label="Email"
+            label="Email or username"
             name="email"
-            type="email"
+            type="text"
             id="login-email"
-            placeholder="you@example.com"
+            placeholder="you@example.com or username"
+            autocapitalize="none"
+            spellcheck="false"
             :value="old('email')"
             required
             autofocus

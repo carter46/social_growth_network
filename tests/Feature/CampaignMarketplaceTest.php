@@ -63,6 +63,57 @@ class CampaignMarketplaceTest extends TestCase
         $this->assertEquals(250.0, (float) $agent->wallet()->first()->balance);
     }
 
+    public function test_creator_is_notified_when_campaign_goes_live_and_on_status_change(): void
+    {
+        $creator = User::factory()->creator()->create();
+
+        $campaign = Campaign::query()->create([
+            'creator_id' => $creator->id,
+            'title' => 'Notify campaign',
+            'quantity' => 3,
+            'completed_count' => 0,
+            'locked_creator_price' => 1000,
+            'locked_agent_reward' => 100,
+            'status' => Campaign::STATUS_ACTIVE,
+        ]);
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->post(route('admin.campaigns.status', $campaign), ['status' => Campaign::STATUS_REJECTED])
+            ->assertRedirect();
+
+        $types = \App\Models\UserNotification::query()->where('user_id', $creator->id)->pluck('type')->all();
+        $this->assertContains('campaign.active', $types);
+        $this->assertContains('campaign.rejected', $types);
+    }
+
+    public function test_agent_cannot_submit_on_cancelled_campaign(): void
+    {
+        $creator = User::factory()->creator()->create();
+        $agent = User::factory()->agent()->kycApproved()->create();
+        \App\Models\Wallet::factory()->create(['user_id' => $agent->id]);
+
+        $campaign = Campaign::query()->create([
+            'creator_id' => $creator->id,
+            'title' => 'Cancel campaign',
+            'quantity' => 2,
+            'completed_count' => 0,
+            'locked_creator_price' => 1000,
+            'locked_agent_reward' => 100,
+            'status' => Campaign::STATUS_ACTIVE,
+        ]);
+
+        $this->actingAs($agent)->post(route('agent.marketplace.start', $campaign))->assertRedirect();
+        $participation = CampaignParticipation::query()->firstOrFail();
+
+        $campaign->update(['status' => Campaign::STATUS_CANCELLED]);
+
+        $this->actingAs($agent)
+            ->post(route('agent.tasks.submit', $participation), ['proof_url' => 'https://example.com/proof'])
+            ->assertSessionHas('error');
+
+        $this->assertSame(CampaignParticipation::STATUS_STARTED, $participation->fresh()->status);
+    }
+
     public function test_rejected_agent_cannot_retake_and_marketplace_hides_joined(): void
     {
         $creator = User::factory()->creator()->create();

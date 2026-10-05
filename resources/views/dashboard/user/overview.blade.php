@@ -11,7 +11,7 @@
         ['Overview', null],
     ]"
 >
-    <div class="space-y-4">
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <x-dashboard.stats-card
             label="Total Balance"
             :value="'₦' . number_format($balanceNgn ?? 0, 2)"
@@ -23,22 +23,22 @@
             </div>
         </x-dashboard.stats-card>
 
-        <div class="grid grid-cols-2 gap-4 lg:grid-cols-2">
-            <x-dashboard.stats-card
-                label="My Campaigns"
-                :value="(string) ($activeCampaignsCount ?? 0)"
-                hint="Active & pending"
-                icon="listings"
-                :href="route('dashboard.campaigns')"
-            />
-            <x-dashboard.stats-card
-                label="Active Orders"
-                :value="(string) ($activeOrdersCount ?? 0)"
-                :hint="$ordersAwaitingLabel ?? 'All caught up'"
-                icon="shopping-bag"
-                :href="route('dashboard.service-orders')"
-            />
-        </div>
+        <x-dashboard.stats-card
+            label="My Campaigns"
+            :value="(string) ($activeCampaignsCount ?? 0)"
+            hint="Active & pending"
+            icon="listings"
+            :href="route('dashboard.campaigns')"
+            arrow
+        />
+        <x-dashboard.stats-card
+            label="Active Orders"
+            :value="(string) ($activeOrdersCount ?? 0)"
+            :hint="$ordersAwaitingLabel ?? 'All caught up'"
+            icon="shopping-bag"
+            :href="route('dashboard.service-orders')"
+            arrow
+        />
     </div>
 
     <section class="mt-8 space-y-4">

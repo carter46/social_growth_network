@@ -62,6 +62,16 @@ if (! function_exists('absolute_media_url_from_id')) {
     }
 }
 
+if (! function_exists('email_branding_logo_url')) {
+    /**
+     * Absolute logo URL safe for email clients (PNG/JPEG, never WebP).
+     */
+    function email_branding_logo_url(?int $mediaId): ?string
+    {
+        return app(\App\Services\Branding\EmailLogoResolver::class)->absoluteUrl($mediaId);
+    }
+}
+
 if (! function_exists('mask_secret')) {
     /**
      * Mask a stored secret for form placeholders (never put the real value in the input).

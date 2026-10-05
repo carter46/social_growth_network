@@ -4,11 +4,14 @@
     'hint' => null,
     'icon' => null,
     'href' => null,
+    'arrow' => false,
 ])
 
 @php
     $tag = $href ? 'a' : 'div';
-    $baseClass = 'dashboard-card rounded-2xl border border-border-default bg-elevated p-5 shadow-panel block';
+    $showArrow = $arrow && $href;
+    $baseClass = 'dashboard-card rounded-2xl border border-border-default bg-elevated p-5 shadow-panel '
+        . ($showArrow ? 'group flex flex-col' : 'block');
 @endphp
 
 <{{ $tag }} @if($href) href="{{ $href }}" @endif {{ $attributes->merge(['class' => $baseClass . ($href ? ' hover:border-primary/40 transition-colors' : '')]) }}>
@@ -27,4 +30,9 @@
         @endif
     </div>
     {{ $slot }}
+    @if ($showArrow)
+        <div class="mt-auto flex justify-end pt-4 text-text-muted transition-colors group-hover:text-primary">
+            <x-ui.icon name="arrow-right" class="w-5 h-5 transition-transform group-hover:translate-x-1" />
+        </div>
+    @endif
 </{{ $tag }}>

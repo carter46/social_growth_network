@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Observers\CampaignObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+#[ObservedBy([CampaignObserver::class])]
 class Campaign extends Model
 {
     public const STATUS_DRAFT = 'draft';
@@ -113,6 +116,57 @@ class Campaign extends Model
     public function participations(): HasMany
     {
         return $this->hasMany(CampaignParticipation::class);
+    }
+
+    public const STATUS_LABELS = [
+        self::STATUS_DRAFT => 'Draft',
+        self::STATUS_PENDING_REVIEW => 'Pending review',
+        self::STATUS_ACTIVE => 'Active',
+        self::STATUS_PAUSED => 'Paused',
+        self::STATUS_COMPLETED => 'Completed',
+        self::STATUS_REJECTED => 'Rejected',
+        self::STATUS_SUSPENDED => 'Suspended',
+        self::STATUS_CANCELLED => 'Cancelled',
+    ];
+
+    /**
+     * Agents who already joined may keep working (submit, watch, get paid) only in these statuses.
+     * New agents can join only when the campaign is active.
+     */
+    public const WORKABLE_STATUSES = [
+        self::STATUS_ACTIVE,
+        self::STATUS_PAUSED,
+    ];
+
+    /**
+     * What the creator paid for this campaign (order line total), as a 2-decimal string.
+     */
+    public function totalCost(): string
+    {
+        $item = $this->relationLoaded('orderItem') ? $this->orderItem : $this->orderItem()->first();
+
+        if ($item) {
+            return number_format((float) $item->line_total, 2, '.', '');
+        }
+
+        return bcmul((string) $this->locked_creator_price, (string) max(0, (int) $this->quantity), 2);
+    }
+
+    public function statusLabel(): string
+    {
+        return self::STATUS_LABELS[$this->status] ?? ucfirst(str_replace('_', ' ', (string) $this->status));
+    }
+
+    public function allowsAgentWork(): bool
+    {
+        return in_array($this->status, self::WORKABLE_STATUSES, true);
+    }
+
+    public function assertAllowsAgentWork(): void
+    {
+        if (! $this->allowsAgentWork()) {
+            throw new \InvalidArgumentException('This campaign is '.strtolower($this->statusLabel()).', so tasks on it cannot be submitted or paid right now.');
+        }
     }
 
     public function remainingSlots(): int

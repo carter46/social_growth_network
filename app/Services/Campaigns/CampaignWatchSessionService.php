@@ -26,6 +26,7 @@ class CampaignWatchSessionService
             }
 
             $campaign = $participation->campaign()->with('product')->firstOrFail();
+            $campaign->assertAllowsAgentWork();
             $this->assertTimedWatchAllowed($campaign);
 
             $minutes = max(1, (int) ($campaign->estimated_minutes ?: 1));
@@ -55,6 +56,7 @@ class CampaignWatchSessionService
             }
 
             $campaign = $participation->campaign()->with('product')->firstOrFail();
+            $campaign->assertAllowsAgentWork();
             $this->assertTimedWatchAllowed($campaign);
 
             $session = CampaignWatchSession::query()

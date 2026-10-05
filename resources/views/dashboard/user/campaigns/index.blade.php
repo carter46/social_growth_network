@@ -27,7 +27,6 @@
             <x-dashboard.th>Title</x-dashboard.th>
             <x-dashboard.th>Status</x-dashboard.th>
             <x-dashboard.th>Progress</x-dashboard.th>
-            <x-dashboard.th>Agent reward</x-dashboard.th>
             <x-dashboard.th></x-dashboard.th>
         </x-slot:head>
         @foreach ($campaigns as $campaign)
@@ -35,7 +34,6 @@
                 <x-dashboard.td class="font-medium">{{ $campaign->title }}</x-dashboard.td>
                 <x-dashboard.td><x-dashboard.badge :status="$campaign->status" /></x-dashboard.td>
                 <x-dashboard.td>{{ $campaign->completed_count }} / {{ $campaign->quantity }}</x-dashboard.td>
-                <x-dashboard.td>₦{{ number_format((float) $campaign->locked_agent_reward, 2) }}</x-dashboard.td>
                 <x-dashboard.td>
                     <x-dashboard.button :href="route('dashboard.campaigns.show', $campaign)" variant="link" size="xs">View</x-dashboard.button>
                 </x-dashboard.td>

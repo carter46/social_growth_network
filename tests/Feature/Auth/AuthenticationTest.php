@@ -43,6 +43,19 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect(route('dashboard', absolute: false));
     }
 
+    public function test_users_can_authenticate_with_username_in_any_case(): void
+    {
+        $user = User::factory()->create(['username' => 'CarterGrowth']);
+
+        $response = $this->post('/login', [
+            'email' => 'cartergrowth',
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticatedAs($user);
+        $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
     public function test_unverified_users_are_redirected_to_verify_email_after_login(): void
     {
         $user = User::factory()->unverified()->create();
