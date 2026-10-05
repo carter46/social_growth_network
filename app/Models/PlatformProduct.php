@@ -284,8 +284,13 @@ class PlatformProduct extends Model
     /** Views, likes, comments and watch-hours products need the creator's post or video URL. */
     public function requiresTargetUrl(): bool
     {
-        return (bool) ($this->is_campaign ?? false)
-            || EngagementMetric::fromProductSlug($this->slug) !== null;
+        return $this->isCampaignProduct();
+    }
+
+    /** Every catalog product is a campaign; Published / Draft status controls whether it can be bought. */
+    public function isCampaignProduct(): bool
+    {
+        return true;
     }
 
     /** Owning category slug for URLs (Category → Product). */

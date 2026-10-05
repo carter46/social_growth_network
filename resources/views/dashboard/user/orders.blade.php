@@ -29,7 +29,6 @@
         striped
     >
         <x-slot:head>
-            <x-dashboard.th>Reference</x-dashboard.th>
             <x-dashboard.th>Item</x-dashboard.th>
             <x-dashboard.th>Amount</x-dashboard.th>
             <x-dashboard.th>Status</x-dashboard.th>
@@ -60,12 +59,12 @@
                 }
             @endphp
             <tr class="hover:bg-muted/50">
-                <x-dashboard.td class="font-mono text-sm">{{ $order->reference }}</x-dashboard.td>
-                <x-dashboard.td>
-                    <div>{{ $title }}</div>
+                <x-dashboard.td class="min-w-[10rem] max-w-[18rem]">
+                    <div class="font-medium text-text-primary">{{ $title }}</div>
                     @if($meta)
                         <div class="text-xs text-text-muted mt-0.5">{{ implode(' · ', $meta) }}</div>
                     @endif
+                    <div class="mt-0.5 font-mono text-[11px] leading-snug text-text-muted break-all">{{ $order->reference }}</div>
                 </x-dashboard.td>
                 <x-dashboard.td>₦{{ number_format($order->total_amount ?? $order->amount, 2) }}</x-dashboard.td>
                 <x-dashboard.td>

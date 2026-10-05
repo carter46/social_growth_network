@@ -7,6 +7,7 @@ use App\Models\Campaign;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\PlatformProduct;
+use App\Models\PlatformProductVariant;
 use App\Services\Engagement\EngagementProbeManager;
 use App\Services\Engagement\TargetUrlValidator;
 use Illuminate\Support\Facades\DB;
@@ -70,7 +71,7 @@ class CampaignFulfillmentService
             'baseline_captured_at' => null,
             'last_verified_count' => null,
             'verification_mode' => $verificationMode,
-            'quantity' => max(1, (int) ($options['engagement_quantity'] ?? $item->quantity)),
+            'quantity' => $this->campaignQuantity($item, $options),
             'completed_count' => 0,
             // Keep order line unit_price (package price for fixed; per-unit rate for per_unit).
             'locked_creator_price' => $item->unit_price,
@@ -115,12 +116,25 @@ class CampaignFulfillmentService
         }
     }
 
-    private function productIsCampaign(PlatformProduct $product): bool
+    /**
+     * @param  array<string, mixed>  $options
+     */
+    private function campaignQuantity(OrderItem $item, array $options): int
     {
-        if (! Schema::hasColumn('platform_products', 'is_campaign')) {
-            return false;
+        $quantity = (int) ($options['engagement_quantity'] ?? $item->quantity);
+
+        if ($quantity <= 1 && ($options['pricing_mode'] ?? null) !== PlatformProductVariant::PRICING_PER_UNIT) {
+            $included = (int) ($item->variant?->included_units ?? 0);
+            if ($included > 1) {
+                $quantity = $included;
+            }
         }
 
-        return (bool) $product->is_campaign;
+        return max(1, $quantity);
+    }
+
+    private function productIsCampaign(PlatformProduct $product): bool
+    {
+        return Schema::hasTable('campaigns') && $product->isCampaignProduct();
     }
 }

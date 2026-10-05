@@ -4,7 +4,6 @@
 
 @section('content')
 @php
-    $isCampaignProduct = (bool) old('is_campaign', $product->is_campaign ?? false);
     $variantRows = old('variants', $product->relationLoaded('variants') && $product->variants->isNotEmpty()
         ? $product->variants->sortBy('sort_order')->values()->map(fn ($v) => [
             'id' => $v->id,
@@ -59,7 +58,6 @@
             class="w-full space-y-4"
             x-data="{
                 submitting: false,
-                isCampaign: @js($isCampaignProduct),
                 variants: @js($variantRows),
                 refUnits: {{ (int) $refUnits }},
                 addVariant() {
@@ -118,11 +116,6 @@
             <label class="flex items-center gap-2 text-sm">
                 <input type="checkbox" name="is_featured" value="1" @checked(old('is_featured', $product->is_featured))>
                 Featured (show in featured sections on public / user pages)
-            </label>
-
-            <label class="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="is_campaign" value="1" @checked(old('is_campaign', $product->is_campaign ?? false)) x-model="isCampaign">
-                Campaign package (creates a campaign agents can work on after purchase)
             </label>
 
             @php
@@ -279,7 +272,7 @@
                             </div>
                         </div>
 
-                        <div class="pt-1" x-show="isCampaign && !variant.per_unit" x-cloak>
+                        <div class="pt-1" x-show="!variant.per_unit" x-cloak>
                             <label class="mb-1 block text-xs text-text-muted">Included units (campaign completions in this fixed package)</label>
                             <input
                                 type="number"
@@ -287,7 +280,7 @@
                                 class="w-full max-w-xs rounded-xl border border-border-default bg-elevated px-3 py-2.5 text-sm"
                                 :name="'variants[' + index + '][included_units]'"
                                 x-model="variant.included_units"
-                                :required="isCampaign && !variant.per_unit"
+                                :required="!variant.per_unit"
                             >
                         </div>
                     </div>

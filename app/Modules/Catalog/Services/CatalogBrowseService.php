@@ -652,7 +652,7 @@ class CatalogBrowseService
             'category_slug' => $categorySlug,
             'category_label' => $categoryLabel,
             'from_price' => $fromPrice > 0 ? (float) $fromPrice : null,
-            'is_campaign' => (bool) ($product->is_campaign ?? false),
+            'is_campaign' => $product->isCampaignProduct(),
         ];
     }
 

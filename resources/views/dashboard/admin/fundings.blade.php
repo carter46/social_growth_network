@@ -5,17 +5,16 @@
 @section('content')
 <x-layout.page
     title="Wallet fundings"
-    subtitle="Monnify checkout, reserved accounts, and historical records."
+    subtitle="Online checkout, reserved accounts, and historical records."
     width="full"
     :breadcrumb="[
         ['Admin', route('admin')],
         ['Wallet fundings', null],
     ]"
 >
-    <x-dashboard.table :empty="$fundings->isEmpty()" empty-title="No deposit requests" empty-description="Monnify and reserved-account credits appear here. Order bank transfers are under Orders." empty-icon="deposit" striped>
+    <x-dashboard.table :empty="$fundings->isEmpty()" empty-title="No deposit requests" empty-description="Online payment and reserved-account credits appear here. Order bank transfers are under Orders." empty-icon="deposit" striped>
         <x-slot:head>
-            <x-dashboard.th>Ref</x-dashboard.th>
-            <x-dashboard.th>User</x-dashboard.th>
+            <x-dashboard.th>User / Ref</x-dashboard.th>
             <x-dashboard.th>Method</x-dashboard.th>
             <x-dashboard.th>Amount</x-dashboard.th>
             <x-dashboard.th>Status</x-dashboard.th>
@@ -24,8 +23,10 @@
 
         @foreach ($fundings as $f)
             <tr>
-                <x-dashboard.td class="font-medium">{{ $f->reference }}</x-dashboard.td>
-                <x-dashboard.td>{{ \App\Models\User::labelFor($f->user) }}</x-dashboard.td>
+                <x-dashboard.td class="min-w-[10rem] max-w-[16rem]">
+                    <div class="font-medium text-text-primary">{{ \App\Models\User::labelFor($f->user) }}</div>
+                    <div class="mt-0.5 font-mono text-[11px] leading-snug text-text-muted break-all">{{ $f->reference }}</div>
+                </x-dashboard.td>
                 <x-dashboard.td>{{ $f->method }}</x-dashboard.td>
                 <x-dashboard.td>₦{{ number_format($f->amount, 2) }}</x-dashboard.td>
                 <x-dashboard.td><x-dashboard.badge :status="$f->status" /></x-dashboard.td>

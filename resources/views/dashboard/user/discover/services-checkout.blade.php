@@ -37,7 +37,7 @@
         'quoteUrl' => route('dashboard.services.domain-quote'),
         'connectScanUrl' => route('dashboard.services.domain-connect-scan'),
         'urlPreviewUrl' => route('dashboard.services.url-preview'),
-        'isCampaign' => (bool) ($product->is_campaign ?? false),
+        'isCampaign' => $product->isCampaignProduct(),
         'initialTargetUrl' => '',
         'domainTlds' => $domainTlds ?? [],
         'domainTldsAdvanced' => $domainTldsAdvanced ?? [],

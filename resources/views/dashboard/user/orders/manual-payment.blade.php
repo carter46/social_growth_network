@@ -31,6 +31,7 @@
                     <p class="font-semibold text-text-primary">Payment under review</p>
                     <p class="mt-1 text-sm">{{ session('status') ?: 'Your payment is being processed. We will review your transfer and confirm your order shortly.' }}</p>
                 </x-dashboard.alert>
+                @include('dashboard.user.orders._manual-payment-done')
             @else
                 <div
                     x-data="manualBankPayment({
@@ -125,6 +126,7 @@
                             action="{{ route('dashboard.orders.manual-payment.submit', $order) }}"
                             enctype="multipart/form-data"
                             class="space-y-4"
+                            data-no-page-loader
                             style="display: none"
                             x-show="showProofForm"
                             x-cloak
@@ -172,6 +174,9 @@
                             <p class="font-semibold text-text-primary">Payment under review</p>
                             <p class="mt-1 text-sm" x-text="statusMessage || @js(session('status') ?: 'Your payment is being processed. We will review your transfer and confirm your order shortly.')"></p>
                         </x-dashboard.alert>
+                        <div class="mt-5">
+                            @include('dashboard.user.orders._manual-payment-done')
+                        </div>
                     </div>
 
                     <div

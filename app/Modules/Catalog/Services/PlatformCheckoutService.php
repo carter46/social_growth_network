@@ -771,7 +771,7 @@ class PlatformCheckoutService
             }
             $qty = 1;
             $unitPrice = number_format((float) $variant->price, 2, '.', '');
-            if ($product->is_campaign) {
+            if ($product->isCampaignProduct()) {
                 $included = (int) ($variant->included_units ?? 0);
                 if ($included < 1) {
                     throw new InvalidArgumentException(

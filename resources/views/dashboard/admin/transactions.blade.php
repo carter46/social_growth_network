@@ -20,24 +20,25 @@
         striped
     >
         <x-slot:head>
-            <x-dashboard.th>Reference</x-dashboard.th>
-            <x-dashboard.th>User</x-dashboard.th>
-            <x-dashboard.th>Type</x-dashboard.th>
+            <x-dashboard.th>User / Ref / Date</x-dashboard.th>
             <x-dashboard.th>Label</x-dashboard.th>
-            <x-dashboard.th>Amount</x-dashboard.th>
+            <x-dashboard.th>Amount / Type</x-dashboard.th>
             <x-dashboard.th>Status</x-dashboard.th>
-            <x-dashboard.th>Date</x-dashboard.th>
         </x-slot:head>
 
         @foreach ($transactions as $tx)
             <tr class="hover:bg-muted/50">
-                <x-dashboard.td class="font-mono text-xs">{{ $tx->reference }}</x-dashboard.td>
-                <x-dashboard.td>{{ \App\Models\User::labelFor($tx->user) }}</x-dashboard.td>
-                <x-dashboard.td>{{ $tx->type }}</x-dashboard.td>
+                <x-dashboard.td class="min-w-[10rem] max-w-[16rem]">
+                    <div class="font-medium text-text-primary">{{ \App\Models\User::labelFor($tx->user) }}</div>
+                    <div class="mt-0.5 font-mono text-[11px] leading-snug text-text-muted break-all">{{ $tx->reference }}</div>
+                    <div class="mt-0.5 text-[11px] text-text-muted">{{ $tx->created_at->format('M j, Y H:i') }}</div>
+                </x-dashboard.td>
                 <x-dashboard.td>{{ $tx->label }}</x-dashboard.td>
-                <x-dashboard.td>{{ $tx->currency }} {{ number_format($tx->amount, 2) }}</x-dashboard.td>
+                <x-dashboard.td class="whitespace-nowrap">
+                    <div class="font-medium text-text-primary">{{ $tx->currency }} {{ number_format($tx->amount, 2) }}</div>
+                    <div class="mt-0.5 text-[11px] text-text-muted">{{ $tx->type }}</div>
+                </x-dashboard.td>
                 <x-dashboard.td><x-dashboard.badge :status="$tx->status" /></x-dashboard.td>
-                <x-dashboard.td class="text-text-muted text-xs">{{ $tx->created_at->format('M j, Y H:i') }}</x-dashboard.td>
             </tr>
         @endforeach
     </x-dashboard.table>

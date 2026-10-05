@@ -411,7 +411,7 @@ class DiscoverServicesController extends Controller
                 ->with('success', 'Subscription renewed. Order '.$order->reference.'.');
         }
 
-        if ($product->is_campaign) {
+        if ($product->isCampaignProduct()) {
             return redirect()
                 ->route('dashboard.campaigns')
                 ->with('success', 'Order '.$order->reference.' placed. Your campaign is live for agents.');

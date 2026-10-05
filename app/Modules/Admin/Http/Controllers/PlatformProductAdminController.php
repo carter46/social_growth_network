@@ -131,8 +131,8 @@ class PlatformProductAdminController extends Controller
                 ->with('error', __('That product is not under a fixed platform category.'));
         }
 
-        $isCampaign = $request->boolean('is_campaign');
         $metric = \App\Enums\EngagementMetric::fromProductSlug($platformProduct->slug);
+        $isCampaign = $platformProduct->isCampaignProduct();
 
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -152,7 +152,6 @@ class PlatformProductAdminController extends Controller
             'variants.*.max_units' => ['nullable', 'integer', 'min:1'],
             'variants.*.unit_label' => ['nullable', 'string', 'max:32'],
             'variants.*.included_units' => ['nullable', 'integer', 'min:1'],
-            'is_campaign' => ['sometimes', 'boolean'],
             'agent_reward_per_completion' => [
                 Rule::requiredIf($isCampaign),
                 'nullable',
