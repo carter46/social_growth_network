@@ -108,6 +108,9 @@ Route::get('/contact', function () {
         'formattedAddress' => app(\App\Services\Communications\Contact\PlatformContactRepository::class)->formattedAddress(),
     ]);
 })->name('contact');
+Route::post('/newsletter', [\App\Http\Controllers\NewsletterSubscriptionController::class, 'store'])
+    ->middleware('throttle:6,1')
+    ->name('newsletter.subscribe');
 Route::get('/legal', function (\Illuminate\Http\Request $request) {
     $doc = $request->string('doc')->toString() ?: 'terms';
     $documents = config('legal.documents', []);
@@ -583,6 +586,8 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::post('/settings/monnify/test', [AdminSettingsController::class, 'testMonnify'])->name('.settings.monnify.test');
         Route::post('/settings/manual-bank-transfer', [AdminSettingsController::class, 'updateManualBankTransfer'])->name('.settings.manual-bank-transfer');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('.audit-logs');
+        Route::get('/newsletter', [\App\Modules\Admin\Http\Controllers\NewsletterSubscriberController::class, 'index'])->name('.newsletter');
+        Route::get('/newsletter/export', [\App\Modules\Admin\Http\Controllers\NewsletterSubscriberController::class, 'export'])->name('.newsletter.export');
     });
 
     Route::middleware('permission:fees.manage')->group(function () {

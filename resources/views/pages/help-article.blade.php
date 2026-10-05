@@ -66,7 +66,7 @@
         <div class="h-full bg-primary transition-all duration-150" :style="'width:' + percent + '%'"></div>
     </div>
 
-    <section class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 pb-16 sm:pb-20">
+    <section class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
         <div class="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-slate-500 mb-8">
             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 font-medium text-slate-700">
                 <span class="material-symbols-outlined text-sm text-primary" aria-hidden="true">route</span>

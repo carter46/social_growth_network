@@ -5,10 +5,8 @@
 @section('content')
 @php
     $brandName = $siteName ?? config('app.name', 'Social Growth Network');
-    $imgAgent = asset('assets/images/agents-hero.jpg');
-    $imgMobile = asset('assets/images/campaign-workspace.jpg');
-    $youtubeCatalog = $youtubeCatalog ?? ['featured' => null, 'others' => []];
-    $watchHours = $youtubeCatalog['featured'] ?? null;
+    $imgAgent = asset('assets/images/task_listers.jpg');
+    $imgMarketplace = asset('assets/images/undraw_wallet_diag.png');
     $ytWord = static function (string $text, string $tone = 'red'): string {
         $class = $tone === 'white' ? 'text-white' : 'text-red-600';
 
@@ -54,15 +52,8 @@
             </div>
 
             <div class="lg:col-span-6 relative order-1 lg:order-2">
-                <div class="relative rounded-2xl overflow-hidden shadow-xl bg-slate-100">
-                    <img src="{{ $imgAgent }}" alt="Agent completing digital task sessions" class="w-full h-[320px] sm:h-[420px] lg:h-[460px] object-cover" loading="eager">
-                    <div class="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent"></div>
-                    @if(is_array($watchHours))
-                        <div class="absolute bottom-4 left-4 right-4 text-white">
-                            <p class="text-[10px] font-bold uppercase tracking-wider text-red-200">Example activity type</p>
-                            <p class="font-display text-base sm:text-lg font-bold mt-0.5">{!! $ytWord($watchHours['title'] ?? 'YouTube Watch Hours', 'white') !!}</p>
-                        </div>
-                    @endif
+                <div class="rounded-2xl overflow-hidden shadow-xl bg-slate-100 max-w-md sm:max-w-lg mx-auto lg:max-w-none">
+                    <img src="{{ $imgAgent }}" alt="Agent checking off social media tasks on a task list" width="1188" height="1181" class="w-full h-auto aspect-square object-cover" loading="eager">
                 </div>
             </div>
         </div>
@@ -137,12 +128,13 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
             <div class="lg:col-span-5">
-                <div class="relative rounded-2xl overflow-hidden shadow-lg bg-slate-100 h-64 sm:h-80 lg:h-full min-h-[280px]">
-                    <img src="{{ $imgMobile }}" alt="Agent reviewing a task session on mobile" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
-                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
-                    <div class="absolute bottom-0 inset-x-0 p-4 sm:p-5 text-white">
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-red-200">Tasks</span>
-                        <p class="font-display text-base sm:text-lg font-bold mt-1 leading-snug">Watch Hours and other social activities when open</p>
+                <div class="rounded-2xl overflow-hidden shadow-lg bg-white border border-slate-100 h-full flex flex-col">
+                    <div class="flex-1 flex items-center justify-center p-6 sm:p-8">
+                        <img src="{{ $imgMarketplace }}" alt="Agents collecting rewards into a wallet" width="1600" height="1189" class="w-full h-auto max-h-80 object-contain" loading="lazy">
+                    </div>
+                    <div class="border-t border-slate-100 px-4 py-4 sm:px-5">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-red-600">Tasks</span>
+                        <p class="font-display text-base sm:text-lg font-bold text-slate-900 mt-1 leading-snug">Watch Hours and other social activities when open</p>
                     </div>
                 </div>
             </div>
@@ -204,29 +196,18 @@
 </section>
 
 {{-- Final CTA --}}
-<section class="w-full bg-white py-14 sm:py-20">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="w-full bg-red-600 rounded-2xl p-8 sm:p-12 lg:p-16 text-white shadow-xl flex flex-col items-center text-center">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-red-100">Start when you are ready</span>
-            <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-white mt-2 max-w-2xl">
-                Ready to join {{ $brandName }} as an Agent?
-            </h2>
-            <p class="text-base sm:text-lg text-red-50 mt-3 max-w-xl leading-relaxed">
-                Register to see available tasks. Rewards are paid when your work meets the instructions and is approved, not for simply opening or autoplaying content.
-            </p>
-            <div class="flex flex-wrap items-center justify-center gap-3 mt-8">
-                <a href="{{ route('register.agent') }}" class="inline-flex items-center gap-1.5 font-semibold text-sm bg-white text-red-600 px-6 py-3 rounded-xl hover:bg-slate-50 transition-colors shadow-md">
-                    <span>Become an Agent</span>
-                    <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
-                </a>
-                <a href="{{ route('help') }}" class="inline-flex items-center gap-1.5 font-semibold text-sm text-white hover:bg-red-700 px-6 py-3 rounded-xl transition-colors">
-                    <span>Visit Help Center</span>
-                </a>
-            </div>
-            <div class="mt-6 text-red-100 text-xs font-medium">
-                Free registration · Rewards after approval · No guaranteed earnings or task availability
-            </div>
-        </div>
-    </div>
-</section>
+<x-marketing.cta-card eyebrow="Start when you are ready">
+    <x-slot:title>Ready to join {{ $brandName }} as an Agent?</x-slot:title>
+    <x-slot:description>Register to see available tasks. Rewards are paid when your work meets the instructions and is approved, not for simply opening or autoplaying content.</x-slot:description>
+    <x-slot:actions>
+        <a href="{{ route('register.agent') }}" class="inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-white text-red-700 hover:bg-red-50 px-6 py-3 rounded-lg shadow-md transition-colors">
+            <span>Become an Agent</span>
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
+        </a>
+        <a href="{{ route('help') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-white/10 text-white hover:bg-white/20 border border-white/30 px-6 py-3 rounded-lg transition-colors">
+            Visit Help Center
+        </a>
+    </x-slot:actions>
+    <x-slot:note>Free registration · Rewards after approval · No guaranteed earnings or task availability</x-slot:note>
+</x-marketing.cta-card>
 @endsection

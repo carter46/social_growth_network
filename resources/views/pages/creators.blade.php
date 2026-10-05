@@ -6,7 +6,7 @@
 @php
     $brandName = $siteName ?? config('app.name', 'Social Growth Network');
     $imgStudio = asset('assets/images/creators-hero.jpg');
-    $imgCreator = asset('assets/images/creators-operational.jpg');
+    $imgCreator = asset('assets/images/undraw_social-expert_wfam.png');
     $imgSocial = asset('assets/images/Social_Media.jpg');
     $youtubeCatalog = $youtubeCatalog ?? ['featured' => null, 'others' => []];
     $watchHours = $youtubeCatalog['featured'] ?? null;
@@ -287,8 +287,8 @@
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
             <div class="lg:col-span-6 relative pb-8 sm:pb-10">
-                <div class="rounded-2xl overflow-hidden shadow-lg bg-white border border-slate-100">
-                    <img src="{{ $imgCreator }}" alt="Creator managing campaign progress" class="w-full h-auto object-cover aspect-[16/10]" loading="lazy">
+                <div class="rounded-2xl overflow-hidden shadow-lg bg-white border border-slate-100 p-6 sm:p-8">
+                    <img src="{{ $imgCreator }}" alt="Creator managing social media accounts" width="1757" height="1362" class="w-full h-auto object-contain aspect-[16/10]" loading="lazy">
                 </div>
             </div>
             <div class="lg:col-span-6 flex flex-col items-start lg:pl-4">
@@ -323,32 +323,18 @@
 </section>
 
 {{-- Final CTA --}}
-<section class="w-full bg-white py-14 sm:py-20">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="rounded-3xl p-8 sm:p-12 lg:p-16 shadow-xl relative overflow-hidden text-center flex flex-col items-center text-white">
-            <div class="absolute inset-0 bg-gradient-to-br from-red-950 via-red-900 to-slate-950" aria-hidden="true"></div>
-            <div class="absolute -right-20 -top-20 w-96 h-96 rounded-full bg-red-500/25 blur-3xl pointer-events-none" aria-hidden="true"></div>
-            <div class="relative z-10 max-w-3xl flex flex-col items-center">
-                <span class="text-[11px] font-bold uppercase tracking-widest text-red-100 mb-3">
-                    Launch in minutes
-                </span>
-                <h2 class="font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight mb-4 text-white">
-                    {!! $ytWord('Ready to grow YouTube Watch Hours?', 'white') !!}
-                </h2>
-                <p class="text-base sm:text-lg text-red-50/90 max-w-2xl mb-8 leading-relaxed">
-                    Create an account, choose a Watch Hours package, add your video URL, and track progress in your account.
-                </p>
-                <div class="flex flex-wrap items-center justify-center gap-3 w-full sm:w-auto">
-                    <a href="{{ route('register') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-red-600 text-white hover:bg-red-500 px-6 py-3 rounded-lg shadow transition-colors">
-                        Buy Watch Hours
-                        <span class="material-symbols-outlined ml-1.5 text-[18px]" aria-hidden="true">arrow_forward</span>
-                    </a>
-                    <a href="{{ route('agents') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-white/15 text-white hover:bg-white/25 border border-white/30 px-6 py-3 rounded-lg transition-colors">
-                        Watch &amp; Earn
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
+<x-marketing.cta-card eyebrow="Launch in minutes" class="pt-0 sm:pt-0">
+    <x-slot:title>{!! $ytWord('Ready to grow YouTube Watch Hours?', 'white') !!}</x-slot:title>
+    <x-slot:description>Create an account, choose a Watch Hours package, add your video URL, and track progress in your account.</x-slot:description>
+    <x-slot:actions>
+        <a href="{{ route('register') }}" class="inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-white text-red-700 hover:bg-red-50 px-6 py-3 rounded-lg shadow-md transition-colors">
+            <span>Buy Watch Hours</span>
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
+        </a>
+        <a href="{{ route('agents') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-white/10 text-white hover:bg-white/20 border border-white/30 px-6 py-3 rounded-lg transition-colors">
+            Watch &amp; Earn
+        </a>
+    </x-slot:actions>
+    <x-slot:note>Fixed-price packages · Pay securely · Track progress in your account</x-slot:note>
+</x-marketing.cta-card>
 @endsection

@@ -9,7 +9,6 @@
     $imgStudio = asset('assets/images/creators-hero.jpg');
     $imgCreatorsSide = asset('assets/images/about-creators.jpg');
     $imgAgentsSide = asset('assets/images/about-agents.jpg');
-    $imgTrust = asset('assets/images/campaign-workspace.jpg');
 @endphp
 
 {{-- Hero --}}
@@ -202,51 +201,6 @@
                         <span>Become an Agent</span>
                         <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_forward</span>
                     </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-{{-- Trust --}}
-<section class="w-full py-14 sm:py-20 bg-white">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-            <div class="lg:col-span-7 flex flex-col">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-primary mb-2">How we keep it fair</span>
-                <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 mb-4">
-                    Designed around accountability.
-                </h2>
-                <p class="text-base sm:text-lg text-slate-600 mb-8 leading-relaxed">
-                    Every campaign and task follows clear rules, so creators know what they're paying for and Agents know what they need to do.
-                </p>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    @foreach([
-                        ['icon' => 'assignment', 'tone' => 'text-primary', 'title' => 'Clear Requirements', 'body' => 'Every task explains what needs to be done before work starts.'],
-                        ['icon' => 'price_check', 'tone' => 'text-primary', 'title' => 'Defined Quantities', 'body' => 'Each campaign has a set number of tasks and a clear reward.'],
-                        ['icon' => 'badge', 'tone' => 'text-primary', 'title' => 'Task Eligibility', 'body' => 'Agents only take tasks they\'re eligible for.'],
-                        ['icon' => 'upload_file', 'tone' => 'text-primary', 'title' => 'Proof Submission', 'body' => 'Agents submit screenshots, links, or other proof the task asks for.'],
-                        ['icon' => 'verified_user', 'tone' => 'text-emerald-600', 'title' => 'Work Review', 'body' => 'Submissions are checked automatically, by our team, or both.'],
-                        ['icon' => 'account_balance_wallet', 'tone' => 'text-emerald-600', 'title' => 'Fair Payouts', 'body' => 'Rewards are released only after work is approved.'],
-                    ] as $p)
-                        <div class="p-3.5 rounded-xl bg-white shadow-sm border border-slate-100 flex items-start gap-2.5">
-                            <span class="material-symbols-outlined {{ $p['tone'] }} text-xl mt-0.5" aria-hidden="true">{{ $p['icon'] }}</span>
-                            <div>
-                                <h4 class="text-sm font-semibold text-slate-900">{{ $p['title'] }}</h4>
-                                <p class="text-sm text-slate-600">{{ $p['body'] }}</p>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-            <div class="lg:col-span-5">
-                <div class="relative rounded-2xl overflow-hidden shadow-md bg-slate-100 aspect-[4/3]">
-                    <img src="{{ $imgTrust }}" alt="Analyst reviewing campaign performance charts" class="w-full h-full object-cover" loading="lazy">
-                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent"></div>
-                    <div class="absolute bottom-4 left-4 right-4 p-3.5 bg-white/90 backdrop-blur rounded-xl">
-                        <p class="text-sm font-semibold text-slate-900">Real-Time Progress Tracking</p>
-                        <p class="text-sm text-slate-600">Your dashboard updates as work is completed.</p>
-                    </div>
                 </div>
             </div>
         </div>

@@ -56,14 +56,14 @@
             <p class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-3">
                 {{ $brandName }}
             </p>
-            <h1 class="text-2xl sm:text-4xl md:text-5xl lg:text-[52px] font-extrabold text-slate-900 tracking-tight leading-[1.15] mb-4 sm:mb-5 font-display">
-                {!! $ytWord('Get more engagement on your social media content.') !!}
+            <h1 class="text-[2rem] sm:text-4xl md:text-5xl lg:text-[52px] font-extrabold text-slate-900 tracking-tight leading-[1.15] mb-4 sm:mb-5 font-display">
+                {!! $ytWord('Pay people to subscribe, watch, like, follow and comment on your videos and posts.') !!}
             </h1>
             <p class="text-base sm:text-lg lg:text-xl text-slate-600 font-normal leading-relaxed mb-8 sm:mb-10 max-w-xl mx-auto">
                 Buy YouTube Watch Hours, views, likes, and comments for your videos and posts. You see the price before you pay and can track your campaign from your account.
             </p>
 
-            <div class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-3 sm:gap-4">
+            <div class="flex flex-row flex-wrap items-center justify-center gap-3 sm:gap-4">
                 <a
                     class="inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm sm:text-base px-5 py-3 sm:px-6 sm:py-3.5 rounded-lg shadow-sm hover:shadow transition-all"
                     href="{{ route('register') }}"
@@ -411,13 +411,63 @@
     </div>
 </section>
 
-{{-- FAQ strip --}}
-<section class="py-12 bg-white" id="faq">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500">
-        Have questions? Visit our
-        <a class="text-primary font-semibold hover:underline" href="{{ route('help') }}">FAQ guide</a>
-        or
-        <a class="text-primary font-semibold hover:underline" href="{{ route('contact') }}">contact our support team</a>.
+{{-- Newsletter + FAQ strip --}}
+<section class="py-14 sm:py-16 bg-white scroll-mt-24" id="faq">
+    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
+        <div id="newsletter" class="scroll-mt-24 rounded-2xl border border-slate-200 bg-slate-50 p-6 sm:p-8 lg:p-10">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center">
+                <div class="lg:col-span-5">
+                    <span class="text-slate-500 font-bold text-xs tracking-wider uppercase mb-2 block">Newsletter</span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-display">Get updates in your inbox</h2>
+                    <p class="text-slate-600 text-sm sm:text-base mt-2 leading-relaxed">New services, offers, and tips for growing your channel. No spam, and you can unsubscribe at any time.</p>
+                </div>
+                <div class="lg:col-span-7">
+                    @if (session('newsletter_status'))
+                        <div class="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">
+                            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">check_circle</span>
+                            <span>{{ session('newsletter_status') }}</span>
+                        </div>
+                    @else
+                        <form method="POST" action="{{ route('newsletter.subscribe') }}" class="flex flex-col sm:flex-row gap-3" novalidate>
+                            @csrf
+                            <input type="hidden" name="source" value="home">
+                            <div class="hidden" aria-hidden="true">
+                                <label for="newsletter-website">Website</label>
+                                <input type="text" id="newsletter-website" name="website" tabindex="-1" autocomplete="off">
+                            </div>
+                            <label for="newsletter-email" class="sr-only">Email address</label>
+                            <input
+                                type="email"
+                                id="newsletter-email"
+                                name="email"
+                                value="{{ old('email') }}"
+                                required
+                                autocomplete="email"
+                                placeholder="Enter your email address"
+                                @class([
+                                    'flex-1 min-w-0 rounded-lg border bg-white px-4 py-3 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary',
+                                    'border-red-400' => $errors->newsletter->has('email'),
+                                    'border-slate-300' => ! $errors->newsletter->has('email'),
+                                ])
+                            >
+                            <button type="submit" class="inline-flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm sm:text-base px-6 py-3 rounded-lg shadow-sm transition-colors">
+                                Subscribe
+                            </button>
+                        </form>
+                        @if ($errors->newsletter->has('email'))
+                            <p class="mt-2 text-sm text-red-600">{{ $errors->newsletter->first('email') }}</p>
+                        @endif
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <p class="mt-6 text-center text-sm text-slate-500">
+            Have questions? Visit our
+            <a class="text-primary font-semibold hover:underline" href="{{ route('help') }}">FAQ guide</a>
+            or
+            <a class="text-primary font-semibold hover:underline" href="{{ route('contact') }}">contact our support team</a>.
+        </p>
     </div>
 </section>
 @endsection

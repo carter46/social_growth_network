@@ -161,6 +161,7 @@ return [
                 ['route' => 'admin.kyc', 'match' => ['admin.kyc', 'admin.kyc.*'], 'label' => 'KYC', 'icon' => 'kyc', 'keywords' => ['identity', 'verification'], 'permission' => 'compliance.manage', 'sort' => 30],
                 ['route' => 'admin.tickets', 'match' => ['admin.tickets', 'admin.tickets.*'], 'label' => 'Support', 'icon' => 'support', 'keywords' => ['help', 'tickets'], 'permission' => 'support.manage', 'sort' => 40],
                 ['route' => 'admin.fees-limits', 'match' => ['admin.fees-limits', 'admin.fees-limits.*'], 'label' => 'Fees & Limits', 'icon' => 'paid', 'keywords' => ['fees', 'limits', 'deposit', 'withdrawal'], 'permission' => 'fees.manage', 'sort' => 45],
+                ['route' => 'admin.newsletter', 'match' => ['admin.newsletter', 'admin.newsletter.*'], 'label' => 'Newsletter', 'icon' => 'mail', 'keywords' => ['subscribers', 'leads', 'emails', 'newsletter'], 'permission' => 'system.manage', 'sort' => 48],
                 ['route' => 'admin.audit-logs', 'match' => ['admin.audit-logs', 'admin.audit-logs.*'], 'label' => 'Audit Logs', 'icon' => 'audit', 'keywords' => ['logs', 'activity'], 'permission' => 'system.manage', 'sort' => 50],
             ],
         ],
