@@ -86,6 +86,33 @@ class CampaignMarketplaceTest extends TestCase
         $this->assertContains('campaign.rejected', $types);
     }
 
+    public function test_campaign_pages_render_for_creator_and_admin(): void
+    {
+        $creator = User::factory()->creator()->create();
+        $campaign = Campaign::query()->create([
+            'creator_id' => $creator->id,
+            'title' => 'Render campaign',
+            'quantity' => 4,
+            'completed_count' => 1,
+            'locked_creator_price' => 2000,
+            'locked_agent_reward' => 1000,
+            'status' => Campaign::STATUS_ACTIVE,
+        ]);
+
+        $this->actingAs($creator)
+            ->get(route('dashboard.campaigns.show', $campaign))
+            ->assertOk()
+            ->assertSee('Campaign cost')
+            ->assertSee('8,000.00')
+            ->assertDontSee('Agent reward');
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->get(route('admin.campaigns.show', $campaign))
+            ->assertOk()
+            ->assertSee('Agent payouts')
+            ->assertSee('What the creator bought');
+    }
+
     public function test_agent_cannot_submit_on_cancelled_campaign(): void
     {
         $creator = User::factory()->creator()->create();

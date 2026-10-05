@@ -32,7 +32,7 @@ class CampaignController extends Controller
     {
         abort_unless((int) $campaign->creator_id === (int) auth()->id(), 403);
 
-        $campaign->load(['product', 'orderItem']);
+        $campaign->load(['product.heroMedia.variants', 'orderItem']);
 
         return view('dashboard.user.campaigns.show', [
             'campaign' => $campaign,

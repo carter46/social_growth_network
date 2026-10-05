@@ -10,6 +10,7 @@
 
         return '₦'.number_format($value, $decimals);
     };
+    $tile = 'rounded-xl bg-muted/40 px-4 py-3';
     $order = $campaign->order;
     $pricingVariant = $campaign->variant;
     $statusHelp = [
@@ -42,10 +43,10 @@
     @endif
 
     <x-dashboard.card class="mb-4">
-        <dl class="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-            <div>
+        <dl class="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            <div class="{{ $tile }}">
                 <dt class="text-text-muted">Creator</dt>
-                <dd class="font-medium break-all">
+                <dd class="mt-1 font-medium text-text-primary break-all">
                     @if ($campaign->creator)
                         <a href="{{ route('admin.users.show', $campaign->creator) }}" class="text-primary hover:underline">{{ $campaign->creator->email }}</a>
                     @else
@@ -53,17 +54,17 @@
                     @endif
                 </dd>
             </div>
-            <div>
+            <div class="{{ $tile }}">
                 <dt class="text-text-muted">Status</dt>
-                <dd><x-dashboard.badge :status="$campaign->status">{{ $campaign->statusLabel() }}</x-dashboard.badge></dd>
+                <dd class="mt-1"><x-dashboard.badge :status="$campaign->status">{{ $campaign->statusLabel() }}</x-dashboard.badge></dd>
             </div>
-            <div>
+            <div class="{{ $tile }}">
                 <dt class="text-text-muted">Progress</dt>
-                <dd class="font-medium">{{ number_format($campaign->completed_count) }} / {{ number_format($campaign->quantity) }} {{ $unitLabel }}</dd>
+                <dd class="mt-1 font-medium text-text-primary">{{ number_format($campaign->completed_count) }} / {{ number_format($campaign->quantity) }} {{ $unitLabel }}</dd>
             </div>
-            <div>
+            <div class="{{ $tile }}">
                 <dt class="text-text-muted">Created</dt>
-                <dd class="font-medium">{{ $campaign->created_at?->format('M j, Y g:i A') }}</dd>
+                <dd class="mt-1 font-medium text-text-primary">{{ $campaign->created_at?->format('M j, Y g:i A') }}</dd>
             </div>
         </dl>
     </x-dashboard.card>
@@ -72,34 +73,34 @@
         <x-dashboard.card>
             <h2 class="mb-3 text-sm font-semibold">What the creator bought</h2>
             <dl class="grid gap-3 text-sm sm:grid-cols-2">
-                <div>
+                <div class="{{ $tile }}">
                     <dt class="text-text-muted">Product</dt>
-                    <dd class="font-medium">{{ $campaign->product?->title ?? $campaign->title }}</dd>
+                    <dd class="mt-1 font-medium text-text-primary">{{ $campaign->product?->title ?? $campaign->title }}</dd>
                 </div>
-                <div>
+                <div class="{{ $tile }}">
                     <dt class="text-text-muted">Engagement</dt>
-                    <dd class="font-medium">{{ $metric?->label() ?? '-' }}</dd>
+                    <dd class="mt-1 font-medium text-text-primary">{{ $metric?->label() ?? '-' }}</dd>
                 </div>
-                <div>
+                <div class="{{ $tile }}">
                     <dt class="text-text-muted">Units bought</dt>
-                    <dd class="font-medium">{{ number_format($campaign->quantity) }} {{ $unitLabel }}</dd>
+                    <dd class="mt-1 font-medium text-text-primary">{{ number_format($campaign->quantity) }} {{ $unitLabel }}</dd>
                 </div>
-                <div>
+                <div class="{{ $tile }}">
                     <dt class="text-text-muted">Price per unit</dt>
-                    <dd class="font-medium">{{ $nairaUnit($finance['unit_cost']) }}</dd>
+                    <dd class="mt-1 font-medium text-text-primary">{{ $nairaUnit($finance['unit_cost']) }}</dd>
                     @if (($campaign->orderItem?->options['pricing_units'] ?? null) && ($campaign->orderItem?->options['pricing_price'] ?? null))
                         <p class="mt-0.5 text-xs text-text-muted">
                             Priced at ₦{{ number_format((float) $campaign->orderItem->options['pricing_price'], 2) }} per {{ number_format((int) $campaign->orderItem->options['pricing_units']) }}
                         </p>
                     @endif
                 </div>
-                <div>
+                <div class="{{ $tile }}">
                     <dt class="text-text-muted">Total cost</dt>
-                    <dd class="text-base font-semibold">{{ $naira($finance['total_cost']) }}</dd>
+                    <dd class="mt-1 text-base font-semibold text-text-primary">{{ $naira($finance['total_cost']) }}</dd>
                 </div>
-                <div>
+                <div class="{{ $tile }}">
                     <dt class="text-text-muted">Order</dt>
-                    <dd class="font-medium">
+                    <dd class="mt-1 font-medium text-text-primary">
                         @if ($order)
                             <a href="{{ route('admin.orders.show', $order) }}" class="text-primary hover:underline">{{ $order->reference ?? '#'.$order->id }}</a>
                             <span class="block text-xs text-text-muted">
@@ -110,9 +111,9 @@
                         @endif
                     </dd>
                 </div>
-                <div class="sm:col-span-2">
+                <div class="{{ $tile }} sm:col-span-2">
                     <dt class="text-text-muted">Campaign link</dt>
-                    <dd class="font-medium break-all">
+                    <dd class="mt-1 font-medium text-text-primary break-all">
                         @if ($campaign->target_url)
                             <a href="{{ $campaign->target_url }}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">{{ $campaign->target_url }}</a>
                         @else
@@ -126,35 +127,35 @@
         <x-dashboard.card>
             <h2 class="mb-3 text-sm font-semibold">Agent payouts</h2>
             <dl class="grid gap-3 text-sm sm:grid-cols-2">
-                <div>
+                <div class="{{ $tile }}">
                     <dt class="text-text-muted">Agent reward per unit</dt>
-                    <dd class="font-medium">{{ $naira($finance['agent_reward']) }}</dd>
+                    <dd class="mt-1 font-medium text-text-primary">{{ $naira($finance['agent_reward']) }}</dd>
                     @if ($campaign->product?->agent_reward_percent)
                         <p class="mt-0.5 text-xs text-text-muted">{{ rtrim(rtrim(number_format((float) $campaign->product->agent_reward_percent, 2), '0'), '.') }}% of the unit price</p>
                     @endif
                 </div>
-                <div>
+                <div class="{{ $tile }}">
                     <dt class="text-text-muted">Total agent budget</dt>
-                    <dd class="font-medium">{{ $naira($finance['agent_budget']) }}</dd>
+                    <dd class="mt-1 font-medium text-text-primary">{{ $naira($finance['agent_budget']) }}</dd>
                     <p class="mt-0.5 text-xs text-text-muted">{{ number_format($campaign->quantity) }} × {{ $naira($finance['agent_reward']) }}</p>
                 </div>
-                <div>
+                <div class="{{ $tile }}">
                     <dt class="text-text-muted">Paid to agents so far</dt>
-                    <dd class="text-base font-semibold text-success">{{ $naira($finance['paid_to_agents']) }}</dd>
+                    <dd class="mt-1 text-base font-semibold text-success">{{ $naira($finance['paid_to_agents']) }}</dd>
                     <p class="mt-0.5 text-xs text-text-muted">{{ number_format($counts['paid']) }} {{ $counts['paid'] === 1 ? 'agent' : 'agents' }} paid</p>
                 </div>
-                <div>
+                <div class="{{ $tile }}">
                     <dt class="text-text-muted">Awaiting review</dt>
-                    <dd class="font-medium">{{ $naira($finance['awaiting_review']) }}</dd>
+                    <dd class="mt-1 font-medium text-text-primary">{{ $naira($finance['awaiting_review']) }}</dd>
                     <p class="mt-0.5 text-xs text-text-muted">{{ number_format($counts['awaiting_review']) }} submitted, {{ number_format($counts['in_progress']) }} in progress</p>
                 </div>
-                <div>
+                <div class="{{ $tile }}">
                     <dt class="text-text-muted">Agent budget left</dt>
-                    <dd class="font-medium">{{ $naira($finance['agent_budget_left']) }}</dd>
+                    <dd class="mt-1 font-medium text-text-primary">{{ $naira($finance['agent_budget_left']) }}</dd>
                 </div>
-                <div>
+                <div class="{{ $tile }}">
                     <dt class="text-text-muted">Platform share</dt>
-                    <dd class="font-medium">{{ $naira($finance['platform_share']) }}</dd>
+                    <dd class="mt-1 font-medium text-text-primary">{{ $naira($finance['platform_share']) }}</dd>
                     <p class="mt-0.5 text-xs text-text-muted">Total cost minus total agent budget</p>
                 </div>
             </dl>
