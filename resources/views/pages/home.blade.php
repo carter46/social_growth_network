@@ -60,7 +60,7 @@
                 {!! $ytWord('Pay People to Subscribe, Watch, Like, Follow and Comment on Your Videos and Posts.') !!}
             </h1>
             <p class="text-base sm:text-lg lg:text-xl text-slate-600 font-normal leading-relaxed mb-8 sm:mb-10 max-w-xl mx-auto">
-                Buy YouTube Watch Hours, views, likes, and comments for your videos and posts.
+                Not buying? Become an earner and get paid to watch, like, follow and comment on other people's videos and posts.
             </p>
 
             <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
