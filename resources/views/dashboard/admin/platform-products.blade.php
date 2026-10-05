@@ -93,6 +93,9 @@
                             @if ($product->is_featured)
                                 <x-dashboard.badge status="warning">Featured</x-dashboard.badge>
                             @endif
+                            @unless ($product->isPurchasable())
+                                <x-dashboard.badge status="danger">Needs reward %</x-dashboard.badge>
+                            @endunless
                         </div>
                         <p class="mt-0.5 font-mono text-[10px] leading-tight text-text-muted" title="Catalog slug — fixed in code, not changed when you edit the title">
                             {{ $product->slug }}

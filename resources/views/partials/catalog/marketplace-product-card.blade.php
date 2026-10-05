@@ -6,10 +6,10 @@
     $categoryLabel = $product->serviceCategory?->name
         ?? ($product->productType?->serviceCategory?->name ?? 'Service');
     $fromPrice = $product->displayPrice();
-    $variants = ($product->relationLoaded('activeVariants') ? $product->activeVariants : $product->activeVariants()->get())
-        ->sortBy('price')
-        ->take(3)
-        ->values();
+    $pricingVariant = $product->pricingVariant();
+    $pricingLabel = $pricingVariant?->isPerUnit()
+        ? $pricingVariant->pricingLabel(\App\Enums\EngagementMetric::fromProductSlug($product->slug))
+        : null;
     $dotColors = [
         'youtube' => 'bg-red-500',
         'facebook' => 'bg-blue-600',
@@ -42,22 +42,18 @@
             <a href="{{ $href }}" class="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded">{{ $product->title }}</a>
         </h3>
         <p class="text-sm text-slate-600 mb-4 line-clamp-2 leading-relaxed">
-            {{ \Illuminate\Support\Str::limit(strip_tags((string) ($product->description ?? '')), 160) ?: 'Choose a package, add your link, and pay securely.' }}
+            {{ \Illuminate\Support\Str::limit(strip_tags((string) ($product->description ?? '')), 160) ?: 'Enter how many you need, add your link, and pay securely.' }}
         </p>
 
-        @if($variants->isNotEmpty())
+        @if($pricingLabel)
             <div class="flex flex-wrap gap-1.5 mb-5">
-                @foreach($variants as $variant)
-                    <span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium">
-                        {{ $variant->displayLabel() }}
-                    </span>
-                @endforeach
+                <span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium">{{ $pricingLabel }}</span>
             </div>
         @endif
 
         <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
             <div class="min-w-0">
-                <span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Packages from</span>
+                <span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">From</span>
                 <span class="font-display text-xl font-bold text-slate-900 tracking-tight">
                     ₦{{ number_format((float) $fromPrice, 0) }}
                 </span>

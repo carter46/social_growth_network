@@ -14,6 +14,7 @@
         productSlug: '',
         variantId: '',
         units: '',
+        targetUrl: '',
         domainFqdn: '',
         purchasedAt: new Date().toISOString().slice(0, 10),
         markPaid: true,
@@ -44,6 +45,7 @@
             this.productSlug = '';
             this.variantId = '';
             this.units = '';
+            this.targetUrl = '';
             this.domainFqdn = '';
             this.purchasedAt = new Date().toISOString().slice(0, 10);
             this.markPaid = true;
@@ -152,6 +154,11 @@
                             return;
                         }
                     }
+                    if (!/^https?:\/\/\S+\.\S+/i.test(targetUrl.trim())) {
+                        $event.preventDefault();
+                        error = 'Enter the campaign link (post, video or profile URL).';
+                        return;
+                    }
                     if (isWebsite && !domainFqdn.trim()) {
                         $event.preventDefault();
                         error = 'Enter the customer\'s existing domain.';
@@ -250,6 +257,19 @@
                     />
                 </div>
 
+                <div x-show="selectedProduct" x-cloak>
+                    <label class="mb-1 block text-sm font-medium text-text-secondary">Campaign link</label>
+                    <input
+                        type="url"
+                        name="target_url"
+                        x-model="targetUrl"
+                        placeholder="https://"
+                        :required="!!selectedProduct"
+                        class="w-full rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm"
+                    />
+                    <p class="mt-1 text-xs text-text-muted">The post, video or profile URL agents will work on.</p>
+                </div>
+
                 <div x-show="isWebsite" x-cloak class="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
                     <label class="block text-sm font-medium text-text-primary">Existing domain</label>
                     <input
@@ -276,7 +296,7 @@
 
                 <input type="hidden" name="mark_paid" value="0">
                 <label class="inline-flex items-center justify-between gap-3 text-sm text-text-primary w-full">
-                    <span>Mark paid immediately (fulfill order &amp; create tool)</span>
+                    <span>Mark paid immediately (creates the campaign)</span>
                     <input type="checkbox" name="mark_paid" value="1" x-model="markPaid" class="h-4 w-4 rounded border-border-subtle accent-primary">
                 </label>
 

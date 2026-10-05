@@ -5,7 +5,7 @@
 @section('content')
 <x-layout.page
     title="Create order for user"
-    subtitle="Manual bank transfer — works even when checkout toggle is off. Mark paid to fulfill immediately."
+    subtitle="Manual bank transfer. Works even when the checkout toggle is off. Mark paid to create the campaign immediately."
     width="default"
     :breadcrumb="[
         ['Admin', route('admin')],
@@ -37,10 +37,9 @@
                         <option value="{{ $p->slug }}" @selected(old('product_slug') === $p->slug)>{{ $p->title }} ({{ $p->slug }})</option>
                     @endforeach
                 </select>
-                <p class="mt-1 text-xs text-text-muted">Domain products require user checkout. Use simple products here.</p>
             </div>
-            <x-dashboard.input name="variant_id" type="number" label="Variant ID (optional)" :value="old('variant_id')" />
-            <x-dashboard.input name="quantity" type="number" label="Quantity / units (1 for fixed plans; total units for per-unit plans)" :value="old('quantity', 1)" min="1" max="1000000" required />
+            <x-dashboard.input name="quantity" type="number" label="Quantity (between the product's minimum and maximum purchase)" :value="old('quantity')" min="1" max="1000000" required />
+            <x-dashboard.input name="target_url" type="url" label="Campaign link (post, video or profile URL)" :value="old('target_url')" placeholder="https://" required />
             <input type="hidden" name="mark_paid" value="0">
             <x-dashboard.toggle name="mark_paid" label="Mark paid immediately (fulfill order)" :checked="old('mark_paid')" value="1" />
             <x-dashboard.button type="submit" variant="primary">Create order</x-dashboard.button>

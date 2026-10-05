@@ -41,6 +41,7 @@ class AdminManualPurchaseTest extends TestCase
             'sort_order' => 1,
             'provider' => 'manual',
             'fulfillment_mode' => 'manual',
+            'agent_reward_percent' => 50,
         ]);
 
         PlatformProductVariant::query()->create([
@@ -50,6 +51,11 @@ class AdminManualPurchaseTest extends TestCase
             'sku' => $product->slug.'-m',
             'duration_months' => 1,
             'price' => 2500,
+            'pricing_mode' => PlatformProductVariant::PRICING_PER_UNIT,
+            'pricing_units' => 1,
+            'unit_price' => 2500,
+            'min_units' => 1,
+            'max_units' => 10,
             'sort_order' => 0,
             'is_default' => true,
             'is_active' => true,
@@ -86,6 +92,7 @@ class AdminManualPurchaseTest extends TestCase
             ->post(route('admin.users.manual-purchase', $member), [
                 'product_slug' => $product->slug,
                 'variant_id' => $variant->id,
+                'target_url' => 'https://example.com/post/1',
                 'mark_paid' => '1',
             ])
             ->assertRedirect(route('admin.users.tools', $member))
@@ -153,6 +160,7 @@ class AdminManualPurchaseTest extends TestCase
             ->post(route('admin.users.manual-purchase', $member), [
                 'product_slug' => $product->slug,
                 'variant_id' => $variant->id,
+                'target_url' => 'https://example.com/post/1',
                 'mark_paid' => '1',
                 'domain_fqdn' => 'shop.customer-example.com',
             ])
@@ -185,6 +193,7 @@ class AdminManualPurchaseTest extends TestCase
             ->post(route('admin.users.manual-purchase', $member), [
                 'product_slug' => $product->slug,
                 'variant_id' => $variant->id,
+                'target_url' => 'https://example.com/post/1',
                 'mark_paid' => '1',
                 'purchased_at' => $purchaseDate,
             ])

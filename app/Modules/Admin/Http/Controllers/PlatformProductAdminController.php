@@ -132,7 +132,6 @@ class PlatformProductAdminController extends Controller
         }
 
         $metric = \App\Enums\EngagementMetric::fromProductSlug($platformProduct->slug);
-        $isCampaign = $platformProduct->isCampaignProduct();
 
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -142,24 +141,14 @@ class PlatformProductAdminController extends Controller
                 PlatformProductStatus::Published->value,
             ])],
             'hero_media_id' => ['nullable', 'integer', $this->mediaPaths->existsRule()],
-            'variants' => ['required', 'array', 'min:1'],
-            'variants.*.id' => ['nullable', 'integer'],
-            'variants.*.name' => ['required', 'string', 'max:120'],
-            'variants.*.price' => ['required', 'numeric', 'min:0'],
-            'variants.*.description' => ['nullable', 'string', 'max:2000'],
-            'variants.*.per_unit' => ['sometimes', 'boolean'],
-            'variants.*.min_units' => ['nullable', 'integer', 'min:1'],
-            'variants.*.max_units' => ['nullable', 'integer', 'min:1'],
-            'variants.*.unit_label' => ['nullable', 'string', 'max:32'],
-            'variants.*.included_units' => ['nullable', 'integer', 'min:1'],
-            'agent_reward_per_completion' => [
-                Rule::requiredIf($isCampaign),
-                'nullable',
-                'numeric',
-                'min:0.01',
-            ],
+            'pricing' => ['required', 'array'],
+            'pricing.min_units' => ['required', 'integer', 'min:1'],
+            'pricing.max_units' => ['required', 'integer', 'gte:pricing.min_units'],
+            'pricing.pricing_units' => ['required', 'integer', 'min:1'],
+            'pricing.price' => ['required', 'numeric', 'min:0.01'],
+            'agent_reward_percent' => ['required', 'numeric', 'min:0.01', 'max:100'],
             'estimated_minutes' => [
-                Rule::requiredIf($isCampaign && $metric?->requiresTimedSession(
+                Rule::requiredIf((bool) $metric?->requiresTimedSession(
                     \App\Enums\EngagementMetric::platformFromProductSlug($platformProduct->slug)
                 )),
                 'nullable',
@@ -167,7 +156,19 @@ class PlatformProductAdminController extends Controller
                 'min:1',
                 'max:10080',
             ],
+        ], [
+            'pricing.max_units.gte' => 'Maximum purchase must be greater than or equal to the minimum purchase.',
         ]);
+
+        $unitPrice = PlatformProductVariant::computeUnitPriceFromPackagePrice(
+            $data['pricing']['price'],
+            (int) $data['pricing']['pricing_units'],
+        );
+        if (bccomp(PlatformProductVariant::agentRewardForUnitPrice($unitPrice, $data['agent_reward_percent']), '0.01', 2) < 0) {
+            throw ValidationException::withMessages([
+                'agent_reward_percent' => "At ₦{$unitPrice} per unit, this percentage pays agents less than ₦0.01. Raise the price or the percentage.",
+            ]);
+        }
 
         $heroMediaId = filled($data['hero_media_id'] ?? null) ? (int) $data['hero_media_id'] : null;
         $heroPath = $this->mediaPaths->legacyPathFromMediaId($heroMediaId);
@@ -179,14 +180,14 @@ class PlatformProductAdminController extends Controller
             'is_featured' => $request->boolean('is_featured'),
             'hero_media_id' => $heroMediaId,
             'hero_image' => $heroPath,
-            'is_campaign' => $isCampaign,
-            'agent_reward_per_completion' => $isCampaign ? ($data['agent_reward_per_completion'] ?? null) : null,
+            'is_campaign' => true,
+            'agent_reward_percent' => $data['agent_reward_percent'],
             'estimated_minutes' => $data['estimated_minutes'] ?? null,
         ];
 
         $platformProduct->update($updatePayload);
 
-        $this->syncVariants($platformProduct, $data['variants'], $isCampaign, (float) ($data['agent_reward_per_completion'] ?? 0));
+        $this->syncPricing($platformProduct, $data['pricing'], $unitPrice);
         SortOrder::normalize($this->systemProductSiblingsQuery());
 
         $this->mediaUsages->syncUsages($platformProduct, [
@@ -247,141 +248,58 @@ class PlatformProductAdminController extends Controller
     }
 
     /**
-     * @param  list<array<string, mixed>>  $variants
+     * Upsert the product's single pricing row. Other rows are deactivated, not deleted, because past orders reference them.
+     *
+     * @param  array{min_units: int|string, max_units: int|string, pricing_units: int|string, price: float|string}  $pricing
      */
-    private function syncVariants(PlatformProduct $product, array $variants, bool $isCampaign, float $agentReward): void
+    private function syncPricing(PlatformProduct $product, array $pricing, string $unitPrice): void
     {
-        $existingIds = $product->variants()->pluck('id')->map(fn ($id) => (int) $id)->all();
-        $keepIds = [];
-        $prices = [];
-        $startingFrom = [];
+        $minUnits = (int) $pricing['min_units'];
 
-        DB::transaction(function () use ($product, $variants, $existingIds, $isCampaign, $agentReward, &$keepIds, &$prices, &$startingFrom) {
-            foreach (array_values($variants) as $index => $row) {
-                $name = trim((string) ($row['name'] ?? ''));
-                if ($name === '') {
-                    throw ValidationException::withMessages([
-                        'variants' => 'Each plan needs a name.',
-                    ]);
-                }
+        DB::transaction(function () use ($product, $pricing, $unitPrice, $minUnits) {
+            $payload = [
+                'price' => number_format((float) $pricing['price'], 2, '.', ''),
+                'pricing_mode' => PlatformProductVariant::PRICING_PER_UNIT,
+                'pricing_units' => (int) $pricing['pricing_units'],
+                'unit_price' => $unitPrice,
+                'min_units' => $minUnits,
+                'max_units' => (int) $pricing['max_units'],
+                'sort_order' => 0,
+                'is_active' => true,
+                'is_default' => true,
+            ];
 
-                $price = (float) $row['price'];
-                $prices[] = $price;
-                $description = array_key_exists('description', $row)
-                    ? (trim((string) ($row['description'] ?? '')) ?: null)
-                    : null;
-
-                $perUnit = filter_var($row['per_unit'] ?? false, FILTER_VALIDATE_BOOLEAN);
-                $pricingMode = $perUnit
-                    ? PlatformProductVariant::PRICING_PER_UNIT
-                    : PlatformProductVariant::PRICING_FIXED;
-
-                $unitPrice = null;
-                $minUnits = null;
-                $maxUnits = null;
-                $unitLabel = null;
-                $includedUnits = null;
-
-                if ($perUnit) {
-                    $minUnits = (int) ($row['min_units'] ?? 0);
-                    if ($minUnits < 1) {
-                        throw ValidationException::withMessages([
-                            'variants' => "Plan \"{$name}\": minimum units are required for per-unit pricing.",
-                        ]);
-                    }
-                    $maxUnits = filled($row['max_units'] ?? null)
-                        ? (int) $row['max_units']
-                        : PlatformProductVariant::DEFAULT_MAX_UNITS;
-                    if ($maxUnits < $minUnits) {
-                        throw ValidationException::withMessages([
-                            'variants' => "Plan \"{$name}\": maximum units must be greater than or equal to minimum units.",
-                        ]);
-                    }
-                    $unitPrice = PlatformProductVariant::computeUnitPriceFromPackagePrice($price);
-                    if ($isCampaign && $agentReward > 0 && bccomp($unitPrice, (string) $agentReward, 4) < 0) {
-                        throw ValidationException::withMessages([
-                            'variants' => "Plan \"{$name}\": price ÷ ".PlatformProductVariant::REFERENCE_UNITS." (₦{$unitPrice} per unit) must be at least the agent reward (₦{$agentReward}).",
-                        ]);
-                    }
-                    $unitLabel = trim((string) ($row['unit_label'] ?? '')) ?: null;
-                    $startingFrom[] = (float) $unitPrice * $minUnits;
-                } else {
-                    if ($isCampaign) {
-                        $includedUnits = (int) ($row['included_units'] ?? 0);
-                        if ($includedUnits < 1) {
-                            throw ValidationException::withMessages([
-                                'variants' => "Plan \"{$name}\": included units are required for fixed campaign packages.",
-                            ]);
-                        }
-                    }
-                    $startingFrom[] = $price;
-                }
-
-                $payload = [
-                    'name' => $name,
-                    'label' => $name,
-                    'price' => $price,
-                    'description' => $description,
-                    'pricing_mode' => $pricingMode,
-                    'unit_price' => $unitPrice,
-                    'min_units' => $minUnits,
-                    'max_units' => $maxUnits,
-                    'unit_label' => $unitLabel,
-                    'included_units' => $includedUnits,
-                    'sort_order' => $index,
-                    'is_active' => true,
-                    'is_default' => $index === 0,
-                ];
-
-                $id = (int) ($row['id'] ?? 0);
-                if ($id > 0) {
-                    if (! in_array($id, $existingIds, true)) {
-                        throw ValidationException::withMessages([
-                            'variants' => 'One of the plans could not be found for this product.',
-                        ]);
-                    }
-
-                    PlatformProductVariant::query()
-                        ->where('id', $id)
-                        ->where('platform_product_id', $product->id)
-                        ->update($payload);
-
-                    $keepIds[] = $id;
-
-                    continue;
-                }
-
-                $created = PlatformProductVariant::query()->create(array_merge($payload, [
+            $variant = $product->pricingVariant();
+            if ($variant) {
+                $variant->update($payload);
+            } else {
+                $variant = PlatformProductVariant::query()->create(array_merge($payload, [
                     'platform_product_id' => $product->id,
-                    'sku' => Str::slug($product->slug.'-'.$name).'-'.Str::lower(Str::random(4)),
+                    'name' => 'Standard',
+                    'label' => 'Standard',
+                    'sku' => Str::slug($product->slug.'-standard').'-'.Str::lower(Str::random(4)),
                     'duration_months' => null,
                 ]));
-                $keepIds[] = (int) $created->id;
             }
 
             $product->variants()
-                ->whereNotIn('id', $keepIds)
-                ->delete();
-        });
+                ->whereKeyNot($variant->id)
+                ->update(['is_active' => false, 'is_default' => false]);
 
-        if ($startingFrom !== []) {
-            $product->update(['base_price' => min($startingFrom)]);
-        } elseif ($prices !== []) {
-            $product->update(['base_price' => min($prices)]);
-        }
+            $product->update(['base_price' => round((float) $unitPrice * $minUnits, 2)]);
+        });
     }
 
     private function assertPublishable(PlatformProduct $product): void
     {
-        $hasActive = $product->variants()->where('is_active', true)->exists();
-        if (! $hasActive && (float) $product->base_price <= 0) {
+        if (! $product->pricingVariant()) {
             throw ValidationException::withMessages([
-                'status' => 'Published products require an active variant or a base price.',
+                'status' => 'Published products need pricing (minimum, maximum, pricing unit and price).',
             ]);
         }
-        if ($product->variants()->exists() && ! $hasActive) {
+        if ((float) ($product->agent_reward_percent ?? 0) <= 0) {
             throw ValidationException::withMessages([
-                'status' => 'Published products require at least one active variant.',
+                'status' => 'Published products need an agent reward percentage.',
             ]);
         }
     }

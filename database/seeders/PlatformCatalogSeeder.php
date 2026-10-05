@@ -263,19 +263,10 @@ class PlatformCatalogSeeder extends Seeder
             ->first();
 
         if ($existing) {
-            if ($product->is_campaign
-                && ! $existing->isPerUnit()
-                && $existing->included_units === null
-                && Schema::hasColumn('platform_product_variants', 'included_units')) {
-                $existing->forceFill([
-                    'pricing_mode' => PlatformProductVariant::PRICING_FIXED,
-                    'included_units' => PlatformProductVariant::REFERENCE_UNITS,
-                ])->save();
-            }
-
             return;
         }
 
+        $units = PlatformProductVariant::REFERENCE_UNITS;
         $payload = [
             'platform_product_id' => $product->id,
             'name' => 'Standard',
@@ -287,10 +278,13 @@ class PlatformCatalogSeeder extends Seeder
         ];
 
         if (Schema::hasColumn('platform_product_variants', 'pricing_mode')) {
-            $payload['pricing_mode'] = PlatformProductVariant::PRICING_FIXED;
+            $payload['pricing_mode'] = PlatformProductVariant::PRICING_PER_UNIT;
+            $payload['unit_price'] = PlatformProductVariant::computeUnitPriceFromPackagePrice($baselinePrice, $units);
+            $payload['min_units'] = $units;
+            $payload['max_units'] = PlatformProductVariant::DEFAULT_MAX_UNITS;
         }
-        if (Schema::hasColumn('platform_product_variants', 'included_units') && $product->is_campaign) {
-            $payload['included_units'] = PlatformProductVariant::REFERENCE_UNITS;
+        if (Schema::hasColumn('platform_product_variants', 'pricing_units')) {
+            $payload['pricing_units'] = $units;
         }
 
         PlatformProductVariant::query()->create($payload);

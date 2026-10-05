@@ -45,10 +45,7 @@ class CampaignFulfillmentService
         }
 
         $options = $item->options ?? [];
-        $agentReward = $product->agent_reward_per_completion;
-        if ($agentReward === null || (float) $agentReward <= 0) {
-            $agentReward = 0;
-        }
+        $agentReward = $this->agentReward($product, $item, $options);
 
         $targetUrl = TargetUrlValidator::normalize($options['target_url'] ?? $options['campaign_url'] ?? null);
         $metric = EngagementMetric::fromProductSlug($product->slug);
@@ -119,18 +116,48 @@ class CampaignFulfillmentService
     /**
      * @param  array<string, mixed>  $options
      */
+    private function isPerUnitLine(array $options): bool
+    {
+        return ($options['pricing_mode'] ?? null) === PlatformProductVariant::PRICING_PER_UNIT;
+    }
+
+    /**
+     * Units bought. Legacy fixed-package orders use the package's unit count.
+     *
+     * @param  array<string, mixed>  $options
+     */
     private function campaignQuantity(OrderItem $item, array $options): int
     {
-        $quantity = (int) ($options['engagement_quantity'] ?? $item->quantity);
-
-        if ($quantity <= 1 && ($options['pricing_mode'] ?? null) !== PlatformProductVariant::PRICING_PER_UNIT) {
-            $included = (int) ($item->variant?->included_units ?? 0);
-            if ($included > 1) {
-                $quantity = $included;
-            }
+        if ($this->isPerUnitLine($options)) {
+            return max(1, (int) ($options['engagement_quantity'] ?? $item->quantity));
         }
 
-        return max(1, $quantity);
+        $variant = $item->variant;
+
+        return max(1, (int) ($variant?->included_units ?: $variant?->pricing_units ?: ($options['engagement_quantity'] ?? 1)));
+    }
+
+    /**
+     * Reward per completed unit = unit price the creator paid × product reward %.
+     *
+     * @param  array<string, mixed>  $options
+     */
+    private function agentReward(PlatformProduct $product, OrderItem $item, array $options): string
+    {
+        $percent = (float) ($product->agent_reward_percent ?? 0);
+
+        if ($percent > 0) {
+            // order_items.unit_price is stored at 2 decimals; derive the exact paid unit price from the line total.
+            $unitPrice = bcdiv(
+                number_format((float) $item->line_total, 2, '.', ''),
+                (string) $this->campaignQuantity($item, $options),
+                4
+            );
+
+            return PlatformProductVariant::agentRewardForUnitPrice($unitPrice, $percent);
+        }
+
+        return number_format(max(0, (float) ($product->agent_reward_per_completion ?? 0)), 2, '.', '');
     }
 
     private function productIsCampaign(PlatformProduct $product): bool

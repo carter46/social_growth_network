@@ -12,15 +12,15 @@
         $crumbs[] = [$groupLabel, route('dashboard.services.browse', $groupSlug)];
     }
     $crumbs[] = [$product->title, null];
-    $variants = $product->activeVariants->sortBy('price')->values();
-    $defaultVariant = $variants->first();
+    $pricingVariant = $product->pricingVariant();
     $heroUrl = media_url($product->heroMedia, $product->hero_image, 'large')
         ?? media_url($product->heroMedia, $product->hero_image, 'medium');
     $metric = \App\Enums\EngagementMetric::fromProductSlug($product->slug);
-    $variantPayload = $variants->map(fn ($v) => $v->storefrontPayload($metric))->values();
+    $pricing = $product->isPurchasable() ? $pricingVariant->storefrontPayload($metric) : null;
     $isDomainProduct = $isDomainProduct ?? false;
     $needsTargetUrl = ! $isDomainProduct && $product->requiresTargetUrl();
     $initialTargetUrl = (string) old('target_url', request()->query('target_url', ''));
+    $initialUnits = (int) request()->query('units', $pricing['min_units'] ?? 0);
 @endphp
 <x-layout.page
     :title="$product->title"
@@ -31,9 +31,8 @@
         class="space-y-6"
         @if(! $isDomainProduct)
         x-data="{
-            variants: @js($variantPayload),
-            variantId: {{ (int) ($defaultVariant?->id ?? 0) }},
-            units: {{ (int) ($defaultVariant?->isPerUnit() ? $defaultVariant->effectiveMinUnits() : 0) }},
+            pricing: @js($pricing),
+            units: {{ $initialUnits }},
             needsTargetUrl: @js($needsTargetUrl),
             targetUrl: @js($initialTargetUrl),
             get targetUrlValid() {
@@ -41,38 +40,21 @@
                 return /^https?:\/\/[^\s.]+\.[^\s]+$/i.test(String(this.targetUrl || '').trim());
             },
             get canContinue() {
-                return this.unitsValid && this.targetUrlValid;
-            },
-            get selected() {
-                return this.variants.find(v => Number(v.id) === Number(this.variantId)) || this.variants[0] || null;
-            },
-            get isPerUnit() {
-                return !!(this.selected && this.selected.per_unit);
+                return !!this.pricing && this.unitsValid && this.targetUrlValid;
             },
             get unitsValid() {
-                if (! this.isPerUnit) return true;
+                if (! this.pricing) return false;
                 const u = Number(this.units);
-                const min = Number(this.selected.min_units || 1);
-                const max = Number(this.selected.max_units || 100000);
-                return Number.isFinite(u) && u >= min && u <= max;
+                return Number.isInteger(u) && u >= Number(this.pricing.min_units) && u <= Number(this.pricing.max_units);
             },
             get estimatedTotal() {
-                if (! this.selected) return 0;
-                if (! this.isPerUnit) return Number(this.selected.price) || 0;
-                return (Number(this.selected.unit_price) || 0) * (Number(this.units) || 0);
-            },
-            onVariantChange() {
-                if (this.isPerUnit) {
-                    this.units = Number(this.selected.min_units || 1);
-                }
+                if (! this.pricing) return 0;
+                return Math.round((Number(this.pricing.unit_price) || 0) * (Number(this.units) || 0) * 100) / 100;
             },
             checkoutUrl() {
                 const base = @js(route('dashboard.services.checkout', $product->slug));
-                if (! this.selected) return base;
-                let url = base + (base.includes('?') ? '&' : '?') + 'variant=' + this.selected.id;
-                if (this.isPerUnit) {
-                    url += '&units=' + encodeURIComponent(String(this.units || ''));
-                }
+                if (! this.pricing) return base;
+                let url = base + (base.includes('?') ? '&' : '?') + 'units=' + encodeURIComponent(String(this.units || ''));
                 if (this.needsTargetUrl) {
                     url += '&target_url=' + encodeURIComponent(String(this.targetUrl || '').trim());
                 }
@@ -125,79 +107,34 @@
                     @endif
                 @else
                     <x-dashboard.card class="space-y-4 h-fit">
-                        <div>
-                            <p class="text-sm font-medium text-text-primary">Choose a plan</p>
-                            <p class="mt-1 text-xs text-text-muted">Select a plan. Per-unit plans ask how many units you want before checkout.</p>
-                        </div>
-
-                        @if($variants->isNotEmpty())
-                            <div class="space-y-2">
-                                @foreach($variants as $variant)
-                                    <label
-                                        class="flex cursor-pointer flex-col gap-1 rounded-xl border px-4 py-3 transition-colors"
-                                        :class="Number(variantId) === {{ (int) $variant->id }} ? 'border-primary bg-primary/5' : 'border-border-default hover:border-primary/40'"
-                                    >
-                                        <span class="flex items-center justify-between gap-3">
-                                            <span class="flex items-center gap-3">
-                                                <input
-                                                    type="radio"
-                                                    name="preview_variant_id"
-                                                    value="{{ $variant->id }}"
-                                                    class="accent-primary"
-                                                    x-model.number="variantId"
-                                                    @change="onVariantChange()"
-                                                    @checked((int) $defaultVariant?->id === (int) $variant->id)
-                                                >
-                                                <span class="text-sm font-medium text-text-primary">{{ $variant->displayLabel() }}</span>
-                                            </span>
-                                            <span class="font-semibold text-text-primary text-right">
-                                                @if($variant->isPerUnit())
-                                                    From ₦{{ number_format($variant->startingFromAmount(), 0) }}
-                                                @else
-                                                    ₦{{ number_format((float) $variant->price, 0) }}
-                                                @endif
-                                            </span>
-                                        </span>
-                                        @if(filled($variant->description))
-                                            <span
-                                                class="pl-7 text-xs leading-relaxed text-text-secondary"
-                                                x-show="Number(variantId) === {{ (int) $variant->id }}"
-                                            >{{ $variant->description }}</span>
-                                        @endif
-                                        @if($variant->isPerUnit())
-                                            <span
-                                                class="pl-7 text-xs text-text-muted"
-                                                x-show="Number(variantId) === {{ (int) $variant->id }}"
-                                            >₦{{ number_format((float) $variant->billingUnitPrice(), 2) }} per {{ $variant->resolveUnitLabel($metric) }} · min {{ $variant->effectiveMinUnits() }}</span>
-                                        @endif
-                                    </label>
-                                @endforeach
+                        @if($pricing)
+                            <div>
+                                <p class="text-lg font-semibold text-text-primary">{{ $pricing['pricing_label'] }}</p>
+                                <p class="mt-1 text-xs text-text-muted">
+                                    Minimum: {{ number_format($pricing['min_units']) }}
+                                    · Maximum: {{ number_format($pricing['max_units']) }}
+                                </p>
                             </div>
 
-                            <div class="space-y-2 rounded-xl border border-border-default bg-muted/30 p-4" x-show="isPerUnit" x-cloak>
-                                <label class="block text-sm font-medium text-text-secondary">
-                                    Enter number of <span x-text="selected ? selected.unit_label_plural : 'units'"></span>
+                            <div class="space-y-2">
+                                <label for="units-input" class="block text-sm font-medium text-text-secondary">
+                                    How many {{ $pricing['unit_label_plural'] }} do you need?
                                 </label>
                                 <input
+                                    id="units-input"
                                     type="number"
+                                    step="1"
                                     class="w-full max-w-xs rounded-lg border-border-default bg-elevated text-text-primary text-sm"
                                     x-model.number="units"
-                                    :min="selected ? selected.min_units : 1"
-                                    :max="selected ? selected.max_units : 100000"
+                                    min="{{ $pricing['min_units'] }}"
+                                    max="{{ $pricing['max_units'] }}"
                                 >
-                                <p class="text-xs text-text-muted">
-                                    Min <span x-text="selected ? selected.min_units : ''"></span>
-                                    · Max <span x-text="selected ? selected.max_units : ''"></span>
-                                    · <span x-text="selected ? ('₦' + Number(selected.unit_price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 }) + ' each') : ''"></span>
+                                <p class="text-xs text-danger" x-show="!unitsValid" x-cloak>
+                                    Enter a whole number from {{ number_format($pricing['min_units']) }} to {{ number_format($pricing['max_units']) }}.
                                 </p>
-                                <p class="text-sm font-semibold text-text-primary" x-show="unitsValid">
-                                    Estimated total:
-                                    <span x-text="'₦' + Number(estimatedTotal).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"></span>
-                                </p>
-                                <p class="text-xs text-danger" x-show="!unitsValid" x-cloak>Enter a quantity within the allowed range.</p>
                             </div>
                         @else
-                            <p class="text-sm text-text-muted">No plans are available for this product yet.</p>
+                            <p class="text-sm text-text-muted">Pricing for this product is not available yet.</p>
                         @endif
                     </x-dashboard.card>
 
@@ -216,12 +153,15 @@
 
                     <x-dashboard.card class="space-y-4 h-fit">
                         <div>
-                            <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Selected plan</p>
-                            <p class="mt-1 text-lg font-semibold text-text-primary" x-text="selected ? selected.label : 'Not selected'"></p>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Total</p>
+                            @if($pricing)
+                                <p class="mt-1 text-sm text-text-secondary" x-show="unitsValid">
+                                    <span x-text="Number(units).toLocaleString()"></span> {{ $pricing['unit_label_plural'] }}
+                                </p>
+                            @endif
                             <p class="text-3xl font-bold text-primary mt-2">
-                                <span x-text="'₦' + Number(estimatedTotal).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"></span>
+                                <span x-text="'₦' + Number(unitsValid ? estimatedTotal : 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"></span>
                             </p>
-                            <p class="mt-1 text-xs text-text-muted">From ₦{{ number_format($product->displayPrice(), 0) }}</p>
                         </div>
                         <x-dashboard.button
                             href="#"

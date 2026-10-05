@@ -40,6 +40,7 @@ class PlatformProduct extends Model
         'base_price',
         'is_campaign',
         'agent_reward_per_completion',
+        'agent_reward_percent',
         'estimated_minutes',
         'meta',
     ];
@@ -68,6 +69,7 @@ class PlatformProduct extends Model
             'base_price' => 'decimal:2',
             'is_campaign' => 'boolean',
             'agent_reward_per_completion' => 'decimal:2',
+            'agent_reward_percent' => 'decimal:2',
             'estimated_minutes' => 'integer',
         ];
     }
@@ -116,6 +118,23 @@ class PlatformProduct extends Model
     public function activeVariants(): HasMany
     {
         return $this->variants()->where('is_active', true);
+    }
+
+    /** The single active pricing row (min, max, pricing unit, price). */
+    public function pricingVariant(): ?PlatformProductVariant
+    {
+        if ($this->relationLoaded('activeVariants')) {
+            return $this->activeVariants->sortBy('sort_order')->first();
+        }
+
+        return $this->activeVariants()->orderBy('id')->first();
+    }
+
+    /** Has per-unit pricing and an agent reward %, so a paid order can become a campaign. */
+    public function isPurchasable(): bool
+    {
+        return (float) ($this->agent_reward_percent ?? 0) > 0
+            && (bool) $this->pricingVariant()?->isPerUnit();
     }
 
     public function siteIntegration(): \Illuminate\Database\Eloquent\Relations\HasOne

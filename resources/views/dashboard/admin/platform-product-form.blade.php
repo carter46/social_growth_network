@@ -4,40 +4,38 @@
 
 @section('content')
 @php
-    $variantRows = old('variants', $product->relationLoaded('variants') && $product->variants->isNotEmpty()
-        ? $product->variants->sortBy('sort_order')->values()->map(fn ($v) => [
-            'id' => $v->id,
-            'name' => $v->name,
-            'price' => $v->price,
-            'description' => $v->description,
-            'per_unit' => $v->isPerUnit(),
-            'min_units' => $v->min_units,
-            'max_units' => $v->max_units,
-            'unit_label' => $v->unit_label,
-            'included_units' => $v->included_units,
-        ])->all()
-        : [
-            [
-                'id' => null,
-                'name' => 'Standard',
-                'price' => $product->base_price ?? 0,
-                'description' => '',
-                'per_unit' => false,
-                'min_units' => null,
-                'max_units' => null,
-                'unit_label' => '',
-                'included_units' => null,
-            ],
-        ]);
+    $engagementMetric = \App\Enums\EngagementMetric::fromProductSlug($product->slug);
+    $pricingVariant = $product->pricingVariant();
+    $labelVariant = $pricingVariant ?? new \App\Models\PlatformProductVariant();
+    $unitSingular = $labelVariant->resolveUnitLabel($engagementMetric);
+    $unitPlural = $labelVariant->resolveUnitLabelPlural($engagementMetric);
+    $defaultUnits = \App\Models\PlatformProductVariant::REFERENCE_UNITS;
+    $pricing = [
+        'min_units' => old('pricing.min_units', $pricingVariant?->min_units ?? $defaultUnits),
+        'max_units' => old('pricing.max_units', $pricingVariant?->max_units ?? \App\Models\PlatformProductVariant::DEFAULT_MAX_UNITS),
+        'pricing_units' => old('pricing.pricing_units', $pricingVariant?->pricing_units ?? $defaultUnits),
+        'price' => old('pricing.price', $pricingVariant?->price ?? ''),
+        'reward_percent' => old('agent_reward_percent', $product->agent_reward_percent),
+    ];
     $heroId = old('hero_media_id', $product->hero_media_id);
     $heroPreview = $heroId
         ? \App\Models\MediaAsset::query()->with('variants')->find((int) $heroId)?->thumbnailUrl()
         : null;
-    $refUnits = \App\Models\PlatformProductVariant::REFERENCE_UNITS;
+    $minutesLabel = $engagementMetric?->requiresTimedSession(
+        \App\Enums\EngagementMetric::platformFromProductSlug($product->slug)
+    )
+        ? 'Required watch session (minutes)'
+        : 'Estimated minutes per task';
+    $minutesHint = $engagementMetric?->requiresTimedSession(
+        \App\Enums\EngagementMetric::platformFromProductSlug($product->slug)
+    )
+        ? 'Minutes the agent must complete in the watch session before claiming. Not a guarantee of platform watch hours or views.'
+        : 'Shown to agents as estimated time, not a retake lock.';
+    $inputClass = 'w-full rounded-xl border border-border-default bg-elevated px-3 py-2.5 text-sm';
 @endphp
 <x-layout.page
     title="Edit Product"
-    subtitle="Fixed platform product — title, description, plan prices, image, featured, and status."
+    subtitle="Platform product: title, description, pricing, agent reward, image, featured and status."
     width="full"
     :breadcrumb="[
         ['Admin', route('admin')],
@@ -58,33 +56,27 @@
             class="w-full space-y-4"
             x-data="{
                 submitting: false,
-                variants: @js($variantRows),
-                refUnits: {{ (int) $refUnits }},
-                addVariant() {
-                    this.variants.push({
-                        id: null,
-                        name: '',
-                        price: '',
-                        description: '',
-                        per_unit: false,
-                        min_units: null,
-                        max_units: null,
-                        unit_label: '',
-                        included_units: null,
-                    });
+                pricing: @js($pricing),
+                unitSingular: @js($unitSingular),
+                unitPlural: @js($unitPlural),
+                unitPrice() {
+                    const price = Number(this.pricing.price);
+                    const units = Number(this.pricing.pricing_units);
+                    if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(units) || units < 1) return null;
+                    return Math.floor((price / units) * 10000) / 10000;
                 },
-                removeVariant(index) {
-                    if (this.variants.length <= 1) return;
-                    this.variants.splice(index, 1);
+                agentReward() {
+                    const unit = this.unitPrice();
+                    const pct = Number(this.pricing.reward_percent);
+                    if (unit === null || !Number.isFinite(pct) || pct <= 0) return null;
+                    return Math.floor(unit * Math.min(100, pct)) / 100;
                 },
-                unitRate(variant) {
-                    const price = Number(variant.price);
-                    if (!Number.isFinite(price) || price < 0) return null;
-                    return price / this.refUnits;
+                exampleUnits() {
+                    return Math.max(1, Math.round(Number(this.pricing.min_units) || 1));
                 },
                 formatMoney(n) {
-                    if (n === null || n === undefined || !Number.isFinite(n)) return '—';
-                    return '₦' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+                    if (n === null || n === undefined || !Number.isFinite(n)) return '-';
+                    return '₦' + n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 4 });
                 }
             }"
             @submit="submitting = true"
@@ -95,7 +87,7 @@
             <p class="text-xs text-text-muted">
                 Slug frozen: <span class="font-mono">{{ $product->slug }}</span>
                 · Category frozen:
-                <span class="font-medium text-text-secondary">{{ $product->serviceCategory?->name ?? '—' }}</span>
+                <span class="font-medium text-text-secondary">{{ $product->serviceCategory?->name ?? '-' }}</span>
                 @if($product->productType)
                     · Service (legacy/CMS): {{ $product->productType->name }}
                 @endif
@@ -105,7 +97,7 @@
             <x-dashboard.input label="Title" name="title" :value="old('title', $product->title)" required />
             <div>
                 <label class="block text-sm font-medium mb-1">Description</label>
-                <textarea name="description" rows="6" class="w-full rounded-xl border border-border-default bg-elevated px-3 py-2.5 text-sm">{{ old('description', $product->description) }}</textarea>
+                <textarea name="description" rows="6" class="{{ $inputClass }}">{{ old('description', $product->description) }}</textarea>
             </div>
 
             <x-dashboard.select label="Status" name="status" required>
@@ -118,29 +110,62 @@
                 Featured (show in featured sections on public / user pages)
             </label>
 
-            @php
-                $engagementMetric = \App\Enums\EngagementMetric::fromProductSlug($product->slug);
-                $minutesLabel = $engagementMetric?->requiresTimedSession(
-                    \App\Enums\EngagementMetric::platformFromProductSlug($product->slug)
-                )
-                    ? 'Required watch session (minutes)'
-                    : 'Estimated minutes per task';
-                $minutesHint = $engagementMetric?->requiresTimedSession(
-                    \App\Enums\EngagementMetric::platformFromProductSlug($product->slug)
-                )
-                    ? 'Minutes the agent must complete in the watch session before claiming. Not a guarantee of platform watch hours or views.'
-                    : 'Shown to agents as estimated time — not a retake lock.';
-            @endphp
-            <div class="grid gap-4 sm:grid-cols-2">
-                <x-dashboard.input
-                    label="Agent reward per completion (NGN)"
-                    name="agent_reward_per_completion"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    :value="old('agent_reward_per_completion', $product->agent_reward_per_completion)"
-                    hint="Locked into each campaign at purchase. Changing this later does not affect existing campaigns."
-                />
+            <div class="space-y-4 rounded-xl border border-border-subtle px-4 py-4">
+                <div>
+                    <p class="text-sm font-medium text-text-primary">Pricing</p>
+                    <p class="text-xs text-text-muted">
+                        Creators enter any quantity between the minimum and maximum purchase. They pay the unit price for every {{ $unitSingular }}.
+                    </p>
+                </div>
+
+                @error('pricing')
+                    <x-dashboard.alert type="danger">{{ $message }}</x-dashboard.alert>
+                @enderror
+
+                <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div>
+                        <label class="mb-1 block text-xs text-text-muted">Minimum purchase ({{ $unitPlural }})</label>
+                        <input type="number" min="1" step="1" name="pricing[min_units]" x-model="pricing.min_units" class="{{ $inputClass }}" required>
+                        @error('pricing.min_units')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs text-text-muted">Maximum purchase ({{ $unitPlural }})</label>
+                        <input type="number" min="1" step="1" name="pricing[max_units]" x-model="pricing.max_units" class="{{ $inputClass }}" required>
+                        @error('pricing.max_units')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs text-text-muted">Pricing unit (price is per this many {{ $unitPlural }})</label>
+                        <input type="number" min="1" step="1" name="pricing[pricing_units]" x-model="pricing.pricing_units" class="{{ $inputClass }}" required>
+                        @error('pricing.pricing_units')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs text-text-muted">
+                            Price per <span x-text="Number(pricing.pricing_units || 0).toLocaleString()"></span> {{ $unitPlural }} (NGN)
+                        </label>
+                        <input type="number" min="0.01" step="0.01" name="pricing[price]" x-model="pricing.price" class="{{ $inputClass }}" required>
+                        @error('pricing.price')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs text-text-muted">Agent reward (% of the unit price)</label>
+                        <input type="number" min="0.01" max="100" step="0.01" name="agent_reward_percent" x-model="pricing.reward_percent" class="{{ $inputClass }}" required>
+                        @error('agent_reward_percent')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
+                        <p class="mt-1 text-xs text-text-muted">Each agent completes one {{ $unitSingular }} per campaign. The reward is locked into each campaign at purchase.</p>
+                    </div>
+                </div>
+
+                <div class="rounded-lg border border-border-default bg-elevated/60 px-3 py-2 text-xs text-text-secondary" x-show="unitPrice() !== null" x-cloak>
+                    <p>
+                        Unit price: <span class="font-semibold text-text-primary" x-text="formatMoney(unitPrice())"></span> per {{ $unitSingular }}
+                        · Agent earns <span class="font-semibold text-text-primary" x-text="formatMoney(agentReward())"></span> per completed {{ $unitSingular }}
+                    </p>
+                    <p class="mt-1">
+                        Example: <span x-text="exampleUnits().toLocaleString()"></span> {{ $unitPlural }} =
+                        <span class="font-semibold text-text-primary" x-text="formatMoney(Math.round(exampleUnits() * unitPrice() * 100) / 100)"></span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="sm:max-w-sm">
                 <x-dashboard.input
                     :label="$minutesLabel"
                     name="estimated_minutes"
@@ -159,133 +184,6 @@
                 :value="$heroId"
                 :preview-url="$heroPreview"
             />
-
-            <div class="space-y-3 rounded-xl border border-border-subtle px-4 py-4">
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <p class="text-sm font-medium text-text-primary">Plans / variants</p>
-                        <p class="text-xs text-text-muted">
-                            Each plan can be fixed-price or per-unit. Per-unit rate is always price ÷ {{ $refUnits }} (platform reference). Min/max options appear only when Per unit is checked.
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        class="inline-flex items-center rounded-lg border border-border-default bg-elevated px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-muted"
-                        @click="addVariant()"
-                    >Add plan</button>
-                </div>
-
-                <template x-for="(variant, index) in variants" :key="index">
-                    <div class="space-y-2 rounded-xl border border-border-default bg-muted/20 p-3">
-                        <input type="hidden" :name="'variants[' + index + '][id]'" :value="variant.id || ''">
-                        <div class="flex items-center justify-between gap-2">
-                            <p class="text-xs font-medium text-text-muted" x-text="'Plan ' + (index + 1)"></p>
-                            <button
-                                type="button"
-                                class="text-xs font-medium text-danger hover:underline disabled:opacity-40"
-                                @click="removeVariant(index)"
-                                :disabled="variants.length <= 1"
-                            >Remove</button>
-                        </div>
-                        <div class="grid grid-cols-1 gap-2 md:grid-cols-2 items-end">
-                            <div>
-                                <label class="mb-1 block text-xs text-text-muted">Plan name</label>
-                                <input
-                                    type="text"
-                                    class="w-full rounded-xl border border-border-default bg-elevated px-3 py-2.5 text-sm"
-                                    :name="'variants[' + index + '][name]'"
-                                    x-model="variant.name"
-                                    required
-                                    placeholder="1,000 Views"
-                                >
-                            </div>
-                            <div>
-                                <label class="mb-1 block text-xs text-text-muted">Price (NGN)</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    class="w-full rounded-xl border border-border-default bg-elevated px-3 py-2.5 text-sm"
-                                    :name="'variants[' + index + '][price]'"
-                                    x-model="variant.price"
-                                    required
-                                >
-                            </div>
-                        </div>
-                        <div>
-                            <label class="mb-1 block text-xs text-text-muted">Plan description</label>
-                            <textarea
-                                rows="2"
-                                class="w-full rounded-xl border border-border-default bg-elevated px-3 py-2.5 text-sm"
-                                :name="'variants[' + index + '][description]'"
-                                x-model="variant.description"
-                                placeholder="What this plan includes…"
-                            ></textarea>
-                        </div>
-
-                        <label class="flex items-center gap-2 text-sm pt-1">
-                            <input
-                                type="checkbox"
-                                value="1"
-                                :name="'variants[' + index + '][per_unit]'"
-                                x-model="variant.per_unit"
-                            >
-                            Per unit (creators enter total units; rate = price ÷ {{ $refUnits }})
-                        </label>
-
-                        <div class="space-y-2 rounded-lg border border-border-default bg-elevated/60 p-3" x-show="variant.per_unit" x-cloak>
-                            <p class="text-xs text-text-muted" x-text="'Calculated rate: ' + formatMoney(unitRate(variant)) + ' per unit (₦' + (Number(variant.price) || 0).toLocaleString() + ' ÷ ' + refUnits + ')'"></p>
-                            <div class="grid grid-cols-1 gap-2 md:grid-cols-3">
-                                <div>
-                                    <label class="mb-1 block text-xs text-text-muted">Minimum units</label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        class="w-full rounded-xl border border-border-default bg-elevated px-3 py-2.5 text-sm"
-                                        :name="'variants[' + index + '][min_units]'"
-                                        x-model="variant.min_units"
-                                        :required="variant.per_unit"
-                                    >
-                                </div>
-                                <div>
-                                    <label class="mb-1 block text-xs text-text-muted">Maximum units</label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        class="w-full rounded-xl border border-border-default bg-elevated px-3 py-2.5 text-sm"
-                                        :name="'variants[' + index + '][max_units]'"
-                                        x-model="variant.max_units"
-                                        placeholder="100000"
-                                    >
-                                </div>
-                                <div>
-                                    <label class="mb-1 block text-xs text-text-muted">Unit label (optional)</label>
-                                    <input
-                                        type="text"
-                                        maxlength="32"
-                                        class="w-full rounded-xl border border-border-default bg-elevated px-3 py-2.5 text-sm"
-                                        :name="'variants[' + index + '][unit_label]'"
-                                        x-model="variant.unit_label"
-                                        placeholder="view"
-                                    >
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="pt-1" x-show="!variant.per_unit" x-cloak>
-                            <label class="mb-1 block text-xs text-text-muted">Included units (campaign completions in this fixed package)</label>
-                            <input
-                                type="number"
-                                min="1"
-                                class="w-full max-w-xs rounded-xl border border-border-default bg-elevated px-3 py-2.5 text-sm"
-                                :name="'variants[' + index + '][included_units]'"
-                                x-model="variant.included_units"
-                                :required="!variant.per_unit"
-                            >
-                        </div>
-                    </div>
-                </template>
-            </div>
 
             <div class="flex flex-wrap gap-2 pt-2">
                 <x-dashboard.button type="submit" variant="primary" x-bind:disabled="submitting">Save</x-dashboard.button>

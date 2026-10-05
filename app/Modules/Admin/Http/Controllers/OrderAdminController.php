@@ -5,7 +5,6 @@ namespace App\Modules\Admin\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\PlatformProduct;
-use App\Models\PlatformProductVariant;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Modules\Admin\Services\FinancialAuditLog;
@@ -83,8 +82,8 @@ class OrderAdminController extends Controller
         $validated = $request->validate([
             'user_id' => ['required', 'integer', 'exists:users,id'],
             'product_slug' => ['required', 'string', 'max:255'],
-            'variant_id' => ['nullable', 'integer', 'exists:platform_product_variants,id'],
             'quantity' => ['required', 'integer', 'min:1', 'max:1000000'],
+            'target_url' => ['required', 'string', 'url', 'max:2048'],
             'mark_paid' => ['nullable', 'boolean'],
         ]);
 
@@ -93,36 +92,24 @@ class OrderAdminController extends Controller
             ->where('slug', $validated['product_slug'])
             ->firstOrFail();
 
-        $variant = null;
-        if (! empty($validated['variant_id'])) {
-            $variant = PlatformProductVariant::query()
-                ->whereKey($validated['variant_id'])
-                ->where('platform_product_id', $product->id)
-                ->where('is_active', true)
-                ->firstOrFail();
-        } else {
-            $variant = $product->activeVariants()->orderBy('sort_order')->first();
+        $variant = $product->pricingVariant();
+        if (! $variant || ! $variant->isPerUnit()) {
+            return back()->withInput()->with('error', 'This product has no pricing yet. Set it in the product editor first.');
         }
 
         $quantity = (int) $validated['quantity'];
-        if ($variant?->isPerUnit()) {
-            $min = $variant->effectiveMinUnits();
-            $max = $variant->effectiveMaxUnits();
-            if ($quantity < $min || $quantity > $max) {
-                return back()->withInput()->with('error', "Units must be between {$min} and {$max}.");
-            }
-        } else {
-            if ($quantity !== 1) {
-                return back()->withInput()->with('error', 'Fixed plans must use quantity 1.');
-            }
-            $quantity = 1;
+        $min = $variant->effectiveMinUnits();
+        $max = $variant->effectiveMaxUnits();
+        if ($quantity < $min || $quantity > $max) {
+            return back()->withInput()->with('error', 'Quantity must be between '.number_format($min).' and '.number_format($max).'.');
         }
 
         $user = User::query()->findOrFail((int) $validated['user_id']);
 
         $data = [
-            'variant_id' => $variant?->id,
+            'variant_id' => $variant->id,
             'quantity' => $quantity,
+            'target_url' => $validated['target_url'],
             'domain_mode' => 'none',
             'idempotency_key' => (string) Str::uuid(),
             'payment_method' => Order::PAYMENT_MANUAL_BANK_TRANSFER,

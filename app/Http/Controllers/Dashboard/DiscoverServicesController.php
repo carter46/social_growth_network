@@ -202,32 +202,27 @@ class DiscoverServicesController extends Controller
             ->with('activeVariants')
             ->firstOrFail();
 
-        $variants = $product->activeVariants->sortBy('price')->values();
-        $requestedVariantId = $request->integer('variant') ?: null;
-        $defaultVariant = $requestedVariantId
-            ? ($variants->firstWhere('id', $requestedVariantId) ?? $variants->first())
-            : $variants->first();
-
-        if ($requestedVariantId && (int) $defaultVariant?->id !== $requestedVariantId) {
-            return redirect()
-                ->route('dashboard.services.product', $product->slug)
-                ->with('error', 'Selected plan is unavailable.');
-        }
-
-        $showPlanSummary = $requestedVariantId !== null;
-        $selectedUnits = max(0, $request->integer('units'));
+        $defaultVariant = $product->pricingVariant();
+        $variants = collect($defaultVariant ? [$defaultVariant] : []);
         $metric = EngagementMetric::fromProductSlug($product->slug);
 
-        if ($defaultVariant?->isPerUnit()) {
-            $min = $defaultVariant->effectiveMinUnits();
-            $max = $defaultVariant->effectiveMaxUnits();
-            if ($selectedUnits < $min || $selectedUnits > $max) {
-                return redirect()
-                    ->route('dashboard.services.product', $product->slug)
-                    ->with('error', "Enter between {$min} and {$max} ".$defaultVariant->resolveUnitLabelPlural($metric).' before checkout.');
-            }
-        } else {
-            $selectedUnits = 1;
+        if (! $product->isPurchasable()) {
+            return redirect()
+                ->route('dashboard.services.product', $product->slug)
+                ->with('error', 'This product is not available to buy yet. Please try again later.');
+        }
+
+        $showPlanSummary = true;
+        $selectedUnits = max(0, $request->integer('units'));
+        $min = $defaultVariant->effectiveMinUnits();
+        $max = $defaultVariant->effectiveMaxUnits();
+        if ($selectedUnits < $min || $selectedUnits > $max) {
+            return redirect()
+                ->route('dashboard.services.product', array_filter([
+                    'slug' => $product->slug,
+                    'target_url' => $request->query('target_url'),
+                ]))
+                ->with('error', 'Enter between '.number_format($min).' and '.number_format($max).' '.$defaultVariant->resolveUnitLabelPlural($metric).' before checkout.');
         }
 
         $targetUrl = null;
@@ -331,38 +326,23 @@ class DiscoverServicesController extends Controller
 
         $data = $request->validate($rules);
 
-        $variant = null;
-        if (! empty($data['variant_id'])) {
-            $variant = $product->activeVariants()->whereKey((int) $data['variant_id'])->first();
-            if (! $variant) {
-                return back()->withInput()->with('error', 'Selected plan is unavailable.');
-            }
-        } else {
-            $variant = $product->activeVariants()->orderBy('sort_order')->first();
+        $variant = $product->pricingVariant();
+        if (! $product->isPurchasable()) {
+            return back()->withInput()->with('error', 'This product is not available to buy yet. Please try again later.');
         }
 
         $metric = EngagementMetric::fromProductSlug($product->slug);
-
-        if ($variant?->isPerUnit()) {
-            $units = (int) $data['quantity'];
-            $min = $variant->effectiveMinUnits();
-            $max = $variant->effectiveMaxUnits();
-            if ($units < $min || $units > $max) {
-                return back()->withInput()->with(
-                    'error',
-                    "Quantity must be between {$min} and {$max} ".$variant->resolveUnitLabelPlural($metric).'.'
-                );
-            }
-        } else {
-            if ((int) $data['quantity'] !== 1) {
-                return back()->withInput()->with('error', 'This plan is sold as a fixed package. Quantity must be 1.');
-            }
-            $data['quantity'] = 1;
+        $units = (int) $data['quantity'];
+        $min = $variant->effectiveMinUnits();
+        $max = $variant->effectiveMaxUnits();
+        if ($units < $min || $units > $max) {
+            return back()->withInput()->with(
+                'error',
+                'Quantity must be between '.number_format($min).' and '.number_format($max).' '.$variant->resolveUnitLabelPlural($metric).'.'
+            );
         }
 
-        if ($variant) {
-            $data['variant_id'] = $variant->id;
-        }
+        $data['variant_id'] = $variant->id;
 
         $data['payment_method'] = $data['payment_method']
             ?? ($hasWallet ? 'wallet' : ($gatewayEnabled ? 'gateway' : ($manualBankEnabled ? Order::PAYMENT_MANUAL_BANK_TRANSFER : null)));

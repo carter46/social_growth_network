@@ -134,65 +134,19 @@
                 @else
                     @if(($showPlanSummary ?? false) && $selectedVariant)
                         <input type="hidden" name="variant_id" value="{{ $selectedVariant->id }}">
-                        <input type="hidden" name="quantity" value="{{ $selectedVariant->isPerUnit() ? (int) $selectedUnits : 1 }}">
+                        <input type="hidden" name="quantity" value="{{ (int) $selectedUnits }}">
                         <div class="rounded-xl border border-border-default bg-muted/20 px-4 py-3 space-y-1">
-                            <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Selected plan</p>
-                            <p class="text-lg font-semibold text-text-primary">{{ $selectedVariant->displayLabel() }}</p>
-                            @if($selectedVariant->isPerUnit())
-                                <p class="text-sm text-text-secondary">
-                                    {{ number_format((int) $selectedUnits) }} {{ $selectedVariant->resolveUnitLabelPlural($engagementMetric) }}
-                                    · ₦{{ number_format((float) $selectedVariant->billingUnitPrice(), 4) }} each
-                                </p>
-                                <p class="text-2xl font-bold text-primary">
-                                    ₦{{ number_format((float) $selectedVariant->billingUnitPrice() * (int) $selectedUnits, 2) }}
-                                </p>
-                            @else
-                                <p class="text-2xl font-bold text-primary">₦{{ number_format((float) $selectedVariant->price, 0) }}</p>
-                            @endif
-                            @if(filled($selectedVariant->description))
-                                <p class="text-sm text-text-secondary">{{ $selectedVariant->description }}</p>
-                            @endif
-                            <p class="pt-1 text-xs text-text-muted">
-                                <a href="{{ route('dashboard.services.product', $product->slug) }}" class="underline hover:text-primary">Change plan or units</a>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Your order</p>
+                            <p class="text-lg font-semibold text-text-primary">
+                                {{ number_format((int) $selectedUnits) }} {{ $selectedVariant->resolveUnitLabelPlural($engagementMetric) }}
                             </p>
-                        </div>
-                    @elseif($variants->isNotEmpty())
-                        <div>
-                            <label class="block text-sm font-medium text-text-secondary mb-2">Plan</label>
-                            <p class="mb-2 text-xs text-text-muted">For per-unit plans, set units on the product page before checkout.</p>
-                            <div class="space-y-2">
-                                @foreach($variants as $variant)
-                                    <label
-                                        class="flex cursor-pointer flex-col gap-1 rounded-xl border border-border-default px-4 py-3 hover:border-primary/40"
-                                        :class="Number(variantId) === {{ (int) $variant->id }} ? 'border-primary bg-primary/5' : ''"
-                                    >
-                                        <span class="flex items-center justify-between gap-3">
-                                            <span class="flex items-center gap-3">
-                                                <input
-                                                    type="radio"
-                                                    name="variant_id"
-                                                    value="{{ $variant->id }}"
-                                                    @checked((int) $defaultVariantId === (int) $variant->id)
-                                                    x-model.number="variantId"
-                                                    @change="onCheckoutVariantChange()"
-                                                >
-                                                <span class="text-sm text-text-primary">{{ $variant->displayLabel() }}</span>
-                                            </span>
-                                            <span class="font-semibold text-text-primary">
-                                                @if($variant->isPerUnit())
-                                                    From ₦{{ number_format($variant->startingFromAmount(), 0) }}
-                                                @else
-                                                    ₦{{ number_format($variant->price, 2) }}
-                                                @endif
-                                            </span>
-                                        </span>
-                                        @if(filled($variant->description))
-                                            <span class="pl-7 text-xs leading-relaxed text-text-secondary">{{ $variant->description }}</span>
-                                        @endif
-                                    </label>
-                                @endforeach
-                            </div>
-                            <input type="hidden" name="quantity" x-bind:value="qty">
+                            <p class="text-sm text-text-secondary">{{ $selectedVariant->pricingLabel($engagementMetric) }}</p>
+                            <p class="text-2xl font-bold text-primary">
+                                ₦{{ number_format((float) bcmul($selectedVariant->billingUnitPrice(), (string) (int) $selectedUnits, 2), 2) }}
+                            </p>
+                            <p class="pt-1 text-xs text-text-muted">
+                                <a href="{{ route('dashboard.services.product', array_filter(['slug' => $product->slug, 'units' => (int) $selectedUnits, 'target_url' => $targetUrl ?? null])) }}" class="underline hover:text-primary">Change quantity</a>
+                            </p>
                         </div>
                     @else
                         <input type="hidden" name="quantity" value="1">
@@ -207,7 +161,7 @@
                                 <p class="text-xs text-danger">{{ $message }}</p>
                             @enderror
                             <p class="pt-1 text-xs text-text-muted">
-                                <a href="{{ route('dashboard.services.product', ['slug' => $product->slug, 'target_url' => $targetUrl]) }}" class="underline hover:text-primary">Change link</a>
+                                <a href="{{ route('dashboard.services.product', ['slug' => $product->slug, 'units' => (int) $selectedUnits, 'target_url' => $targetUrl]) }}" class="underline hover:text-primary">Change link</a>
                             </p>
                         </div>
                     @endif

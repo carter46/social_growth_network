@@ -47,6 +47,7 @@ class ManualBankTransferOrderTest extends TestCase
             'sort_order' => 1,
             'provider' => 'manual',
             'fulfillment_mode' => 'manual',
+            'agent_reward_percent' => 50,
         ]);
 
         PlatformProductVariant::query()->create([
@@ -56,6 +57,11 @@ class ManualBankTransferOrderTest extends TestCase
             'sku' => $product->slug.'-m',
             'duration_months' => 1,
             'price' => 2500,
+            'pricing_mode' => PlatformProductVariant::PRICING_PER_UNIT,
+            'pricing_units' => 1,
+            'unit_price' => 2500,
+            'min_units' => 1,
+            'max_units' => 10,
             'sort_order' => 0,
             'is_default' => true,
             'is_active' => true,
@@ -191,8 +197,8 @@ class ManualBankTransferOrderTest extends TestCase
             ->post(route('admin.orders.store'), [
                 'user_id' => $user->id,
                 'product_slug' => $product->slug,
-                'variant_id' => $product->activeVariants->first()->id,
                 'quantity' => 1,
+                'target_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
                 'mark_paid' => '1',
             ])
             ->assertRedirect();

@@ -487,6 +487,7 @@ class UserManagementController extends Controller
             'product_slug' => ['required', 'string', 'max:255'],
             'variant_id' => ['required', 'integer', 'exists:platform_product_variants,id'],
             'units' => ['nullable', 'integer', 'min:1', 'max:1000000'],
+            'target_url' => ['required', 'string', 'url', 'max:2048'],
             'mark_paid' => ['nullable', 'boolean'],
             'purchased_at' => ['nullable', 'date', 'before_or_equal:today'],
             'domain_fqdn' => ['nullable', 'string', 'max:255'],
@@ -518,6 +519,7 @@ class UserManagementController extends Controller
         $data = [
             'variant_id' => (int) $validated['variant_id'],
             'quantity' => $quantity,
+            'target_url' => $validated['target_url'],
             'idempotency_key' => (string) Str::uuid(),
             'payment_method' => Order::PAYMENT_MANUAL_BANK_TRANSFER,
             'admin_skip_domain_validation' => true,
