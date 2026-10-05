@@ -4,6 +4,7 @@ namespace App\Modules\Catalog\Services;
 
 use App\Enums\PlatformProductStatus;
 use App\Enums\PlatformProductType;
+use App\Models\Campaign;
 use App\Models\PlatformProduct;
 use App\Models\PlatformProductVariant;
 use App\Models\ProductType;
@@ -680,8 +681,8 @@ class CatalogBrowseService
     }
 
     /**
-     * Agent page marketplace preview cards from live published products.
-     * Rotates randomly on each page load. Empty when no public products exist.
+     * Agent page marketplace preview cards from campaigns currently open to agents.
+     * Empty when no campaign is open.
      *
      * @return Collection<int, array{
      *     brand: string,
@@ -697,7 +698,7 @@ class CatalogBrowseService
      */
     public function agentsMarketplacePreviewCards(int $limit = 3): Collection
     {
-        if (! Schema::hasTable('platform_products')) {
+        if (! Schema::hasTable('campaigns')) {
             return collect();
         }
 
@@ -711,45 +712,38 @@ class CatalogBrowseService
             'social-media' => ['brand' => 'social', 'iconBg' => 'bg-violet-50'],
         ];
 
-        $poolSize = max($limit * 4, 12);
-
-        $products = PlatformProduct::query()
-            ->visibleToPublic()
+        $campaigns = Campaign::query()
+            ->openForAgents()
             ->with([
-                'serviceCategory',
-                'productType.serviceCategory',
-                'activeVariants',
+                'product.serviceCategory',
+                'product.productType.serviceCategory',
             ])
-            ->orderByDesc('is_featured')
-            ->orderBy('sort_order')
-            ->limit($poolSize)
-            ->get()
-            ->shuffle()
-            ->take($limit)
-            ->values();
+            ->latest()
+            ->limit($limit)
+            ->get();
 
-        $hasEstimatedMinutes = Schema::hasColumn('platform_products', 'estimated_minutes');
-
-        return $products->map(function (PlatformProduct $product) use ($brandMap, $hasEstimatedMinutes) {
-            $slug = $product->categorySlug() ?? '';
+        return $campaigns->map(function (Campaign $campaign) use ($brandMap) {
+            $product = $campaign->product;
+            $slug = $product?->categorySlug() ?? '';
             $style = $brandMap[$slug] ?? ['brand' => 'social', 'iconBg' => 'bg-slate-100'];
-            $label = $product->serviceCategory?->name
-                ?? $product->productType?->serviceCategory?->name
+            $label = $product?->title
+                ?? $product?->serviceCategory?->name
+                ?? $product?->productType?->serviceCategory?->name
                 ?? 'Campaign';
 
-            $minutes = $hasEstimatedMinutes ? (int) ($product->estimated_minutes ?? 0) : 0;
+            $minutes = (int) ($campaign->estimated_minutes ?? 0);
             $time = $minutes > 0 ? $minutes.' '.($minutes === 1 ? 'min' : 'mins') : 'Per task';
 
             return [
                 'brand' => $style['brand'],
                 'iconBg' => $style['iconBg'],
                 'label' => $label,
-                'badge' => 'Example',
-                'badgeClass' => 'text-slate-600 bg-slate-100',
-                'title' => $product->title,
-                'reward' => 'Paid if approved',
+                'badge' => 'Open',
+                'badgeClass' => 'text-emerald-700 bg-emerald-50',
+                'title' => $campaign->title ?: $label,
+                'reward' => '₦'.number_format((float) $campaign->locked_agent_reward, 2),
                 'time' => $time,
-                'href' => route('register.agent'),
+                'href' => route('agent.marketplace.show', $campaign),
             ];
         });
     }

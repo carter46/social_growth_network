@@ -18,7 +18,7 @@
 
 <x-layouts.auth
     title="Create account | {{ $siteName ?? config('app.name') }}"
-    :panel-image="asset('assets/images/about-creators.jpg')"
+    :panel-image="asset('assets/images/creators-hero.jpg')"
     panel-headline="Join as a Creator or Agent."
     panel-copy="Buy growth campaigns or complete tasks for rewards. Pick your path and get started in a few steps."
 >

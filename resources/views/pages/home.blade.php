@@ -66,7 +66,7 @@
             <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
                 <a
                     class="inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm sm:text-base px-5 py-3 sm:px-6 sm:py-3.5 rounded-lg shadow-sm hover:shadow transition-all"
-                    href="{{ route('register') }}"
+                    href="{{ route('services') }}"
                 >
                     <span>Buy Watch Hours</span>
                     <span class="material-symbols-outlined text-base sm:text-lg" aria-hidden="true">arrow_forward</span>
@@ -387,7 +387,7 @@
                         <div class="flex items-center justify-between pb-3 border-b border-slate-200/80 text-xs font-semibold text-slate-500">
                             <span class="flex items-center gap-1">
                                 <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                Example open task
+                                Open task
                             </span>
                             <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-200 font-bold">{{ $agentTaskPreview['badge'] ?? 'Available' }}</span>
                         </div>

@@ -116,14 +116,7 @@
                 'twitter' => '#111827',
                 'social' => '#6366F1',
             ];
-            $fallbackTasks = [
-                ['brand' => 'youtube', 'iconBg' => 'bg-red-50', 'label' => 'YouTube Watch Hours', 'badge' => 'Example', 'badgeClass' => 'text-slate-600 bg-slate-100', 'title' => 'Watch a YouTube video for the required time', 'reward' => 'If approved', 'time' => 'Per task', 'href' => route('register.agent')],
-                ['brand' => 'instagram', 'iconBg' => 'bg-pink-50', 'label' => 'Instagram activity', 'badge' => 'Example', 'badgeClass' => 'text-slate-600 bg-slate-100', 'title' => 'Engage with posts according to campaign instructions', 'reward' => 'If approved', 'time' => 'Per task', 'href' => route('register.agent')],
-                ['brand' => 'tiktok', 'iconBg' => 'bg-slate-100', 'label' => 'TikTok activity', 'badge' => 'Example', 'badgeClass' => 'text-slate-600 bg-slate-100', 'title' => 'Complete engagement steps listed in the task brief', 'reward' => 'If approved', 'time' => 'Per task', 'href' => route('register.agent')],
-            ];
-            $tasks = collect($marketplaceTasks ?? [])->isNotEmpty()
-                ? collect($marketplaceTasks)
-                : collect($fallbackTasks);
+            $tasks = collect($marketplaceTasks ?? []);
         @endphp
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
@@ -142,14 +135,14 @@
                 <div>
                     <span class="text-[11px] font-bold uppercase tracking-wider text-red-600">Marketplace preview</span>
                     <h2 class="font-display text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">
-                        Available tasks when campaigns are live
+                        Campaigns open right now
                     </h2>
                     <p class="text-sm text-slate-600 mt-1.5 leading-relaxed">
-                        Examples below. Actual open tasks vary, and availability is not guaranteed.
+                        Live campaigns from the marketplace. Open tasks change often, and availability is not guaranteed.
                     </p>
                 </div>
                 <div class="flex flex-col gap-2.5">
-                    @foreach($tasks as $task)
+                    @forelse($tasks as $task)
                         @php
                             $brand = $task['brand'] ?? 'social';
                             $path = $brandPaths[$brand] ?? $brandPaths['social'];
@@ -188,7 +181,13 @@
                                 </a>
                             </div>
                         </div>
-                    @endforeach
+                    @empty
+                        <div class="bg-white rounded-xl px-5 py-10 border border-dashed border-slate-200 text-center">
+                            <span class="material-symbols-outlined text-3xl text-slate-300" aria-hidden="true">campaign</span>
+                            <p class="font-display text-base font-bold text-slate-900 mt-2">No active campaigns yet</p>
+                            <p class="text-sm text-slate-500 mt-1">New tasks will show here as soon as a campaign goes live.</p>
+                        </div>
+                    @endforelse
                 </div>
             </div>
         </div>

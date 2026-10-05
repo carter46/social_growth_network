@@ -14,6 +14,7 @@
     $watchHoursHref = is_array($watchHours) && filled($watchHours['href'] ?? null)
         ? $watchHours['href']
         : route('services.segment', 'youtube');
+    $buyWatchHoursHref = route('dashboard.services.product', 'youtube-watch-hours');
     $categoryCards = collect($categoryCards ?? [])->values()
         ->sortBy(fn ($card) => ($card['slug'] ?? '') === 'youtube' ? 0 : 1)
         ->values()
@@ -80,12 +81,12 @@
                     Buy YouTube Watch Hours, views, likes, and comments, plus services for other platforms. Pay securely and track your campaign from your account.
                 </p>
                 <div class="flex flex-wrap items-center gap-3 mb-8 w-full sm:w-auto">
-                    <a href="{{ route('register') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-sm transition-colors">
+                    <a href="{{ $buyWatchHoursHref }}" class="inline-flex items-center justify-center font-semibold text-sm bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-sm transition-colors">
                         Buy Watch Hours
                         <span class="material-symbols-outlined ml-1.5 text-[18px]" aria-hidden="true">arrow_forward</span>
                     </a>
-                    <a href="{{ route('agents') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-white text-slate-900 hover:bg-slate-50 px-6 py-3 rounded-lg border border-slate-200 shadow-sm transition-colors">
-                        Watch &amp; Earn
+                    <a href="{{ route('services') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-white text-slate-900 hover:bg-slate-50 px-6 py-3 rounded-lg border border-slate-200 shadow-sm transition-colors">
+                        See all services
                     </a>
                 </div>
                 <div class="pt-2 flex flex-wrap items-center gap-x-6 gap-y-2 text-slate-500 text-sm">
@@ -131,7 +132,7 @@
                             <p class="text-sm font-semibold text-slate-700 mb-4">From ₦{{ number_format((float) $watchHours['from_price'], 0) }}</p>
                         @endif
                         <div class="flex flex-wrap gap-3">
-                            <a href="{{ route('register') }}" class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm px-5 py-3 rounded-lg transition-colors">
+                            <a href="{{ $buyWatchHoursHref }}" class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm px-5 py-3 rounded-lg transition-colors">
                                 Buy Watch Hours
                                 <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
                             </a>
@@ -314,7 +315,7 @@
                         </div>
                     @endforeach
                 </div>
-                <a href="{{ route('register') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-sm transition-colors">
+                <a href="{{ $buyWatchHoursHref }}" class="inline-flex items-center justify-center font-semibold text-sm bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-sm transition-colors">
                     Buy Watch Hours
                 </a>
             </div>
@@ -327,12 +328,12 @@
     <x-slot:title>{!! $ytWord('Ready to grow YouTube Watch Hours?', 'white') !!}</x-slot:title>
     <x-slot:description>Create an account, choose a Watch Hours package, add your video URL, and track progress in your account.</x-slot:description>
     <x-slot:actions>
-        <a href="{{ route('register') }}" class="inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-white text-red-700 hover:bg-red-50 px-6 py-3 rounded-lg shadow-md transition-colors">
+        <a href="{{ $buyWatchHoursHref }}" class="inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-white text-red-700 hover:bg-red-50 px-6 py-3 rounded-lg shadow-md transition-colors">
             <span>Buy Watch Hours</span>
             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
         </a>
-        <a href="{{ route('agents') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-white/10 text-white hover:bg-white/20 border border-white/30 px-6 py-3 rounded-lg transition-colors">
-            Watch &amp; Earn
+        <a href="{{ route('services') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-white/10 text-white hover:bg-white/20 border border-white/30 px-6 py-3 rounded-lg transition-colors">
+            See all services
         </a>
     </x-slot:actions>
     <x-slot:note>Fixed-price packages · Pay securely · Track progress in your account</x-slot:note>
