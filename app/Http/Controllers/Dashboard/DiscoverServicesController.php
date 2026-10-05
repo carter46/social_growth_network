@@ -10,6 +10,7 @@ use App\Modules\Catalog\Services\CatalogBrowseService;
 use App\Modules\Catalog\Services\CatalogContentResolver;
 use App\Modules\Catalog\Services\PlatformCheckoutService;
 use App\Services\Analytics\UserActivityRecorder;
+use App\Services\Engagement\TargetUrlValidator;
 use App\Support\PlatformProductSlugRedirect;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -229,6 +230,25 @@ class DiscoverServicesController extends Controller
             $selectedUnits = 1;
         }
 
+        $targetUrl = null;
+        if ($product->requiresTargetUrl()) {
+            $targetUrl = TargetUrlValidator::normalize($request->query('target_url'));
+            $linkError = $targetUrl === null ? 'Enter your link before checkout.' : null;
+            if ($targetUrl !== null) {
+                try {
+                    TargetUrlValidator::assertValidForProduct($targetUrl, (string) $product->slug);
+                } catch (InvalidArgumentException $e) {
+                    $linkError = $e->getMessage();
+                }
+            }
+            if ($linkError !== null) {
+                return redirect()
+                    ->route('dashboard.services.product', $product->slug)
+                    ->withInput(['target_url' => (string) $request->query('target_url', '')])
+                    ->withErrors(['target_url' => $linkError]);
+            }
+        }
+
         $this->activity->record($request->user()->id, 'viewed', $product, 'service.checkout');
 
         $renewTool = null;
@@ -246,6 +266,7 @@ class DiscoverServicesController extends Controller
             'defaultVariantId' => $defaultVariant?->id,
             'selectedUnits' => $selectedUnits,
             'engagementMetric' => $metric,
+            'targetUrl' => $targetUrl,
             'basePrice' => (float) $product->displayPrice(),
             'showPlanSummary' => $showPlanSummary,
             'isWebsitePackage' => false,
@@ -300,7 +321,7 @@ class DiscoverServicesController extends Controller
             'renew_user_tool_id' => ['nullable', 'integer', 'exists:user_tools,id'],
             'payment_method' => ['nullable', 'in:'.implode(',', $allowedMethods)],
             'target_url' => [
-                Rule::requiredIf(fn () => (bool) $product->is_campaign && EngagementMetric::fromProductSlug($product->slug)),
+                Rule::requiredIf(fn () => EngagementMetric::fromProductSlug($product->slug) !== null),
                 'nullable',
                 'string',
                 'url',

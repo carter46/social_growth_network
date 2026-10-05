@@ -17,6 +17,10 @@ Route::middleware('guest')->group(function () {
     Route::post('register', [RegisteredUserController::class, 'store'])
         ->middleware('throttle:5,1');
 
+    Route::get('register/username-check', [RegisteredUserController::class, 'checkUsername'])
+        ->middleware('throttle:60,1')
+        ->name('register.username-check');
+
     Route::get('register/agent', [RegisteredUserController::class, 'createAgent'])
         ->name('register.agent');
 

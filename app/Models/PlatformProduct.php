@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EngagementMetric;
 use App\Enums\PlatformProductStatus;
 use App\Enums\PlatformProductType;
 use Illuminate\Database\Eloquent\Builder;
@@ -278,6 +279,13 @@ class PlatformProduct extends Model
         $id = $service instanceof ProductType ? $service->id : $service;
 
         return $query->where('product_type_id', $id);
+    }
+
+    /** Views, likes, comments and watch-hours products need the creator's post or video URL. */
+    public function requiresTargetUrl(): bool
+    {
+        return (bool) ($this->is_campaign ?? false)
+            || EngagementMetric::fromProductSlug($this->slug) !== null;
     }
 
     /** Owning category slug for URLs (Category → Product). */

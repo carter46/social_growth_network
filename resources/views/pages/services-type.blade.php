@@ -47,11 +47,6 @@
                     </select>
                 </div>
             @endif
-            <div class="min-w-[180px] flex-1">
-                <label class="block text-xs text-slate-500 mb-1">Search</label>
-                <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Filter products…"
-                       class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400">
-            </div>
             <button type="submit" class="px-4 py-2 rounded-xl bg-primary text-white hover:bg-primary-hover text-sm font-semibold transition-colors">Apply</button>
         </form>
     </div>

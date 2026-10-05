@@ -1607,7 +1607,78 @@ document.addEventListener('alpine:init', () => {
         email: opts.email || '',
         username: opts.username || '',
         usernameTouched: Boolean(opts.usernameTouched),
+        usernameCheckUrl: opts.usernameCheckUrl || '',
+        usernameBase: '',
+        usernameStatus: '',
+        usernameMessage: '',
+        usernameTimer: null,
+        usernameRequestId: 0,
         submitting: false,
+        init() {
+            if (this.username) {
+                this.checkUsername(true);
+            }
+        },
+        queueUsernameCheck() {
+            clearTimeout(this.usernameTimer);
+            this.usernameStatus = this.username ? 'checking' : '';
+            this.usernameMessage = '';
+            this.usernameTimer = setTimeout(() => this.checkUsername(), 400);
+        },
+        async checkUsername(immediate = false) {
+            clearTimeout(this.usernameTimer);
+            const value = String(this.username || '').trim();
+            if (! value) {
+                this.usernameStatus = '';
+                this.usernameMessage = '';
+                return true;
+            }
+            if (! /^[A-Za-z0-9_-]+$/.test(value)) {
+                this.usernameStatus = 'invalid';
+                this.usernameMessage = 'Use letters, numbers, dashes, or underscores only.';
+                return false;
+            }
+            if (! this.usernameCheckUrl) {
+                return true;
+            }
+            const requestId = ++this.usernameRequestId;
+            this.usernameStatus = 'checking';
+            try {
+                const res = await fetch(`${this.usernameCheckUrl}?username=${encodeURIComponent(value)}`, {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                });
+                if (! res.ok) {
+                    throw new Error('Request failed');
+                }
+                const data = await res.json();
+                if (requestId !== this.usernameRequestId) {
+                    return this.usernameStatus === 'available';
+                }
+                if (data.available) {
+                    this.usernameStatus = 'available';
+                    this.usernameMessage = data.message || 'Username is available.';
+                    return true;
+                }
+                if (! this.usernameTouched && data.suggestion && ! immediate) {
+                    this.username = data.suggestion;
+                    this.usernameStatus = 'available';
+                    this.usernameMessage = 'Username is available.';
+                    return true;
+                }
+                this.usernameStatus = data.suggestion ? 'taken' : 'invalid';
+                this.usernameMessage = data.suggestion
+                    ? `${data.message} Try "${data.suggestion}".`
+                    : (data.message || 'This username is not available.');
+                return false;
+            } catch (e) {
+                if (requestId === this.usernameRequestId) {
+                    this.usernameStatus = '';
+                    this.usernameMessage = '';
+                }
+                return true;
+            }
+        },
         get progressLabel() {
             const labels = {
                 1: 'Step 1 of 3: Choose your path',
@@ -1631,8 +1702,10 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
             const generated = this.slugifyUsername(this.name);
-            if (generated) {
+            if (generated && generated !== this.usernameBase) {
+                this.usernameBase = generated;
                 this.username = generated;
+                this.queueUsernameCheck();
             }
         },
         selectRole(type) {
@@ -1642,11 +1715,18 @@ document.addEventListener('alpine:init', () => {
                 document.getElementById('signup-name')?.focus();
             });
         },
-        goNext() {
+        async goNext() {
             if (this.step !== 2) {
                 return;
             }
             this.syncUsernameFromName();
+            if (this.username && this.usernameStatus !== 'available') {
+                const ok = await this.checkUsername();
+                if (! ok) {
+                    document.getElementById('signup-username')?.focus();
+                    return;
+                }
+            }
             const nameEl = document.getElementById('signup-name');
             const emailEl = document.getElementById('signup-email');
             const userEl = document.getElementById('signup-username');

@@ -40,18 +40,6 @@
                 @endforeach
             </x-dashboard.card-grid>
         @else
-            <x-dashboard.card>
-                <form method="GET" action="{{ route('dashboard.services.browse', $segment) }}" class="flex flex-wrap gap-3">
-                    @if(($filters['type'] ?? null))
-                        <input type="hidden" name="type" value="{{ $filters['type'] }}">
-                    @endif
-                    <div class="min-w-[16rem] flex-1">
-                        <x-dashboard.input name="q" :value="$filters['q'] ?? ''" placeholder="Search in {{ $title }}..." />
-                    </div>
-                    <x-dashboard.button type="submit" size="sm" icon="search">Search</x-dashboard.button>
-                </form>
-            </x-dashboard.card>
-
             @if(!$products || $products->isEmpty())
                 <p class="text-text-muted">No products found.</p>
             @else

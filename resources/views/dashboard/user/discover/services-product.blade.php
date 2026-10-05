@@ -19,6 +19,8 @@
     $metric = \App\Enums\EngagementMetric::fromProductSlug($product->slug);
     $variantPayload = $variants->map(fn ($v) => $v->storefrontPayload($metric))->values();
     $isDomainProduct = $isDomainProduct ?? false;
+    $needsTargetUrl = ! $isDomainProduct && $product->requiresTargetUrl();
+    $initialTargetUrl = (string) old('target_url', request()->query('target_url', ''));
 @endphp
 <x-layout.page
     :title="$product->title"
@@ -32,6 +34,15 @@
             variants: @js($variantPayload),
             variantId: {{ (int) ($defaultVariant?->id ?? 0) }},
             units: {{ (int) ($defaultVariant?->isPerUnit() ? $defaultVariant->effectiveMinUnits() : 0) }},
+            needsTargetUrl: @js($needsTargetUrl),
+            targetUrl: @js($initialTargetUrl),
+            get targetUrlValid() {
+                if (! this.needsTargetUrl) return true;
+                return /^https?:\/\/[^\s.]+\.[^\s]+$/i.test(String(this.targetUrl || '').trim());
+            },
+            get canContinue() {
+                return this.unitsValid && this.targetUrlValid;
+            },
             get selected() {
                 return this.variants.find(v => Number(v.id) === Number(this.variantId)) || this.variants[0] || null;
             },
@@ -62,9 +73,13 @@
                 if (this.isPerUnit) {
                     url += '&units=' + encodeURIComponent(String(this.units || ''));
                 }
+                if (this.needsTargetUrl) {
+                    url += '&target_url=' + encodeURIComponent(String(this.targetUrl || '').trim());
+                }
                 return url;
             }
         }"
+        @target-url-changed="targetUrl = $event.detail"
         @endif
     >
         @if(session('error'))
@@ -186,6 +201,19 @@
                         @endif
                     </x-dashboard.card>
 
+                    @if($needsTargetUrl)
+                        <x-dashboard.card class="space-y-2 h-fit">
+                            @include('dashboard.user.discover._campaign-link-field', [
+                                'product' => $product,
+                                'engagementMetric' => $metric,
+                                'initialTargetUrl' => $initialTargetUrl,
+                            ])
+                            @error('target_url')
+                                <p class="text-xs text-danger">{{ $message }}</p>
+                            @enderror
+                        </x-dashboard.card>
+                    @endif
+
                     <x-dashboard.card class="space-y-4 h-fit">
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Selected plan</p>
@@ -201,9 +229,12 @@
                             icon="orders"
                             class="w-full"
                             x-bind:href="checkoutUrl()"
-                            x-bind:disabled="!unitsValid"
-                            @click="if (!unitsValid) { $event.preventDefault() }"
+                            x-bind:disabled="!canContinue"
+                            @click="if (!canContinue) { $event.preventDefault() }"
                         >Continue to checkout</x-dashboard.button>
+                        @if($needsTargetUrl)
+                            <p class="text-xs text-text-muted" x-show="!targetUrlValid" x-cloak>Enter your link above to continue.</p>
+                        @endif
                         @if($groupSlug)
                             <a href="{{ route('dashboard.services.browse', $groupSlug) }}" class="inline-flex text-sm text-text-secondary hover:text-primary">← Back to {{ $groupLabel ?? 'services' }}</a>
                         @endif

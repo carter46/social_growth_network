@@ -12,15 +12,6 @@
     ]"
 >
     <div class="space-y-8">
-        <x-dashboard.card>
-            <form method="GET" class="flex flex-wrap gap-3">
-                <div class="min-w-[16rem] flex-1">
-                    <x-dashboard.input name="q" :value="$q" placeholder="Search services..." />
-                </div>
-                <x-dashboard.button type="submit" size="sm" icon="search">Search</x-dashboard.button>
-            </form>
-        </x-dashboard.card>
-
         @if($searchResults)
             <section>
                 <h2 class="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-3">Search results</h2>

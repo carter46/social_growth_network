@@ -43,6 +43,7 @@
             email: @js(old('email', '')),
             username: @js(old('username', '')),
             usernameTouched: {{ old('username') ? 'true' : 'false' }},
+            usernameCheckUrl: @js(route('register.username-check')),
         })"
         :data-account-type="accountType"
     >
@@ -149,16 +150,33 @@
                         name="username"
                         type="text"
                         x-model="username"
-                        @input="usernameTouched = true"
+                        @input="usernameTouched = true; queueUsernameCheck()"
+                        @blur="checkUsername()"
                         placeholder="johndoe"
                         autocomplete="username"
                         maxlength="255"
                         pattern="[A-Za-z0-9_-]+"
                         title="Letters, numbers, dashes, or underscores only"
-                        class="block w-full h-10 px-3 text-sm rounded-lg border border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus-ring"
+                        class="block w-full h-10 px-3 text-sm rounded-lg border bg-slate-50 text-slate-900 placeholder:text-slate-400 focus-ring"
+                        :class="{
+                            'border-slate-200': usernameStatus === '' || usernameStatus === 'checking',
+                            'border-emerald-400': usernameStatus === 'available',
+                            'border-red-400': usernameStatus === 'taken' || usernameStatus === 'invalid',
+                        }"
+                        :aria-invalid="usernameStatus === 'taken' || usernameStatus === 'invalid'"
+                        aria-describedby="signup-username-status"
                         :required="step === 2"
                     >
-                    <p class="text-xs text-slate-500">Auto-filled from your name. You can edit it.</p>
+                    <p id="signup-username-status" class="text-xs" aria-live="polite"
+                       :class="{
+                           'text-slate-500': usernameStatus === '' || usernameStatus === 'checking',
+                           'text-emerald-600': usernameStatus === 'available',
+                           'text-red-600': usernameStatus === 'taken' || usernameStatus === 'invalid',
+                       }"
+                       x-text="usernameStatus === 'checking'
+                           ? 'Checking availability...'
+                           : (usernameMessage || 'Auto-filled from your name. You can edit it.')"
+                    >Auto-filled from your name. You can edit it.</p>
                 </div>
 
                 <div class="flex flex-col-reverse gap-2 sm:flex-row sm:items-center pt-1">

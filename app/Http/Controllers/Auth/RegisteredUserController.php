@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\OtpVerificationController;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -32,6 +33,54 @@ class RegisteredUserController extends Controller
         return view('auth.register', [
             'registerAsAgent' => true,
         ]);
+    }
+
+    /**
+     * Live username availability check for the registration form.
+     */
+    public function checkUsername(Request $request): JsonResponse
+    {
+        $username = trim((string) $request->query('username', ''));
+
+        if ($username === '') {
+            return response()->json(['available' => false, 'message' => 'Enter a username.']);
+        }
+
+        if (mb_strlen($username) > 255 || ! preg_match('/^[A-Za-z0-9_-]+$/', $username)) {
+            return response()->json([
+                'available' => false,
+                'message' => 'Use letters, numbers, dashes, or underscores only.',
+            ]);
+        }
+
+        if (! $this->usernameTaken($username)) {
+            return response()->json(['available' => true, 'message' => 'Username is available.']);
+        }
+
+        return response()->json([
+            'available' => false,
+            'message' => 'This username is already taken.',
+            'suggestion' => $this->suggestUsername($username),
+        ]);
+    }
+
+    private function usernameTaken(string $username): bool
+    {
+        return User::query()->whereRaw('LOWER(username) = ?', [mb_strtolower($username)])->exists();
+    }
+
+    private function suggestUsername(string $base): ?string
+    {
+        $base = mb_substr($base, 0, 24);
+
+        for ($i = 0; $i < 10; $i++) {
+            $candidate = $base.'_'.random_int(10, 9999);
+            if (! $this->usernameTaken($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     /**
