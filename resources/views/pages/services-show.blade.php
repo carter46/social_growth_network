@@ -244,6 +244,9 @@
                 @endif
 
                 <div class="flex flex-col sm:flex-row gap-3 pt-1">
+                    @if(auth()->user()?->isAgent())
+                        <p class="text-sm text-slate-600 leading-relaxed">You're signed in as an Agent. Buying services needs a Creator account.</p>
+                    @else
                     <x-ui.button
                         :href="route('dashboard.services.checkout', $product->slug)"
                         variant="primary"
@@ -255,6 +258,7 @@
                     >
                         {{ auth()->check() ? 'Buy Now' : 'Log in to buy' }}
                     </x-ui.button>
+                    @endif
                     @include('partials.catalog.view-demo-modal', ['product' => $product])
                 </div>
             </div>

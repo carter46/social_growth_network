@@ -7,9 +7,9 @@
     $c = $contact ?? [];
     $chatOn = (bool) ($chatEnabled ?? false);
     $chatLabel = $liveChat['label'] ?? 'Live chat';
-    $supportHref = route('dashboard.support.create');
+    $supportHref = \App\Support\MemberShell::userRoute('support.create');
     $ticketsHref = auth()->check()
-        ? route('dashboard.support.index')
+        ? \App\Support\MemberShell::userRoute('support.index')
         : route('login');
     $wa = preg_replace('/\D+/', '', (string) ($c['phone_whatsapp'] ?? ''));
     $mapsEmbed = trim((string) ($c['maps_embed_url'] ?? ''));

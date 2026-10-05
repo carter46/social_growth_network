@@ -34,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
         ]);
+        $middleware->redirectUsersTo(fn (Request $request) => $request->user()?->homeRoute() ?? '/dashboard');
         $middleware->appendToGroup('web', EnsureNotSuspended::class);
         $middleware->appendToGroup('api', EnsureNotSuspended::class);
     })

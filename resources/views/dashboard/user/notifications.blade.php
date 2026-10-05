@@ -17,7 +17,7 @@
     title="Notifications"
     width="full"
     :breadcrumb="[
-        ['Dashboard', route('dashboard')],
+        ['Dashboard', url(auth()->user()->homeRoute())],
         ['Notifications', null],
     ]"
 >

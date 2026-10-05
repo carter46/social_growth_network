@@ -193,9 +193,12 @@
                     @php
                         $routeName = $action['route'] ?? null;
                         $needsAuth = ! empty($action['auth']);
-                        $href = ($needsAuth && ! auth()->check())
-                            ? route('login')
-                            : (\Illuminate\Support\Facades\Route::has($routeName) ? route($routeName) : route('help'));
+                        $href = match (true) {
+                            $needsAuth && ! auth()->check() => route('login'),
+                            ! \Illuminate\Support\Facades\Route::has($routeName) => route('help'),
+                            str_starts_with($routeName, 'dashboard.') => \App\Support\MemberShell::userRoute(substr($routeName, strlen('dashboard.'))),
+                            default => route($routeName),
+                        };
                     @endphp
                     <a
                         href="{{ $href }}"

@@ -30,7 +30,7 @@
     })->values();
 
     $supportHref = auth()->check()
-        ? route('dashboard.support.index')
+        ? \App\Support\MemberShell::userRoute('support.index')
         : route('login');
 
     $quickTopics = [

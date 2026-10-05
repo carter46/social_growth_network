@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 class MemberShell
 {
@@ -34,5 +35,16 @@ class MemberShell
     public static function isAgent(?Request $request = null): bool
     {
         return self::prefix($request) === 'agent';
+    }
+
+    /**
+     * Member route for the signed-in user's role, usable outside the member shells
+     * (marketing pages, shared components) where prefix() cannot infer the role.
+     */
+    public static function userRoute(string $suffix, mixed $parameters = []): string
+    {
+        $name = (auth()->user()?->isAgent() ? 'agent' : 'dashboard').'.'.$suffix;
+
+        return route(Route::has($name) ? $name : 'dashboard.'.$suffix, $parameters);
     }
 }

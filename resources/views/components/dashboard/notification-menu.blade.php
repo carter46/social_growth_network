@@ -21,7 +21,7 @@
             $items = (\Illuminate\Support\Facades\Schema::hasTable('user_notifications') && auth()->user())
                 ? auth()->user()->notifications()->orderByDesc('created_at')->limit($limit)->get()
                 : collect();
-            $inboxRoute = route('dashboard.notifications');
+            $inboxRoute = \App\Support\MemberShell::userRoute('notifications');
             $readRoute = null;
         }
     } catch (\Throwable) {

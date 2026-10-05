@@ -28,7 +28,7 @@
 
     $sections = $document['sections'] ?? [];
     $ticketHref = auth()->check()
-        ? route('dashboard.support.create')
+        ? \App\Support\MemberShell::userRoute('support.create')
         : route('login');
 @endphp
 

@@ -69,7 +69,7 @@
 
                 <div class="flex items-center gap-2 sm:gap-3 shrink-0">
                     @auth
-                        <a class="hidden sm:inline-flex text-[13px] lg:text-sm font-medium text-slate-700 hover:text-slate-950 px-3 py-1.5 rounded-lg transition-colors" href="{{ route('dashboard') }}">Dashboard</a>
+                        <a class="hidden sm:inline-flex text-[13px] lg:text-sm font-medium text-slate-700 hover:text-slate-950 px-3 py-1.5 rounded-lg transition-colors" href="{{ url(auth()->user()->homeRoute()) }}">Dashboard</a>
                     @else
                         <a class="hidden sm:inline-flex text-[13px] lg:text-sm font-medium text-slate-700 hover:text-slate-950 px-3 py-1.5 rounded-lg transition-colors" href="{{ route('login') }}">Log In</a>
                         <a class="hidden sm:inline-flex items-center justify-center bg-primary hover:bg-primary-hover text-white text-[13px] lg:text-sm font-semibold px-4 py-2 rounded-lg shadow-sm hover:shadow transition-all duration-150" href="{{ route('services') }}">
@@ -151,7 +151,7 @@
                     </div>
 
                     @auth
-                        <a class="mt-4 px-4 py-3 rounded-xl text-sm font-bold text-center border border-slate-200 text-slate-800 hover:bg-slate-50 transition-colors" href="{{ route('dashboard') }}" @click="close()">Dashboard</a>
+                        <a class="mt-4 px-4 py-3 rounded-xl text-sm font-bold text-center border border-slate-200 text-slate-800 hover:bg-slate-50 transition-colors" href="{{ url(auth()->user()->homeRoute()) }}" @click="close()">Dashboard</a>
                     @else
                         <a class="mt-4 px-4 py-3 rounded-xl text-sm font-medium text-center text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors" href="{{ route('login') }}" @click="close()">Log In</a>
                         <a class="mt-2 px-4 py-3 rounded-xl bg-primary text-white text-sm font-bold text-center hover:bg-primary-hover transition-colors" href="{{ route('register') }}" @click="close()">Get Started</a>
@@ -201,8 +201,8 @@
                         <h4 class="font-bold text-slate-900 text-sm tracking-wider uppercase mb-4 font-display">Account</h4>
                         <ul class="space-y-2.5 text-sm text-slate-600">
                             @auth
-                                <li><a class="hover:text-primary transition-colors" href="{{ route('dashboard') }}">Dashboard</a></li>
-                                <li><a class="hover:text-primary transition-colors" href="{{ route('dashboard.support.create') }}">Open a ticket</a></li>
+<li><a class="hover:text-primary transition-colors" href="{{ url(auth()->user()->homeRoute()) }}">Dashboard</a></li>
+                        <li><a class="hover:text-primary transition-colors" href="{{ \App\Support\MemberShell::userRoute('support.create') }}">Open a ticket</a></li>
                             @else
                                 <li><a class="hover:text-primary transition-colors" href="{{ route('login') }}">Log In</a></li>
                                 <li><a class="hover:text-primary transition-colors" href="{{ route('register') }}">Register</a></li>

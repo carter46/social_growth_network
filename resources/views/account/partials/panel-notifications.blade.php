@@ -9,7 +9,7 @@
         @php
             $inboxHref = ($prefix === 'admin' && \Illuminate\Support\Facades\Route::has('admin.notifications'))
                 ? route('admin.notifications')
-                : route('dashboard.notifications');
+                : route($prefix === 'agent' ? 'agent.notifications' : 'dashboard.notifications');
         @endphp
         <x-dashboard.button :href="$inboxHref" variant="secondary">
             View notifications
