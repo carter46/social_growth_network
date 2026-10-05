@@ -17,7 +17,7 @@ class HomeHeroTest extends TestCase
         $this->get(route('home'))
             ->assertOk()
             ->assertSee('assets/images/home_whitepng.png', false)
-            ->assertSee('Pay people to subscribe, watch, like, follow and comment on your videos and posts.', false)
+            ->assertSee('Pay People to Subscribe, Watch, Like, Follow and Comment on Your Videos and Posts.', false)
             ->assertSee('<span class="text-red-600">YouTube</span>', false)
             ->assertSee('id="youtube-services"', false)
             ->assertSee('Buy Watch Hours', false)

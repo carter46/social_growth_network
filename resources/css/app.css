@@ -248,6 +248,28 @@ html[data-theme] .dashboard-card {
         transform: translateY(0);
     }
 
+    .reveal-fade-left {
+        opacity: 0;
+        transform: translateX(-2.5rem);
+        transition:
+            opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+            transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+        transition-delay: var(--reveal-delay, 0ms);
+        will-change: opacity, transform;
+    }
+
+    .reveal-fade-left.is-revealed {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    /* Stacked cards on small screens already appear one by one as you scroll. */
+    @media (max-width: 767px) {
+        .reveal-fade-left {
+            transition-delay: 0ms;
+        }
+    }
+
     /* Command-center loading pulse (Overview / Analytics AJAX) */
     .command-skeleton {
         position: relative;
@@ -284,7 +306,8 @@ html[data-theme] .dashboard-card {
         transition: none;
     }
 
-    .reveal-fade-up {
+    .reveal-fade-up,
+    .reveal-fade-left {
         opacity: 1;
         transform: none;
         transition: none;

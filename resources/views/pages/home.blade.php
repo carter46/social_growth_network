@@ -52,18 +52,18 @@
     <div class="absolute inset-0 z-0 pointer-events-none bg-gradient-to-b from-white/55 via-white/40 to-white/65" aria-hidden="true"></div>
 
     <div class="relative z-10 max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16 w-full">
-        <div class="max-w-3xl mx-auto w-full text-center">
+        <div class="max-w-5xl mx-auto w-full text-center">
             <p class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-3">
                 {{ $brandName }}
             </p>
-            <h1 class="text-[2rem] sm:text-4xl md:text-5xl lg:text-[52px] font-extrabold text-slate-900 tracking-tight leading-[1.15] mb-4 sm:mb-5 font-display">
-                {!! $ytWord('Pay people to subscribe, watch, like, follow and comment on your videos and posts.') !!}
+            <h1 class="text-[length:clamp(1.625rem,7.8vw,2rem)] sm:text-4xl md:text-5xl lg:text-[52px] font-extrabold text-slate-900 tracking-tight leading-[1.15] text-balance mb-4 sm:mb-5 font-display">
+                {!! $ytWord('Pay People to Subscribe, Watch, Like, Follow and Comment on Your Videos and Posts.') !!}
             </h1>
             <p class="text-base sm:text-lg lg:text-xl text-slate-600 font-normal leading-relaxed mb-8 sm:mb-10 max-w-xl mx-auto">
-                Buy YouTube Watch Hours, views, likes, and comments for your videos and posts. You see the price before you pay and can track your campaign from your account.
+                Buy YouTube Watch Hours, views, likes, and comments for your videos and posts.
             </p>
 
-            <div class="flex flex-row flex-wrap items-center justify-center gap-3 sm:gap-4">
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
                 <a
                     class="inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm sm:text-base px-5 py-3 sm:px-6 sm:py-3.5 rounded-lg shadow-sm hover:shadow transition-all"
                     href="{{ route('register') }}"
@@ -205,7 +205,11 @@
                 ['n' => '02', 'icon' => 'link', 'title' => 'Provide campaign details', 'body' => 'Add the link to your post or video and any campaign instructions at checkout.', 'foot' => 'Step 2 · Quick setup'],
                 ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Pay and track', 'body' => 'Pay securely, then follow your campaign’s progress from your account.', 'foot' => 'Step 3 · Secure payment'],
             ] as $step)
-                <div class="bg-slate-50 p-8 rounded-xl border border-slate-200/80 flex flex-col justify-between">
+                <div
+                    class="reveal-fade-left bg-slate-50 p-8 rounded-xl border border-slate-200/80 flex flex-col justify-between"
+                    data-reveal="fade-left"
+                    style="--reveal-delay: {{ $loop->index * 500 }}ms"
+                >
                     <div>
                         <div class="flex items-center justify-between mb-6">
                             <span class="text-3xl font-black text-primary font-display">{{ $step['n'] }}</span>

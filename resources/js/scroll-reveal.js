@@ -1,8 +1,9 @@
 /**
- * Fade-up reveal when elements enter the viewport.
+ * Reveal elements when they enter the viewport.
+ * Supports data-reveal="fade-up" and data-reveal="fade-left"; stagger with style="--reveal-delay: 500ms".
  */
 function initScrollReveal() {
-    const nodes = document.querySelectorAll('[data-reveal="fade-up"]');
+    const nodes = document.querySelectorAll('[data-reveal]');
     if (!nodes.length) {
         return;
     }
