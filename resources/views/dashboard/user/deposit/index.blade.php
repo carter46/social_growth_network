@@ -18,7 +18,7 @@
     <x-dashboard.table
         :empty="$fundings->isEmpty()"
         empty-title="No deposits yet"
-        empty-description="Fund via Monnify Checkout or your reserved account."
+        empty-description="Fund your wallet with online payment or your reserved account."
         empty-icon="deposit"
         :empty-action="['href' => route('dashboard.deposit.create-checkout'), 'label' => 'Fund wallet']"
         striped

@@ -112,6 +112,94 @@ class MediaUsageService
         return MediaUsage::query()->where('media_asset_id', $mediaId)->count();
     }
 
+    /**
+     * Clear every catalog/branding reference to the asset so it can be deleted
+     * without leaving broken image paths behind.
+     */
+    public function detachAsset(MediaAsset $asset): int
+    {
+        return (int) DB::transaction(function () use ($asset): int {
+            $usages = MediaUsage::query()
+                ->where('media_asset_id', $asset->id)
+                ->get();
+
+            foreach ($usages as $usage) {
+                $this->clearUsableReference($usage, $asset);
+            }
+
+            $removed = MediaUsage::query()
+                ->where('media_asset_id', $asset->id)
+                ->delete();
+
+            Log::info('media.detach', [
+                'media_asset_id' => $asset->id,
+                'usages_removed' => $removed,
+            ]);
+
+            return $removed;
+        });
+    }
+
+    protected function clearUsableReference(MediaUsage $usage, MediaAsset $asset): void
+    {
+        $type = $usage->usable_type;
+        $id = $usage->usable_id;
+        $field = $usage->field;
+
+        foreach ([ServiceCategory::class, ProductType::class, CatalogPageContent::class] as $class) {
+            if ($type === $class || $type === (new $class)->getMorphClass()) {
+                $model = $class::query()->find($id);
+                if ($model && in_array($field, ['banner', 'card'], true)
+                    && (int) $model->{$field.'_media_id'} === (int) $asset->id) {
+                    $model->forceFill([
+                        $field.'_media_id' => null,
+                        $field.'_image' => null,
+                    ])->save();
+                }
+
+                return;
+            }
+        }
+
+        if ($type === PlatformProduct::class || $type === (new PlatformProduct)->getMorphClass()) {
+            $model = PlatformProduct::query()->find($id);
+            if (! $model) {
+                return;
+            }
+
+            if ($field === 'hero' && (int) $model->hero_media_id === (int) $asset->id) {
+                $model->forceFill([
+                    'hero_media_id' => null,
+                    'hero_image' => null,
+                ])->save();
+
+                return;
+            }
+
+            if ($field === 'gallery') {
+                PlatformProductImage::query()
+                    ->where('platform_product_id', $model->id)
+                    ->where('media_asset_id', $asset->id)
+                    ->delete();
+            }
+
+            return;
+        }
+
+        if ($type === 'site_branding') {
+            $settingKey = match ($field) {
+                'favicon' => 'favicon_media_id',
+                'logo_light' => 'logo_light_media_id',
+                'logo_dark' => 'logo_dark_media_id',
+                default => null,
+            };
+            if ($settingKey !== null && (int) SystemSetting::get($settingKey) === (int) $asset->id) {
+                SystemSetting::set($settingKey, '');
+                app(SiteBrandingRepository::class)->flush();
+            }
+        }
+    }
+
     protected function rewriteUsableReference(MediaUsage $usage, MediaAsset $old, MediaAsset $new): void
     {
         $type = $usage->usable_type;

@@ -15,7 +15,6 @@
         <x-dashboard.stats-card
             label="Total Balance"
             :value="'₦' . number_format($balanceNgn ?? 0, 2)"
-            :hint="'Locked: ₦' . number_format($lockedNgn ?? 0, 2)"
             icon="wallet"
         >
             <div class="mt-4 flex flex-wrap gap-2">

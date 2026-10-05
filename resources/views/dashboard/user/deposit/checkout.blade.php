@@ -21,7 +21,7 @@
             <form method="POST" action="{{ route('dashboard.deposit.store-checkout') }}" class="space-y-4" x-data="{ submitting: false }" @submit="submitting = true">
                 @csrf
                 <x-dashboard.input type="number" name="amount" label="Amount (NGN)" :min="$depositMin" step="0.01" required />
-                <x-dashboard.button type="submit" icon="deposit" x-bind:disabled="submitting">Pay with Monnify</x-dashboard.button>
+                <x-dashboard.button type="submit" icon="deposit" x-bind:disabled="submitting">Continue to payment</x-dashboard.button>
             </form>
         </x-dashboard.card>
         @if ($reservedAllowed)

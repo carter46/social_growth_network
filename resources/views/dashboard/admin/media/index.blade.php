@@ -6,6 +6,10 @@
 <div
     x-data="{
         selected: [],
+        usageMap: @js($assets->mapWithKeys(fn ($a) => [$a->id => (int) $a->usages_count])),
+        get selectedInUse() {
+            return this.selected.filter((id) => (this.usageMap[id] || 0) > 0).length;
+        },
         usagesOpen: false,
         usagesLoading: false,
         usagesError: null,
@@ -85,6 +89,7 @@
         >
             @csrf
             @method('DELETE')
+            <input type="hidden" name="force" value="1">
             <template x-for="id in selected" :key="'bulk-' + id">
                 <input type="hidden" name="ids[]" :value="id">
             </template>
@@ -97,7 +102,9 @@
         >
             Delete selected (<span x-text="selected.length"></span>)
         </x-dashboard.button>
-        <span class="text-xs text-text-muted">Assets currently in use are skipped.</span>
+        <span class="text-xs text-warning" x-show="selectedInUse > 0" x-cloak>
+            <span x-text="selectedInUse"></span> selected <span x-text="selectedInUse === 1 ? 'image is' : 'images are'"></span> in use.
+        </span>
     </div>
 
     <div @modal-confirmed.window="if ($event.detail === 'bulk-delete-media') $refs.bulkDestroyForm?.submit()">
@@ -107,7 +114,11 @@
             variant="danger"
             confirm-label="Delete selected"
         >
-            Delete selected media that are not in use. In-use assets will be skipped.
+            <p>This permanently deletes <span x-text="selected.length"></span> selected file(s). This cannot be undone.</p>
+            <p class="mt-2 font-medium text-danger" x-show="selectedInUse > 0" x-cloak>
+                Warning: <span x-text="selectedInUse"></span> of them <span x-text="selectedInUse === 1 ? 'is' : 'are'"></span> in use on products, categories, pages or branding.
+                They will be removed from those places, which will show no image until you pick a new one.
+            </p>
         </x-dashboard.modal>
     </div>
 
@@ -216,11 +227,10 @@
                             <x-dashboard.menu-item type="button" @click="$dispatch('open-modal', 'replace-media-{{ $asset->id }}')">
                                 Replace
                             </x-dashboard.menu-item>
-                        @else
-                            <x-dashboard.menu-item type="button" variant="danger" @click="$dispatch('open-modal', 'delete-media-{{ $asset->id }}')">
-                                Delete
-                            </x-dashboard.menu-item>
                         @endif
+                        <x-dashboard.menu-item type="button" variant="danger" @click="$dispatch('open-modal', 'delete-media-{{ $asset->id }}')">
+                            Delete
+                        </x-dashboard.menu-item>
                     </x-dashboard.row-actions>
 
                     <x-dashboard.modal
@@ -261,18 +271,28 @@
                                 />
                             </x-slot:form>
                         </x-dashboard.modal>
-                    @else
-                        <x-dashboard.modal
-                            name="delete-media-{{ $asset->id }}"
-                            title="Delete this media?"
-                            variant="danger"
-                            confirm-label="Delete"
-                            :form-action="route('admin.media.destroy', $asset)"
-                            method="DELETE"
-                        >
-                            This permanently deletes {{ $asset->original_name }}. This cannot be undone.
-                        </x-dashboard.modal>
                     @endif
+                    <x-dashboard.modal
+                        name="delete-media-{{ $asset->id }}"
+                        title="{{ $asset->usages_count > 0 ? 'This image is in use' : 'Delete this media?' }}"
+                        variant="danger"
+                        confirm-label="{{ $asset->usages_count > 0 ? 'Delete anyway' : 'Delete' }}"
+                        :form-action="route('admin.media.destroy', $asset)"
+                        method="DELETE"
+                    >
+                        This permanently deletes {{ $asset->original_name }}. This cannot be undone.
+                        @if ($asset->usages_count > 0)
+                            <p class="mt-2 font-medium text-danger">
+                                Warning: it is used in {{ number_format($asset->usages_count) }} {{ \Illuminate\Support\Str::plural('place', $asset->usages_count) }}.
+                                It will be removed from those places, which will show no image until you pick a new one.
+                            </p>
+                        @endif
+                        <x-slot:form>
+                            @if ($asset->usages_count > 0)
+                                <input type="hidden" name="force" value="1">
+                            @endif
+                        </x-slot:form>
+                    </x-dashboard.modal>
                 </x-dashboard.td>
             </tr>
         @endforeach

@@ -206,12 +206,6 @@ Route::middleware(['auth', 'verified', 'role:user'])->prefix('dashboard')->name(
         Route::get('/deposit/callback', [DepositController::class, 'callback'])->name('.deposit.callback');
         Route::get('/deposit/reserved', [DepositController::class, 'reservedAccount'])->name('.deposit.reserved');
         Route::get('/deposit/{funding}', [DepositController::class, 'show'])->name('.deposit.show');
-        Route::get('/banks', [BankAccountController::class, 'index'])->name('.banks.index');
-        Route::get('/banks/replace', [BankAccountController::class, 'replaceForm'])->name('.banks.replace');
-        Route::post('/banks/replace/otp', [BankAccountController::class, 'sendOtp'])->middleware('throttle:5,10')->name('.banks.replace.otp');
-        Route::post('/banks/replace/verify-otp', [BankAccountController::class, 'verifyOtp'])->middleware('throttle:10,10')->name('.banks.replace.verify-otp');
-        Route::post('/banks/replace/resolve', [BankAccountController::class, 'resolve'])->middleware('throttle:10,1')->name('.banks.replace.resolve');
-        Route::post('/banks/replace/confirm', [BankAccountController::class, 'confirm'])->middleware('throttle:5,1')->name('.banks.replace.confirm');
         Route::get('/history', [HistoryController::class, 'index'])->name('.history');
     });
     Route::get('/social', [DashboardController::class, 'social'])->name('.social');

@@ -138,8 +138,8 @@ class MediaLibraryController extends Controller
     {
         $count = $this->usages->usageCount($mediaAsset->id);
 
-        if ($count > 0) {
-            $message = __('This media is used in :count place(s) and cannot be deleted.', ['count' => $count]);
+        if ($count > 0 && ! $request->boolean('force')) {
+            $message = __('This media is used in :count place(s). Confirm the in-use warning to delete it.', ['count' => $count]);
 
             if ($request->wantsJson() || $request->ajax() || $request->expectsJson()) {
                 return response()->json([
@@ -154,10 +154,13 @@ class MediaLibraryController extends Controller
         }
 
         $mediaId = (int) $mediaAsset->id;
+        if ($count > 0) {
+            $this->usages->detachAsset($mediaAsset);
+        }
         $mediaAsset->purgeFiles();
         $mediaAsset->forceDelete();
 
-        Log::info('media.delete', ['media_asset_id' => $mediaId]);
+        Log::info('media.delete', ['media_asset_id' => $mediaId, 'usages_removed' => $count]);
 
         if ($request->wantsJson() || $request->ajax() || $request->expectsJson()) {
             return response()->json(['message' => __('Media deleted.')]);
@@ -173,10 +176,13 @@ class MediaLibraryController extends Controller
         $data = $request->validate([
             'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['integer', 'exists:media_assets,id'],
+            'force' => ['sometimes', 'boolean'],
         ]);
 
+        $force = $request->boolean('force');
         $deleted = 0;
         $skipped = 0;
+        $detached = 0;
 
         foreach ($data['ids'] as $id) {
             $asset = MediaAsset::query()->find($id);
@@ -185,8 +191,12 @@ class MediaLibraryController extends Controller
             }
 
             if ($this->usages->usageCount($asset->id) > 0) {
-                $skipped++;
-                continue;
+                if (! $force) {
+                    $skipped++;
+                    continue;
+                }
+                $this->usages->detachAsset($asset);
+                $detached++;
             }
 
             $asset->purgeFiles();
@@ -194,7 +204,12 @@ class MediaLibraryController extends Controller
             $deleted++;
         }
 
+        Log::info('media.bulk_delete', ['deleted' => $deleted, 'detached' => $detached, 'skipped' => $skipped]);
+
         $status = __('Deleted :deleted media file(s).', ['deleted' => $deleted]);
+        if ($detached > 0) {
+            $status .= ' '.__(':detached were in use and have been removed from where they were used.', ['detached' => $detached]);
+        }
         if ($skipped > 0) {
             $status .= ' '.__(':skipped skipped because they are in use.', ['skipped' => $skipped]);
         }

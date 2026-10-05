@@ -20,7 +20,7 @@
             @else
                 @if (! ($kycRequired ?? true))
                     <x-dashboard.alert type="info" class="mb-4">
-                        KYC is optional right now. Create a wallet to deposit, withdraw, and check out.
+                        KYC is optional right now. Create a wallet to top up and check out.
                     </x-dashboard.alert>
                 @endif
                 <form method="POST" action="{{ route('dashboard.wallet.create') }}" x-data="{ submitting: false }" @submit="submitting = true">
@@ -30,28 +30,18 @@
             @endif
         </x-dashboard.card>
     @else
-        <x-dashboard.stat-grid :count="4">
+        <x-dashboard.stat-grid :count="2">
             <x-dashboard.stats-card
                 label="Balance (NGN)"
-                :value="'₦' . number_format($wallet->balance, 2)"
-                icon="wallet"
-            >
-                <div class="mt-4 flex flex-col gap-2">
-                    <x-dashboard.button :href="route('dashboard.deposit.index')" variant="secondary" size="sm" icon="deposit">Deposit Money</x-dashboard.button>
-                </div>
-            </x-dashboard.stats-card>
-            <x-dashboard.stats-card
-                label="Locked (Held)"
-                :value="'₦' . number_format($wallet->locked_balance, 2)"
-                icon="lock"
-            />
-            <x-dashboard.stats-card
-                label="Available"
                 :value="'₦' . number_format($wallet->availableBalance(), 2)"
                 icon="wallet"
-            />
+            >
+                <div class="mt-4 flex flex-wrap gap-2">
+                    <x-dashboard.button :href="route('dashboard.deposit.create-checkout')" size="sm" icon="deposit">Top up</x-dashboard.button>
+                    <x-dashboard.button :href="route('dashboard.deposit.index')" variant="secondary" size="sm">Deposit history</x-dashboard.button>
+                </div>
+            </x-dashboard.stats-card>
             <x-dashboard.card class="flex flex-col justify-center gap-3 min-h-[120px]">
-                <x-dashboard.button :href="route('dashboard.banks.index')" variant="secondary" size="sm" icon="withdraw">My Bank</x-dashboard.button>
                 <x-dashboard.button :href="route('dashboard.history')" variant="ghost" size="sm" icon="history">Transaction History</x-dashboard.button>
             </x-dashboard.card>
         </x-dashboard.stat-grid>
@@ -59,7 +49,7 @@
         <x-dashboard.table
             :empty="$transactions->isEmpty()"
             empty-title="No transactions yet"
-            empty-description="Deposits, withdrawals, and service activity will appear here."
+            empty-description="Top-ups and campaign payments will appear here."
             empty-icon="transactions"
             striped
         >
