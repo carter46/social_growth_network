@@ -24,67 +24,70 @@
         <x-dashboard.alert type="danger" class="mb-4">{{ session('error') }}</x-dashboard.alert>
     @endif
 
-    <x-dashboard.card class="space-y-4">
-        <dl class="grid gap-3 sm:grid-cols-3 text-sm">
-            <div>
-                <dt class="text-text-muted">Status</dt>
-                <dd><x-dashboard.badge :status="$participation->status" /></dd>
-            </div>
-            <div>
-                <dt class="text-text-muted">Reward</dt>
-                <dd class="font-semibold">₦{{ number_format((float) $participation->reward_amount, 2) }}</dd>
-            </div>
-            <div>
-                <dt class="text-text-muted">Target</dt>
-                <dd>
-                    @if ($campaign?->target_url)
-                        <a href="{{ $campaign->target_url }}" class="text-accent underline" target="_blank" rel="noopener">Open link</a>
-                    @else
-                        -
-                    @endif
-                </dd>
-            </div>
-        </dl>
+    @if ($campaign)
+        <x-dashboard.card class="mb-4 space-y-3">
+            @include('dashboard.agent.partials.campaign-tiles', [
+                'campaign' => $campaign,
+                'reward' => (float) $participation->reward_amount,
+                'status' => $participation->status,
+            ])
+        </x-dashboard.card>
+    @endif
 
+    <x-dashboard.card class="space-y-4">
         @if ($participation->rejection_reason)
             <x-dashboard.alert type="warning" title="Rejection reason">{{ $participation->rejection_reason }}</x-dashboard.alert>
         @endif
 
         @if ($taskMode === 'watch_session' && $participation->status === 'started')
-            <div class="space-y-3" x-data="watchTaskModal({
+            @php $hasEmbed = ($embed['mode'] ?? '') === 'embed' && ! empty($embed['html']); @endphp
+            <div class="space-y-4" x-data="watchTaskModal({
                 requiredSeconds: {{ (int) $requiredSeconds }},
                 token: @js($watchToken),
+                startUrl: @js(route('agent.tasks.start-watch', $participation)),
                 claimUrl: @js(route('agent.tasks.claim-watch', $participation)),
                 csrf: @js(csrf_token()),
             })">
-                <p class="text-sm text-text-secondary">{{ $embed['note'] ?? 'Complete the required watch session, then claim your reward. This confirms you completed the task. It does not guarantee a platform view or watch-hour credit.' }}</p>
+                <div class="rounded-xl bg-muted/40 px-4 py-3 text-sm text-text-secondary">
+                    <p class="font-medium text-text-primary">How to complete this task</p>
+                    <ol class="mt-1 list-decimal space-y-0.5 pl-5">
+                        <li>Tap <strong>Start watching</strong> to start the timer.</li>
+                        @if ($hasEmbed)
+                            <li>Press the play button on the video below. It does not play on its own.</li>
+                        @else
+                            <li>Open the content and keep it playing.</li>
+                        @endif
+                        <li>Keep this page open until the timer finishes, then tap <strong>Claim reward</strong>.</li>
+                    </ol>
+                </div>
 
-                @if (($embed['mode'] ?? '') === 'embed' && !empty($embed['html']))
+                @if ($hasEmbed)
                     <div class="overflow-hidden rounded-xl border border-border-default">{!! $embed['html'] !!}</div>
-                @endif
-
-                @if (!empty($embed['open_url']))
-                    <a href="{{ $embed['open_url'] }}" target="_blank" rel="noopener" class="inline-flex text-sm font-medium text-accent underline">Open on platform</a>
+                @elseif (! empty($embed['open_url']))
+                    <a href="{{ $embed['open_url'] }}" target="_blank" rel="noopener" class="inline-flex text-sm font-medium text-primary hover:underline">Open the content</a>
                 @endif
 
                 <div class="flex flex-wrap items-center gap-3">
-                    @if (! $watchToken)
-                        <form method="POST" action="{{ route('agent.tasks.start-watch', $participation) }}">
-                            @csrf
-                            <x-dashboard.button type="submit">Start watching</x-dashboard.button>
+                    <template x-if="! token">
+                        <x-dashboard.button type="button" x-on:click="start()" x-bind:disabled="starting">
+                            <span x-text="starting ? 'Starting...' : 'Start watching'">Start watching</span>
+                        </x-dashboard.button>
+                    </template>
+                    <template x-if="token && ! done">
+                        <p class="rounded-lg bg-muted/40 px-3 py-2 text-sm font-semibold text-text-primary" aria-live="polite">
+                            Time left: <span x-text="display"></span>
+                        </p>
+                    </template>
+                    <template x-if="done">
+                        <form method="POST" :action="claimUrl" x-on:submit="claim()">
+                            <input type="hidden" name="_token" :value="csrf">
+                            <input type="hidden" name="token" :value="token">
+                            <x-dashboard.button type="submit" icon="verified" x-bind:disabled="claiming">Claim reward</x-dashboard.button>
                         </form>
-                    @else
-                        <p class="text-sm font-semibold" x-text="done ? 'Session complete' : ('Time left: ' + display)"></p>
-                        <template x-if="done">
-                            <form method="POST" :action="claimUrl">
-                                <input type="hidden" name="_token" :value="csrf">
-                                <input type="hidden" name="token" :value="token">
-                                <x-dashboard.button type="submit">Claim reward</x-dashboard.button>
-                            </form>
-                        </template>
-                        <p class="text-xs text-text-muted">Closing or leaving early resets progress. Keep this page open.</p>
-                    @endif
+                    </template>
                 </div>
+                <p class="text-sm text-danger" x-show="error" x-text="error" x-cloak></p>
+                <p class="text-xs text-text-muted" x-show="token && ! done" x-cloak>Closing or leaving this page before the timer finishes resets your progress.</p>
             </div>
         @elseif ($taskMode === 'x_action' && $participation->status === 'started')
             <div class="space-y-3">

@@ -19,36 +19,35 @@
         <x-dashboard.alert type="danger" class="mb-4">{{ session('error') }}</x-dashboard.alert>
     @endif
 
-    <x-dashboard.card class="space-y-3">
-        <p class="text-sm">{{ \Illuminate\Support\Str::limit(strip_tags((string) ($campaign->product?->description ?? '')), 200) }}</p>
-        <dl class="grid gap-3 sm:grid-cols-3 text-sm">
-            <div>
-                <dt class="text-text-muted">Reward</dt>
-                <dd class="font-semibold text-text-primary">₦{{ number_format((float) $campaign->locked_agent_reward, 2) }}</dd>
-            </div>
-            <div>
-                <dt class="text-text-muted">Slots left</dt>
-                <dd class="font-semibold text-text-primary">{{ $campaign->availableStartSlots() }}</dd>
-            </div>
-            <div>
-                <dt class="text-text-muted">Estimated time</dt>
-                <dd class="font-semibold text-text-primary">{{ $campaign->estimated_minutes ? $campaign->estimated_minutes.' min' : '-' }}</dd>
-            </div>
-        </dl>
-        @if ($campaign->target_url)
-            <p class="text-sm">Target: <a href="{{ $campaign->target_url }}" class="text-accent underline" target="_blank" rel="noopener">{{ $campaign->target_url }}</a></p>
+    @php
+        $imageUrl = $campaign->product
+            ? (media_url($campaign->product->heroMedia ?? null, $campaign->product->hero_image, 'medium') ?: $campaign->product->listThumbnailUrl())
+            : null;
+    @endphp
+
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        @if ($imageUrl)
+            <x-dashboard.card :padding="false" class="overflow-hidden">
+                <img src="{{ $imageUrl }}" alt="{{ $campaign->product?->title }}" class="aspect-video h-full w-full object-cover">
+            </x-dashboard.card>
         @endif
 
-        @if ($participation)
-            <x-dashboard.button :href="route('agent.tasks.show', $participation)">Continue task</x-dashboard.button>
-        @elseif ($campaign->isOpenForAgents())
-            <form method="POST" action="{{ route('agent.marketplace.start', $campaign) }}">
-                @csrf
-                <x-dashboard.button type="submit" icon="plus">Start task</x-dashboard.button>
-            </form>
-        @else
-            <x-dashboard.alert type="warning">This campaign is no longer open.</x-dashboard.alert>
-        @endif
-    </x-dashboard.card>
+        <x-dashboard.card class="space-y-3 {{ $imageUrl ? 'lg:col-span-2' : 'lg:col-span-3' }}">
+            @include('dashboard.agent.partials.campaign-tiles', ['campaign' => $campaign, 'reward' => (float) $campaign->locked_agent_reward])
+
+            <div class="pt-1">
+                @if ($participation)
+                    <x-dashboard.button :href="route('agent.tasks.show', $participation)">Continue task</x-dashboard.button>
+                @elseif ($campaign->isOpenForAgents())
+                    <form method="POST" action="{{ route('agent.marketplace.start', $campaign) }}">
+                        @csrf
+                        <x-dashboard.button type="submit" icon="plus">Start task</x-dashboard.button>
+                    </form>
+                @else
+                    <x-dashboard.alert type="warning">This campaign is no longer open.</x-dashboard.alert>
+                @endif
+            </div>
+        </x-dashboard.card>
+    </div>
 </x-layout.page>
 @endsection

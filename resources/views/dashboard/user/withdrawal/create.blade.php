@@ -14,6 +14,27 @@
         ['Request', null],
     ]"
 >
+    @if ($blocker ?? null)
+        <x-dashboard.card>
+            <div class="flex flex-col items-center px-4 py-8 text-center">
+                <div class="mb-4 flex size-14 items-center justify-center rounded-2xl bg-warning/10 text-warning">
+                    <x-ui.icon name="withdraw" class="h-7 w-7" />
+                </div>
+                <h2 class="text-lg font-semibold text-text-primary">{{ $blocker['title'] }}</h2>
+                <p class="mt-2 max-w-md text-sm text-text-secondary">{{ $blocker['message'] }}</p>
+                <div class="mt-4 rounded-xl bg-muted/40 px-4 py-3 text-sm">
+                    <span class="text-text-muted">Available balance:</span>
+                    <span class="font-semibold text-text-primary">₦{{ number_format((float) ($wallet?->availableBalance() ?? 0), 2) }}</span>
+                </div>
+                <div class="mt-6 flex flex-wrap justify-center gap-3">
+                    @if ($blocker['action'])
+                        <x-dashboard.button :href="$blocker['action']['href']">{{ $blocker['action']['label'] }}</x-dashboard.button>
+                    @endif
+                    <x-dashboard.button :href="route($prefix.'.withdrawal.index')" variant="secondary">Back to withdrawals</x-dashboard.button>
+                </div>
+            </div>
+        </x-dashboard.card>
+    @else
     <x-dashboard.card>
         <div class="mb-4 rounded-xl border border-border-subtle p-4 text-sm">
             <p class="font-medium text-text-primary">Payout bank</p>
@@ -53,5 +74,6 @@
             <x-dashboard.button :href="route($prefix.'.withdrawal.create')" class="mt-4">Restart</x-dashboard.button>
         @endif
     </x-dashboard.card>
+    @endif
 </x-layout.page>
 @endsection

@@ -8,6 +8,7 @@ use App\Models\CampaignParticipation;
 use App\Services\Campaigns\CampaignParticipationService;
 use App\Services\Campaigns\CampaignWatchSessionService;
 use App\Services\Engagement\VideoEmbedResolver;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -100,14 +101,23 @@ class TaskController extends Controller
             ->with('status', __('Submission sent for verification.'));
     }
 
-    public function startWatch(CampaignParticipation $participation): RedirectResponse
+    public function startWatch(Request $request, CampaignParticipation $participation): RedirectResponse|JsonResponse
     {
         $this->authorizeAgent($participation);
 
         try {
             $session = $this->watchSessions->start($participation);
         } catch (\Throwable $e) {
-            return back()->with('error', $e->getMessage());
+            return $request->expectsJson()
+                ? response()->json(['message' => $e->getMessage()], 422)
+                : back()->with('error', $e->getMessage());
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'token' => $session->token,
+                'required_seconds' => (int) $session->required_seconds,
+            ]);
         }
 
         return redirect()

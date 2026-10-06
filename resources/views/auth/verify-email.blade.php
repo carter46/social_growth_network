@@ -1,6 +1,6 @@
 <x-layouts.auth
     title="Verify email | {{ $siteName ?? config('app.name') }}"
-    :panel-image="asset('assets/images/services-hero.jpg')"
+    :panel-image="asset('assets/images/creators-hero.jpg')"
     panel-headline="One more step."
     panel-copy="Enter the code we sent to your email to activate your account."
 >

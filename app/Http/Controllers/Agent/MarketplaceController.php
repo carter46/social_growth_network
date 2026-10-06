@@ -23,7 +23,11 @@ class MarketplaceController extends Controller
             ->whereDoesntHave('participations', function ($q) {
                 $q->where('agent_id', auth()->id());
             })
-            ->with('product')
+            ->with([
+                'product.heroMedia.variants',
+                'product.serviceCategory',
+                'product.productType.serviceCategory',
+            ])
             ->orderByDesc('created_at')
             ->paginate(20);
 
@@ -42,7 +46,7 @@ class MarketplaceController extends Controller
             ->first();
 
         return view('dashboard.agent.marketplace.show', [
-            'campaign' => $campaign->load('product'),
+            'campaign' => $campaign->load('product.heroMedia.variants'),
             'participation' => $participation,
         ]);
     }

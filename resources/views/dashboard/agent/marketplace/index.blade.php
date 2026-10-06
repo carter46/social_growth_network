@@ -11,32 +11,21 @@
         ['Marketplace', null],
     ]"
 >
-    <x-dashboard.table
-        :empty="$campaigns->isEmpty()"
-        empty-title="No open campaigns"
-        empty-description="Check back soon for new tasks from creators."
-        empty-icon="listings"
-        striped
-    >
-        <x-slot:head>
-            <x-dashboard.th>Campaign</x-dashboard.th>
-            <x-dashboard.th>Reward</x-dashboard.th>
-            <x-dashboard.th>Slots left</x-dashboard.th>
-            <x-dashboard.th>ETA</x-dashboard.th>
-            <x-dashboard.th></x-dashboard.th>
-        </x-slot:head>
-        @foreach ($campaigns as $campaign)
-            <tr class="hover:bg-muted/50">
-                <x-dashboard.td class="font-medium">{{ $campaign->title }}</x-dashboard.td>
-                <x-dashboard.td>₦{{ number_format((float) $campaign->locked_agent_reward, 2) }}</x-dashboard.td>
-                <x-dashboard.td>{{ $campaign->availableStartSlots() }}</x-dashboard.td>
-                <x-dashboard.td>{{ $campaign->estimated_minutes ? $campaign->estimated_minutes.' min' : '-' }}</x-dashboard.td>
-                <x-dashboard.td>
-                    <x-dashboard.button :href="route('agent.marketplace.show', $campaign)" variant="link" size="xs">View</x-dashboard.button>
-                </x-dashboard.td>
-            </tr>
-        @endforeach
-    </x-dashboard.table>
+    @if ($campaigns->isEmpty())
+        <x-dashboard.card>
+            <x-dashboard.empty-state
+                icon="listings"
+                title="No open campaigns"
+                description="Check back soon for new tasks from creators."
+            />
+        </x-dashboard.card>
+    @else
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+            @foreach ($campaigns as $campaign)
+                @include('dashboard.agent.marketplace._card', ['campaign' => $campaign])
+            @endforeach
+        </div>
+    @endif
 
     <div class="mt-4">{{ $campaigns->links() }}</div>
 </x-layout.page>

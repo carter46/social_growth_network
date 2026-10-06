@@ -19,6 +19,10 @@
         <x-dashboard.button :href="route($prefix.'.banks.index')" variant="secondary" icon="withdraw">My Bank</x-dashboard.button>
     </x-slot:actions>
 
+    @if ($errors->any())
+        <x-dashboard.alert type="warning" class="mb-4">{{ $errors->first() }}</x-dashboard.alert>
+    @endif
+
     @if ($hasOpen ?? false)
         <x-dashboard.alert type="info" class="mb-4">
             You have a withdrawal in progress. New requests are blocked until it completes.

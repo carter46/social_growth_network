@@ -293,4 +293,94 @@ class CampaignMarketplaceTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         app(\App\Services\Campaigns\CampaignWatchSessionService::class)->start($participation);
     }
+
+    public function test_marketplace_shows_task_cards_and_detail_tiles(): void
+    {
+        $creator = User::factory()->creator()->create();
+        $agent = User::factory()->agent()->kycApproved()->create();
+        \App\Models\Wallet::factory()->create(['user_id' => $agent->id, 'balance' => 0]);
+
+        $campaign = Campaign::query()->create([
+            'creator_id' => $creator->id,
+            'title' => 'Card campaign',
+            'target_url' => 'https://example.com/post',
+            'quantity' => 3,
+            'completed_count' => 0,
+            'locked_creator_price' => 3000,
+            'locked_agent_reward' => 120,
+            'estimated_minutes' => 4,
+            'status' => Campaign::STATUS_ACTIVE,
+        ]);
+
+        $this->actingAs($agent)->get(route('agent.marketplace'))
+            ->assertOk()
+            ->assertSee('Card campaign')
+            ->assertSee('₦120.00', false)
+            ->assertSee('View task')
+            ->assertDontSee('<table', false);
+
+        $this->actingAs($agent)->get(route('agent.marketplace.show', $campaign))
+            ->assertOk()
+            ->assertSee('Slots left')
+            ->assertSee('Estimated time')
+            ->assertSee('https://example.com/post');
+    }
+
+    public function test_watch_task_starts_session_without_reload_and_has_no_open_platform_link(): void
+    {
+        $creator = User::factory()->creator()->create();
+        $agent = User::factory()->agent()->kycApproved()->create();
+        \App\Models\Wallet::factory()->create(['user_id' => $agent->id, 'balance' => 0]);
+
+        $campaign = Campaign::query()->create([
+            'creator_id' => $creator->id,
+            'title' => 'YT watch hours',
+            'target_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            'engagement_metric' => 'watch_hours',
+            'quantity' => 1,
+            'completed_count' => 0,
+            'locked_creator_price' => 1000,
+            'locked_agent_reward' => 50,
+            'estimated_minutes' => 1,
+            'status' => Campaign::STATUS_ACTIVE,
+            'meta' => ['platform' => 'youtube', 'product_slug' => 'youtube-watch-hours'],
+        ]);
+
+        $participation = app(CampaignParticipationService::class)->start($agent, $campaign);
+
+        $this->actingAs($agent)->get(route('agent.tasks.show', $participation))
+            ->assertOk()
+            ->assertSee('youtube.com/embed/', false)
+            ->assertSee('Press the play button on the video below')
+            ->assertDontSee('Open on platform');
+
+        $this->actingAs($agent)
+            ->postJson(route('agent.tasks.start-watch', $participation))
+            ->assertOk()
+            ->assertJsonStructure(['token', 'required_seconds'])
+            ->assertJson(['required_seconds' => 60]);
+    }
+
+    public function test_withdrawal_page_explains_insufficient_balance_instead_of_redirecting(): void
+    {
+        \App\Models\SystemSetting::set('kyc_required', '0');
+        $agent = User::factory()->agent()->kycApproved()->create();
+        \App\Models\Wallet::factory()->create(['user_id' => $agent->id, 'balance' => 0, 'locked_balance' => 0]);
+        \App\Models\UserBankAccount::create([
+            'user_id' => $agent->id,
+            'bank_name' => 'GTBank',
+            'bank_code' => '058',
+            'account_number' => '0123456789',
+            'verified_name' => 'Agent Name',
+            'verified_at' => now(),
+            'verified_by' => 'monnify',
+            'active' => true,
+        ]);
+
+        $this->actingAs($agent)->get(route('agent.withdrawal.create'))
+            ->assertOk()
+            ->assertSee('Insufficient balance')
+            ->assertSee('Find tasks')
+            ->assertDontSee('Send email code');
+    }
 }

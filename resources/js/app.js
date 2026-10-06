@@ -395,43 +395,91 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
-    Alpine.data('watchTaskModal', (opts = {}) => ({
-        requiredSeconds: Number(opts.requiredSeconds || 60),
-        token: opts.token || null,
-        claimUrl: opts.claimUrl || '',
-        csrf: opts.csrf || '',
-        remaining: Number(opts.requiredSeconds || 60),
-        done: false,
-        timer: null,
-        get display() {
-            const s = Math.max(0, this.remaining);
-            const m = Math.floor(s / 60);
-            const r = s % 60;
-            return `${m}:${String(r).padStart(2, '0')}`;
-        },
-        init() {
-            if (!this.token) return;
-            this.remaining = this.requiredSeconds;
-            this.timer = setInterval(() => {
-                if (this.remaining <= 1) {
-                    this.remaining = 0;
-                    this.done = true;
-                    clearInterval(this.timer);
-                    return;
-                }
-                this.remaining -= 1;
-            }, 1000);
-            window.addEventListener('beforeunload', this._warn);
-        },
-        _warn(e) {
+    Alpine.data('watchTaskModal', (opts = {}) => {
+        // Kept outside Alpine's reactive proxy so add/removeEventListener get the same function.
+        const warnBeforeLeaving = (e) => {
             e.preventDefault();
             e.returnValue = '';
-        },
-        destroy() {
-            if (this.timer) clearInterval(this.timer);
-            window.removeEventListener('beforeunload', this._warn);
-        },
-    }));
+        };
+
+        return {
+            requiredSeconds: Number(opts.requiredSeconds || 60),
+            token: opts.token || null,
+            startUrl: opts.startUrl || '',
+            claimUrl: opts.claimUrl || '',
+            csrf: opts.csrf || '',
+            remaining: Number(opts.requiredSeconds || 60),
+            done: false,
+            starting: false,
+            claiming: false,
+            error: '',
+            timer: null,
+            get display() {
+                const s = Math.max(0, this.remaining);
+                const m = Math.floor(s / 60);
+                const r = s % 60;
+                return `${m}:${String(r).padStart(2, '0')}`;
+            },
+            init() {
+                if (this.token) this.runTimer();
+            },
+            async start() {
+                if (this.starting || this.token) return;
+                this.starting = true;
+                this.error = '';
+                try {
+                    const response = await fetch(this.startUrl, {
+                        method: 'POST',
+                        headers: {
+                            Accept: 'application/json',
+                            'X-CSRF-TOKEN': this.csrf,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        credentials: 'same-origin',
+                    });
+                    const data = await response.json().catch(() => ({}));
+                    if (!response.ok || !data.token) {
+                        this.error = data.message || 'Could not start the watch session. Refresh the page and try again.';
+                        return;
+                    }
+                    this.token = data.token;
+                    this.requiredSeconds = Number(data.required_seconds || this.requiredSeconds);
+                    this.runTimer();
+                } catch {
+                    this.error = 'Could not start the watch session. Check your connection and try again.';
+                } finally {
+                    this.starting = false;
+                }
+            },
+            runTimer() {
+                this.remaining = this.requiredSeconds;
+                this.done = false;
+                if (this.timer) clearInterval(this.timer);
+                window.addEventListener('beforeunload', warnBeforeLeaving);
+                this.timer = setInterval(() => {
+                    if (this.remaining <= 1) {
+                        this.remaining = 0;
+                        this.finish();
+                        return;
+                    }
+                    this.remaining -= 1;
+                }, 1000);
+            },
+            finish() {
+                this.done = true;
+                if (this.timer) clearInterval(this.timer);
+                window.removeEventListener('beforeunload', warnBeforeLeaving);
+            },
+            claim() {
+                this.claiming = true;
+                window.removeEventListener('beforeunload', warnBeforeLeaving);
+            },
+            destroy() {
+                if (this.timer) clearInterval(this.timer);
+                window.removeEventListener('beforeunload', warnBeforeLeaving);
+            },
+        };
+    });
 
     Alpine.data('platformCheckout', (variants = [], options = {}) => assignAlpineHelpers(
         {},
