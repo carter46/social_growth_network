@@ -8,6 +8,8 @@ use App\Models\Transaction;
 use App\Models\WalletFunding;
 use App\Modules\Admin\Services\AuditLogService;
 use App\Modules\Admin\Services\FinancialAuditLog;
+use App\Modules\Wallet\Payments\Contracts\PaymentRailInterface;
+use App\Modules\Wallet\Services\DepositCheckoutService;
 use App\Modules\Wallet\Services\WalletService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,6 +23,8 @@ class WalletFundingController extends Controller
         private WalletService $walletService,
         private AuditLogService $audit,
         private FinancialAuditLog $financialAudit,
+        private DepositCheckoutService $deposits,
+        private PaymentRailInterface $rail,
     ) {}
 
     public function index(): View
@@ -38,22 +42,28 @@ class WalletFundingController extends Controller
             return back()->with('error', __('Manual bank wallet deposits are no longer accepted. Use gateway funding or confirm an order payment under Orders.'));
         }
 
+        if ($funding->status === 'approved' || $funding->internal_status === 'completed') {
+            return back()->with('status', __('Deposit already approved.'));
+        }
+
+        // Wallets are only credited for payments the gateway confirms; admins cannot credit unpaid deposits.
+        if (! $funding->provider_payment_reference || ! $this->rail->isConfigured()) {
+            return back()->with('error', __('This deposit cannot be checked with the payment gateway, so the wallet was not credited.'));
+        }
+
         $walletBefore = $funding->wallet?->replicate();
 
         try {
-            $this->walletService->creditFromFunding(
-                $funding,
-                auth()->id(),
-                $request->ip(),
-                substr((string) $request->userAgent(), 0, 255),
-                $request->input('reason', 'Bank deposit verified'),
-            );
-        } catch (\InvalidArgumentException $e) {
-            if ($funding->fresh()->status === 'approved') {
-                return back()->with('status', __('Deposit already approved.'));
-            }
-
+            $funding = $this->deposits->completeFromReturn($funding->provider_payment_reference);
+        } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
+        }
+
+        if ($funding->status !== 'approved' && $funding->internal_status !== 'completed') {
+            return back()->with('error', __(':gateway has not confirmed this payment (status: :status). The wallet was not credited.', [
+                'gateway' => $this->rail->displayName(),
+                'status' => $funding->provider_status ?: 'unknown',
+            ]));
         }
 
         $funding->refresh();
@@ -70,7 +80,7 @@ class WalletFundingController extends Controller
             $request->header('X-Request-Id'),
         );
 
-        return back()->with('status', __('Deposit approved and wallet credited.'));
+        return back()->with('status', __('Payment confirmed by :gateway. Wallet credited.', ['gateway' => $this->rail->displayName()]));
     }
 
     public function reject(WalletFunding $funding, Request $request): RedirectResponse

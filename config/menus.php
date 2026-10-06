@@ -187,7 +187,6 @@ return [
                 ['route' => 'admin.orders', 'match' => ['admin.orders', 'admin.orders.*'], 'label' => 'Orders', 'icon' => 'orders', 'keywords' => ['platform', 'manual bank', 'services'], 'permission' => 'finance.manage', 'sort' => 12],
                 ['route' => 'admin.withdrawals', 'match' => ['admin.withdrawals', 'admin.withdrawals.*'], 'label' => 'Withdrawals', 'icon' => 'withdraw', 'keywords' => ['payouts'], 'permission' => 'finance.manage', 'sort' => 20],
                 ['route' => 'admin.reconciliation', 'match' => ['admin.reconciliation', 'admin.reconciliation.*'], 'label' => 'Reconciliation', 'icon' => 'audit', 'keywords' => ['monnify', 'webhooks', 'fix'], 'permission' => 'finance.manage', 'sort' => 25],
-                ['route' => 'admin.wallet-adjustment', 'match' => ['admin.wallet-adjustment', 'admin.wallet-adjustment.*'], 'label' => 'Wallet Adjustments', 'icon' => 'wallet-adjust', 'keywords' => ['credit', 'debit', 'adjust'], 'permission' => 'finance.manage', 'sort' => 30],
                 ['route' => 'admin.transactions', 'match' => ['admin.transactions', 'admin.transactions.*'], 'label' => 'Transactions', 'icon' => 'transactions', 'keywords' => ['ledger', 'history'], 'permission' => 'finance.manage', 'sort' => 40],
             ],
         ],

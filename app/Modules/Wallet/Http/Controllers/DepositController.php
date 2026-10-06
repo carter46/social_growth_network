@@ -34,7 +34,7 @@ class DepositController extends Controller
         return view('dashboard.user.deposit.index', [
             'fundings' => $fundings,
             'wallet' => $user->wallet,
-            'monnifyEnabled' => $this->checkout->monnifyEnabled(),
+            'gatewayEnabled' => $this->checkout->gatewayEnabled(),
         ]);
     }
 
@@ -52,7 +52,7 @@ class DepositController extends Controller
             'wallet' => auth()->user()->wallet,
             'depositMin' => (float) SystemSetting::get('deposit_min_amount', 100),
             'reservedAllowed' => $this->checkout->reservedAccountsAllowed(auth()->user()),
-            'monnifyEnabled' => $this->checkout->monnifyEnabled(),
+            'gatewayEnabled' => $this->checkout->gatewayEnabled(),
         ]);
     }
 
@@ -104,8 +104,15 @@ class DepositController extends Controller
                 ->with('status', __('Payment confirmed. Wallet credited.'));
         }
 
+        $providerStatus = strtoupper((string) $funding->provider_status);
+
+        if (in_array($providerStatus, ['FAILED', 'CANCELLED', 'ABANDONED', 'EXPIRED', 'REVERSED'], true)) {
+            return redirect()->route('dashboard.deposit.show', $funding)
+                ->with('error', __('Payment was not completed. Your wallet has not been credited.'));
+        }
+
         return redirect()->route('dashboard.deposit.show', $funding)
-            ->with('status', __('Payment received. Waiting for final confirmation.'));
+            ->with('info', __('Payment not confirmed yet. If you did not finish paying, tap Continue payment. If you already paid, your wallet will be credited once the payment is confirmed.'));
     }
 
     public function show(WalletFunding $funding): View|RedirectResponse

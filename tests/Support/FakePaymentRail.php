@@ -22,9 +22,22 @@ class FakePaymentRail implements PaymentRailInterface, SupportsTransferAuthoriza
 
     public static ?string $lastAuthorizeCode = null;
 
+    /** @var array<string, mixed> */
+    public static array $verifyResult = ['paymentStatus' => 'PAID'];
+
     public function isConfigured(): bool
     {
         return self::$configured;
+    }
+
+    public function providerKey(): string
+    {
+        return 'monnify';
+    }
+
+    public function displayName(): string
+    {
+        return 'Test gateway';
     }
 
     public function initializeCheckout(array $payload): array
@@ -39,7 +52,7 @@ class FakePaymentRail implements PaymentRailInterface, SupportsTransferAuthoriza
 
     public function verifyTransaction(string $paymentReference): array
     {
-        return ['paymentStatus' => 'PAID'];
+        return self::$verifyResult;
     }
 
     public function resolveAccount(string $accountNumber, string $bankCode): array
@@ -97,6 +110,7 @@ class FakePaymentRail implements PaymentRailInterface, SupportsTransferAuthoriza
         self::$transferStatus = ['status' => 'SUCCESS'];
         self::$authorizeResult = ['status' => 'SUCCESS'];
         self::$configured = true;
+        self::$verifyResult = ['paymentStatus' => 'PAID'];
         self::$lastAuthorizeReference = null;
         self::$lastAuthorizeCode = null;
     }

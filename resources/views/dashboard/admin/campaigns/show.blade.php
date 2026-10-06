@@ -162,7 +162,8 @@
         </x-dashboard.card>
     </div>
 
-    <x-dashboard.card class="mb-4" x-data="{ selected: @js($campaign->status), help: @js($statusHelp) }">
+    <x-dashboard.card class="mb-4">
+        <div x-data="{ selected: @js($campaign->status), help: @js($statusHelp) }">
         <form method="POST" action="{{ route('admin.campaigns.status', $campaign) }}" class="flex flex-wrap items-end gap-3">
             @csrf
             <div>
@@ -176,6 +177,7 @@
             <x-dashboard.button type="submit" size="sm">Save</x-dashboard.button>
         </form>
         <p class="mt-2 text-xs text-text-muted" x-text="help[selected] ?? ''">{{ $statusHelp[$campaign->status] ?? '' }}</p>
+        </div>
     </x-dashboard.card>
 
     <h2 class="mb-2 text-sm font-semibold">Participations</h2>

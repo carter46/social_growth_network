@@ -522,7 +522,7 @@ class PlatformCheckoutService
                     'total_amount' => $checkout['total'],
                     'status' => 'pending',
                     'payment_method' => 'gateway',
-                    'payment_provider' => 'monnify',
+                    'payment_provider' => $this->paymentRail->providerKey(),
                     'provider_payment_reference' => $paymentReference,
                     'idempotency_key' => $idempotencyKey,
                 ]);

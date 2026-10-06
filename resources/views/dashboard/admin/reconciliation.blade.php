@@ -18,7 +18,6 @@
 
     <x-dashboard.table :empty="$rows->isEmpty()" empty-title="Nothing to reconcile" empty-description="Stuck or mismatched payments will appear here." empty-icon="audit" striped>
         <x-slot:head>
-            <x-dashboard.th>Reference</x-dashboard.th>
             <x-dashboard.th>User</x-dashboard.th>
             <x-dashboard.th>Amount</x-dashboard.th>
             <x-dashboard.th>Monnify</x-dashboard.th>
@@ -29,8 +28,10 @@
         </x-slot:head>
         @foreach ($rows as $row)
             <tr>
-                <x-dashboard.td class="font-medium text-sm">{{ $row['reference'] }}</x-dashboard.td>
-                <x-dashboard.td class="text-sm">{{ $row['user'] }}</x-dashboard.td>
+                <x-dashboard.td class="text-sm">
+                    <span class="font-medium text-text-primary">{{ $row['user'] }}</span>
+                    <span class="mt-0.5 block text-xs text-text-muted">{{ $row['reference'] }}</span>
+                </x-dashboard.td>
                 <x-dashboard.td>₦{{ number_format($row['amount'], 2) }}</x-dashboard.td>
                 <x-dashboard.td>{{ $row['monnify_status'] ?: '—' }}</x-dashboard.td>
                 <x-dashboard.td>{{ $row['ledger_status'] }}</x-dashboard.td>

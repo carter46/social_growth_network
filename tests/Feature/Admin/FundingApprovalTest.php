@@ -5,13 +5,49 @@ namespace Tests\Feature\Admin;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Models\WalletFunding;
+use App\Modules\Wallet\Payments\Contracts\PaymentRailInterface;
 use App\Modules\Wallet\Services\WalletProvisioningService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\FakePaymentRail;
 use Tests\TestCase;
 
 class FundingApprovalTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        FakePaymentRail::reset();
+        $this->app->bind(PaymentRailInterface::class, FakePaymentRail::class);
+    }
+
+    public function test_admin_cannot_credit_gateway_deposit_the_gateway_has_not_confirmed(): void
+    {
+        $user = User::factory()->kycApproved()->create(['email_verified_at' => now()]);
+        $user->assignRole('user');
+        app(WalletProvisioningService::class)->createWallet($user);
+        $user->refresh();
+
+        $funding = WalletFunding::create([
+            'user_id' => $user->id,
+            'wallet_id' => $user->wallet->id,
+            'method' => 'monnify_checkout',
+            'amount' => 5000,
+            'currency' => 'NGN',
+            'status' => 'pending',
+            'reference' => 'DEP-TEST-003',
+            'provider_payment_reference' => 'DEP-TEST-003',
+        ]);
+        FakePaymentRail::$verifyResult = ['paymentStatus' => 'PENDING', 'amountPaid' => '0'];
+
+        $this->actingAs($this->admin())
+            ->post(route('admin.fundings.approve', $funding))
+            ->assertSessionHas('error');
+
+        $this->assertEquals(0.0, (float) $user->wallet->fresh()->balance);
+        $this->assertNotSame('approved', $funding->fresh()->status);
+    }
 
     private function admin(): User
     {
@@ -65,7 +101,9 @@ class FundingApprovalTest extends TestCase
             'currency' => 'NGN',
             'status' => 'pending',
             'reference' => 'DEP-TEST-002',
+            'provider_payment_reference' => 'DEP-TEST-002',
         ]);
+        FakePaymentRail::$verifyResult = ['paymentStatus' => 'PAID', 'amountPaid' => '3000.00'];
 
         $admin = $this->admin();
         $this->actingAs($admin)->post(route('admin.fundings.approve', $funding));

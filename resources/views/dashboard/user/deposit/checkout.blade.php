@@ -12,7 +12,7 @@
         ['Checkout', null],
     ]"
 >
-    @if (! $monnifyEnabled)
+    @if (! $gatewayEnabled)
         <x-dashboard.alert type="warning" class="mb-4">
             Online checkout is not configured yet. Please contact support for wallet funding options.
         </x-dashboard.alert>

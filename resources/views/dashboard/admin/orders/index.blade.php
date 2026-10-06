@@ -21,7 +21,6 @@
 
     <x-dashboard.table :empty="$orders->isEmpty()" empty-title="No orders" empty-description="Platform service orders appear here." empty-icon="orders" striped>
         <x-slot:head>
-            <x-dashboard.th>Reference</x-dashboard.th>
             <x-dashboard.th>User</x-dashboard.th>
             <x-dashboard.th>Payment</x-dashboard.th>
             <x-dashboard.th>Amount</x-dashboard.th>
@@ -30,10 +29,10 @@
         </x-slot:head>
         @foreach ($orders as $order)
             <tr>
-                <x-dashboard.td class="font-medium">
-                    <a href="{{ route('admin.orders.show', $order) }}" class="underline">{{ $order->reference }}</a>
+                <x-dashboard.td>
+                    <span class="font-medium text-text-primary">{{ \App\Models\User::labelFor($order->user) }}</span>
+                    <a href="{{ route('admin.orders.show', $order) }}" class="mt-0.5 block text-xs text-text-muted underline hover:text-primary">{{ $order->reference }}</a>
                 </x-dashboard.td>
-                <x-dashboard.td>{{ \App\Models\User::labelFor($order->user) }}</x-dashboard.td>
                 <x-dashboard.td>{{ str_replace('_', ' ', $order->payment_method ?? '—') }}</x-dashboard.td>
                 <x-dashboard.td>₦{{ number_format((float) $order->total_amount, 2) }}</x-dashboard.td>
                 <x-dashboard.td>

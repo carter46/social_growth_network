@@ -54,11 +54,11 @@
                     @if ($f->status === 'pending')
                         <x-dashboard.modal
                             name="approve-funding-{{ $f->id }}"
-                            title="Approve deposit?"
-                            confirm-label="Approve"
+                            title="Verify payment with the gateway?"
+                            confirm-label="Verify and credit"
                             :form-action="route('admin.fundings.approve', $f)"
                         >
-                            Credit ₦{{ number_format($f->amount, 2) }} to {{ \App\Models\User::labelFor($f->user) }}?
+                            We will check this payment with the payment gateway. ₦{{ number_format($f->amount, 2) }} is credited to {{ \App\Models\User::labelFor($f->user) }} only if the gateway confirms it was paid.
                         </x-dashboard.modal>
                         <x-dashboard.modal
                             name="reject-funding-{{ $f->id }}"

@@ -20,9 +20,19 @@ class DepositCheckoutService
         private MonnifyPaymentRail $monnify,
     ) {}
 
-    public function monnifyEnabled(): bool
+    public function gatewayEnabled(): bool
     {
         return $this->rail->isConfigured();
+    }
+
+    public function gatewayName(): string
+    {
+        return $this->rail->displayName();
+    }
+
+    private function checkoutMethod(): string
+    {
+        return $this->rail->providerKey().'_checkout';
     }
 
     public function reservedAccountsAllowed(User $user): bool
@@ -68,7 +78,7 @@ class DepositCheckoutService
 
         $this->assertDepositKyc($user);
 
-        if (! $this->monnifyEnabled()) {
+        if (! $this->gatewayEnabled()) {
             throw new InvalidArgumentException('Card/transfer checkout is not available right now.');
         }
 
@@ -80,7 +90,7 @@ class DepositCheckoutService
         return DB::transaction(function () use ($user, $amount, $redirectUrl) {
             $open = WalletFunding::query()
                 ->where('user_id', $user->id)
-                ->where('method', 'monnify_checkout')
+                ->where('method', $this->checkoutMethod())
                 ->whereIn('status', ['pending', 'processing'])
                 ->where('amount', $amount)
                 ->where(function ($q) {
@@ -100,12 +110,12 @@ class DepositCheckoutService
             $funding = WalletFunding::create([
                 'user_id' => $user->id,
                 'wallet_id' => $user->wallet->id,
-                'method' => 'monnify_checkout',
+                'method' => $this->checkoutMethod(),
                 'amount' => $amount,
                 'currency' => 'NGN',
                 'status' => 'pending',
                 'internal_status' => 'pending',
-                'provider' => 'monnify',
+                'provider' => $this->rail->providerKey(),
                 'provider_payment_reference' => $paymentReference,
                 'reference' => $paymentReference,
             ]);
@@ -130,7 +140,7 @@ class DepositCheckoutService
                 'provider_status' => 'PENDING',
             ]);
 
-            PaymentTimelineEvent::record($funding, 'sent_to_provider', 'Sent to Monnify');
+            PaymentTimelineEvent::record($funding, 'sent_to_provider', 'Sent to '.$this->rail->displayName());
 
             return $funding->fresh();
         });
@@ -169,7 +179,7 @@ class DepositCheckoutService
             throw new InvalidArgumentException('Agents cannot receive deposit credits.');
         }
 
-        PaymentTimelineEvent::record($funding, 'verified', 'Payment verified with Monnify');
+        PaymentTimelineEvent::record($funding, 'verified', 'Payment verified with '.$this->rail->displayName());
         $this->wallets->creditFromFunding($funding);
 
         return $funding->fresh();
@@ -188,7 +198,7 @@ class DepositCheckoutService
             throw new InvalidArgumentException('Complete KYC to get a reserved deposit account.');
         }
 
-        if (! $this->monnifyEnabled()) {
+        if (! $this->gatewayEnabled()) {
             throw new InvalidArgumentException('Reserved accounts are not available right now.');
         }
 

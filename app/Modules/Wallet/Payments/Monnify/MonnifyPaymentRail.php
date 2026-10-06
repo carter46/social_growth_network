@@ -15,6 +15,16 @@ class MonnifyPaymentRail implements PaymentRailInterface, SupportsTransferAuthor
         return $this->client->isConfigured();
     }
 
+    public function providerKey(): string
+    {
+        return 'monnify';
+    }
+
+    public function displayName(): string
+    {
+        return 'Monnify';
+    }
+
     public function initializeCheckout(array $payload): array
     {
         $body = [

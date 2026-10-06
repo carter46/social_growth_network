@@ -6,6 +6,12 @@ interface PaymentRailInterface
 {
     public function isConfigured(): bool;
 
+    /** Short machine key stored on fundings/orders, e.g. "monnify". */
+    public function providerKey(): string;
+
+    /** Human name shown to users and admins, e.g. "Monnify". */
+    public function displayName(): string;
+
     /**
      * @param  array{amount: float|string, paymentReference: string, customerName: string, customerEmail: string, redirectUrl: string, paymentDescription?: string}  $payload
      * @return array{checkoutUrl: string, transactionReference: string, paymentReference: string, amount: float|string}

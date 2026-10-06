@@ -21,7 +21,6 @@ use App\Modules\Admin\Http\Controllers\KycController as AdminKycController;
 use App\Modules\Admin\Http\Controllers\SettingsController as AdminSettingsController;
 use App\Modules\Admin\Http\Controllers\TrackingSettingsController;
 use App\Modules\Admin\Http\Controllers\SupportTicketAdminController;
-use App\Modules\Admin\Http\Controllers\WalletAdjustmentController;
 use App\Modules\Admin\Http\Controllers\WalletFundingController as AdminWalletFundingController;
 use App\Modules\Admin\Http\Controllers\WithdrawalAdminController;
 use App\Http\Controllers\Dashboard\NotificationController as UserNotificationController;
@@ -486,8 +485,6 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::post('/reconciliation/fundings/{funding}/fix', [ReconciliationController::class, 'fixFunding'])->name('.reconciliation.fix-funding');
         Route::post('/reconciliation/withdrawals/{withdrawal}/sync', [ReconciliationController::class, 'syncWithdrawal'])->name('.reconciliation.sync-withdrawal');
         Route::get('/transactions', [AdminDashboardController::class, 'transactions'])->name('.transactions');
-        Route::get('/wallet-adjustment', [WalletAdjustmentController::class, 'create'])->name('.wallet-adjustment');
-        Route::post('/wallet-adjustment', [WalletAdjustmentController::class, 'store'])->name('.wallet-adjustment.store');
     });
 
     Route::middleware('permission:catalog.manage')->group(function () {
