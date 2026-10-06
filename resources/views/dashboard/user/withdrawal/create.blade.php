@@ -27,7 +27,17 @@
             <form method="POST" action="{{ route($prefix.'.withdrawal.otp') }}" class="space-y-4">
                 @csrf
                 <input type="hidden" name="user_bank_account_id" value="{{ $bank->id }}">
-                <x-dashboard.input label="Amount (NGN)" type="number" name="amount" min="100" step="0.01" :value="old('amount')" required />
+                <x-dashboard.input
+                        label="Amount (NGN)"
+                        type="number"
+                        name="amount"
+                        :min="$withdrawalMin"
+                        :max="$withdrawalMax"
+                        step="0.01"
+                        :value="old('amount')"
+                        :hint="'Min ₦'.number_format($withdrawalMin, 2).' · Max ₦'.number_format($withdrawalMax, 2)"
+                        required
+                    />
                 <x-dashboard.input type="password" name="password" label="Confirm your password" required autocomplete="current-password" />
                 <x-dashboard.button type="submit" icon="withdraw">Send email code</x-dashboard.button>
             </form>

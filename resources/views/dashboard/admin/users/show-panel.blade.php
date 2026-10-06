@@ -121,13 +121,18 @@
             <x-slot:head>
                 <x-dashboard.th>Subject</x-dashboard.th>
                 <x-dashboard.th>Status</x-dashboard.th>
-                <x-dashboard.th>Date</x-dashboard.th>
             </x-slot:head>
             @foreach ($tickets as $ticket)
                 <tr>
-                    <x-dashboard.td>{{ $ticket->subject ?? ('Ticket #'.$ticket->id) }}</x-dashboard.td>
+                    <x-dashboard.td>
+                        @if (Route::has('admin.tickets.show'))
+                            <a href="{{ route('admin.tickets.show', $ticket) }}" class="text-text-primary hover:text-primary hover:underline">{{ $ticket->subject ?? ('Ticket #'.$ticket->id) }}</a>
+                        @else
+                            {{ $ticket->subject ?? ('Ticket #'.$ticket->id) }}
+                        @endif
+                        <span class="mt-0.5 block text-xs text-text-muted">#{{ $ticket->id }} · {{ $ticket->created_at->format('M j, Y H:i') }}</span>
+                    </x-dashboard.td>
                     <x-dashboard.td><x-dashboard.badge :status="$ticket->status" /></x-dashboard.td>
-                    <x-dashboard.td class="text-xs text-text-muted">{{ $ticket->created_at->format('j M Y') }}</x-dashboard.td>
                 </tr>
             @endforeach
         </x-dashboard.table>

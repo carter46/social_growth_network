@@ -32,8 +32,10 @@ class SupportTicketAdminController extends Controller
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
+                $username = ltrim($search, '@');
                 $q->where('subject', 'like', '%'.$search.'%')
-                    ->orWhere('body', 'like', '%'.$search.'%');
+                    ->orWhere('body', 'like', '%'.$search.'%')
+                    ->orWhereHas('user', fn ($u) => $u->where('username', 'like', '%'.$username.'%'));
                 if (is_numeric($search)) {
                     $q->orWhere('id', (int) $search);
                 }

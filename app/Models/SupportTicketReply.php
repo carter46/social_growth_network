@@ -11,11 +11,14 @@ class SupportTicketReply extends Model
     /** @use HasFactory<\Database\Factories\SupportTicketReplyFactory> */
     use HasFactory;
 
-    protected $fillable = ['support_ticket_id', 'user_id', 'body', 'is_staff'];
+    protected $fillable = ['support_ticket_id', 'user_id', 'body', 'is_staff', 'emailed_at'];
 
     protected function casts(): array
     {
-        return ['is_staff' => 'boolean'];
+        return [
+            'is_staff' => 'boolean',
+            'emailed_at' => 'datetime',
+        ];
     }
 
     public function ticket(): BelongsTo

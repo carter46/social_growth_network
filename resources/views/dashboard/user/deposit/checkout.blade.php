@@ -20,7 +20,16 @@
         <x-dashboard.card class="mb-6">
             <form method="POST" action="{{ route('dashboard.deposit.store-checkout') }}" class="space-y-4" x-data="{ submitting: false }" @submit="submitting = true">
                 @csrf
-                <x-dashboard.input type="number" name="amount" label="Amount (NGN)" :min="$depositMin" step="0.01" required />
+                <x-dashboard.input
+                    type="number"
+                    name="amount"
+                    label="Amount (NGN)"
+                    :min="$depositMin"
+                    :max="$depositMax"
+                    step="0.01"
+                    :hint="'Min ₦'.number_format($depositMin, 2).' · Max ₦'.number_format($depositMax, 2).' per payment'"
+                    required
+                />
                 <x-dashboard.button type="submit" icon="deposit" x-bind:disabled="submitting">Continue to payment</x-dashboard.button>
             </form>
         </x-dashboard.card>

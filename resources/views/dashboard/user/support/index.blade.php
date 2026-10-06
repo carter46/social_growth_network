@@ -71,33 +71,80 @@
                 <x-dashboard.button :href="route($prefix.'.support.create')" size="sm" variant="ghost" icon="plus">New ticket</x-dashboard.button>
             </div>
 
-            <x-dashboard.table
-                :empty="$tickets->isEmpty()"
-                empty-title="No tickets yet"
-                empty-description="Open a ticket if email and the help center do not solve your issue."
-                empty-icon="support"
-                :empty-action="['href' => route($prefix.'.support.create'), 'label' => 'Open Ticket']"
-                striped
-            >
-                <x-slot:head>
-                    <x-dashboard.th>Subject</x-dashboard.th>
-                    <x-dashboard.th>Category</x-dashboard.th>
-                    <x-dashboard.th>Status</x-dashboard.th>
-                    <x-dashboard.th></x-dashboard.th>
-                </x-slot:head>
-                @foreach ($tickets as $t)
-                    <tr class="hover:bg-muted/50">
-                        <x-dashboard.td class="font-medium">{{ $t->subject }}</x-dashboard.td>
-                        <x-dashboard.td>{{ \App\Models\SupportTicket::categoryLabel($t->category) }}</x-dashboard.td>
-                        <x-dashboard.td>
-                            <x-dashboard.badge :status="$t->status === 'open' ? 'pending' : 'completed'">{{ $t->status }}</x-dashboard.badge>
-                        </x-dashboard.td>
-                        <x-dashboard.td>
-                            <x-dashboard.button :href="route($prefix.'.support.show', $t)" variant="link" size="xs">View</x-dashboard.button>
-                        </x-dashboard.td>
-                    </tr>
-                @endforeach
-            </x-dashboard.table>
+            @php
+                $unreadBadge = function (int $count): string {
+                    if ($count < 1) {
+                        return '';
+                    }
+
+                    return '<span class="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white" aria-label="'.e(trans_choice(':count new reply|:count new replies', $count)).'">'.($count > 9 ? '9+' : $count).'</span>';
+                };
+            @endphp
+
+            <div @class(['hidden md:block' => $tickets->isNotEmpty()])>
+                <x-dashboard.table
+                    :empty="$tickets->isEmpty()"
+                    empty-title="No tickets yet"
+                    empty-description="Open a ticket if email and the help center do not solve your issue."
+                    empty-icon="support"
+                    :empty-action="['href' => route($prefix.'.support.create'), 'label' => 'Open Ticket']"
+                    striped
+                >
+                    <x-slot:head>
+                        <x-dashboard.th>Subject</x-dashboard.th>
+                        <x-dashboard.th>Category</x-dashboard.th>
+                        <x-dashboard.th>Status</x-dashboard.th>
+                        <x-dashboard.th></x-dashboard.th>
+                    </x-slot:head>
+                    @foreach ($tickets as $t)
+                        <tr class="hover:bg-muted/50">
+                            <x-dashboard.td class="font-medium">
+                                {{ $t->subject }}
+                                <span class="mt-0.5 block text-xs font-normal text-text-muted">#{{ $t->id }} · {{ $t->created_at->format('M j, Y') }}</span>
+                            </x-dashboard.td>
+                            <x-dashboard.td>{{ \App\Models\SupportTicket::categoryLabel($t->category) }}</x-dashboard.td>
+                            <x-dashboard.td><x-dashboard.badge :status="$t->status" /></x-dashboard.td>
+                            <x-dashboard.td class="text-right">
+                                <x-dashboard.button :href="route($prefix.'.support.show', $t)" variant="secondary" size="xs" class="relative">
+                                    View{!! $unreadBadge((int) $t->unread_staff_replies_count) !!}
+                                </x-dashboard.button>
+                            </x-dashboard.td>
+                        </tr>
+                    @endforeach
+                </x-dashboard.table>
+            </div>
+
+            @if ($tickets->isNotEmpty())
+                <div class="space-y-2 md:hidden">
+                    @foreach ($tickets as $t)
+                        <details class="group rounded-xl border border-border-default bg-elevated">
+                            <summary class="flex cursor-pointer list-none items-center gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-sm font-medium text-text-primary">{{ $t->subject }}</p>
+                                    <p class="mt-0.5 text-xs text-text-muted">#{{ $t->id }} · {{ $t->created_at->format('M j, Y') }}</p>
+                                </div>
+                                @if ((int) $t->unread_staff_replies_count > 0)
+                                    <span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-white">{{ $t->unread_staff_replies_count > 9 ? '9+' : $t->unread_staff_replies_count }}</span>
+                                @endif
+                                <x-ui.icon name="chevron-down" class="h-4 w-4 shrink-0 text-text-muted transition-transform group-open:rotate-180" />
+                            </summary>
+                            <div class="space-y-2 px-4 pb-4">
+                                <div class="rounded-xl bg-muted/40 px-4 py-3">
+                                    <p class="text-xs text-text-muted">Category</p>
+                                    <p class="mt-0.5 text-sm text-text-primary">{{ \App\Models\SupportTicket::categoryLabel($t->category) }}</p>
+                                </div>
+                                <div class="rounded-xl bg-muted/40 px-4 py-3">
+                                    <p class="text-xs text-text-muted">Status</p>
+                                    <div class="mt-1"><x-dashboard.badge :status="$t->status" /></div>
+                                </div>
+                                <x-dashboard.button :href="route($prefix.'.support.show', $t)" variant="secondary" size="sm" class="relative w-full">
+                                    View ticket{!! $unreadBadge((int) $t->unread_staff_replies_count) !!}
+                                </x-dashboard.button>
+                            </div>
+                        </details>
+                    @endforeach
+                </div>
+            @endif
 
             <div class="mt-4">
                 <x-dashboard.pagination :paginator="$tickets" />

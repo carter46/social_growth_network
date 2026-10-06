@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SupportAttachment;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketReply;
+use App\Models\UserNotification;
 use App\Modules\Support\Services\SupportAttachmentService;
 use App\Services\Communications\Contact\PlatformContactRepository;
 use App\Support\MemberShell;
@@ -30,6 +31,7 @@ class SupportTicketController extends Controller
         try {
             $tickets = SupportTicket::query()
                 ->where('user_id', auth()->id())
+                ->withUnreadStaffReplies()
                 ->orderByDesc('created_at')
                 ->paginate(15);
         } catch (\Throwable $e) {
@@ -88,6 +90,20 @@ class SupportTicketController extends Controller
     {
         $this->authorize('view', $ticket);
 
+        if ((int) $ticket->user_id === (int) auth()->id()) {
+            SupportTicket::query()->whereKey($ticket->id)->toBase()->update(['user_read_at' => now()]);
+
+            $ticketUrl = $ticket->memberUrl();
+            if ($ticketUrl) {
+                UserNotification::query()
+                    ->where('user_id', $ticket->user_id)
+                    ->where('type', 'like', 'ticket.%')
+                    ->where('action_url', $ticketUrl)
+                    ->whereNull('read_at')
+                    ->update(['read_at' => now()]);
+            }
+        }
+
         $ticket->load([
             'replies.user',
             'attachments' => fn ($q) => $q->where('expires_at', '>', now())->orderBy('id'),
@@ -125,6 +141,10 @@ class SupportTicketController extends Controller
             $request->user(),
             $reply
         );
+
+        if (! $isStaff && $ticket->status === 'awaiting_user') {
+            $ticket->update(['status' => 'open']);
+        }
 
         TicketReplied::dispatch($ticket->id, (int) auth()->id(), $isStaff);
 

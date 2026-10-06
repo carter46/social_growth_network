@@ -5,7 +5,7 @@
 @section('content')
 <x-layout.page
     title="Fees & Limits"
-    subtitle="Operational fee and amount limits for deposits, withdrawals, and escrow releases."
+    subtitle="Amount limits for creator wallet deposits and agent withdrawals."
     width="full"
     :breadcrumb="[
         ['Admin', route('admin')],
@@ -18,21 +18,21 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                 <div class="w-full">
                     <x-dashboard.input
-                        name="platform_fee_percent"
+                        name="deposit_min_amount"
                         type="number"
-                        label="Platform fee (%)"
-                        step="0.01"
-                        :value="old('platform_fee_percent', $platformFeePercent)"
-                        hint="Deducted from escrow release to seller."
+                        label="Minimum deposit (NGN)"
+                        :value="old('deposit_min_amount', $depositMinAmount)"
+                        hint="Smallest amount a creator can add to their wallet in one payment."
                         required
                     />
                 </div>
                 <div class="w-full">
                     <x-dashboard.input
-                        name="deposit_min_amount"
+                        name="deposit_max_amount"
                         type="number"
-                        label="Minimum deposit (NGN)"
-                        :value="old('deposit_min_amount', $depositMinAmount)"
+                        label="Maximum deposit (NGN)"
+                        :value="old('deposit_max_amount', $depositMaxAmount)"
+                        hint="Largest amount a creator can add to their wallet in one payment."
                         required
                     />
                 </div>
@@ -42,6 +42,7 @@
                         type="number"
                         label="Minimum withdrawal (NGN)"
                         :value="old('withdrawal_min_amount', $withdrawalMinAmount)"
+                        hint="Smallest amount an agent can withdraw in one request."
                         required
                     />
                 </div>
@@ -51,6 +52,7 @@
                         type="number"
                         label="Maximum withdrawal (NGN)"
                         :value="old('withdrawal_max_amount', $withdrawalMaxAmount)"
+                        hint="Largest amount an agent can withdraw in one request."
                         required
                     />
                 </div>

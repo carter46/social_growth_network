@@ -24,7 +24,7 @@
     <x-dashboard.card class="mb-4">
         <form method="GET" action="{{ route('admin.tickets') }}" class="flex flex-wrap gap-3 items-end">
             <div class="min-w-[16rem] flex-1">
-                <x-dashboard.input name="q" label="Search" :value="$search" placeholder="Subject, body, or ticket ID..." />
+                <x-dashboard.input name="q" label="Search" :value="$search" placeholder="Subject, username, or ticket ID..." />
             </div>
             <x-dashboard.button type="submit" variant="secondary">Search</x-dashboard.button>
         </form>

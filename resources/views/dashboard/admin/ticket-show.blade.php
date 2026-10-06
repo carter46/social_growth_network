@@ -45,41 +45,12 @@
                 </form>
             </div>
         </div>
-        <div class="mt-4 text-text-secondary whitespace-pre-wrap text-sm">{{ $ticket->body }}</div>
-        @include('dashboard.user.support._attachments', [
-            'attachments' => ($ticket->attachments ?? collect())->whereNull('support_ticket_reply_id'),
-        ])
     </x-dashboard.card>
 
-    @foreach ($ticket->replies as $reply)
-        <x-dashboard.card
-            variant="solid"
-            class="mb-3 {{ $reply->is_staff ? 'border-primary/30 bg-primary/5' : '' }}"
-        >
-            <p class="text-xs text-text-muted mb-1">
-                {{ \App\Models\User::labelFor($reply->user) }}
-                @if ($reply->is_staff)
-                    <span class="text-primary font-medium">(Staff)</span>
-                @endif
-                — {{ $reply->created_at->format('M j, H:i') }}
-            </p>
-            <p class="text-text-secondary text-sm whitespace-pre-wrap">{{ $reply->body }}</p>
-            @include('dashboard.user.support._attachments', [
-                'attachments' => ($ticket->attachments ?? collect())->where('support_ticket_reply_id', $reply->id),
-            ])
-        </x-dashboard.card>
-    @endforeach
-
-    <x-dashboard.card variant="solid">
-        <form method="POST" action="{{ route('admin.tickets.reply', $ticket) }}" enctype="multipart/form-data" class="space-y-4" x-data="{ submitting: false }" @submit="submitting = true">
-            @csrf
-            <x-dashboard.textarea name="body" label="Staff reply" :rows="4" required />
-            <div>
-                <label class="block text-sm font-medium mb-1">Attachments</label>
-                <input type="file" name="attachments[]" multiple accept="image/*,.pdf,.doc,.docx,.txt" class="block w-full text-sm">
-            </div>
-            <x-dashboard.button type="submit" variant="primary" x-bind:disabled="submitting">Send reply</x-dashboard.button>
-        </form>
-    </x-dashboard.card>
+    @include('dashboard.user.support._thread', [
+        'viewer' => 'staff',
+        'replyAction' => route('admin.tickets.reply', $ticket),
+        'submitLabel' => __('Send reply'),
+    ])
 </x-layout.page>
 @endsection

@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Route;
 
 class SupportTicket extends Model
 {
@@ -68,7 +71,13 @@ class SupportTicket extends Model
         'status',
         'priority',
         'assigned_to',
+        'user_read_at',
     ];
+
+    protected function casts(): array
+    {
+        return ['user_read_at' => 'datetime'];
+    }
 
     public function user(): BelongsTo
     {
@@ -83,6 +92,32 @@ class SupportTicket extends Model
     public function replies(): HasMany
     {
         return $this->hasMany(SupportTicketReply::class);
+    }
+
+    public function memberUrl(): ?string
+    {
+        if ($this->user?->hasRole('agent') && Route::has('agent.support.show')) {
+            return route('agent.support.show', $this);
+        }
+
+        return Route::has('dashboard.support.show') ? route('dashboard.support.show', $this) : null;
+    }
+
+    public function latestReply(): HasOne
+    {
+        return $this->hasOne(SupportTicketReply::class)->latestOfMany();
+    }
+
+    /** Staff replies the ticket owner has not opened yet. */
+    public function scopeWithUnreadStaffReplies(Builder $query): Builder
+    {
+        return $query->withCount(['replies as unread_staff_replies_count' => function (Builder $q) {
+            $q->where('is_staff', true)
+                ->where(function (Builder $w) {
+                    $w->whereNull('support_tickets.user_read_at')
+                        ->orWhereColumn('support_ticket_replies.created_at', '>', 'support_tickets.user_read_at');
+                });
+        }]);
     }
 
     public function attachments(): HasMany

@@ -22,7 +22,7 @@ class ServiceCategoryAdminController extends Controller
     public function index(): View
     {
         $categories = ServiceCategory::query()
-            ->system()
+            ->listed()
             ->with(['cardMedia.variants', 'bannerMedia.variants'])
             ->withCount('services')
             ->orderBy('sort_order')

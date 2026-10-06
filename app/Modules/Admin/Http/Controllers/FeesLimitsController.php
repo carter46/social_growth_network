@@ -18,20 +18,23 @@ class FeesLimitsController extends Controller
     public function index(): View
     {
         return view('dashboard.admin.fees-limits', [
-            'platformFeePercent' => SystemSetting::get('platform_fee_percent', '2.5'),
             'withdrawalMinAmount' => SystemSetting::get('withdrawal_min_amount', '100'),
             'withdrawalMaxAmount' => SystemSetting::get('withdrawal_max_amount', '1000000'),
             'depositMinAmount' => SystemSetting::get('deposit_min_amount', '100'),
+            'depositMaxAmount' => SystemSetting::get('deposit_max_amount', '1000000'),
         ]);
     }
 
     public function update(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'platform_fee_percent' => ['required', 'numeric', 'min:0', 'max:50'],
             'withdrawal_min_amount' => ['required', 'numeric', 'min:1'],
             'withdrawal_max_amount' => ['required', 'numeric', 'min:1', 'gte:withdrawal_min_amount'],
             'deposit_min_amount' => ['required', 'numeric', 'min:1'],
+            'deposit_max_amount' => ['required', 'numeric', 'min:1', 'gte:deposit_min_amount'],
+        ], [
+            'withdrawal_max_amount.gte' => 'Maximum withdrawal must be at least the minimum withdrawal.',
+            'deposit_max_amount.gte' => 'Maximum deposit must be at least the minimum deposit.',
         ]);
 
         $keys = array_keys($validated);

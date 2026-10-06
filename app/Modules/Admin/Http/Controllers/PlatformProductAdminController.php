@@ -67,7 +67,7 @@ class PlatformProductAdminController extends Controller
         return view('dashboard.admin.platform-products', [
             'products' => $products,
             'types' => PlatformProductType::cases(),
-            'serviceCategories' => ServiceCategory::query()->system()->orderBy('sort_order')->orderBy('name')->get(),
+            'serviceCategories' => ServiceCategory::query()->listed()->orderBy('sort_order')->orderBy('name')->get(),
             'services' => ProductType::query()
                 ->with('serviceCategory')
                 ->whereHas('serviceCategory', fn ($q) => $q->system())

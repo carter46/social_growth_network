@@ -7,7 +7,11 @@
             <li>
                 <a
                     href="{{ $attachment->temporaryUrl() }}"
-                    class="inline-flex items-center gap-1 rounded-lg border border-border-default px-2 py-1 text-xs text-primary hover:bg-muted/50"
+                    @class([
+                        'inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs',
+                        'border-white/40 text-white hover:bg-white/10' => $onPrimary ?? false,
+                        'border-border-default bg-elevated text-primary hover:bg-muted/50' => ! ($onPrimary ?? false),
+                    ])
                     target="_blank"
                     rel="noopener"
                 >

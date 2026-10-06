@@ -34,6 +34,8 @@ class ReconcileMonnifyPaymentsCommand extends Command
         $fundings = WalletFunding::query()
             ->whereNotNull('provider_payment_reference')
             ->whereIn('status', ['pending', 'processing'])
+            ->where(fn ($q) => $q->whereNull('internal_status')
+                ->orWhere('internal_status', '!=', DepositCheckoutService::HELD_OVER_LIMIT))
             ->where('created_at', '<', $cutoff)
             ->limit(50)
             ->get();

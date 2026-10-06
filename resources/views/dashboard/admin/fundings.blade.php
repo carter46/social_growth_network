@@ -29,7 +29,13 @@
                 </x-dashboard.td>
                 <x-dashboard.td>{{ $f->method }}</x-dashboard.td>
                 <x-dashboard.td>₦{{ number_format($f->amount, 2) }}</x-dashboard.td>
-                <x-dashboard.td><x-dashboard.badge :status="$f->status" /></x-dashboard.td>
+                @php $isHeld = $f->internal_status === \App\Modules\Wallet\Services\DepositCheckoutService::HELD_OVER_LIMIT; @endphp
+                <x-dashboard.td>
+                    <x-dashboard.badge :status="$f->status" />
+                    @if ($isHeld)
+                        <span class="mt-1 block text-xs font-medium text-warning">Held: over max deposit</span>
+                    @endif
+                </x-dashboard.td>
                 <x-dashboard.td>
                     @php
                         $hasProof = ! empty($f->metadata['proof_path'] ?? null);
@@ -68,6 +74,9 @@
                             :form-action="route('admin.fundings.reject', $f)"
                         >
                             This will mark the funding as rejected. No wallet credit will be issued.
+                            @if ($isHeld)
+                                The gateway already received this money, so refund it from the gateway dashboard.
+                            @endif
                         </x-dashboard.modal>
                     @elseif ($f->status === 'approved')
                         <x-dashboard.modal

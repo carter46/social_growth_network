@@ -8,12 +8,20 @@ use App\Models\User;
 use App\Models\WalletFunding;
 use App\Modules\Wallet\Payments\Contracts\PaymentRailInterface;
 use App\Modules\Wallet\Payments\Monnify\MonnifyPaymentRail;
+use App\Services\Notifications\AdminPaymentAlertNotifier;
+use App\Services\Notifications\NotificationDispatcher;
+use App\Services\Notifications\NotificationMessage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 class DepositCheckoutService
 {
+    /** Reserved-account payment above deposit_max_amount: recorded but not credited until an admin verifies it. */
+    public const HELD_OVER_LIMIT = 'held_over_limit';
+
     public function __construct(
         private PaymentRailInterface $rail,
         private WalletService $wallets,
@@ -87,6 +95,11 @@ class DepositCheckoutService
             throw new InvalidArgumentException('Amount is below the minimum deposit.');
         }
 
+        $depositMax = (float) SystemSetting::get('deposit_max_amount', 1000000);
+        if ($amount > $depositMax) {
+            throw new InvalidArgumentException('Amount is above the maximum deposit.');
+        }
+
         return DB::transaction(function () use ($user, $amount, $redirectUrl) {
             $open = WalletFunding::query()
                 ->where('user_id', $user->id)
@@ -146,13 +159,20 @@ class DepositCheckoutService
         });
     }
 
-    public function completeFromReturn(string $paymentReference): WalletFunding
+    /**
+     * @param  bool  $releaseHeld  Only an admin action may credit a payment held for being over the deposit limit.
+     */
+    public function completeFromReturn(string $paymentReference, bool $releaseHeld = false): WalletFunding
     {
         $funding = WalletFunding::query()
             ->where('provider_payment_reference', $paymentReference)
             ->firstOrFail();
 
         if ($funding->status === 'approved' || $funding->internal_status === 'completed') {
+            return $funding;
+        }
+
+        if ($funding->internal_status === self::HELD_OVER_LIMIT && ! $releaseHeld) {
             return $funding;
         }
 
@@ -263,7 +283,7 @@ class DepositCheckoutService
                 return null;
             }
 
-            if ($existing->internal_status !== 'completed') {
+            if (! in_array($existing->internal_status, ['completed', self::HELD_OVER_LIMIT], true)) {
                 $this->wallets->creditFromFunding($existing);
             }
 
@@ -286,14 +306,17 @@ class DepositCheckoutService
             return null;
         }
 
+        $depositMax = (string) SystemSetting::get('deposit_max_amount', 1000000);
+        $overLimit = bccomp($amountPaid, $depositMax, 2) > 0;
+
         $funding = WalletFunding::create([
             'user_id' => $wallet->user_id,
             'wallet_id' => $wallet->id,
             'method' => 'monnify_reserved',
             'amount' => $amountPaid,
             'currency' => 'NGN',
-            'status' => 'processing',
-            'internal_status' => 'processing',
+            'status' => $overLimit ? 'pending' : 'processing',
+            'internal_status' => $overLimit ? self::HELD_OVER_LIMIT : 'processing',
             'provider' => 'monnify',
             'provider_payment_reference' => $paymentReference,
             'provider_transaction_reference' => $verified['transactionReference'] ?? null,
@@ -305,6 +328,14 @@ class DepositCheckoutService
         ]);
 
         PaymentTimelineEvent::record($funding, 'created', 'Reserved account payment');
+
+        if ($overLimit) {
+            PaymentTimelineEvent::record($funding, 'held', 'Held for admin review: above the maximum deposit');
+            $this->notifyDepositHeld($funding, $owner, $depositMax);
+
+            return $funding;
+        }
+
         $this->wallets->creditFromFunding($funding);
 
         return $funding;
@@ -333,5 +364,37 @@ class DepositCheckoutService
             'reserved_bank_name' => null,
             'reserved_account_reference' => null,
         ]);
+    }
+
+    private function notifyDepositHeld(WalletFunding $funding, ?User $owner, string $depositMax): void
+    {
+        try {
+            app(AdminPaymentAlertNotifier::class)->depositHeld(
+                (string) $funding->reference,
+                (string) $funding->amount,
+                $depositMax,
+                ['funding_id' => $funding->id]
+            );
+
+            if ($owner) {
+                app(NotificationDispatcher::class)->notifyUser(
+                    $owner,
+                    new NotificationMessage(
+                        type: 'wallet.deposit_held',
+                        title: __('Deposit under review'),
+                        body: __('We received ₦:amount, which is above the ₦:max maximum deposit. Our team will review it before it is added to your wallet.', [
+                            'amount' => number_format((float) $funding->amount, 2),
+                            'max' => number_format((float) $depositMax, 2),
+                        ]),
+                        actionUrl: Route::has('dashboard.wallet') ? route('dashboard.wallet') : null,
+                        meta: ['funding_id' => $funding->id],
+                        emailSubject: __('Your deposit is under review'),
+                        dedupeKey: 'wallet.deposit_held.'.$funding->id,
+                    )
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::warning('deposit.held_notify_failed', ['funding_id' => $funding->id, 'error' => $e->getMessage()]);
+        }
     }
 }

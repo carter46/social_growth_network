@@ -54,7 +54,7 @@ class WalletFundingController extends Controller
         $walletBefore = $funding->wallet?->replicate();
 
         try {
-            $funding = $this->deposits->completeFromReturn($funding->provider_payment_reference);
+            $funding = $this->deposits->completeFromReturn($funding->provider_payment_reference, releaseHeld: true);
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
         }

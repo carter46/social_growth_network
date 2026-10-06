@@ -61,6 +61,14 @@ class ServiceCategory extends Model
         return $query->whereIn('key', $keys);
     }
 
+    /** Legacy umbrella categories that own no products; hidden from admin lists. */
+    public const LEGACY_KEYS = ['social'];
+
+    public function scopeListed(Builder $query): Builder
+    {
+        return $query->system()->whereNotIn('key', self::LEGACY_KEYS);
+    }
+
     public static function findByKey(string $key): ?self
     {
         return static::query()->where('key', $key)->first();

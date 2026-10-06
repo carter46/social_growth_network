@@ -9,6 +9,7 @@ use App\Events\WalletWithdrawalCompleted;
 use App\Events\WithdrawalPayoutFailed;
 use App\Models\Order;
 use App\Models\SupportTicket;
+use App\Models\SupportTicketReply;
 use App\Models\User;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Notifications\NotificationEmailRenderer;
@@ -178,20 +179,37 @@ class NotifyUsersFromEvent
             return;
         }
 
+        // Only the first staff reply is emailed; later ones are in-app until
+        // support:remind-unanswered emails a reminder after 24h without a user reply.
+        $isFirstStaffReply = $this->claimFirstStaffReplyEmail($ticket);
+
         $this->dispatcher->notifyUser(
             $ticket->user,
             new NotificationMessage(
                 type: 'ticket.replied',
                 title: __('Support replied'),
                 body: __('A staff member replied to ticket #:id.', ['id' => $ticket->id]),
-                actionUrl: $ticket->user->hasRole('agent') && Route::has('agent.support.show')
-                    ? route('agent.support.show', $ticket)
-                    : (Route::has('dashboard.support.show') ? route('dashboard.support.show', $ticket) : null),
+                actionUrl: $ticket->memberUrl(),
                 meta: ['ticket_id' => $ticket->id],
                 emailSubject: __('Support replied to your ticket'),
             ),
-            ['database', 'mail']
+            $isFirstStaffReply ? ['database', 'mail'] : ['database']
         );
+    }
+
+    /** Atomically marks the ticket's first staff reply as emailed; false if any staff reply was already emailed. */
+    private function claimFirstStaffReplyEmail(SupportTicket $ticket): bool
+    {
+        $staffReplies = $ticket->replies()->where('is_staff', true);
+
+        if ((clone $staffReplies)->whereNotNull('emailed_at')->exists()) {
+            return false;
+        }
+
+        $firstId = (clone $staffReplies)->orderBy('id')->value('id');
+
+        return $firstId !== null
+            && SupportTicketReply::query()->whereKey($firstId)->whereNull('emailed_at')->update(['emailed_at' => now()]) === 1;
     }
 
     private function withdrawalsUrl(User $user): ?string

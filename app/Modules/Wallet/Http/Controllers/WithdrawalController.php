@@ -3,6 +3,7 @@
 namespace App\Modules\Wallet\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\SystemSetting;
 use App\Models\Withdrawal;
 use App\Modules\Wallet\Services\WithdrawalConfirmationService;
 use App\Support\MemberShell;
@@ -53,6 +54,8 @@ class WithdrawalController extends Controller
             'wallet' => $user->wallet,
             'bank' => $user->activeBankAccount,
             'step' => session('withdrawal_step', 'confirm'),
+            'withdrawalMin' => (float) SystemSetting::get('withdrawal_min_amount', 100),
+            'withdrawalMax' => (float) SystemSetting::get('withdrawal_max_amount', 1000000),
             'layout' => MemberShell::layout(),
             'prefix' => $prefix,
         ]);

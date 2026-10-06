@@ -231,8 +231,10 @@ class MonnifyWebhookProcessor
                 return;
             }
 
-            app(\App\Modules\Wallet\Services\DepositCheckoutService::class)->creditReservedPayment($verified);
-            $this->paymentAlerts->gatewayUnmatched($paymentReference, ['webhook_id' => $webhook->id]);
+            $reserved = app(\App\Modules\Wallet\Services\DepositCheckoutService::class)->creditReservedPayment($verified);
+            if (! $reserved) {
+                $this->paymentAlerts->gatewayUnmatched($paymentReference, ['webhook_id' => $webhook->id]);
+            }
 
             return;
         }
@@ -240,6 +242,12 @@ class MonnifyWebhookProcessor
         PaymentTimelineEvent::record($funding, 'webhook_received', 'Webhook received', [
             'webhook_id' => $webhook->id,
         ]);
+
+        if ($funding->internal_status === \App\Modules\Wallet\Services\DepositCheckoutService::HELD_OVER_LIMIT) {
+            $funding->update(['provider_status' => $status]);
+
+            return;
+        }
 
         if (bccomp($amountPaid, (string) $funding->amount, 2) !== 0) {
             $funding->update(['provider_status' => $status]);

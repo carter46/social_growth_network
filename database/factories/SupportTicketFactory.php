@@ -17,7 +17,7 @@ class SupportTicketFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'category' => fake()->randomElement(SupportTicket::CATEGORIES),
+            'category' => fake()->randomElement(array_keys(SupportTicket::CREATOR_CATEGORIES)),
             'subject' => fake()->sentence(6),
             'body' => fake()->paragraph(),
             'status' => 'open',

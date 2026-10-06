@@ -30,6 +30,17 @@ class AdminPaymentAlertNotifier
         );
     }
 
+    public function depositHeld(string $reference, string $amount, string $max, array $meta = []): void
+    {
+        $this->notify(
+            type: 'payment.deposit_held',
+            title: 'Deposit held: above maximum',
+            body: 'Reserved account payment '.$reference.' of NGN '.number_format((float) $amount, 2).' is above the NGN '.number_format((float) $max, 2).' maximum deposit and was not credited. Verify and credit it, or reject it and refund from the gateway dashboard.',
+            dedupeKey: 'payment.deposit_held.'.$reference,
+            meta: $meta,
+        );
+    }
+
     public function disbursementFailed(string $reference, string $status, array $meta = []): void
     {
         $this->notify(

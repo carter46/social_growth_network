@@ -104,7 +104,7 @@ class ReconciliationController extends Controller
         }
 
         try {
-            $this->deposits->completeFromReturn($funding->provider_payment_reference);
+            $this->deposits->completeFromReturn($funding->provider_payment_reference, releaseHeld: true);
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
         }
