@@ -7,6 +7,7 @@ use App\Models\IntegrationProvider;
 use App\Models\User;
 use App\Models\UserAuthProvider;
 use App\Modules\Admin\Services\AuditLogService;
+use App\Services\Referrals\ReferralAttribution;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -223,6 +224,13 @@ class SocialAuthService
 
         $role = $accountType === 'agent' ? 'agent' : 'user';
         $user->assignRole($role);
+
+        $referrals = app(ReferralAttribution::class);
+        $referrals->attach($user, $referrals->rememberedCode());
+
+        if ($role === 'agent') {
+            $user->ensureReferralCode();
+        }
 
         event(new Registered($user));
         UserRegistered::dispatch($user->id);

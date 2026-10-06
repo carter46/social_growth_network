@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Services\Auth\Identity\SocialAuthService;
+use App\Services\Referrals\ReferralAttribution;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,6 +15,7 @@ class GoogleAuthController extends Controller
 {
     public function __construct(
         private readonly SocialAuthService $socialAuth,
+        private readonly ReferralAttribution $referrals,
     ) {}
 
     public function store(Request $request): RedirectResponse|JsonResponse
@@ -21,7 +23,16 @@ class GoogleAuthController extends Controller
         $validated = $request->validate([
             'credential' => ['required', 'string'],
             'account_type' => ['nullable', 'in:creator,agent'],
+            'referral_code' => ['nullable', 'string', 'max:32'],
         ]);
+
+        if (filled($validated['referral_code'] ?? null)) {
+            $referrer = $this->referrals->findReferrer($validated['referral_code']);
+            if (! $referrer) {
+                return $this->failure($request, __('This referral code is not valid.'));
+            }
+            $request->session()->put(ReferralAttribution::SESSION_KEY, $referrer->referral_code);
+        }
 
         try {
             $result = $this->socialAuth->authenticateWithGoogle(
@@ -31,6 +42,8 @@ class GoogleAuthController extends Controller
         } catch (\Throwable $e) {
             return $this->failure($request, $e->getMessage());
         }
+
+        $request->session()->forget(ReferralAttribution::SESSION_KEY);
 
         Auth::login($result['user'], true);
         $request->session()->regenerate();

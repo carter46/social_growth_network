@@ -54,7 +54,34 @@ class SettingsController extends Controller
             'socialLinks' => SocialLink::query()->orderBy('sort_order')->orderBy('id')->get(),
             'googleIdentity' => IntegrationProvider::forProvider(IntegrationProvider::GOOGLE_IDENTITY),
             'googleIdentityJsOrigin' => rtrim((string) config('app.url'), '/'),
+            'referral' => SystemSetting::referralSettings(),
         ]);
+    }
+
+    public function updateReferrals(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'referral_enabled' => ['nullable', 'boolean'],
+            'referral_agent_percent' => ['required', 'numeric', 'min:0', 'max:100'],
+            'referral_creator_percent' => ['required', 'numeric', 'min:0', 'max:100'],
+        ]);
+
+        $old = SystemSetting::referralSettings();
+        $enabled = $request->boolean('referral_enabled');
+        $agentPercent = number_format((float) $validated['referral_agent_percent'], 2, '.', '');
+        $creatorPercent = number_format((float) $validated['referral_creator_percent'], 2, '.', '');
+
+        SystemSetting::set('referral_enabled', $enabled);
+        SystemSetting::set('referral_agent_percent', $agentPercent);
+        SystemSetting::set('referral_creator_percent', $creatorPercent);
+
+        $this->audit->log(auth()->id(), 'settings.referrals.updated', null, $old, [
+            'enabled' => $enabled,
+            'agent_percent' => $agentPercent,
+            'creator_percent' => $creatorPercent,
+        ], $request->ip());
+
+        return back()->with('status', __('Referral program settings saved.'));
     }
 
     public function emailSettings(): View

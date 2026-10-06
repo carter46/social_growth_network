@@ -6,6 +6,7 @@ use App\Models\GatewayOperation;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Modules\Wallet\Contracts\WalletProviderInterface;
+use App\Services\Referrals\ReferralCommissionService;
 use Illuminate\Support\Facades\Log;
 
 class WalletProvisioningService
@@ -71,6 +72,8 @@ class WalletProvisioningService
                 'idempotency_key' => $idempotencyKey,
             ]);
 
+            $this->releaseReferralCommissions($user);
+
             return $wallet;
         } catch (\Throwable $e) {
             $operation->update([
@@ -85,6 +88,18 @@ class WalletProvisioningService
             ]);
 
             throw $e;
+        }
+    }
+
+    private function releaseReferralCommissions(User $user): void
+    {
+        try {
+            app(ReferralCommissionService::class)->releasePending($user);
+        } catch (\Throwable $e) {
+            Log::channel('financial')->error('Referral commission release failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }

@@ -558,6 +558,45 @@ class WalletService
         });
     }
 
+    /**
+     * Claw back a credited referral commission. The balance may go below zero when the
+     * commission was already withdrawn; future earnings then cover the difference.
+     */
+    public function reverseReferralCommission(Transaction $original, string $reason): Transaction
+    {
+        if ($original->type !== TransactionType::ReferralCommission->value || bccomp((string) $original->amount, '0', 2) <= 0) {
+            throw new InvalidArgumentException('Only credited referral commissions can be reversed here.');
+        }
+
+        return DB::transaction(function () use ($original, $reason) {
+            $existing = Transaction::query()
+                ->where('reverses_transaction_id', $original->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($existing) {
+                return $existing;
+            }
+
+            $wallet = Wallet::where('id', $original->wallet_id)->lockForUpdate()->firstOrFail();
+            $reverseAmount = bcmul((string) $original->amount, '-1', 2);
+
+            $wallet->balance = bcadd((string) $wallet->balance, $reverseAmount, 2);
+            $wallet->save();
+
+            return $this->createLedgerEntry($wallet, [
+                'user_id' => $original->user_id,
+                'reverses_transaction_id' => $original->id,
+                'type' => TransactionType::ReferralCommission->value,
+                'label' => 'Referral commission reversed',
+                'description' => $reason,
+                'amount' => $reverseAmount,
+                'currency' => $original->currency,
+                'status' => 'completed',
+            ]);
+        });
+    }
+
     public function reverseTransaction(Transaction $original, string $reason, ?int $adminId = null): Transaction
     {
         if ($original->reverses_transaction_id) {

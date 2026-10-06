@@ -4,11 +4,14 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
+use App\Services\Referrals\ReferralCodeGenerator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
@@ -151,6 +154,52 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(SupportTicket::class);
     }
 
+    public function referrer(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'referred_by_id');
+    }
+
+    public function referrals(): HasMany
+    {
+        return $this->hasMany(self::class, 'referred_by_id');
+    }
+
+    public function referralCommissions(): HasMany
+    {
+        return $this->hasMany(ReferralCommission::class, 'referrer_id');
+    }
+
+    /**
+     * Only agents refer. An existing code is never replaced.
+     */
+    public function ensureReferralCode(): ?string
+    {
+        if ($this->referral_code) {
+            return $this->referral_code;
+        }
+
+        if (! $this->isAgent()) {
+            return null;
+        }
+
+        $generator = app(ReferralCodeGenerator::class);
+
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            try {
+                $this->forceFill(['referral_code' => $generator->generate()])->save();
+
+                return $this->referral_code;
+            } catch (UniqueConstraintViolationException $e) {
+                $this->referral_code = null;
+                if ($attempt === 2) {
+                    throw $e;
+                }
+            }
+        }
+
+        return null;
+    }
+
     public function suspend(?int $administratorId = null): bool
     {
         if ($this->is_suspended) {
@@ -247,6 +296,7 @@ class User extends Authenticatable implements MustVerifyEmail
                 'suspended_at' => $this->suspended_at ?? now(),
                 'suspended_by' => $administratorId ?? $this->suspended_by,
                 'anonymized_at' => now(),
+                'referral_code' => null,
             ])->save();
 
             $this->authProviders()->delete();
@@ -288,6 +338,7 @@ class User extends Authenticatable implements MustVerifyEmail
                         DB::transaction(function () use ($user) {
                             // Clear reverse refs that block delete (nullOnDelete columns).
                             static::query()->where('suspended_by', $user->id)->update(['suspended_by' => null]);
+                            static::query()->where('referred_by_id', $user->id)->update(['referred_by_id' => null]);
 
                             if (method_exists($user, 'roles')) {
                                 $user->roles()->detach();

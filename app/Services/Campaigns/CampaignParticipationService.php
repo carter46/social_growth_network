@@ -5,8 +5,10 @@ namespace App\Services\Campaigns;
 use App\Enums\TransactionType;
 use App\Models\Campaign;
 use App\Models\CampaignParticipation;
+use App\Models\ReferralCommission;
 use App\Models\User;
 use App\Modules\Wallet\Services\WalletService;
+use App\Services\Referrals\ReferralCommissionService;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -152,6 +154,22 @@ class CampaignParticipationService
                 'rejection_reason' => null,
                 'paid_at' => now(),
             ]);
+
+            if ($amount > 0 && $agent->referred_by_id) {
+                $paid = $participation->fresh();
+                DB::afterCommit(function () use ($agent, $paid) {
+                    try {
+                        app(ReferralCommissionService::class)->record(
+                            $agent,
+                            ReferralCommission::KIND_AGENT_EARNING,
+                            $paid,
+                            (string) $paid->reward_amount,
+                        );
+                    } catch (\Throwable $e) {
+                        report($e);
+                    }
+                });
+            }
 
             return $participation->fresh();
         });

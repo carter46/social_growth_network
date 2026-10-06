@@ -334,6 +334,46 @@
             </form>
         </x-dashboard.card>
 
+        {{-- Referral program --}}
+        <x-dashboard.card variant="solid" id="referral-program">
+            <h2 class="text-lg font-semibold text-text-primary mb-1">Referral program</h2>
+            <p class="text-sm text-text-secondary mb-4">
+                Only agents can refer. They earn a lifetime percentage of what the people they refer earn (agents) or spend (creators).
+                Each commission keeps the percentage in force when it was earned, so changes here only affect new earnings.
+            </p>
+
+            <form method="POST" action="{{ route('admin.settings.referrals') }}" class="space-y-4">
+                @csrf
+                <input type="hidden" name="referral_enabled" value="0">
+                <x-dashboard.toggle name="referral_enabled" label="Enable referral program" :checked="old('referral_enabled', $referral['enabled'])" value="1" />
+
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <x-dashboard.input
+                        name="referral_agent_percent"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        label="When an agent refers an agent (%)"
+                        :value="old('referral_agent_percent', $referral['agent_percent'])"
+                        hint="Percentage of every task reward the referred agent earns. Example: 50% of a ₦4 reward is ₦2."
+                    />
+                    <x-dashboard.input
+                        name="referral_creator_percent"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        label="When an agent refers a creator (%)"
+                        :value="old('referral_creator_percent', $referral['creator_percent'])"
+                        hint="Percentage of every paid order the referred creator places. This is paid out of the platform's margin."
+                    />
+                </div>
+
+                <x-dashboard.button type="submit" variant="primary">Save referral settings</x-dashboard.button>
+            </form>
+        </x-dashboard.card>
+
     </div>
 </x-layout.page>
 @endsection

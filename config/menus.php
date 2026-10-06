@@ -108,6 +108,16 @@ return [
         ],
         [
             'type' => 'link',
+            'id' => 'referrals',
+            'label' => 'Referrals',
+            'route' => 'agent.referrals',
+            'match' => ['agent.referrals'],
+            'icon' => 'users',
+            'keywords' => ['refer', 'invite', 'referral code', 'commission', 'earn'],
+            'sort' => 50,
+        ],
+        [
+            'type' => 'link',
             'id' => 'wallet',
             'label' => 'Wallet',
             'route' => 'agent.wallet',
@@ -197,7 +207,7 @@ return [
             'icon' => 'settings',
             'sort' => 60,
             'children' => [
-                ['route' => 'admin.settings', 'match' => ['admin.settings', 'admin.settings.branding', 'admin.settings.contact', 'admin.settings.social', 'admin.settings.google-identity', 'admin.settings.google-identity.test'], 'label' => 'Site Settings', 'icon' => 'settings', 'keywords' => ['platform', 'config', 'branding', 'contact'], 'permission' => 'system.manage', 'sort' => 5],
+                ['route' => 'admin.settings', 'match' => ['admin.settings', 'admin.settings.branding', 'admin.settings.contact', 'admin.settings.social', 'admin.settings.google-identity', 'admin.settings.google-identity.test', 'admin.settings.referrals'], 'label' => 'Site Settings', 'icon' => 'settings', 'keywords' => ['platform', 'config', 'branding', 'contact', 'referral'], 'permission' => 'system.manage', 'sort' => 5],
                 ['route' => 'admin.settings.email-settings', 'match' => ['admin.settings.email-settings', 'admin.settings.email', 'admin.settings.test-mail'], 'label' => 'Email Settings', 'icon' => 'messages', 'keywords' => ['brevo', 'smtp', 'mail'], 'permission' => 'system.manage', 'sort' => 6],
                 ['route' => 'admin.settings.payments', 'match' => ['admin.settings.payments', 'admin.settings.monnify', 'admin.settings.monnify.test', 'admin.settings.manual-bank-transfer'], 'label' => 'Payment Settings', 'icon' => 'wallet', 'keywords' => ['monnify', 'bank transfer', 'gateway'], 'permission' => 'system.manage', 'sort' => 7],
                 ['route' => 'admin.settings.api-integrations', 'match' => ['admin.settings.api-integrations', 'admin.settings.api-integrations.*'], 'label' => 'API Integrations', 'icon' => 'settings', 'keywords' => ['youtube', 'tiktok', 'meta', 'twitter', 'scrape', 'api'], 'permission' => 'system.manage', 'sort' => 8],

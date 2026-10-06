@@ -23,6 +23,7 @@ $scheduleCommand('support:remind-unanswered', 'support:remind-unanswered')->ever
 $scheduleCommand('cache:prune-stale-tags', 'cache:prune-stale-tags')->daily();
 
 $scheduleCommand('monnify:reconcile', 'monnify:reconcile')->everyFiveMinutes();
+$scheduleCommand('referrals:release-pending', 'referrals:release-pending')->hourly();
 
 $scheduleCommand('analytics:rollup-kpis', 'analytics:rollup-kpis')->hourly();
 $scheduleCommand('analytics:prune-activity', 'analytics:prune-activity')->daily()->at('04:00');

@@ -101,16 +101,16 @@ class SettingsTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('admin.fees-limits.update'), [
-                'platform_fee_percent' => 3,
                 'withdrawal_min_amount' => 500,
                 'withdrawal_max_amount' => 500000,
                 'deposit_min_amount' => 200,
+                'deposit_max_amount' => 5000000,
             ])
             ->assertRedirect()
             ->assertSessionHasNoErrors();
 
-        $this->assertSame('3', SystemSetting::get('platform_fee_percent'));
         $this->assertSame('500', SystemSetting::get('withdrawal_min_amount'));
+        $this->assertSame('5000000', SystemSetting::get('deposit_max_amount'));
         $this->assertDatabaseHas('audit_logs', ['action' => 'fees.updated']);
     }
 

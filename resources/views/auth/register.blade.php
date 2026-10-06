@@ -178,6 +178,27 @@
                            : (usernameMessage || 'Auto-filled from your name. You can edit it.')"
                     >Auto-filled from your name. You can edit it.</p>
                 </div>
+                <div class="space-y-1.5">
+                    <label for="signup-referral-code" class="block text-sm font-medium text-slate-600">
+                        Referral code <span class="font-normal text-slate-400">(optional)</span>
+                    </label>
+                    <input
+                        id="signup-referral-code"
+                        name="referral_code"
+                        type="text"
+                        value="{{ old('referral_code', $referralCode ?? '') }}"
+                        placeholder="e.g. AB3KX7PQ"
+                        autocomplete="off"
+                        autocapitalize="characters"
+                        maxlength="32"
+                        class="block w-full h-10 px-3 text-sm uppercase rounded-lg border bg-slate-50 text-slate-900 placeholder:normal-case placeholder:text-slate-400 focus-ring {{ $errors->has('referral_code') ? 'border-red-400' : 'border-slate-200' }}"
+                    >
+                    @error('referral_code')
+                        <p class="text-xs text-red-600">{{ $message }}</p>
+                    @else
+                        <p class="text-xs text-slate-500">Got a code from an agent? Enter it here.</p>
+                    @enderror
+                </div>
 
                 <div class="flex flex-col-reverse gap-2 sm:flex-row sm:items-center pt-1">
                     <button

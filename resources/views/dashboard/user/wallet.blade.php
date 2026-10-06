@@ -62,7 +62,7 @@
             @foreach ($transactions as $tx)
                 <tr class="hover:bg-muted/50">
                     <x-dashboard.td class="font-medium">{{ $tx->reference }}</x-dashboard.td>
-                    <x-dashboard.td>{{ $tx->type }}</x-dashboard.td>
+                    <x-dashboard.td>{{ \App\Enums\TransactionType::labelFor($tx->type) }}</x-dashboard.td>
                     <x-dashboard.td>₦{{ number_format($tx->amount, 2) }}</x-dashboard.td>
                     <x-dashboard.td><x-dashboard.badge :status="$tx->status" /></x-dashboard.td>
                 </tr>

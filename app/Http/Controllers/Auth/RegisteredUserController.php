@@ -6,6 +6,7 @@ use App\Events\UserRegistered;
 use App\Http\Controllers\Auth\OtpVerificationController;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Referrals\ReferralAttribution;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -17,22 +18,34 @@ use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
 {
+    public function __construct(
+        private ReferralAttribution $referrals,
+    ) {}
+
     /**
      * Display the registration view.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('auth.register');
+        return view('auth.register', [
+            'referralCode' => $this->rememberReferral($request),
+        ]);
     }
 
     /**
      * Display agent registration (pre-selects Agent on step 1).
      */
-    public function createAgent(): View
+    public function createAgent(Request $request): View
     {
         return view('auth.register', [
             'registerAsAgent' => true,
+            'referralCode' => $this->rememberReferral($request),
         ]);
+    }
+
+    private function rememberReferral(Request $request): ?string
+    {
+        return $this->referrals->remember($request);
     }
 
     /**
@@ -97,6 +110,16 @@ class RegisteredUserController extends Controller
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'terms' => ['accepted'],
+            'referral_code' => [
+                'nullable',
+                'string',
+                'max:32',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if (! $this->referrals->findReferrer((string) $value)) {
+                        $fail(__('This referral code is not valid.'));
+                    }
+                },
+            ],
         ]);
 
         $role = $request->string('account_type')->toString() === 'agent' ? 'agent' : 'user';
@@ -131,6 +154,14 @@ class RegisteredUserController extends Controller
         ]);
 
         $user->assignRole($role);
+
+        $this->referrals->attach($user, $request->has('referral_code')
+            ? (string) $request->input('referral_code')
+            : $this->referrals->rememberedCode($request));
+
+        if ($role === 'agent') {
+            $user->ensureReferralCode();
+        }
 
         event(new Registered($user));
         UserRegistered::dispatch($user->id);

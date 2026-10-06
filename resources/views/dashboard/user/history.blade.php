@@ -33,7 +33,7 @@
                 <x-dashboard.td class="min-w-0 font-medium">
                     <span class="block font-mono text-[10px] leading-snug break-all sm:text-xs">{{ $tx->reference }}</span>
                 </x-dashboard.td>
-                <x-dashboard.td class="whitespace-nowrap capitalize">{{ str_replace('_', ' ', $tx->type) }}</x-dashboard.td>
+                <x-dashboard.td class="whitespace-nowrap">{{ \App\Enums\TransactionType::labelFor($tx->type) }}</x-dashboard.td>
                 <x-dashboard.td class="min-w-0 break-words text-[11px] leading-snug sm:text-sm">{{ $tx->label }}</x-dashboard.td>
                 <x-dashboard.td class="whitespace-nowrap tabular-nums">₦{{ number_format($tx->amount, 2) }}</x-dashboard.td>
                 <x-dashboard.td class="whitespace-nowrap"><x-dashboard.badge :status="$tx->status" /></x-dashboard.td>

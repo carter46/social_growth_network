@@ -63,6 +63,18 @@ class SystemSetting extends Model
     }
 
     /**
+     * @return array{enabled: bool, agent_percent: float, creator_percent: float}
+     */
+    public static function referralSettings(): array
+    {
+        return [
+            'enabled' => static::enabled('referral_enabled', false),
+            'agent_percent' => max(0.0, min(100.0, (float) static::get('referral_agent_percent', '0'))),
+            'creator_percent' => max(0.0, min(100.0, (float) static::get('referral_creator_percent', '0'))),
+        ];
+    }
+
+    /**
      * @return array{bank_name: string, account_number: string, account_name: string, instructions: string}
      */
     public static function manualBankTransferDetails(): array

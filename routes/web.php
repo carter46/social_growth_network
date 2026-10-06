@@ -347,6 +347,8 @@ Route::middleware(['auth', 'verified', 'role:agent'])->prefix('agent')->name('ag
             ->name('.tasks.claim-watch');
     });
 
+    Route::get('/referrals', [\App\Http\Controllers\Agent\ReferralController::class, 'index'])->name('.referrals');
+
     Route::get('/marketplace', [\App\Http\Controllers\Agent\MarketplaceController::class, 'index'])->name('.marketplace');
     Route::get('/marketplace/{campaign}', [\App\Http\Controllers\Agent\MarketplaceController::class, 'show'])->name('.marketplace.show');
 
@@ -570,6 +572,7 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::post('/settings/monnify', [AdminSettingsController::class, 'updateMonnify'])->name('.settings.monnify');
         Route::post('/settings/monnify/test', [AdminSettingsController::class, 'testMonnify'])->name('.settings.monnify.test');
         Route::post('/settings/manual-bank-transfer', [AdminSettingsController::class, 'updateManualBankTransfer'])->name('.settings.manual-bank-transfer');
+        Route::post('/settings/referrals', [AdminSettingsController::class, 'updateReferrals'])->name('.settings.referrals');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('.audit-logs');
         Route::get('/newsletter', [\App\Modules\Admin\Http\Controllers\NewsletterSubscriberController::class, 'index'])->name('.newsletter');
         Route::get('/newsletter/export', [\App\Modules\Admin\Http\Controllers\NewsletterSubscriberController::class, 'export'])->name('.newsletter.export');

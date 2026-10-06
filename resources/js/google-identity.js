@@ -57,6 +57,11 @@ async function postCredential(root, credential) {
     if (accountType === 'creator' || accountType === 'agent') {
         payload.account_type = accountType;
     }
+    const referralInput = (root.closest('[data-account-type]') || document).querySelector('input[name="referral_code"]');
+    const referralCode = (referralInput?.value || '').trim();
+    if (referralCode !== '') {
+        payload.referral_code = referralCode;
+    }
 
     const res = await fetch(root.dataset.endpoint, {
         method: 'POST',
