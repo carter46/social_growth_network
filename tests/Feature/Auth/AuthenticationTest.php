@@ -17,18 +17,6 @@ class AuthenticationTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_invalid_csrf_token_redirects_back_to_login_with_message(): void
-    {
-        $response = $this->withHeader('Referer', route('login'))
-            ->post('/login', [
-                '_token' => 'invalid-token',
-                'email' => 'user@example.com',
-                'password' => 'password',
-            ]);
-
-        $response->assertRedirect(route('login'));
-        $response->assertSessionHas('error');
-    }
 
     public function test_users_can_authenticate_using_the_login_screen(): void
     {

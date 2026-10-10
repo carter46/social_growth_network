@@ -7,6 +7,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -39,22 +40,39 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('api', EnsureNotSuspended::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (TokenMismatchException $e, Request $request) {
+        // Laravel converts TokenMismatchException to a 419 HttpException before render callbacks run.
+        $exceptions->render(function (HttpException $e, Request $request) {
+            if (! $e->getPrevious() instanceof TokenMismatchException) {
+                return null;
+            }
+
+            $loggedIn = $request->user() !== null;
+            $message = $loggedIn
+                ? __('Your session was refreshed. Please try again.')
+                : __('Your session expired. Please log in again.');
+
             if ($request->expectsJson()) {
                 return response()->json([
-                    'message' => __('Your session expired. Please refresh the page and try again.'),
+                    'message' => $message,
+                    'redirect' => $loggedIn ? null : route('login'),
                 ], 419);
             }
 
-            $redirectTo = $request->headers->get('referer');
-            if (! is_string($redirectTo) || $redirectTo === '') {
-                $redirectTo = route('login');
+            $referer = (string) $request->headers->get('referer', '');
+            $sameSite = $referer !== '' && str_starts_with($referer, $request->getSchemeAndHttpHost().'/');
+
+            if (! $loggedIn) {
+                if ($sameSite && ! str_starts_with($referer, route('login'))) {
+                    redirect()->setIntendedUrl($referer);
+                }
+
+                return redirect()->route('login')->with('status', $message);
             }
 
             return redirect()
-                ->to($redirectTo)
+                ->to($sameSite ? $referer : url('/dashboard'))
                 ->withInput($request->except('password', 'password_confirmation', '_token'))
-                ->with('error', __('Your session expired. Please refresh the page and try again.'));
+                ->with('error', $message);
         });
 
         if (class_exists(\Sentry\Laravel\Integration::class)) {
