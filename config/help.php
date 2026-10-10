@@ -81,7 +81,7 @@ return [
         ],
         [
             'q' => 'How do I buy a campaign service?',
-            'a' => 'Browse the Services catalog, select the package that fits your goal, enter the link to your post or video and any campaign instructions, then click Buy Now. Review the order summary and confirm payment using your funded wallet balance or another enabled payment method.',
+            'a' => 'Browse the Services catalog, select the package that fits your goal, enter your YouTube video or channel link and any campaign instructions, then click Buy Now. Review the order summary and confirm payment using your funded wallet balance or another enabled payment method.',
             'article' => 'browsing-purchasing-services',
             'section' => 'creator-launch',
             'icon' => 'shopping_bag',

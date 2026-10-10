@@ -239,11 +239,11 @@ class FixedPlatformCatalogLockTest extends TestCase
         $admin = $this->admin();
         $product = PlatformProduct::query()->where('slug', 'youtube-views')->firstOrFail();
         $youtubeId = $product->service_category_id;
-        $tiktok = ServiceCategory::query()->where('slug', 'tiktok')->firstOrFail();
+        $social = ServiceCategory::query()->where('key', 'social')->firstOrFail();
 
         $this->actingAs($admin)
             ->put(route('admin.platform-products.update', $product), $this->productUpdatePayload($product, [
-                'service_category_id' => $tiktok->id,
+                'service_category_id' => $social->id,
             ]))
             ->assertRedirect(route('admin.platform-products.edit', $product));
 
@@ -477,7 +477,7 @@ class FixedPlatformCatalogLockTest extends TestCase
         Artisan::call('catalog:backfill-hierarchy');
         $service = ProductType::query()->where('slug', 'social_service')->firstOrFail();
         $youtube = ServiceCategory::query()->where('slug', 'youtube')->firstOrFail();
-        $facebook = ServiceCategory::query()->where('slug', 'facebook')->firstOrFail();
+        $social = ServiceCategory::query()->where('key', 'social')->firstOrFail();
 
         $this->forceCreatePlatformProduct([
             'product_type_id' => $service->id,
@@ -491,10 +491,10 @@ class FixedPlatformCatalogLockTest extends TestCase
         ]);
         $this->forceCreatePlatformProduct([
             'product_type_id' => $service->id,
-            'service_category_id' => $facebook->id,
+            'service_category_id' => $social->id,
             'product_type' => PlatformProductType::SocialService,
-            'title' => 'Facebook A',
-            'slug' => 'facebook-a-global-sort',
+            'title' => 'Social A',
+            'slug' => 'social-a-global-sort',
             'status' => PlatformProductStatus::Published,
             'base_price' => 1000,
             'sort_order' => 0,
@@ -526,27 +526,21 @@ class FixedPlatformCatalogLockTest extends TestCase
 
         \App\Support\SortOrder::normalize(ServiceCategory::query()->system());
 
-        $twitter = ServiceCategory::query()->where('key', 'twitter')->firstOrFail();
+        $social = ServiceCategory::query()->where('key', 'social')->firstOrFail();
         $max = ServiceCategory::query()->system()->count();
 
         $this->actingAs($admin)
-            ->put(route('admin.service-categories.update', $twitter), [
-                'name' => $twitter->name,
+            ->put(route('admin.service-categories.update', $social), [
+                'name' => $social->name,
                 'is_active' => '1',
                 'sort_order' => $max,
             ])
             ->assertRedirect(route('admin.service-categories'));
 
         $ordered = ServiceCategory::query()->system()->orderBy('sort_order')->pluck('key')->all();
-        $this->assertSame('twitter', end($ordered));
+        $this->assertSame('social', end($ordered));
+        $this->assertSame('youtube', $ordered[0]);
 
-        $response = $this->get(route('services'));
-        $response->assertOk();
-        $html = $response->getContent();
-        $posYoutube = strpos($html, 'YouTube');
-        $posTwitter = strpos($html, 'Twitter');
-        $this->assertNotFalse($posYoutube);
-        $this->assertNotFalse($posTwitter);
-        $this->assertLessThan($posTwitter, $posYoutube);
+        $this->get(route('services'))->assertOk()->assertSee('YouTube', false);
     }
 }

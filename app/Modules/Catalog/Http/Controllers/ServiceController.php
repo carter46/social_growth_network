@@ -50,39 +50,10 @@ class ServiceController extends Controller
 
         $hasCategoryColumn = Schema::hasColumn('platform_products', 'service_category_id');
         $youtubeCategory = $hasCategoryColumn ? $this->browse->findServiceCategory('youtube') : null;
-        $showYouTube = $categorySlug === '' || $categorySlug === 'youtube';
-        $showOtherSocial = $categorySlug !== 'youtube';
-
-        $youtubeCatalog = ['featured' => null, 'others' => collect()];
-        if ($showYouTube) {
-            $youtubeCatalog = $this->youtubeCatalog($youtubeCategory, $q, $budget, $sort);
-        }
-
-        $products = null;
-        if ($showOtherSocial) {
-            $productsQuery = $this->listingQuery($q, $budget, $sort);
-
-            if ($categorySlug !== '') {
-                $category = $this->browse->findServiceCategory($categorySlug);
-                if ($category && $hasCategoryColumn) {
-                    $productsQuery->ofCategory($category);
-                }
-            } elseif ($youtubeCategory) {
-                // "All": YouTube renders in its own blocks above, so keep it out of this grid.
-                $productsQuery->where(function ($inner) use ($youtubeCategory) {
-                    $inner->whereNull('service_category_id')
-                        ->orWhere('service_category_id', '!=', $youtubeCategory->id);
-                });
-            }
-
-            $products = $productsQuery
-                ->paginate(12)
-                ->withQueryString();
-        }
+        $youtubeCatalog = $this->youtubeCatalog($youtubeCategory, $q, $budget, $sort);
 
         $payload = [
             'groups' => $groups,
-            'products' => $products,
             'q' => $q,
             'activeCategory' => $categorySlug,
             'sort' => $sort,
@@ -90,8 +61,6 @@ class ServiceController extends Controller
             'totalVisible' => PlatformProduct::query()->visibleToPublic()->count(),
             'popularTags' => $this->browse->homePopularSearchTags(5),
             'youtubeCatalog' => $youtubeCatalog,
-            'showYouTube' => $showYouTube,
-            'showOtherSocial' => $showOtherSocial,
         ];
 
         if ($request->headers->get('X-Services-Filter') === '1' || $request->boolean('partial')) {
@@ -162,6 +131,7 @@ class ServiceController extends Controller
                 'youtube-likes',
                 'youtube-comments',
                 'youtube-watch-hours',
+                'youtube-subscribers',
             ]));
         }
 
@@ -220,7 +190,6 @@ class ServiceController extends Controller
             'typeKeys' => [],
             'typeCards' => collect(),
             'categories' => collect(),
-            'products' => $products,
             'filters' => [
                 'q' => $q,
                 'category' => null,
@@ -324,7 +293,6 @@ class ServiceController extends Controller
             'categories' => $categories,
             'activeCategory' => $activeCategory,
             'featured' => $featured,
-            'products' => $products,
             'filters' => [
                 'q' => $q,
                 'category' => $categoryId,
@@ -339,6 +307,10 @@ class ServiceController extends Controller
      */
     public function pair(Request $request, string $category, string $service): View|RedirectResponse
     {
+        if (PlatformProductSlugRedirect::isRetiredPlatformSlug($category) || PlatformProductSlugRedirect::isRetiredPlatformSlug($service)) {
+            return $this->redirectRetiredPlatformUrl($service);
+        }
+
         // Canonical: category owns product (Category → Product).
         if ($this->browse->isGroup($category)) {
             if ($redirect = $this->redirectLegacyProductSlug($service)) {
@@ -380,6 +352,10 @@ class ServiceController extends Controller
      */
     public function nestedShow(string $category, string $service, string $productSlug): View|RedirectResponse
     {
+        if (PlatformProductSlugRedirect::isRetiredPlatformSlug($category) || PlatformProductSlugRedirect::isRetiredPlatformSlug($productSlug)) {
+            return $this->redirectRetiredPlatformUrl($productSlug);
+        }
+
         if ($redirect = $this->redirectLegacyProductSlug($productSlug)) {
             return $redirect;
         }
@@ -399,6 +375,10 @@ class ServiceController extends Controller
 
     public function show(string $type, string $productSlug): View|RedirectResponse
     {
+        if (PlatformProductSlugRedirect::isRetiredPlatformSlug($productSlug)) {
+            return redirect()->route('services', status: 301);
+        }
+
         if ($redirect = $this->redirectLegacyProductSlug($productSlug)) {
             return $redirect;
         }
@@ -458,7 +438,7 @@ class ServiceController extends Controller
      */
     public function segment(string $segment): View|RedirectResponse
     {
-        if (isset(self::LEGACY_HUB_REDIRECTS[$segment])) {
+        if (isset(self::LEGACY_HUB_REDIRECTS[$segment]) || PlatformProductSlugRedirect::isRetiredPlatformSlug($segment)) {
             return redirect()->route('services', status: 301);
         }
 
@@ -505,6 +485,20 @@ class ServiceController extends Controller
         }
 
         abort(404);
+    }
+
+    /** Old links for removed platforms: keep a still-offered product URL, otherwise send to the services hub. */
+    private function redirectRetiredPlatformUrl(string $productSlug): RedirectResponse
+    {
+        $product = PlatformProduct::query()
+            ->visibleToPublic()
+            ->where('slug', PlatformProductSlugRedirect::canonical($productSlug))
+            ->with(['serviceCategory', 'productType.serviceCategory'])
+            ->first();
+
+        return $product
+            ? $this->redirectToCanonicalProduct($product)
+            : redirect()->route('services', status: 301);
     }
 
     private function redirectToCanonicalProduct(PlatformProduct $product): RedirectResponse

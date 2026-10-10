@@ -89,11 +89,11 @@
                 <p class="text-sm text-danger" x-show="error" x-text="error" x-cloak></p>
                 <p class="text-xs text-text-muted" x-show="token && ! done" x-cloak>Closing or leaving this page before the timer finishes resets your progress.</p>
             </div>
-        @elseif ($taskMode === 'x_action' && $participation->status === 'started')
+        @elseif ($taskMode === 'subscribe' && $participation->status === 'started')
             <div class="space-y-3">
-                <p class="text-sm text-text-secondary">Open the post on X and complete the required viewing action. Embedded posts do not add to X view counts, so a timer is not proof of an X view.</p>
+                <p class="text-sm text-text-secondary">Open the channel on YouTube, subscribe, then submit a screenshot link that shows you are subscribed. An admin reviews every subscriber task before payment.</p>
                 @if ($campaign?->target_url)
-                    <a href="{{ $campaign->target_url }}" target="_blank" rel="noopener" class="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white">Open on X</a>
+                    <a href="{{ $campaign->target_url }}" target="_blank" rel="noopener" class="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white">Open channel on YouTube</a>
                 @endif
                 <form method="POST" action="{{ route('agent.tasks.submit', $participation) }}" class="space-y-4">
                     @csrf
@@ -107,9 +107,9 @@
             </div>
         @elseif ($taskMode === 'count_change_proof' && $participation->status === 'started')
             <div class="space-y-3">
-                <p class="text-sm text-text-secondary">Complete the like or comment on the creator’s post, then upload proof. Verification uses <strong>count-change</strong> (aggregate metric increase), not identity of who engaged.</p>
+                <p class="text-sm text-text-secondary">Like or comment on the creator's YouTube video, then upload proof. Verification uses <strong>count-change</strong> (aggregate metric increase), not identity of who engaged.</p>
                 @if ($campaign?->target_url)
-                    <a href="{{ $campaign->target_url }}" target="_blank" rel="noopener" class="inline-flex text-sm font-medium text-accent underline">Open post</a>
+                    <a href="{{ $campaign->target_url }}" target="_blank" rel="noopener" class="inline-flex text-sm font-medium text-accent underline">Open video on YouTube</a>
                 @endif
                 <form method="POST" action="{{ route('agent.tasks.submit', $participation) }}" class="space-y-4">
                     @csrf

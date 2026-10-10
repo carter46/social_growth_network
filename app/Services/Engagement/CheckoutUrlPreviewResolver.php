@@ -3,7 +3,7 @@
 namespace App\Services\Engagement;
 
 /**
- * Creator checkout destination preview — official client embeds only (no Graph/oEmbed APIs).
+ * Creator checkout destination preview: official YouTube embed only (no Data API calls).
  * Separate from {@see VideoEmbedResolver} used on Agent task screens.
  *
  * @phpstan-type PreviewPayload array{
@@ -12,8 +12,6 @@ namespace App\Services\Engagement;
  *     open_url: string,
  *     note: string,
  *     iframe_src?: string,
- *     permalink?: string,
- *     widget?: string,
  *     title?: string,
  *     host?: string
  * }
@@ -27,7 +25,7 @@ class CheckoutUrlPreviewResolver
     {
         $normalized = TargetUrlValidator::normalize($url);
         if (! $normalized) {
-            return $this->openUrl((string) $url, 'unknown', 'Enter a valid public post or video URL to preview.');
+            return $this->openUrl((string) $url, 'unknown', 'Enter a valid public YouTube link to preview.');
         }
 
         if ($productSlug) {
@@ -38,16 +36,15 @@ class CheckoutUrlPreviewResolver
             }
         }
 
-        $platform = TargetUrlValidator::platformFromUrl($normalized) ?? 'unknown';
+        if (TargetUrlValidator::platformFromUrl($normalized) !== 'youtube') {
+            return $this->openUrl($normalized, 'unknown', 'Only YouTube links are supported.');
+        }
 
-        return match ($platform) {
-            'youtube' => $this->youtube($normalized),
-            'tiktok' => $this->tiktok($normalized),
-            'instagram' => $this->instagram($normalized),
-            'facebook' => $this->facebook($normalized),
-            'x', 'twitter' => $this->x($normalized),
-            default => $this->openUrl($normalized, $platform, 'Preview is not available for this URL. You can still continue if the URL is accepted at checkout.'),
-        };
+        if (TargetUrlValidator::isYoutubeChannelUrl($normalized)) {
+            return $this->openUrl($normalized, 'youtube', 'Open the link to confirm this is the channel you want agents to subscribe to.');
+        }
+
+        return $this->youtube($normalized);
     }
 
     /**
@@ -68,83 +65,6 @@ class CheckoutUrlPreviewResolver
             'note' => 'Confirm this is the video you want agents to work on.',
             'host' => 'youtube.com',
             'title' => 'YouTube video',
-        ];
-    }
-
-    /**
-     * @return PreviewPayload
-     */
-    private function tiktok(string $url): array
-    {
-        if (! preg_match('#/video/(\d+)#', $url, $m)) {
-            return $this->openUrl($url, 'tiktok', 'Could not parse a TikTok video ID. Open the link to confirm the destination.');
-        }
-
-        return [
-            'mode' => 'embed',
-            'platform' => 'tiktok',
-            'open_url' => $url,
-            'iframe_src' => 'https://www.tiktok.com/player/v1/'.$m[1],
-            'note' => 'Confirm this is the TikTok video you want agents to work on.',
-            'host' => 'tiktok.com',
-            'title' => 'TikTok video',
-        ];
-    }
-
-    /**
-     * @return PreviewPayload
-     */
-    private function instagram(string $url): array
-    {
-        $safe = self::httpsUrlOrEmpty($url);
-
-        return [
-            'mode' => 'widget',
-            'widget' => 'instagram',
-            'platform' => 'instagram',
-            'open_url' => $safe,
-            'permalink' => $safe,
-            'note' => 'Public Instagram posts and Reels can preview here. Private or embed-disabled posts will not load, but your URL is still accepted if it is valid.',
-            'host' => 'instagram.com',
-            'title' => 'Instagram post',
-        ];
-    }
-
-    /**
-     * @return PreviewPayload
-     */
-    private function facebook(string $url): array
-    {
-        $safe = self::httpsUrlOrEmpty($url);
-
-        return [
-            'mode' => 'widget',
-            'widget' => 'facebook',
-            'platform' => 'facebook',
-            'open_url' => $safe,
-            'permalink' => $safe,
-            'note' => 'Public Facebook posts can preview here. Private posts will not load, but your URL is still accepted if it is valid.',
-            'host' => 'facebook.com',
-            'title' => 'Facebook post',
-        ];
-    }
-
-    /**
-     * @return PreviewPayload
-     */
-    private function x(string $url): array
-    {
-        $safe = self::httpsUrlOrEmpty($url);
-
-        return [
-            'mode' => 'widget',
-            'widget' => 'x',
-            'platform' => 'x',
-            'open_url' => $safe,
-            'permalink' => $safe,
-            'note' => 'Public posts on X can preview here. Restricted posts will not load, but your URL is still accepted if it is valid.',
-            'host' => 'x.com',
-            'title' => 'X post',
         ];
     }
 

@@ -33,19 +33,6 @@ class CheckoutUrlPreviewTest extends TestCase
         $this->assertStringContainsString('youtube.com/embed/dQw4w9WgXcQ', $payload['iframe_src'] ?? '');
     }
 
-    public function test_resolver_builds_instagram_widget_markup_payload(): void
-    {
-        $payload = app(CheckoutUrlPreviewResolver::class)->resolve(
-            'https://www.instagram.com/p/CxS1Yg0Lk0N/',
-            'instagram-likes'
-        );
-
-        $this->assertSame('widget', $payload['mode']);
-        $this->assertSame('instagram', $payload['widget'] ?? null);
-        $this->assertSame('instagram', $payload['platform']);
-        $this->assertNotEmpty($payload['permalink'] ?? null);
-    }
-
     public function test_preview_endpoint_returns_json_for_authenticated_creator(): void
     {
         $user = User::factory()->create(['email_verified_at' => now()]);
@@ -60,16 +47,35 @@ class CheckoutUrlPreviewTest extends TestCase
             ->assertJsonPath('platform', 'youtube');
     }
 
-    public function test_agent_video_embed_resolver_still_uses_open_url_for_instagram(): void
+    public function test_non_youtube_link_is_not_previewed(): void
     {
-        $payload = app(VideoEmbedResolver::class)->resolve(
+        $payload = app(CheckoutUrlPreviewResolver::class)->resolve(
             'https://www.instagram.com/p/CxS1Yg0Lk0N/',
-            'instagram'
+            'youtube-likes'
         );
 
         $this->assertSame('open_url', $payload['mode']);
-        $this->assertSame('instagram', $payload['platform']);
         $this->assertArrayNotHasKey('iframe_src', $payload);
+        $this->assertSame('Please provide a YouTube link.', $payload['note']);
+    }
+
+    public function test_subscribers_preview_accepts_channel_and_rejects_video(): void
+    {
+        $channel = app(CheckoutUrlPreviewResolver::class)->resolve(
+            'https://www.youtube.com/@examplechannel',
+            'youtube-subscribers'
+        );
+        $video = app(CheckoutUrlPreviewResolver::class)->resolve(
+            'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            'youtube-subscribers'
+        );
+
+        $this->assertSame('open_url', $channel['mode']);
+        $this->assertSame('youtube', $channel['platform']);
+        $this->assertStringContainsString('channel', $channel['note']);
+
+        $this->assertSame('open_url', $video['mode']);
+        $this->assertStringContainsString('Video links are not accepted', $video['note']);
     }
 
     public function test_agent_video_embed_resolver_still_embeds_youtube(): void
@@ -83,46 +89,14 @@ class CheckoutUrlPreviewTest extends TestCase
         $this->assertStringContainsString('youtube.com/embed/', $payload['html'] ?? '');
     }
 
-    public function test_agent_video_embed_resolver_still_uses_open_url_for_facebook_and_x(): void
+    public function test_agent_video_embed_resolver_opens_channel_links(): void
     {
-        $facebook = app(VideoEmbedResolver::class)->resolve(
-            'https://www.facebook.com/someone/posts/1234567890',
-            'facebook'
-        );
-        $x = app(VideoEmbedResolver::class)->resolve(
-            'https://x.com/someone/status/1234567890123456789',
-            'x'
-        );
-
-        $this->assertSame('open_url', $facebook['mode']);
-        $this->assertSame('open_url', $x['mode']);
-    }
-
-    public function test_spoofed_instagram_host_is_rejected(): void
-    {
-        $payload = app(CheckoutUrlPreviewResolver::class)->resolve(
-            'https://notinstagram.com/p/CxS1Yg0Lk0N/',
-            'instagram-likes'
+        $payload = app(VideoEmbedResolver::class)->resolve(
+            'https://www.youtube.com/@examplechannel',
+            'youtube'
         );
 
         $this->assertSame('open_url', $payload['mode']);
-        $this->assertNotSame('instagram', $payload['platform']);
-    }
-
-    public function test_resolver_builds_tiktok_and_x_client_payloads(): void
-    {
-        $tiktok = app(CheckoutUrlPreviewResolver::class)->resolve(
-            'https://www.tiktok.com/@scout2015/video/6718335390845095173',
-            'tiktok-views'
-        );
-        $x = app(CheckoutUrlPreviewResolver::class)->resolve(
-            'https://x.com/Interior/status/507185938620219395',
-            'twitter-likes'
-        );
-
-        $this->assertSame('embed', $tiktok['mode']);
-        $this->assertStringContainsString('tiktok.com/player/v1/6718335390845095173', $tiktok['iframe_src'] ?? '');
-        $this->assertSame('widget', $x['mode']);
-        $this->assertSame('x', $x['widget'] ?? null);
+        $this->assertArrayNotHasKey('html', $payload);
     }
 }

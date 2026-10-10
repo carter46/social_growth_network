@@ -15,26 +15,6 @@
         ? $watchHours['href']
         : route('services.segment', 'youtube');
     $buyWatchHoursHref = route('dashboard.services.product', 'youtube-watch-hours');
-    $categoryCards = collect($categoryCards ?? [])->values()
-        ->sortBy(fn ($card) => ($card['slug'] ?? '') === 'youtube' ? 0 : 1)
-        ->values()
-        ->take(5);
-    $categoryIcons = [
-        'youtube' => 'smart_display',
-        'facebook' => 'public',
-        'instagram' => 'photo_camera',
-        'tiktok' => 'music_note',
-        'twitter' => 'chat',
-        'social-media' => 'share',
-    ];
-    $categoryBadgeTones = [
-        'youtube' => 'text-red-600',
-        'facebook' => 'text-blue-600',
-        'instagram' => 'text-pink-600',
-        'tiktok' => 'text-slate-900',
-        'twitter' => 'text-sky-600',
-        'social-media' => 'text-violet-600',
-    ];
     $ytWord = static function (string $text, string $tone = 'red'): string {
         $class = $tone === 'white' ? 'text-white' : 'text-red-600';
 
@@ -75,10 +55,10 @@
             <div class="lg:col-span-7 flex flex-col items-start order-2 lg:order-1">
                 <p class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-3">{{ $brandName }}</p>
                 <h1 class="font-display text-2xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight mb-4">
-                    {!! $ytWord('Increase engagement on your social media') !!}
+                    {!! $ytWord('Increase engagement on your YouTube channel') !!}
                 </h1>
                 <p class="text-base sm:text-lg text-slate-600 max-w-2xl mb-8 leading-relaxed">
-                    Buy YouTube Watch Hours, views, likes, and comments, plus services for other platforms. Pay securely and track your campaign from your account.
+                    Buy YouTube Watch Hours, views, likes, comments, and subscribers. Pay securely and track your campaign from your account.
                 </p>
                 <div class="flex flex-wrap items-center gap-3 mb-8 w-full sm:w-auto">
                     <a href="{{ $buyWatchHoursHref }}" class="inline-flex items-center justify-center font-semibold text-sm bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-sm transition-colors">
@@ -116,7 +96,7 @@
             <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
                 {!! $ytWord('Grow your YouTube channel.') !!}
             </h2>
-            <p class="text-slate-600 text-base sm:text-lg mt-2">Watch hours, views, likes, and comments for your YouTube channel.</p>
+            <p class="text-slate-600 text-base sm:text-lg mt-2">Watch hours, views, likes, comments, and subscribers for your YouTube channel.</p>
         </div>
 
         @if(is_array($watchHours))
@@ -187,13 +167,13 @@
                 Launch your campaign in three steps.
             </h2>
             <p class="text-base sm:text-lg text-slate-600">
-                The same flow works for Views, Likes, Comments, and other platforms.
+                The same flow works for Views, Likes, Comments, and Subscribers.
             </p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             @foreach([
-                ['n' => '01', 'icon' => 'category', 'title' => 'Choose a service', 'body' => 'Pick YouTube Watch Hours or another service, then choose a package. You’ll see the price before you pay.'],
-                ['n' => '02', 'icon' => 'link', 'title' => 'Provide campaign details', 'body' => 'Add the link to your post or video and any campaign instructions at checkout.'],
+                ['n' => '01', 'icon' => 'category', 'title' => 'Choose a service', 'body' => 'Pick YouTube Watch Hours or another YouTube service, then choose a package. You’ll see the price before you pay.'],
+                ['n' => '02', 'icon' => 'link', 'title' => 'Provide campaign details', 'body' => 'Add your YouTube video or channel link and any campaign instructions at checkout.'],
                 ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Pay and track', 'body' => 'Pay securely, then follow your campaign’s progress from your account.'],
             ] as $step)
                 <div class="bg-slate-50 p-6 sm:p-8 rounded-2xl flex flex-col border border-slate-200/80">
@@ -211,85 +191,13 @@
     </div>
 </section>
 
-{{-- Other platforms --}}
-<section class="w-full bg-slate-50 py-14 sm:py-20">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
-            <div>
-                <span class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2 block">Other platforms</span>
-                <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                    Also grow on Facebook, Instagram, TikTok, and X (Twitter).
-                </h2>
-            </div>
-            <p class="text-sm text-slate-600 max-w-md">
-                YouTube is covered above. Use these categories for additional campaigns.
-            </p>
-        </div>
-
-        @if($categoryCards->isEmpty())
-            <div class="rounded-xl border border-slate-200 bg-white p-8 text-center">
-                <p class="text-slate-600 mb-4">Campaign categories will appear here once published in the catalog.</p>
-                <a href="{{ route('services') }}" class="inline-flex text-sm font-semibold text-primary hover:underline">Browse services</a>
-            </div>
-        @else
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-                @foreach($categoryCards->filter(fn ($c) => ($c['slug'] ?? '') !== 'youtube')->take(4) as $card)
-                    @php
-                        $slug = $card['slug'] ?? '';
-                        $label = $card['label'] ?? $slug;
-                        $href = $card['href'] ?? route('services', array_filter(['category' => $slug ?: null]));
-                        $body = $card['short_description'] ?? $card['hero_subtitle'] ?? 'Views, likes, and comments with clear prices.';
-                        $image = $card['card_image'] ?? $card['banner_image'] ?? $card['image'] ?? null;
-                        $icon = $categoryIcons[$slug] ?? ($card['icon'] ?? 'category');
-                        $badgeClass = $categoryBadgeTones[$slug] ?? 'text-primary';
-                        $count = (int) ($card['count'] ?? 0);
-                        $ctaLabel = $count > 0
-                            ? 'View '.$count.' '.\Illuminate\Support\Str::plural('package', $count)
-                            : 'View packages';
-                    @endphp
-                    <a href="{{ $href }}" class="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col group">
-                        <div class="h-44 w-full relative overflow-hidden bg-slate-100">
-                            @if($image)
-                                <img src="{{ $image }}" alt="{{ $label }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
-                            @else
-                                <div class="w-full h-full bg-gradient-to-br from-primary/20 via-slate-200 to-slate-100" aria-hidden="true"></div>
-                            @endif
-                            <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm {{ $badgeClass }} px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 max-w-[calc(100%-1.5rem)]">
-                                <span class="material-symbols-outlined text-[14px] shrink-0" aria-hidden="true">{{ $icon }}</span>
-                                <span class="truncate">{{ $label }}</span>
-                            </div>
-                        </div>
-                        <div class="p-5 flex flex-col flex-grow justify-between">
-                            <div>
-                                <h3 class="font-display text-lg font-bold text-slate-900 mb-1.5">{{ $label }}</h3>
-                                <p class="text-sm text-slate-600 mb-4 leading-relaxed line-clamp-3">{{ $body }}</p>
-                            </div>
-                            <div class="pt-2 flex items-center justify-between text-sm font-semibold text-primary gap-2">
-                                <span>{{ $ctaLabel }}</span>
-                                <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform shrink-0" aria-hidden="true">arrow_forward</span>
-                            </div>
-                        </div>
-                    </a>
-                @endforeach
-            </div>
-        @endif
-
-        <div class="flex justify-center">
-            <a href="{{ route('services') }}" class="inline-flex items-center gap-1.5 font-semibold text-sm text-primary hover:text-primary-hover bg-white hover:bg-slate-100 px-6 py-3 rounded-lg border border-slate-200 transition-colors">
-                <span>Explore all services</span>
-                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
-            </a>
-        </div>
-    </div>
-</section>
-
 {{-- Control --}}
 <section class="w-full bg-white py-14 sm:py-20">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
             <div class="lg:col-span-6 relative pb-8 sm:pb-10">
                 <div class="rounded-2xl overflow-hidden shadow-lg bg-white border border-slate-100 p-6 sm:p-8">
-                    <img src="{{ $imgCreator }}" alt="Creator managing social media accounts" width="1757" height="1362" class="w-full h-auto object-contain aspect-[16/10]" loading="lazy">
+                    <img src="{{ $imgCreator }}" alt="Creator managing a YouTube channel" width="1757" height="1362" class="w-full h-auto object-contain aspect-[16/10]" loading="lazy">
                 </div>
             </div>
             <div class="lg:col-span-6 flex flex-col items-start lg:pl-4">

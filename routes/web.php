@@ -39,18 +39,10 @@ if (app()->environment('local')) {
     Route::get('/dev/ui', [DevUiController::class, 'index'])->name('dev.ui');
 }
 
-Route::get('/', function (\App\Modules\Catalog\Services\CatalogBrowseService $browse, \App\Modules\Catalog\Services\CatalogContentResolver $catalogContent) {
-    $marketplace = $browse->homeMarketplaceCatalog();
-    $youtubeCatalog = $browse->homeYouTubeCatalog();
-
+Route::get('/', function (\App\Modules\Catalog\Services\CatalogBrowseService $browse) {
     return view('pages.home', [
-        'ecosystemItems' => $browse->homeEcosystemItems($catalogContent),
-        'categoryCards' => $browse->groupCards($catalogContent),
-        'marketplaceCatalog' => $marketplace,
-        'youtubeCatalog' => $youtubeCatalog,
-        'featuredProducts' => $browse->homeFeaturedProducts(),
+        'youtubeCatalog' => $browse->homeYouTubeCatalog(),
         'agentTaskPreview' => $browse->agentsMarketplacePreviewCards(1)->first(),
-        'popularTags' => $browse->homePopularSearchTags(),
     ]);
 })->name('home');
 
@@ -62,11 +54,9 @@ Route::post('/webhooks/site-integrations/{integrationId}', \App\Http\Controllers
 Route::view('/about', 'pages.about')->name('about');
 Route::redirect('/how-it-works', '/help', 301)->name('how-it-works');
 Route::get('/creators', function (
-    \App\Modules\Catalog\Services\CatalogBrowseService $browse,
-    \App\Modules\Catalog\Services\CatalogContentResolver $catalogContent
+    \App\Modules\Catalog\Services\CatalogBrowseService $browse
 ) {
     return view('pages.creators', [
-        'categoryCards' => $browse->groupCards($catalogContent),
         'youtubeCatalog' => $browse->homeYouTubeCatalog(),
     ]);
 })->name('creators');
@@ -75,7 +65,6 @@ Route::get('/agents', function (
 ) {
     return view('pages.agents', [
         'marketplaceTasks' => $browse->agentsMarketplacePreviewCards(3),
-        'youtubeCatalog' => $browse->homeYouTubeCatalog(),
     ]);
 })->name('agents');
 Route::get('/help', function () {

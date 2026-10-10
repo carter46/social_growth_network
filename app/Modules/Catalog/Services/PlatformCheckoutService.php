@@ -20,6 +20,7 @@ use App\Services\Domains\DomainQuoteService;
 use App\Services\SiteIntegrations\UserToolProvisioningService;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
@@ -94,6 +95,14 @@ class PlatformCheckoutService
      */
     public function fulfillPaidGatewayOrder(Order $order): Order
     {
+        // Money was received, so the order is still fulfilled; admins refund or cancel from the log.
+        if ($order->status !== 'paid' && $this->orderHasRetiredProducts($order)) {
+            Log::channel('financial')->warning('Gateway payment received for a service that is no longer offered', [
+                'order_id' => $order->id,
+                'reference' => $order->reference,
+            ]);
+        }
+
         return $this->fulfillPaidCatalogOrder($order, ['gateway']);
     }
 
@@ -221,6 +230,8 @@ class PlatformCheckoutService
         if ($this->isManualPaymentExpired($order)) {
             throw new InvalidArgumentException('This payment window has expired.');
         }
+
+        $this->assertOrderProductsOffered($order);
 
         $firstSubmission = $order->payment_submitted_at === null;
 
@@ -350,12 +361,41 @@ class PlatformCheckoutService
             throw new InvalidArgumentException('No payment restarts remaining.');
         }
 
+        $this->assertOrderProductsOffered($order);
+
         $meta['manual_payment_session'] = $session + 1;
         $meta['manual_payment_expires_at'] = now()->addMinutes(self::MANUAL_PAYMENT_WINDOW_MINUTES)->toIso8601String();
         $meta['manual_payment_expired'] = false;
         $order->update(['payment_metadata' => $meta]);
 
         return $order->fresh();
+    }
+
+    /** True when any catalog line belongs to a platform that is no longer offered. */
+    public function orderHasRetiredProducts(Order $order): bool
+    {
+        $order->loadMissing('items');
+
+        $productIds = $order->items
+            ->where('item_type', 'platform_product')
+            ->pluck('item_id')
+            ->filter()
+            ->unique();
+
+        if ($productIds->isEmpty()) {
+            return false;
+        }
+
+        $offered = PlatformProduct::query()->whereIn('id', $productIds)->offered()->count();
+
+        return $offered < $productIds->count();
+    }
+
+    public function assertOrderProductsOffered(Order $order): void
+    {
+        if ($this->orderHasRetiredProducts($order)) {
+            throw new InvalidArgumentException('This service is no longer offered, so this order cannot be paid.');
+        }
     }
 
     private function consumeReservedDomainQuotes(Order $order): void
@@ -802,10 +842,10 @@ class PlatformCheckoutService
             } elseif ($targetUrl) {
                 $domainOptions['target_url'] = $targetUrl;
             } elseif ($product->requiresTargetUrl()) {
-                throw new InvalidArgumentException('A valid post or video URL is required for this campaign package.');
+                throw new InvalidArgumentException('A valid YouTube link is required for this campaign package.');
             }
         } elseif (\App\Enums\EngagementMetric::fromProductSlug($product->slug)) {
-            throw new InvalidArgumentException('A post or video URL is required for this campaign package.');
+            throw new InvalidArgumentException('A YouTube link is required for this campaign package.');
         }
 
         if (! empty($data['purchased_at'])) {

@@ -65,7 +65,7 @@ return [
             'nav' => 'First campaign or task',
             'title' => 'Your first campaign or task',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'Creators: open Services, choose a campaign package (for example YouTube, Instagram, TikTok, Facebook, or X growth), enter your target URL and instructions, then complete secure payment with your funded wallet or enabled payment method.'],
+                ['type' => 'paragraph', 'content' => 'Creators: open Services, choose a YouTube package (for example Watch Hours, views, likes, comments, or subscribers), enter your video or channel URL and instructions, then complete secure payment with your funded wallet or enabled payment method.'],
                 ['type' => 'paragraph', 'content' => 'Agents: browse available tasks from your dashboard marketplace, claim work you can complete correctly, follow the Creator’s instructions, and submit proof for review.'],
                 ['type' => 'success', 'title' => 'After you start', 'content' => 'Creators track campaign progress from the dashboard. Agents monitor claimed tasks, proof status, and earnings until payouts become withdrawable.'],
             ],

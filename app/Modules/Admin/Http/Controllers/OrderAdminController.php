@@ -142,6 +142,10 @@ class OrderAdminController extends Controller
     {
         $this->assertPlatformOrder($order);
 
+        if ($this->checkout->orderHasRetiredProducts($order)) {
+            return back()->with('error', __('This order is for a service that is no longer offered. Cancel it instead of confirming payment.'));
+        }
+
         $platformBefore = $this->walletService->getPlatformWallet()->replicate();
 
         try {

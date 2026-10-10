@@ -118,7 +118,7 @@ class EngagementVerificationService
                 ->lockForUpdate()
                 ->first();
 
-            if (! $next || ! $metric?->usesCountChangeVerification() || ! $platform || ! $campaign->target_url) {
+            if (! $next || ! $metric?->usesCountChangeVerification() || $platform !== 'youtube' || ! $campaign->target_url) {
                 return null;
             }
 
@@ -247,8 +247,8 @@ class EngagementVerificationService
                 $participation,
                 null,
                 $post === null
-                    ? 'Count-change verification could not read the post metric after multiple attempts.'
-                    : 'Count-change verification did not observe an increase in the post metric after your submission.'
+                    ? 'Count-change verification could not read the video metric after multiple attempts.'
+                    : 'Count-change verification did not observe an increase in the video metric after your submission.'
             );
 
             return true;

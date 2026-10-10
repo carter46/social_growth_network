@@ -2,12 +2,14 @@
 
 namespace App\Services\Campaigns;
 
+use App\Enums\EngagementMetric;
 use App\Enums\TransactionType;
 use App\Models\Campaign;
 use App\Models\CampaignParticipation;
 use App\Models\ReferralCommission;
 use App\Models\User;
 use App\Modules\Wallet\Services\WalletService;
+use App\Services\Engagement\TargetUrlValidator;
 use App\Services\Referrals\ReferralCommissionService;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -47,6 +49,8 @@ class CampaignParticipationService
                 throw new InvalidArgumentException('You already joined this campaign.');
             }
 
+            $this->assertChannelNotAlreadyTaken($agent, $campaign);
+
             return CampaignParticipation::query()->create([
                 'campaign_id' => $campaign->id,
                 'agent_id' => $agent->id,
@@ -55,6 +59,37 @@ class CampaignParticipationService
                 'reward_amount' => $campaign->locked_agent_reward,
             ]);
         });
+    }
+
+    /**
+     * One subscriber task per YouTube channel per agent, across every campaign for that channel.
+     */
+    private function assertChannelNotAlreadyTaken(User $agent, Campaign $campaign): void
+    {
+        $metric = EngagementMetric::tryFrom((string) ($campaign->engagement_metric ?? ''))
+            ?? EngagementMetric::fromProductSlug($campaign->product?->slug);
+        if (! $metric?->targetsChannel()) {
+            return;
+        }
+
+        $channelKey = TargetUrlValidator::youtubeChannelKey($campaign->target_url);
+        if ($channelKey === null) {
+            return;
+        }
+
+        $otherTargets = CampaignParticipation::query()
+            ->where('campaign_participations.agent_id', $agent->id)
+            ->where('campaign_participations.campaign_id', '!=', $campaign->id)
+            ->where('campaign_participations.status', '!=', CampaignParticipation::STATUS_REJECTED)
+            ->join('campaigns', 'campaigns.id', '=', 'campaign_participations.campaign_id')
+            ->whereNotNull('campaigns.target_url')
+            ->pluck('campaigns.target_url');
+
+        foreach ($otherTargets as $targetUrl) {
+            if (TargetUrlValidator::youtubeChannelKey($targetUrl) === $channelKey) {
+                throw new InvalidArgumentException('You already took a subscriber task for this YouTube channel.');
+            }
+        }
     }
 
     /**

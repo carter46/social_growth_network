@@ -165,6 +165,7 @@ class PlatformProductVariant extends Model
             EngagementMetric::Comments => 'comment',
             EngagementMetric::Views => 'view',
             EngagementMetric::WatchHours => 'watch hour',
+            EngagementMetric::Subscribers => 'subscriber',
             default => 'unit',
         };
     }

@@ -52,6 +52,8 @@ class YoutubeDataApiProbe implements EngagementProbeInterface
                 EngagementMetric::Likes => isset($stats['likeCount']) ? (int) $stats['likeCount'] : null,
                 EngagementMetric::Comments => isset($stats['commentCount']) ? (int) $stats['commentCount'] : null,
                 EngagementMetric::Views, EngagementMetric::WatchHours => isset($stats['viewCount']) ? (int) $stats['viewCount'] : null,
+                // Subscriber counts are rounded publicly; subscriber tasks are reviewed manually.
+                EngagementMetric::Subscribers => null,
             };
         } catch (\Throwable $e) {
             Log::warning('YouTube Data API probe failed', ['error' => $e->getMessage()]);

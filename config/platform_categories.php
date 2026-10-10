@@ -7,6 +7,9 @@
  *
  * Ownership: Category → Product (platform_products.service_category_id).
  * ProductType remains for legacy/CMS compatibility only.
+ *
+ * Only categories listed here are offered. Rows for removed platforms stay in
+ * the database (inactive, products archived) for order and campaign history.
  */
 return [
     'youtube' => [
@@ -18,46 +21,7 @@ return [
             'youtube-likes',
             'youtube-comments',
             'youtube-watch-hours',
-        ],
-    ],
-    'facebook' => [
-        'slug' => 'facebook',
-        'expected_id' => 11,
-        'label' => 'Facebook',
-        'products' => [
-            'facebook-views',
-            'facebook-likes',
-            'facebook-comments',
-        ],
-    ],
-    'instagram' => [
-        'slug' => 'instagram',
-        'expected_id' => 12,
-        'label' => 'Instagram',
-        'products' => [
-            'instagram-views',
-            'instagram-likes',
-            'instagram-comments',
-        ],
-    ],
-    'tiktok' => [
-        'slug' => 'tiktok',
-        'expected_id' => 13,
-        'label' => 'TikTok',
-        'products' => [
-            'tiktok-views',
-            'tiktok-likes',
-            'tiktok-comments',
-        ],
-    ],
-    'twitter' => [
-        'slug' => 'twitter',
-        'expected_id' => 14,
-        'label' => 'Twitter',
-        'products' => [
-            'twitter-views',
-            'twitter-likes',
-            'twitter-comments',
+            'youtube-subscribers',
         ],
     ],
 

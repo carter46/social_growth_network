@@ -8,6 +8,7 @@ enum EngagementMetric: string
     case Comments = 'comments';
     case Views = 'views';
     case WatchHours = 'watch_hours';
+    case Subscribers = 'subscribers';
 
     public function label(): string
     {
@@ -16,6 +17,7 @@ enum EngagementMetric: string
             self::Comments => 'Comments',
             self::Views => 'Views',
             self::WatchHours => 'Watch hours',
+            self::Subscribers => 'Subscribers',
         };
     }
 
@@ -26,26 +28,18 @@ enum EngagementMetric: string
 
     public function usesWatchSession(): bool
     {
-        // Timed watch UX for views/watch-hours except X (open-on-platform action).
         return $this === self::WatchHours || $this === self::Views;
+    }
+
+    /** Subscribers targets a channel, not a video. */
+    public function targetsChannel(): bool
+    {
+        return $this === self::Subscribers;
     }
 
     public function requiresTimedSession(?string $platform = null): bool
     {
-        if ($this === self::WatchHours) {
-            return true;
-        }
-
-        if ($this !== self::Views) {
-            return false;
-        }
-
-        // X views: open-on-platform action — no fake view countdown.
-        if (in_array($platform, ['x', 'twitter'], true)) {
-            return false;
-        }
-
-        return true;
+        return $this === self::WatchHours || $this === self::Views;
     }
 
     /**
@@ -64,6 +58,7 @@ enum EngagementMetric: string
             str_ends_with($slug, '-comments') => self::Comments,
             str_ends_with($slug, '-watch-hours') => self::WatchHours,
             str_ends_with($slug, '-views') => self::Views,
+            str_ends_with($slug, '-subscribers') => self::Subscribers,
             default => null,
         };
     }
@@ -74,13 +69,6 @@ enum EngagementMetric: string
             return null;
         }
 
-        $slug = strtolower(trim($slug));
-        foreach (['youtube', 'facebook', 'instagram', 'tiktok', 'twitter'] as $platform) {
-            if (str_starts_with($slug, $platform.'-')) {
-                return $platform === 'twitter' ? 'x' : $platform;
-            }
-        }
-
-        return null;
+        return str_starts_with(strtolower(trim($slug)), 'youtube-') ? 'youtube' : null;
     }
 }

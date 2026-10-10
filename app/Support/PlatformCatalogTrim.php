@@ -2,7 +2,7 @@
 
 namespace App\Support;
 
-use App\Models\PlatformProduct;
+use App\Enums\PlatformProductStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -22,7 +22,7 @@ class PlatformCatalogTrim
     }
 
     /**
-     * @return array<string, int> type slug => deleted count
+     * @return array<string, int> type slug => archived count
      */
     public static function retireDisallowedProducts(): array
     {
@@ -55,47 +55,39 @@ class PlatformCatalogTrim
                 $query->whereNotIn('slug', $allowedSlugs);
             }
 
-            $productIds = $query->pluck('id');
-
-            if ($productIds->isEmpty()) {
-                $removed[$typeSlug] = 0;
-
-                continue;
-            }
-
-            if (Schema::hasTable('favorites')) {
-                DB::table('favorites')
-                    ->where('favoritable_type', PlatformProduct::class)
-                    ->whereIn('favoritable_id', $productIds)
-                    ->delete();
-            }
-
-            $removed[$typeSlug] = DB::table('platform_products')
-                ->whereIn('id', $productIds)
-                ->delete();
+            $removed[$typeSlug] = self::archive($query->pluck('id')->all());
         }
 
-        // Delete products whose type is not in the allow-list at all
+        // Archive products whose type is not in the allow-list at all
         if ($allowedTypes !== []) {
             $orphanIds = DB::table('platform_products')
                 ->whereNotIn('product_type', $allowedTypes)
-                ->pluck('id');
+                ->pluck('id')
+                ->all();
 
-            if ($orphanIds->isNotEmpty()) {
-                if (Schema::hasTable('favorites')) {
-                    DB::table('favorites')
-                        ->where('favoritable_type', PlatformProduct::class)
-                        ->whereIn('favoritable_id', $orphanIds)
-                        ->delete();
-                }
-
-                $removed['_orphaned_types'] = DB::table('platform_products')
-                    ->whereIn('id', $orphanIds)
-                    ->delete();
+            if ($orphanIds !== []) {
+                $removed['_orphaned_types'] = self::archive($orphanIds);
             }
         }
 
         return $removed;
+    }
+
+    /**
+     * Rows are kept for order and campaign history; archived products never reach the catalog.
+     *
+     * @param  list<int>  $ids
+     */
+    private static function archive(array $ids): int
+    {
+        if ($ids === []) {
+            return 0;
+        }
+
+        return DB::table('platform_products')
+            ->whereIn('id', $ids)
+            ->where('status', '!=', PlatformProductStatus::Archived->value)
+            ->update(['status' => PlatformProductStatus::Archived->value, 'updated_at' => now()]);
     }
 
     /**

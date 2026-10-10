@@ -196,17 +196,21 @@ class Campaign extends Model
         return max(0, (int) $this->quantity - $this->inFlightCount());
     }
 
+    /** New agents may only join campaigns for platforms that are still offered. */
     public function isOpenForAgents(): bool
     {
         return $this->status === self::STATUS_ACTIVE
             && $this->remainingSlots() > 0
-            && $this->availableStartSlots() > 0;
+            && $this->availableStartSlots() > 0
+            && ($this->platform_product_id === null || (bool) $this->product?->isOffered());
     }
 
     public function scopeOpenForAgents($query)
     {
         return $query
             ->where('status', self::STATUS_ACTIVE)
+            ->where(fn ($q) => $q->whereNull('platform_product_id')
+                ->orWhereHas('product', fn ($product) => $product->offered()))
             ->whereColumn('completed_count', '<', 'quantity')
             ->whereRaw(
                 '(SELECT COUNT(*) FROM campaign_participations WHERE campaign_participations.campaign_id = campaigns.id AND campaign_participations.status IN (?, ?, ?, ?, ?, ?)) < campaigns.quantity',

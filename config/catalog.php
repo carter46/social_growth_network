@@ -39,12 +39,12 @@ return [
             'hero_title' => 'Social Media',
             'hero_subtitle' => 'Browse social services, then filter by Growth or Engagement.',
             'benefits' => [
-                'Services for YouTube, Instagram, TikTok, Facebook, and X (Twitter)',
+                'YouTube Watch Hours, views, likes, comments, and subscribers',
                 'See what you get before you pay',
                 'Pay securely with your wallet or card',
             ],
             'faq' => [
-                ['q' => 'What platforms do you support?', 'a' => 'We offer growth and engagement packages for YouTube, Instagram, TikTok, Facebook, and X (Twitter).'],
+                ['q' => 'What platforms do you support?', 'a' => 'We focus on YouTube: Watch Hours, views, likes, comments, and subscribers.'],
             ],
             'types' => ['social_service'],
         ],

@@ -1,14 +1,15 @@
 @php
     $engagementMetric = $engagementMetric ?? \App\Enums\EngagementMetric::fromProductSlug($product->slug);
     $destinationLabel = match ($engagementMetric) {
-        \App\Enums\EngagementMetric::Likes, \App\Enums\EngagementMetric::Comments => 'Post URL',
-        \App\Enums\EngagementMetric::Views, \App\Enums\EngagementMetric::WatchHours => 'Video URL',
-        default => 'Campaign link',
+        \App\Enums\EngagementMetric::Subscribers => 'Channel URL',
+        null => 'Campaign link',
+        default => 'Video URL',
     };
     $destinationHelp = match ($engagementMetric) {
-        \App\Enums\EngagementMetric::Likes, \App\Enums\EngagementMetric::Comments => 'Public post URL where you want likes or comments. Profile links are not accepted.',
-        \App\Enums\EngagementMetric::Views, \App\Enums\EngagementMetric::WatchHours => 'Public video URL where you want views or watch sessions. Profile links are not accepted.',
-        default => 'Public post or video URL for this campaign (not a profile page).',
+        \App\Enums\EngagementMetric::Likes, \App\Enums\EngagementMetric::Comments => 'Public YouTube video URL where you want likes or comments. Channel links are not accepted.',
+        \App\Enums\EngagementMetric::Views, \App\Enums\EngagementMetric::WatchHours => 'Public YouTube video URL where you want views or watch sessions. Channel links are not accepted.',
+        \App\Enums\EngagementMetric::Subscribers => 'Your public YouTube channel link, for example https://www.youtube.com/@yourchannel. Video links are not accepted.',
+        default => 'Public YouTube link for this campaign.',
     };
     $linkOptions = [
         'isCampaign' => true,
@@ -52,7 +53,6 @@
                     ></iframe>
                 </div>
             </template>
-            <div x-show="preview && preview.mode === 'widget'" x-ref="previewWidget" class="overflow-hidden rounded-lg border border-border-default bg-elevated p-3 min-h-[120px]"></div>
             <div
                 x-show="preview && preview.mode === 'open_url'"
                 class="rounded-lg border border-border-default bg-muted/20 px-4 py-3 flex flex-wrap items-center justify-between gap-3"

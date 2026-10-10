@@ -18,8 +18,6 @@ class EngagementProbeManager
      */
     public function fetchCount(string $platform, EngagementMetric $metric, string $url, bool $fresh = true): ?int
     {
-        $platform = $platform === 'twitter' ? 'x' : $platform;
-
         $count = null;
         $source = null;
 
@@ -29,8 +27,6 @@ class EngagementProbeManager
                 $source = 'api';
             }
         }
-
-        // Future: Meta/TikTok/X official probes when admin credentials exist.
 
         if ($count === null && $this->scrape->supports($platform)) {
             $count = $this->scrape->fetchCount($platform, $metric, $url);

@@ -17,7 +17,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
             <div class="lg:col-span-6 flex flex-col items-start z-10">
                 <h1 class="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight mb-4 leading-tight">
-                    Making social media growth easier
+                    Making YouTube growth easier
                 </h1>
                 <p class="text-base sm:text-lg text-slate-600 max-w-xl mb-8 leading-relaxed">
                     {{ $brandName }} connects businesses and creators with people who complete real digital campaign tasks. It makes it easier to launch, manage, and track your campaigns from one place.

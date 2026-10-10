@@ -2,7 +2,7 @@
 
 /**
  * Canonical platform product slugs per service type.
- * Only social_service products remain for Social Growth Network.
+ * Products outside this list are archived (never deleted) by PlatformCatalogTrim.
  */
 return [
     'retired_services' => [],
@@ -12,18 +12,7 @@ return [
         'youtube-likes',
         'youtube-comments',
         'youtube-watch-hours',
-        'facebook-views',
-        'facebook-likes',
-        'facebook-comments',
-        'instagram-views',
-        'instagram-likes',
-        'instagram-comments',
-        'tiktok-views',
-        'tiktok-likes',
-        'tiktok-comments',
-        'twitter-views',
-        'twitter-likes',
-        'twitter-comments',
+        'youtube-subscribers',
     ],
 
     /**
@@ -33,9 +22,5 @@ return [
      */
     'slug_redirects' => [
         'youtube-views-lite' => 'youtube-views',
-        'facebook-growth-pack' => 'facebook-views',
-        'instagram-growth-pack' => 'instagram-views',
-        'tiktok-engagement-boost' => 'tiktok-views',
-        'twitter-audience-pack' => 'twitter-views',
     ],
 ];

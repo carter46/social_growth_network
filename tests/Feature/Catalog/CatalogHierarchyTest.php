@@ -78,12 +78,12 @@ class CatalogHierarchyTest extends TestCase
 
         $this->assertSame($first, ServiceCategory::count());
         $this->assertSame($services, ProductType::count());
-        $this->assertGreaterThanOrEqual(5, $first);
+        $this->assertGreaterThanOrEqual(2, $first);
 
         $product = PlatformProduct::where('slug', 'instagram-views')->first();
         $this->assertNotNull($product->product_type_id);
         $this->assertSame('social_service', ProductType::find($product->product_type_id)?->slug);
-        $this->assertSame('instagram', ServiceCategory::find($product->service_category_id)?->slug);
+        $this->assertSame(PlatformProductStatus::Archived, $product->status);
         $this->assertSame('manual', $product->provider);
         $this->assertSame('manual', $product->fulfillment_mode);
         $this->assertFalse($product->auto_renew);
@@ -162,15 +162,15 @@ class CatalogHierarchyTest extends TestCase
     {
         $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
         $youtube = $this->seedYoutubeProduct('youtube-views');
-        $facebook = ServiceCategory::query()->where('slug', 'facebook')->firstOrFail();
+        $social = ServiceCategory::query()->where('key', 'social')->firstOrFail();
         $service = ProductType::query()->where('slug', 'social_service')->firstOrFail();
 
         $this->forceCreatePlatformProduct([
             'product_type_id' => $service->id,
-            'service_category_id' => $facebook->id,
+            'service_category_id' => $social->id,
             'product_type' => PlatformProductType::SocialService,
-            'title' => 'Facebook Views',
-            'slug' => 'facebook-views',
+            'title' => 'Social Views',
+            'slug' => 'social-views-filter',
             'status' => PlatformProductStatus::Draft,
             'base_price' => 2000,
             'provider' => 'manual',
@@ -184,7 +184,7 @@ class CatalogHierarchyTest extends TestCase
             ]))
             ->assertOk()
             ->assertSee('YouTube Views')
-            ->assertDontSee('Facebook Views');
+            ->assertDontSee('Social Views');
     }
 
     public function test_admin_cannot_change_product_category(): void
@@ -192,14 +192,14 @@ class CatalogHierarchyTest extends TestCase
         $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
         $product = $this->seedYoutubeProduct();
         $youtubeId = $product->service_category_id;
-        $tiktok = ServiceCategory::query()->where('slug', 'tiktok')->firstOrFail();
+        $social = ServiceCategory::query()->where('key', 'social')->firstOrFail();
 
         $this->actingAs($admin)
             ->put(route('admin.platform-products.update', $product), [
                 'title' => $product->title,
                 'short_description' => $product->short_description,
                 'description' => $product->description,
-                'service_category_id' => $tiktok->id,
+                'service_category_id' => $social->id,
                 'status' => PlatformProductStatus::Published->value,
                 'variants' => [
                     [

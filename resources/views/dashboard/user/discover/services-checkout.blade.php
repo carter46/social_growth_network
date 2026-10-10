@@ -17,9 +17,9 @@
     $selectedUnits = (int) ($selectedUnits ?? 1);
     $engagementMetric = $engagementMetric ?? \App\Enums\EngagementMetric::fromProductSlug($product->slug);
     $destinationLabel = match ($engagementMetric) {
-        \App\Enums\EngagementMetric::Likes, \App\Enums\EngagementMetric::Comments => 'Post URL',
-        \App\Enums\EngagementMetric::Views, \App\Enums\EngagementMetric::WatchHours => 'Video URL',
-        default => 'Campaign link',
+        \App\Enums\EngagementMetric::Subscribers => 'Channel URL',
+        null => 'Campaign link',
+        default => 'Video URL',
     };
     $checkoutOptions = [
         'defaultVariantId' => $defaultVariantId,

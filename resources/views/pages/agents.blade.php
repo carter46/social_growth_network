@@ -25,10 +25,10 @@
             <div class="lg:col-span-6 flex flex-col items-start gap-4 order-2 lg:order-1">
                 <p class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ $brandName }} Agents</p>
                 <h1 class="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                    {!! $ytWord('Complete YouTube Watch Hours and other social media tasks.') !!}
+                    {!! $ytWord('Complete YouTube Watch Hours and other YouTube tasks.') !!}
                 </h1>
                 <p class="text-base sm:text-lg text-slate-600 max-w-xl leading-relaxed">
-                    Take on YouTube Watch Hours and other social media tasks when campaigns are open. Follow each task’s instructions, submit your proof, and earn a reward when your work is approved.
+                    Take on YouTube Watch Hours, views, likes, comments, and subscriber tasks when campaigns are open. Follow each task’s instructions, submit your proof, and earn a reward when your work is approved.
                 </p>
                 <p class="text-sm text-slate-500 max-w-xl leading-relaxed">
                     Rewards depend on task requirements and approval. Completing a session does not guarantee official platform metrics, and open tasks are not always available.
@@ -53,7 +53,7 @@
 
             <div class="lg:col-span-6 relative order-1 lg:order-2">
                 <div class="rounded-2xl overflow-hidden shadow-xl bg-slate-100 max-w-md sm:max-w-lg mx-auto lg:max-w-none">
-                    <img src="{{ $imgAgent }}" alt="Agent checking off social media tasks on a task list" width="1188" height="1181" class="w-full h-auto aspect-square object-cover" loading="eager">
+                    <img src="{{ $imgAgent }}" alt="Agent checking off YouTube tasks on a task list" width="1188" height="1181" class="w-full h-auto aspect-square object-cover" loading="eager">
                 </div>
             </div>
         </div>
@@ -102,18 +102,10 @@
         @php
             $brandPaths = [
                 'youtube' => 'M23.5 6.2a3 3 0 00-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 00.5 6.2 31.5 31.5 0 000 12a31.5 31.5 0 00.5 5.8 3 3 0 002.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 002.1-2.1A31.5 31.5 0 0024 12a31.5 31.5 0 00-.5-5.8zM9.75 15.5v-7l6.25 3.5-6.25 3.5z',
-                'facebook' => 'M18.77 7.46H15.5v-1.9c0-.9.6-1.1 1-1.1h2.2V2.14S17.36 2 16.14 2C13.6 2 11.9 3.66 11.9 6.54v1.92H9.5v3.4h2.4V22h3.6v-9.14h3l.37-3.4z',
-                'instagram' => 'M12 7a5 5 0 100 10 5 5 0 000-10zm0 8.2A3.2 3.2 0 1112 8.8a3.2 3.2 0 010 6.4zm6.4-8.3a1.16 1.16 0 11-2.32 0 1.16 1.16 0 012.32 0zM12 4.4c-2.07 0-2.33.01-3.14.05-.8.04-1.35.17-1.83.36a3.7 3.7 0 00-1.34.87 3.7 3.7 0 00-.87 1.34c-.19.48-.32 1.03-.36 1.83-.04.81-.05 1.07-.05 3.14s.01 2.33.05 3.14c.04.8.17 1.35.36 1.83.2.49.46.9.87 1.34.44.41.85.67 1.34.87.48.19 1.03.32 1.83.36.81.04 1.07.05 3.14.05s2.33-.01 3.14-.05c.8-.04 1.35-.17 1.83-.36a3.7 3.7 0 001.34-.87 3.7 3.7 0 00.87-1.34c.19-.48.32-1.03.36-1.83.04-.81.05-1.07.05-3.14s-.01-2.33-.05-3.14c-.04-.8-.17-1.35-.36-1.83a3.7 3.7 0 00-.87-1.34 3.7 3.7 0 00-1.34-.87c-.48-.19-1.03-.32-1.83-.36-.81-.04-1.07-.05-3.14-.05zm0 1.62c2.03 0 2.27.01 3.07.05.74.03 1.14.16 1.41.26.36.14.61.3.88.57.27.27.43.52.57.88.1.27.23.67.26 1.41.04.8.05 1.04.05 3.07s-.01 2.27-.05 3.07c-.03.74-.16 1.14-.26 1.41-.14.36-.3.61-.57.88a2.4 2.4 0 01-.88.57c-.27.1-.67.23-1.41.26-.8.04-1.04.05-3.07.05s-2.27-.01-3.07-.05c-.74-.03-1.14-.16-1.41-.26a2.4 2.4 0 01-.88-.57 2.4 2.4 0 01-.57-.88c-.1-.27-.23-.67-.26-1.41-.04-.8-.05-1.04-.05-3.07s.01-2.27.05-3.07c.03-.74.16-1.14.26-1.41.14-.36.3-.61.57-.88.27-.27.52-.43.88-.57.27-.1.67-.23 1.41-.26.8-.04 1.04-.05 3.07-.05z',
-                'tiktok' => 'M19.6 7.2a5.7 5.7 0 01-3.4-1.1v7.4a5.7 5.7 0 11-5.7-5.7c.3 0 .6 0 .9.1v2.9a2.8 2.8 0 100 5.5 2.8 2.8 0 002.8-2.8V2h2.9a5.7 5.7 0 003.4 3.4v1.8z',
-                'twitter' => 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.727-8.835L1.254 2.25H8.08l4.259 5.622L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z',
                 'social' => 'M18 16.1c-.8 0-1.4.3-2 .8l-7.1-4.1c.1-.3.1-.5.1-.8s0-.5-.1-.8l7.1-4.1c.5.5 1.2.8 2 .8 1.7 0 3-1.3 3-3s-1.3-3-3-3-3 1.3-3 3c0 .3 0 .5.1.8L7.9 9.9C7.4 9.4 6.7 9.1 6 9.1c-1.7 0-3 1.3-3 3s1.3 3 3 3c.7 0 1.4-.3 2-.8l7.1 4.1c-.1.3-.1.5-.1.8 0 1.7 1.3 3 3 3s3-1.3 3-3-1.3-3-3-3z',
             ];
             $brandColors = [
                 'youtube' => '#FF0000',
-                'facebook' => '#1877F2',
-                'instagram' => '#E4405F',
-                'tiktok' => '#111827',
-                'twitter' => '#111827',
                 'social' => '#6366F1',
             ];
             $tasks = collect($marketplaceTasks ?? []);
@@ -127,7 +119,7 @@
                     </div>
                     <div class="border-t border-slate-100 px-4 py-4 sm:px-5">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-red-600">Tasks</span>
-                        <p class="font-display text-base sm:text-lg font-bold text-slate-900 mt-1 leading-snug">Watch Hours and other social activities when open</p>
+                        <p class="font-display text-base sm:text-lg font-bold text-slate-900 mt-1 leading-snug">Watch Hours and other YouTube tasks when open</p>
                     </div>
                 </div>
             </div>

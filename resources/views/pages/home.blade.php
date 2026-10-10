@@ -5,13 +5,6 @@
 @section('content')
 @php
     $brandName = $siteName ?? config('app.name', 'Social Growth Network');
-    $categoryCards = collect($categoryCards ?? [])->values();
-    $marketplaceCatalog = $marketplaceCatalog ?? ['filters' => [], 'products' => ['all' => []]];
-    $filterCategories = collect($marketplaceCatalog['filters'] ?? []);
-    $marketplaceCards = $categoryCards
-        ->filter(fn ($card) => ! in_array(($card['slug'] ?? ''), ['social-media', 'youtube'], true))
-        ->take(5)
-        ->values();
     $youtubeCatalog = $youtubeCatalog ?? ['featured' => null, 'others' => []];
     $watchHours = $youtubeCatalog['featured'] ?? null;
     $youtubeOthers = collect($youtubeCatalog['others'] ?? []);
@@ -57,10 +50,10 @@
                 {{ $brandName }}
             </p>
             <h1 class="text-[length:clamp(1.625rem,7.8vw,2rem)] sm:text-4xl md:text-5xl lg:text-[52px] font-extrabold text-slate-900 tracking-tight leading-[1.15] text-balance mb-4 sm:mb-5 font-display">
-                {!! $ytWord('Pay People to Subscribe, Watch, Like, Follow and Comment on Your Videos and Posts.') !!}
+                {!! $ytWord('Pay People to Subscribe, Watch, Like and Comment on Your YouTube Videos.') !!}
             </h1>
             <p class="text-base sm:text-lg lg:text-xl text-slate-600 font-normal leading-relaxed mb-8 sm:mb-10 max-w-xl mx-auto">
-                Not buying? Become an earner and get paid to watch, like, follow and comment on other people's videos and posts.
+                Not buying? Become an earner and get paid to watch, like, subscribe and comment on other people's YouTube videos.
             </p>
 
             <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
@@ -143,9 +136,9 @@
         @if($youtubeOthers->isNotEmpty())
             <div class="mb-6">
                 <h3 class="text-lg sm:text-xl font-bold text-slate-900 font-display">More YouTube packages</h3>
-                <p class="text-slate-500 text-sm mt-1">Views, likes, and comments, each with a clear price.</p>
+                <p class="text-slate-500 text-sm mt-1">Views, likes, comments, and subscribers, each with a clear price.</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 {{ $youtubeOthers->count() >= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3' }} gap-6 lg:gap-8">
                 @foreach($youtubeOthers as $index => $product)
                     @php
                         $tone = $badgeTones[$index % count($badgeTones)];
@@ -202,7 +195,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
             @foreach([
                 ['n' => '01', 'icon' => 'category', 'title' => 'Choose a service', 'body' => 'Pick YouTube Watch Hours or another service, then choose a package. You’ll see the price before you pay.', 'foot' => 'Step 1 · No haggling'],
-                ['n' => '02', 'icon' => 'link', 'title' => 'Provide campaign details', 'body' => 'Add the link to your post or video and any campaign instructions at checkout.', 'foot' => 'Step 2 · Quick setup'],
+                ['n' => '02', 'icon' => 'link', 'title' => 'Provide campaign details', 'body' => 'Add your YouTube video or channel link and any campaign instructions at checkout.', 'foot' => 'Step 2 · Quick setup'],
                 ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Pay and track', 'body' => 'Pay securely, then follow your campaign’s progress from your account.', 'foot' => 'Step 3 · Secure payment'],
             ] as $step)
                 <div
@@ -229,125 +222,7 @@
     </div>
 </section>
 
-{{-- 4. Other platforms (non-YouTube filter catalog) --}}
-<section
-    class="py-20 lg:py-28 bg-[#F8FAFC] border-b border-slate-100"
-    id="services"
-    x-data="{
-        filter: 'all',
-        catalog: @js($marketplaceCatalog),
-        tones: @js($badgeTones),
-        icons: @js($badgeIcons),
-        get products() {
-            return (this.catalog.products && this.catalog.products[this.filter]) ? this.catalog.products[this.filter] : [];
-        },
-        tone(i) { return this.tones[i % this.tones.length]; },
-        icon(i) { return this.icons[i % this.icons.length]; }
-    }"
->
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="mb-8 sm:mb-10">
-            <span class="text-slate-500 font-bold text-xs sm:text-sm tracking-wider uppercase mb-2 block">Other platforms</span>
-            <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-display">Need other social media services?</h2>
-            <p class="text-slate-600 text-base sm:text-lg mt-2 max-w-xl">We also offer services for Facebook, Instagram, TikTok, and X (Twitter).</p>
-        </div>
-
-        @if($filterCategories->isNotEmpty())
-            <div class="mb-10 w-full min-w-0 overflow-x-hidden">
-                <div class="overflow-x-auto scrollbar-hide overscroll-x-contain bg-slate-100 rounded-xl px-1">
-                    <div class="flex items-center gap-2 p-1.5 w-max min-w-full sm:min-w-0">
-                        <button type="button" @click="filter = 'all'" :class="filter === 'all' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600 font-medium hover:text-slate-900'" class="px-4 py-2 rounded-lg text-sm transition-all shrink-0">All</button>
-                        @foreach($filterCategories as $cat)
-                            <button
-                                type="button"
-                                @click="filter = '{{ $cat['slug'] }}'"
-                                :class="filter === '{{ $cat['slug'] }}' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600 font-medium hover:text-slate-900'"
-                                class="px-4 py-2 rounded-lg text-sm transition-all shrink-0"
-                            >{{ $cat['label'] ?? $cat['slug'] }}</button>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-        @endif
-
-        <template x-if="products.length > 0">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-                <template x-for="(product, index) in products" :key="filter + '-' + product.id">
-                    <div class="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
-                        <div>
-                            <div class="relative h-48 w-full overflow-hidden bg-slate-100">
-                                <template x-if="product.hero_url">
-                                    <img :src="product.hero_url" :alt="product.title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
-                                </template>
-                                <template x-if="!product.hero_url">
-                                    <div class="w-full h-full bg-gradient-to-br from-primary/25 via-slate-200 to-slate-100"></div>
-                                </template>
-                                <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
-                                <span class="absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 backdrop-blur-md text-xs font-bold shadow-sm" :class="tone(index)">
-                                    <span class="material-symbols-outlined text-sm" aria-hidden="true" x-text="icon(index)"></span>
-                                    <span x-text="product.category_label"></span>
-                                </span>
-                            </div>
-                            <div class="p-5">
-                                <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-primary transition-colors font-display">
-                                    <a :href="product.href" x-text="product.title"></a>
-                                </h3>
-                                <p class="text-slate-600 text-sm leading-relaxed mb-4" x-text="product.short_description"></p>
-                            </div>
-                        </div>
-                        <div class="px-5 pb-5 pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
-                            <span class="text-xs font-medium text-slate-500" x-text="product.from_price ? ('From ₦' + Number(product.from_price).toLocaleString('en-NG')) : 'See packages'"></span>
-                            <a class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline group-hover:translate-x-0.5 transition-transform" :href="product.href">View package →</a>
-                        </div>
-                    </div>
-                </template>
-            </div>
-        </template>
-
-        <div x-show="products.length === 0" x-cloak>
-            @if($marketplaceCards->isNotEmpty())
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-                    @foreach($marketplaceCards as $card)
-                        @php
-                            $tone = $badgeTones[$loop->index % count($badgeTones)];
-                            $icon = $badgeIcons[$loop->index % count($badgeIcons)];
-                            $image = $card['card_image'] ?? $card['banner_image'] ?? null;
-                            $href = $card['href'] ?? route('services');
-                        @endphp
-                        <div class="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
-                            <div>
-                                <div class="relative h-48 w-full overflow-hidden bg-slate-100">
-                                    @if($image)
-                                        <img src="{{ $image }}" alt="{{ $card['label'] ?? 'Campaign' }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
-                                    @else
-                                        <div class="w-full h-full bg-gradient-to-br from-primary/25 via-slate-200 to-slate-100"></div>
-                                    @endif
-                                    <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
-                                    <span class="absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 backdrop-blur-md {{ $tone }} text-xs font-bold shadow-sm">
-                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ $icon }}</span>
-                                        {{ $card['label'] ?? 'Campaigns' }}
-                                    </span>
-                                </div>
-                                <div class="p-5">
-                                    <h3 class="text-xl font-bold text-slate-900 mb-2 font-display">{{ $card['label'] ?? 'Campaigns' }}</h3>
-                                    <p class="text-slate-600 text-sm leading-relaxed mb-4">{{ $card['short_description'] ?? $card['hero_subtitle'] ?? 'Views, likes, and comments with clear prices.' }}</p>
-                                </div>
-                            </div>
-                            <div class="px-5 pb-5 pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
-                                <span class="text-xs font-medium text-slate-500">See packages</span>
-                                <a class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline" href="{{ $href }}">Explore Packages →</a>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            @else
-                <p class="text-slate-500 text-center py-12">No services are available here right now. Please check back soon.</p>
-            @endif
-        </div>
-    </div>
-</section>
-
-{{-- 5. Agent recruitment (final band) --}}
+{{-- 4. Agent recruitment (final band) --}}
 <section class="py-20 lg:py-24 bg-slate-50 border-y border-slate-200/60" id="agents">
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
@@ -360,7 +235,7 @@
                     Earn by completing available digital tasks
                 </h2>
                 <p class="text-slate-600 text-base sm:text-lg leading-relaxed mb-4 max-w-xl">
-                    Join {{ $brandName }} as an Agent. When campaigns are open, you can take on tasks like watching a YouTube video for a set time or engaging with a social post. Follow each task’s instructions, then submit your proof.
+                    Join {{ $brandName }} as an Agent. When campaigns are open, you can take on tasks like watching a YouTube video for a set time, liking or commenting on a video, or subscribing to a channel. Follow each task’s instructions, then submit your proof.
                 </p>
                 <p class="text-slate-500 text-sm leading-relaxed mb-8 max-w-xl">
                     Approved tasks can earn rewards. Earnings and open tasks are not guaranteed; rewards depend on task requirements and approval.

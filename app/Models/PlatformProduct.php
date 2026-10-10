@@ -164,24 +164,51 @@ class PlatformProduct extends Model
      */
     public function scopeVisibleToPublic(Builder $query): Builder
     {
+        $offeredCategory = fn (Builder $cat) => $cat->where('is_active', true)->system();
+
         if (Schema::hasColumn('platform_products', 'service_category_id')) {
-            return $query->published()->where(function (Builder $outer) {
-                $outer->whereHas('serviceCategory', fn (Builder $cat) => $cat->where('is_active', true))
-                    ->orWhere(function (Builder $legacy) {
+            return $query->published()->where(function (Builder $outer) use ($offeredCategory) {
+                $outer->whereHas('serviceCategory', $offeredCategory)
+                    ->orWhere(function (Builder $legacy) use ($offeredCategory) {
                         $legacy->whereNull('service_category_id')
-                            ->whereHas('productType', function (Builder $service) {
+                            ->whereHas('productType', function (Builder $service) use ($offeredCategory) {
                                 $service->where('is_active', true)
-                                    ->whereHas('serviceCategory', fn (Builder $cat) => $cat->where('is_active', true));
+                                    ->whereHas('serviceCategory', $offeredCategory);
                             });
                     });
             });
         }
 
         // Pre-migration fallback.
-        return $query->published()->whereHas('productType', function (Builder $service) {
+        return $query->published()->whereHas('productType', function (Builder $service) use ($offeredCategory) {
             $service->where('is_active', true)
-                ->whereHas('serviceCategory', fn (Builder $cat) => $cat->where('is_active', true));
+                ->whereHas('serviceCategory', $offeredCategory);
         });
+    }
+
+    /** Owned by a platform category that is still in config/platform_categories.php (status not considered). */
+    public function scopeOffered(Builder $query): Builder
+    {
+        return $query->where(function (Builder $outer) {
+            $outer->whereHas('serviceCategory', fn (Builder $cat) => $cat->system())
+                ->orWhere(function (Builder $legacy) {
+                    $legacy->whereNull('service_category_id')
+                        ->whereHas('productType.serviceCategory', fn (Builder $cat) => $cat->system());
+                });
+        });
+    }
+
+    public function isOffered(): bool
+    {
+        if ($this->service_category_id) {
+            $category = $this->relationLoaded('serviceCategory')
+                ? $this->serviceCategory
+                : $this->serviceCategory()->first();
+
+            return (bool) $category?->isSystem();
+        }
+
+        return (bool) $this->productType?->serviceCategory?->isSystem();
     }
 
     public function isVisibleToPublic(): bool
@@ -195,7 +222,7 @@ class PlatformProduct extends Model
                 ? $this->serviceCategory
                 : $this->serviceCategory()->first();
 
-            return (bool) ($category && $category->is_active);
+            return (bool) ($category && $category->is_active && $category->isSystem());
         }
 
         // Dual-read / pre-migration: ProductType → ServiceCategory.
@@ -211,7 +238,7 @@ class PlatformProduct extends Model
             ? $service->serviceCategory
             : $service->serviceCategory()->first();
 
-        return (bool) ($category && $category->is_active);
+        return (bool) ($category && $category->is_active && $category->isSystem());
     }
 
     public function scopeFeatured(Builder $query): Builder
@@ -300,7 +327,7 @@ class PlatformProduct extends Model
         return $query->where('product_type_id', $id);
     }
 
-    /** Views, likes, comments and watch-hours products need the creator's post or video URL. */
+    /** Every YouTube product needs the creator's video URL (or channel URL for Subscribers). */
     public function requiresTargetUrl(): bool
     {
         return $this->isCampaignProduct();

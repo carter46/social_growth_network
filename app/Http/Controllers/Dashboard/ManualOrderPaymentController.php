@@ -25,6 +25,11 @@ class ManualOrderPaymentController extends Controller
             return $this->denyManualPayment($order);
         }
 
+        if (! $order->payment_submitted_at && $this->checkout->orderHasRetiredProducts($order)) {
+            return redirect()->route('dashboard.service-orders')
+                ->with('error', __('Order :ref is for a service that is no longer offered, so it cannot be paid.', ['ref' => $order->reference]));
+        }
+
         $order = $this->checkout->initializeManualPaymentWindow($order);
 
         if (! $order->payment_submitted_at) {

@@ -179,7 +179,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-6">
                 @foreach([
                     ['Pick a package', 'Choose the package you want on the service page. The price is fixed.'],
-                    ['Provide your details', 'Add the link to your post or video, and any campaign details, at checkout.'],
+                    ['Provide your details', 'Add your YouTube video or channel link, and any campaign details, at checkout.'],
                     ['Secure payment', 'Pay with wallet, card, or bank transfer, depending on what\'s available.'],
                     ['Track progress', 'Follow your order and campaign progress from your dashboard.'],
                 ] as $i => $step)

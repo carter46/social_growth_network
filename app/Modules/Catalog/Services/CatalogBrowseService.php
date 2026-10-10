@@ -3,7 +3,6 @@
 namespace App\Modules\Catalog\Services;
 
 use App\Enums\PlatformProductStatus;
-use App\Enums\PlatformProductType;
 use App\Models\Campaign;
 use App\Models\PlatformProduct;
 use App\Models\PlatformProductVariant;
@@ -14,8 +13,6 @@ use Illuminate\Support\Facades\Schema;
 
 class CatalogBrowseService
 {
-    public const HOME_ECOSYSTEM_LIMIT = 8;
-
     public const HOME_PRODUCT_LIMIT = 6;
 
     public function usesDbHierarchy(): bool
@@ -422,6 +419,7 @@ class CatalogBrowseService
             'youtube-likes',
             'youtube-comments',
             'youtube-watch-hours',
+            'youtube-subscribers',
         ]);
 
         if (! is_array($youtubeSlugs) || $youtubeSlugs === []) {
@@ -445,7 +443,7 @@ class CatalogBrowseService
             $featured = $this->mapHomeProductCard($products->get('youtube-watch-hours'));
         }
 
-        $supportingOrder = ['youtube-views', 'youtube-likes', 'youtube-comments'];
+        $supportingOrder = ['youtube-views', 'youtube-likes', 'youtube-comments', 'youtube-subscribers'];
         $others = [];
         foreach ($supportingOrder as $slug) {
             if (! $products->has($slug)) {
@@ -458,175 +456,6 @@ class CatalogBrowseService
             'featured' => $featured,
             'others' => $others,
         ];
-    }
-
-    /**
-     * Homepage "Other platforms" catalog (excludes YouTube by default).
-     * Each filter (all + platform categories) exposes at most $limit products,
-     * reshuffled on every page load. TikTok/Twitter included when they have products.
-     *
-     * @param  list<string>  $excludeSlugs
-     * @return array{
-     *     filters: list<array{slug: string, label: string}>,
-     *     products: array<string, list<array<string, mixed>>>
-     * }
-     */
-    public function homeMarketplaceCatalog(int $limit = self::HOME_PRODUCT_LIMIT, array $excludeSlugs = ['youtube']): array
-    {
-        $filters = $this->homeFilterCategories($excludeSlugs);
-        $productsByFilter = ['all' => []];
-
-        if (! Schema::hasTable('platform_products') || $filters === []) {
-            return ['filters' => $filters, 'products' => $productsByFilter];
-        }
-
-        $with = [
-            'serviceCategory',
-            'productType.serviceCategory',
-            'heroMedia.variants',
-            'activeVariants',
-        ];
-
-        $pools = [];
-        foreach ($filters as $filter) {
-            $slug = $filter['slug'];
-            $categoryId = (int) ($filter['id'] ?? 0);
-
-            $pool = PlatformProduct::query()
-                ->visibleToPublic()
-                ->when(
-                    $categoryId > 0,
-                    fn ($q) => $q->where('service_category_id', $categoryId),
-                    fn ($q) => $q->whereHas('serviceCategory', fn ($c) => $c->where('slug', $slug))
-                )
-                ->with($with)
-                ->get()
-                ->shuffle()
-                ->values();
-
-            $pools[$slug] = $pool;
-            $productsByFilter[$slug] = $pool
-                ->take($limit)
-                ->map(fn (PlatformProduct $product) => $this->mapHomeProductCard($product))
-                ->values()
-                ->all();
-        }
-
-        $productsByFilter['all'] = $this->pickMixedHomeProducts($pools, $limit)
-            ->map(fn (PlatformProduct $product) => $this->mapHomeProductCard($product))
-            ->values()
-            ->all();
-
-        return [
-            'filters' => array_map(
-                fn (array $f) => ['slug' => $f['slug'], 'label' => $f['label']],
-                $filters
-            ),
-            'products' => $productsByFilter,
-        ];
-    }
-
-    /**
-     * Platform categories for homepage filters (excludes legacy social-media umbrella).
-     *
-     * @param  list<string>  $excludeSlugs  Category slugs to omit (e.g. youtube for Other Platforms).
-     * @return list<array{id: int, slug: string, label: string}>
-     */
-    public function homeFilterCategories(array $excludeSlugs = []): array
-    {
-        $exclude = array_fill_keys(
-            array_map('strval', $excludeSlugs),
-            true
-        );
-
-        $registrySlugs = collect(config('platform_categories', []))
-            ->filter(fn ($meta, $key) => is_array($meta)
-                && ($meta['slug'] ?? '') !== 'social-media'
-                && $key !== 'social'
-                && ! isset($exclude[(string) ($meta['slug'] ?? '')]))
-            ->map(fn ($meta) => (string) ($meta['slug'] ?? ''))
-            ->filter()
-            ->values()
-            ->all();
-
-        if ($registrySlugs === [] || ! Schema::hasTable('service_categories')) {
-            return [];
-        }
-
-        $categoriesQuery = ServiceCategory::query()
-            ->system()
-            ->active()
-            ->whereIn('slug', $registrySlugs);
-
-        // withPublicProducts() joins on service_category_id — only when that FK exists.
-        if (Schema::hasColumn('platform_products', 'service_category_id')) {
-            $categoriesQuery->withPublicProducts();
-        }
-
-        $categories = $categoriesQuery
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get(['id', 'slug', 'name']);
-
-        // Keep registry order (facebook → … → twitter when youtube excluded).
-        $bySlug = $categories->keyBy('slug');
-
-        $ordered = [];
-        foreach ($registrySlugs as $slug) {
-            $category = $bySlug->get($slug);
-            if (! $category) {
-                continue;
-            }
-            $ordered[] = [
-                'id' => (int) $category->id,
-                'slug' => $category->slug,
-                'label' => $category->name,
-            ];
-        }
-
-        return $ordered;
-    }
-
-    /**
-     * Build the "All" set: one product from each category when possible, then fill to $limit, then shuffle.
-     *
-     * @param  array<string, Collection<int, PlatformProduct>>  $pools
-     * @return Collection<int, PlatformProduct>
-     */
-    private function pickMixedHomeProducts(array $pools, int $limit): Collection
-    {
-        $picked = collect();
-        $usedIds = [];
-
-        foreach ($pools as $pool) {
-            $candidate = $pool->first(fn (PlatformProduct $p) => ! isset($usedIds[$p->id]));
-            if (! $candidate) {
-                continue;
-            }
-            $picked->push($candidate);
-            $usedIds[$candidate->id] = true;
-            if ($picked->count() >= $limit) {
-                break;
-            }
-        }
-
-        if ($picked->count() < $limit) {
-            $remainder = collect();
-            foreach ($pools as $pool) {
-                foreach ($pool as $product) {
-                    if (! isset($usedIds[$product->id])) {
-                        $remainder->push($product);
-                    }
-                }
-            }
-
-            foreach ($remainder->shuffle()->take($limit - $picked->count()) as $product) {
-                $picked->push($product);
-                $usedIds[$product->id] = true;
-            }
-        }
-
-        return $picked->shuffle()->values();
     }
 
     /**
@@ -704,11 +533,6 @@ class CatalogBrowseService
 
         $brandMap = [
             'youtube' => ['brand' => 'youtube', 'iconBg' => 'bg-red-50'],
-            'facebook' => ['brand' => 'facebook', 'iconBg' => 'bg-blue-50'],
-            'instagram' => ['brand' => 'instagram', 'iconBg' => 'bg-pink-50'],
-            'tiktok' => ['brand' => 'tiktok', 'iconBg' => 'bg-slate-100'],
-            'twitter' => ['brand' => 'twitter', 'iconBg' => 'bg-slate-100'],
-            'x' => ['brand' => 'twitter', 'iconBg' => 'bg-slate-100'],
             'social-media' => ['brand' => 'social', 'iconBg' => 'bg-violet-50'],
         ];
 
@@ -762,116 +586,5 @@ class CatalogBrowseService
             ])
             ->values()
             ->all();
-    }
-
-    /**
-     * Home page "What we do" cards: active catalog services.
-     *
-     * @return list<array{icon: string, title: string, body: string, href: string, image: ?string, badge: ?string, category_slug: ?string}>
-     */
-    public function homeEcosystemItems(CatalogContentResolver $content): array
-    {
-        $items = [];
-
-        foreach ($this->homeCatalogServiceCards($content) as $card) {
-            $items[] = [
-                'icon' => $card['icon'],
-                'title' => $card['title'],
-                'body' => $card['body'],
-                'href' => $card['href'],
-                'image' => $card['image'] ?? null,
-                'badge' => $card['badge'] ?? null,
-                'category_slug' => $card['category_slug'] ?? null,
-            ];
-        }
-
-        return array_slice($items, 0, self::HOME_ECOSYSTEM_LIMIT);
-    }
-
-    /**
-     * Active catalog services with ≥1 public product, in admin sort order.
-     *
-     * @return Collection<int, ProductType>
-     */
-    public function orderedCatalogServicesWithPublicProducts(): Collection
-    {
-        if (! Schema::hasTable('product_types')) {
-            return collect();
-        }
-
-        $query = ProductType::query()
-            ->with([
-                'serviceCategory.cardMedia.variants',
-                'serviceCategory.bannerMedia.variants',
-                'cardMedia.variants',
-                'bannerMedia.variants',
-            ])
-            ->active()
-            ->whereHas('products', fn ($q) => $q->visibleToPublic());
-
-        if ($this->usesDbHierarchy()) {
-            $query->whereHas('serviceCategory', fn ($q) => $q->system()->active()->where('mode', 'catalog'));
-        } else {
-            $query->whereIn('slug', $this->allGroupTypeValues());
-        }
-
-        return $query
-            ->reorder()
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get();
-    }
-
-    /**
-     * Active internal-catalog services that have at least one public product.
-     *
-     * @return Collection<int, array{icon: string, title: string, body: string, href: string}>
-     */
-    public function homeCatalogServiceCards(CatalogContentResolver $content): Collection
-    {
-        $services = $this->orderedCatalogServicesWithPublicProducts();
-
-        if ($services->isNotEmpty()) {
-            return $services
-                ->map(fn (ProductType $service) => $this->mapHomeServiceCard($service, $content))
-                ->values();
-        }
-
-        return collect($this->allGroupTypeValues())
-            ->filter(fn (string $slug) => $this->statsForTypes([$slug])['count'] > 0)
-            ->map(function (string $slug) use ($content) {
-                $resolved = $content->forType($slug);
-                $enum = PlatformProductType::tryFrom($slug);
-
-                return [
-                    'icon' => $resolved['icon'] ?? $enum?->icon() ?? 'grid',
-                    'title' => $resolved['label'] ?? str_replace('_', ' ', ucfirst($slug)),
-                    'body' => $resolved['short_description'] ?? '',
-                    'href' => $this->serviceListingUrl($slug),
-                    'image' => $resolved['card_image'] ?? $resolved['banner_image'] ?? null,
-                    'badge' => $resolved['label'] ?? null,
-                    'category_slug' => $this->groupForType($slug),
-                ];
-            })
-            ->values();
-    }
-
-    /**
-     * @return array{icon: string, title: string, body: string, href: string, image: ?string, badge: ?string, category_slug: ?string}
-     */
-    private function mapHomeServiceCard(ProductType $service, CatalogContentResolver $content): array
-    {
-        $resolved = $content->forService($service);
-        $enum = PlatformProductType::tryFrom($service->slug);
-
-        return [
-            'icon' => $resolved['icon'] ?? $enum?->icon() ?? 'grid',
-            'title' => $resolved['label'] ?? $service->name,
-            'body' => $resolved['short_description'] ?? $service->short_description ?? '',
-            'href' => $this->serviceListingUrl($service->slug, $service->serviceCategory?->slug),
-            'image' => $resolved['card_image'] ?? $resolved['banner_image'] ?? null,
-            'badge' => $service->serviceCategory?->name ?? ($resolved['label'] ?? null),
-            'category_slug' => $service->serviceCategory?->slug ?? null,
-        ];
     }
 }

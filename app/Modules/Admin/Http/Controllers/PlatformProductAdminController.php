@@ -35,6 +35,7 @@ class PlatformProductAdminController extends Controller
         }
 
         $products = PlatformProduct::query()
+            ->offered()
             ->with(['serviceCategory', 'productType.serviceCategory', 'heroMedia.variants', 'activeVariants'])
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = '%'.$request->string('q')->toString().'%';
@@ -292,6 +293,11 @@ class PlatformProductAdminController extends Controller
 
     private function assertPublishable(PlatformProduct $product): void
     {
+        if (! $product->isOffered()) {
+            throw ValidationException::withMessages([
+                'status' => 'This service is no longer offered, so it cannot be published.',
+            ]);
+        }
         if (! $product->pricingVariant()) {
             throw ValidationException::withMessages([
                 'status' => 'Published products need pricing (minimum, maximum, pricing unit and price).',

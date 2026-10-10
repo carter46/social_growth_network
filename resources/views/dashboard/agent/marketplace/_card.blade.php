@@ -8,10 +8,6 @@
         ?? ($product?->productType?->serviceCategory?->name ?? __('Task'));
     $dotColors = [
         'youtube' => 'bg-red-500',
-        'facebook' => 'bg-blue-600',
-        'instagram' => 'bg-pink-500',
-        'tiktok' => 'bg-slate-900',
-        'twitter' => 'bg-sky-500',
     ];
     $dot = $dotColors[$product?->categorySlug() ?? ''] ?? 'bg-primary';
     $slotsLeft = $campaign->availableStartSlots();

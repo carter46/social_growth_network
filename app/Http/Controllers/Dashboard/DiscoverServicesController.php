@@ -65,6 +65,10 @@ class DiscoverServicesController extends Controller
 
     public function browse(Request $request, string $segment): View|RedirectResponse
     {
+        if (PlatformProductSlugRedirect::isRetiredPlatformSlug($segment)) {
+            return redirect()->route('dashboard.services')->with('error', 'That service is no longer offered.');
+        }
+
         $user = $request->user();
 
         if ($this->browse->isGroup($segment)) {
@@ -106,6 +110,10 @@ class DiscoverServicesController extends Controller
 
     public function product(Request $request, string $slug): View|RedirectResponse
     {
+        if (PlatformProductSlugRedirect::isRetiredPlatformSlug($slug)) {
+            return redirect()->route('dashboard.services')->with('error', 'That service is no longer offered.');
+        }
+
         $canonical = PlatformProductSlugRedirect::resolve($slug);
         if ($canonical !== null) {
             return redirect()->route('dashboard.services.product', $canonical, 301);
@@ -188,6 +196,10 @@ class DiscoverServicesController extends Controller
 
     public function checkout(Request $request, string $slug): View|RedirectResponse
     {
+        if (PlatformProductSlugRedirect::isRetiredPlatformSlug($slug)) {
+            return redirect()->route('dashboard.services')->with('error', 'That service is no longer offered.');
+        }
+
         $canonical = PlatformProductSlugRedirect::resolve($slug);
         if ($canonical !== null) {
             return redirect()->route('dashboard.services.checkout', array_merge(
@@ -282,6 +294,10 @@ class DiscoverServicesController extends Controller
 
     public function purchase(Request $request, string $slug): RedirectResponse
     {
+        if (PlatformProductSlugRedirect::isRetiredPlatformSlug($slug)) {
+            return redirect()->route('dashboard.services')->with('error', 'That service is no longer offered.');
+        }
+
         // Canonicalize in place so POST body is preserved.
         $slug = PlatformProductSlugRedirect::canonical($slug);
 
@@ -416,13 +432,16 @@ class DiscoverServicesController extends Controller
     public function paymentCallback(Request $request, string $slug): RedirectResponse
     {
         $slug = PlatformProductSlugRedirect::canonical($slug);
+        $backUrl = PlatformProductSlugRedirect::isRetiredPlatformSlug($slug)
+            ? route('dashboard.service-orders')
+            : route('dashboard.services.checkout', $slug);
 
         $paymentReference = $request->string('paymentReference')->toString()
             ?: $request->string('payment_reference')->toString();
 
         if ($paymentReference === '') {
             return redirect()
-                ->route('dashboard.services.checkout', $slug)
+                ->to($backUrl)
                 ->with('error', 'Payment reference missing. If you paid, wait a moment and check My Orders or My Campaigns.');
         }
 
@@ -434,7 +453,7 @@ class DiscoverServicesController extends Controller
 
         if (! $order) {
             return redirect()
-                ->route('dashboard.services.checkout', $slug)
+                ->to($backUrl)
                 ->with('error', 'Order not found for this payment.');
         }
 
@@ -459,7 +478,7 @@ class DiscoverServicesController extends Controller
 
         if ($order->status !== 'paid') {
             return redirect()
-                ->route('dashboard.services.checkout', $slug)
+                ->to($backUrl)
                 ->with('error', 'Payment is still pending. If you completed payment, refresh shortly or check My Orders or My Campaigns.');
         }
 

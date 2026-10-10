@@ -14,13 +14,13 @@ class PlatformCatalogTrimTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_retires_disallowed_social_media_products(): void
+    public function test_archives_disallowed_products_without_deleting_them(): void
     {
         $this->seed(\Database\Seeders\PlatformCatalogSeeder::class);
 
         foreach ([
             ['slug' => 'linkedin-lead-boost', 'title' => 'LinkedIn Lead Boost'],
-            ['slug' => 'multi-platform-starter', 'title' => 'Multi-Platform Starter'],
+            ['slug' => 'instagram-views', 'title' => 'Instagram Views'],
         ] as $row) {
             $product = new PlatformProduct;
             $product->forceFill([
@@ -38,22 +38,12 @@ class PlatformCatalogTrimTest extends TestCase
 
         PlatformCatalogTrim::apply();
 
-        $this->assertDatabaseHas('platform_products', ['slug' => 'youtube-views']);
-        $this->assertDatabaseHas('platform_products', ['slug' => 'youtube-likes']);
-        $this->assertDatabaseHas('platform_products', ['slug' => 'youtube-comments']);
-        $this->assertDatabaseHas('platform_products', ['slug' => 'youtube-watch-hours']);
-        $this->assertDatabaseMissing('platform_products', ['slug' => 'youtube-subscribers']);
-        $this->assertDatabaseHas('platform_products', ['slug' => 'facebook-views']);
-        $this->assertDatabaseHas('platform_products', ['slug' => 'instagram-views']);
-        $this->assertDatabaseHas('platform_products', ['slug' => 'tiktok-views']);
-        $this->assertDatabaseHas('platform_products', ['slug' => 'twitter-views']);
+        foreach (['youtube-views', 'youtube-likes', 'youtube-comments', 'youtube-watch-hours'] as $slug) {
+            $this->assertDatabaseHas('platform_products', ['slug' => $slug, 'status' => 'published']);
+        }
 
-        $this->assertDatabaseMissing('platform_products', ['slug' => 'linkedin-lead-boost']);
-        $this->assertDatabaseMissing('platform_products', ['slug' => 'multi-platform-starter']);
-        $this->assertDatabaseMissing('platform_products', ['slug' => 'youtube-views-lite']);
-        $this->assertDatabaseMissing('platform_products', ['slug' => 'instagram-growth-pack']);
-
-        $this->assertSame(16, PlatformProduct::query()->ofType(PlatformProductType::SocialService)->count());
+        $this->assertDatabaseHas('platform_products', ['slug' => 'linkedin-lead-boost', 'status' => 'archived']);
+        $this->assertDatabaseHas('platform_products', ['slug' => 'instagram-views', 'status' => 'archived']);
     }
 
     public function test_trim_keeps_legacy_views_slugs_until_renamed(): void
@@ -78,27 +68,23 @@ class PlatformCatalogTrimTest extends TestCase
         $this->assertDatabaseHas('platform_products', ['slug' => 'youtube-views-lite']);
     }
 
-    public function test_seeder_is_idempotent_and_assigns_categories(): void
+    public function test_seeder_is_idempotent_and_assigns_youtube_category(): void
     {
         $this->seed(\Database\Seeders\PlatformCatalogSeeder::class);
         $this->seed(\Database\Seeders\PlatformCatalogSeeder::class);
 
-        $this->assertSame(16, PlatformProduct::query()->ofType(PlatformProductType::SocialService)->count());
-
         $youtubeId = ServiceCategory::query()->where('slug', 'youtube')->value('id');
         $this->assertNotNull($youtubeId);
-        $this->assertSame(
-            4,
-            PlatformProduct::query()->where('service_category_id', $youtubeId)->count()
-        );
 
-        foreach (['facebook', 'instagram', 'tiktok', 'twitter'] as $slug) {
-            $categoryId = ServiceCategory::query()->where('slug', $slug)->value('id');
-            $this->assertNotNull($categoryId);
+        foreach (['youtube-views', 'youtube-likes', 'youtube-comments', 'youtube-watch-hours', 'youtube-subscribers'] as $slug) {
+            $this->assertSame(1, PlatformProduct::query()->where('slug', $slug)->count(), $slug);
             $this->assertSame(
-                3,
-                PlatformProduct::query()->where('service_category_id', $categoryId)->count()
+                (int) $youtubeId,
+                (int) PlatformProduct::query()->where('slug', $slug)->value('service_category_id'),
+                $slug
             );
         }
+
+        $this->assertDatabaseHas('platform_products', ['slug' => 'youtube-subscribers', 'status' => 'draft']);
     }
 }

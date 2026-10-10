@@ -18,7 +18,8 @@ class TargetUrlValidator
         }
 
         $parts = parse_url($url);
-        if (! is_array($parts) || empty($parts['host'])) {
+        if (! is_array($parts) || empty($parts['host'])
+            || ! in_array(strtolower((string) ($parts['scheme'] ?? '')), ['http', 'https'], true)) {
             return null;
         }
 
@@ -45,18 +46,11 @@ class TargetUrlValidator
         $host = strtolower((string) parse_url($url, PHP_URL_HOST));
         $host = Str::startsWith($host, 'www.') ? substr($host, 4) : $host;
 
-        return match (true) {
-            self::hostMatches($host, ['youtube.com', 'youtu.be', 'm.youtube.com']) => 'youtube',
-            self::hostMatches($host, ['facebook.com', 'fb.com', 'fb.watch', 'm.facebook.com']) => 'facebook',
-            self::hostMatches($host, ['instagram.com']) => 'instagram',
-            self::hostMatches($host, ['tiktok.com', 'vm.tiktok.com']) => 'tiktok',
-            self::hostMatches($host, ['twitter.com', 'x.com', 'mobile.twitter.com']) => 'x',
-            default => null,
-        };
+        return self::hostMatches($host, ['youtube.com', 'youtu.be', 'm.youtube.com']) ? 'youtube' : null;
     }
 
     /**
-     * Exact host or trusted subdomain (avoids notinstagram.com spoofing).
+     * Exact host or trusted subdomain (avoids notyoutube.com spoofing).
      *
      * @param  list<string>  $allowed
      */
@@ -72,39 +66,20 @@ class TargetUrlValidator
     }
 
     /**
-     * Reject bare profile URLs for likes/comments/views that require a post.
+     * Reject channel links for products that work on a single video.
      */
     public static function isPostOrVideoUrl(?string $url, ?string $expectedPlatform = null): bool
     {
         $url = self::normalize($url);
-        if (! $url) {
+        if (! $url || self::platformFromUrl($url) !== 'youtube') {
             return false;
         }
 
-        $platform = self::platformFromUrl($url);
-        if (! $platform) {
+        if ($expectedPlatform && $expectedPlatform !== 'youtube') {
             return false;
         }
 
-        if ($expectedPlatform && $expectedPlatform !== $platform && ! ($expectedPlatform === 'twitter' && $platform === 'x')) {
-            return false;
-        }
-
-        $path = (string) parse_url($url, PHP_URL_PATH);
-        $path = rtrim($path, '/') ?: '/';
-
-        return match ($platform) {
-            'youtube' => self::extractYoutubeVideoId($url) !== null,
-            'tiktok' => (bool) preg_match('#/(video|photo)/\d+#', $path),
-            'instagram' => (bool) preg_match('#/(p|reel|tv)/[^/]+#', $path),
-            'facebook' => str_contains($path, '/posts/')
-                || str_contains($path, '/videos/')
-                || str_contains($path, '/watch')
-                || str_contains($path, '/reel/')
-                || str_contains((string) parse_url($url, PHP_URL_QUERY), 'v='),
-            'x' => (bool) preg_match('#/status/\d+#', $path),
-            default => false,
-        };
+        return self::extractYoutubeVideoId($url) !== null;
     }
 
     public static function extractYoutubeVideoId(?string $url): ?string
@@ -134,6 +109,42 @@ class TargetUrlValidator
         return is_string($id) && $id !== '' ? $id : null;
     }
 
+    public static function isYoutubeChannelUrl(?string $url): bool
+    {
+        return self::extractYoutubeChannelRef($url) !== null;
+    }
+
+    /**
+     * Channel reference from /@handle, /channel/UC..., /c/name or /user/name links.
+     *
+     * @return array{type: 'handle'|'id'|'custom'|'user', value: string}|null
+     */
+    public static function extractYoutubeChannelRef(?string $url): ?array
+    {
+        $url = self::normalize($url);
+        if (! $url || self::platformFromUrl($url) !== 'youtube' || self::extractYoutubeVideoId($url) !== null) {
+            return null;
+        }
+
+        $path = (string) parse_url($url, PHP_URL_PATH);
+
+        return match (true) {
+            (bool) preg_match('#^/@([A-Za-z0-9._-]{3,100})/?#', $path, $m) => ['type' => 'handle', 'value' => strtolower($m[1])],
+            (bool) preg_match('#^/channel/(UC[A-Za-z0-9_-]{22})/?#', $path, $m) => ['type' => 'id', 'value' => $m[1]],
+            (bool) preg_match('#^/c/([A-Za-z0-9._-]{1,100})/?#', $path, $m) => ['type' => 'custom', 'value' => strtolower($m[1])],
+            (bool) preg_match('#^/user/([A-Za-z0-9._-]{1,100})/?#', $path, $m) => ['type' => 'user', 'value' => strtolower($m[1])],
+            default => null,
+        };
+    }
+
+    /** Stable key for comparing two links to the same channel. */
+    public static function youtubeChannelKey(?string $url): ?string
+    {
+        $ref = self::extractYoutubeChannelRef($url);
+
+        return $ref ? $ref['type'].':'.$ref['value'] : null;
+    }
+
     public static function assertValidForProduct(string $url, string $productSlug): void
     {
         $metric = EngagementMetric::fromProductSlug($productSlug);
@@ -143,17 +154,24 @@ class TargetUrlValidator
             return;
         }
 
-        $expected = $platform === 'twitter' ? 'x' : $platform;
-
-        if (! self::isPostOrVideoUrl($url, $expected) && ! self::isPostOrVideoUrl($url, $platform)) {
-            throw new \InvalidArgumentException(
-                'Please provide a public post or video URL for this product (profile links are not accepted).'
-            );
+        if (self::platformFromUrl($url) !== 'youtube') {
+            throw new \InvalidArgumentException('Please provide a YouTube link.');
         }
 
-        $urlPlatform = self::platformFromUrl($url);
-        if ($urlPlatform !== $expected) {
-            throw new \InvalidArgumentException('The URL must match the selected platform product.');
+        if ($metric->targetsChannel()) {
+            if (! self::isYoutubeChannelUrl($url)) {
+                throw new \InvalidArgumentException(
+                    'Please provide your YouTube channel link (for example https://www.youtube.com/@yourchannel). Video links are not accepted.'
+                );
+            }
+
+            return;
+        }
+
+        if (! self::isPostOrVideoUrl($url, 'youtube')) {
+            throw new \InvalidArgumentException(
+                'Please provide a public YouTube video URL for this product (channel links are not accepted).'
+            );
         }
     }
 }

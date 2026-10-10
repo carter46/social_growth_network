@@ -267,7 +267,7 @@
                         :required="!!selectedProduct"
                         class="w-full rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm"
                     />
-                    <p class="mt-1 text-xs text-text-muted">The post, video or profile URL agents will work on.</p>
+                    <p class="mt-1 text-xs text-text-muted">The YouTube video or channel URL agents will work on.</p>
                 </div>
 
                 <div x-show="isWebsite" x-cloak class="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">

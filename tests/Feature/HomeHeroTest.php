@@ -17,8 +17,7 @@ class HomeHeroTest extends TestCase
         $this->get(route('home'))
             ->assertOk()
             ->assertSee('assets/images/home_whitepng.png', false)
-            ->assertSee('Pay People to Subscribe, Watch, Like, Follow and Comment on Your Videos and Posts.', false)
-            ->assertSee('<span class="text-red-600">YouTube</span>', false)
+            ->assertSee('Pay People to Subscribe, Watch, Like and Comment on Your <span class="text-red-600">YouTube</span> Videos.', false)
             ->assertSee('id="youtube-services"', false)
             ->assertSee('Buy Watch Hours', false)
             ->assertDontSee('Pay For Watch Hours', false)
@@ -32,57 +31,39 @@ class HomeHeroTest extends TestCase
             ->assertDontSee('home-services-q', false);
     }
 
-    public function test_home_marketplace_excludes_youtube_and_surfaces_youtube_catalog(): void
+    public function test_home_shows_only_youtube_catalog(): void
     {
         Artisan::call('catalog:backfill-hierarchy');
         $this->seed(\Database\Seeders\PlatformCatalogSeeder::class);
         Artisan::call('catalog:backfill-hierarchy');
 
-        $response = $this->get(route('home'));
-
-        $response->assertOk()
+        $this->get(route('home'))
+            ->assertOk()
             ->assertSee('YouTube services', false)
             ->assertSee('YouTube Watch Hours', false)
             ->assertSee('home-yt-featured', false)
-            ->assertSee('Other platforms', false)
-            ->assertSee('Need other social media services?', false)
             ->assertSee('Earn by completing available digital tasks', false)
             ->assertSee('Learn more', false)
             ->assertSee('Start earning', false)
             ->assertSee(route('register.agent'), false)
-            ->assertSee('>All<', false)
-            ->assertSee('TikTok', false)
-            ->assertSee('Twitter', false)
+            ->assertDontSee('Other platforms', false)
+            ->assertDontSee('Need other social media services?', false)
+            ->assertDontSee('TikTok', false)
+            ->assertDontSee('Instagram', false)
+            ->assertDontSee('id="services"', false)
             ->assertDontSee('id="creators"', false)
             ->assertDontSee('Ready to grow YouTube Watch Hours?', false)
             ->assertDontSee('Guaranteed verified human activity', false)
             ->assertDontSee('Crypto Cash Exchange', false);
 
-        $html = $response->getContent();
-        $servicesPos = strpos($html, 'id="services"');
-        $this->assertNotFalse($servicesPos);
-        $servicesChunk = substr($html, $servicesPos, 2500);
-        $this->assertStringNotContainsString(">YouTube</button>", $servicesChunk);
-
-        $browse = app(CatalogBrowseService::class);
-
-        $marketplace = $browse->homeMarketplaceCatalog();
-        $this->assertArrayNotHasKey('youtube', $marketplace['products']);
-        $this->assertLessThanOrEqual(6, count($marketplace['products']['all'] ?? []));
-        $this->assertArrayHasKey('tiktok', $marketplace['products']);
-        $this->assertArrayHasKey('twitter', $marketplace['products']);
-        foreach ($marketplace['filters'] as $filter) {
-            $this->assertNotSame('youtube', $filter['slug'] ?? null);
-        }
-
-        $youtube = $browse->homeYouTubeCatalog();
+        $youtube = app(CatalogBrowseService::class)->homeYouTubeCatalog();
         $this->assertNotNull($youtube['featured']);
         $this->assertSame('YouTube Watch Hours', $youtube['featured']['title'] ?? null);
-        $this->assertNotEmpty($youtube['others']);
         $otherTitles = collect($youtube['others'])->pluck('title')->all();
         $this->assertContains('YouTube Views', $otherTitles);
         $this->assertContains('YouTube Likes', $otherTitles);
         $this->assertContains('YouTube Comments', $otherTitles);
+        $this->assertNotContains('YouTube Subscribers', $otherTitles);
     }
 
     public function test_home_youtube_cards_without_admin_image_render_no_stock_image(): void
@@ -98,7 +79,7 @@ class HomeHeroTest extends TestCase
         $html = $this->get(route('home'))->assertOk()->getContent();
 
         $start = strpos($html, 'id="youtube-services"');
-        $end = strpos($html, 'id="services"');
+        $end = strpos($html, 'id="agents"');
         $this->assertNotFalse($start);
         $this->assertNotFalse($end);
         $youtubeChunk = substr($html, $start, $end - $start);

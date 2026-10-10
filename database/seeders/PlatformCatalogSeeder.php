@@ -26,91 +26,32 @@ class PlatformCatalogSeeder extends Seeder
             'base_price' => 5000,
             'sort_order' => 0,
         ],
-        [
-            'new_slug' => 'facebook-views',
-            'old_slug' => 'facebook-growth-pack',
-            'title' => 'Facebook Views',
-            'base_price' => 7500,
-            'sort_order' => 10,
-        ],
-        [
-            'new_slug' => 'instagram-views',
-            'old_slug' => 'instagram-growth-pack',
-            'title' => 'Instagram Views',
-            'base_price' => 10000,
-            'sort_order' => 20,
-        ],
-        [
-            'new_slug' => 'tiktok-views',
-            'old_slug' => 'tiktok-engagement-boost',
-            'title' => 'TikTok Views',
-            'base_price' => 12500,
-            'sort_order' => 30,
-        ],
-        [
-            'new_slug' => 'twitter-views',
-            'old_slug' => 'twitter-audience-pack',
-            'title' => 'Twitter Views',
-            'base_price' => 15000,
-            'sort_order' => 40,
-        ],
     ];
 
     /**
      * New products created when missing (Likes / Comments / YouTube extras).
+     * Subscribers starts as a draft until an admin sets pricing and publishes it.
      *
-     * @var array<int, array{slug: string, title: string, base_price: int, sort_order: int}>
+     * @var array<int, array{slug: string, title: string, base_price: int, sort_order: int, status?: PlatformProductStatus}>
      */
     private const ADDITIONAL_PRODUCTS = [
         ['slug' => 'youtube-likes', 'title' => 'YouTube Likes', 'base_price' => 5500, 'sort_order' => 1],
         ['slug' => 'youtube-comments', 'title' => 'YouTube Comments', 'base_price' => 6000, 'sort_order' => 2],
         ['slug' => 'youtube-watch-hours', 'title' => 'YouTube Watch Hours', 'base_price' => 8000, 'sort_order' => 3],
-        ['slug' => 'facebook-likes', 'title' => 'Facebook Likes', 'base_price' => 8000, 'sort_order' => 11],
-        ['slug' => 'facebook-comments', 'title' => 'Facebook Comments', 'base_price' => 8500, 'sort_order' => 12],
-        ['slug' => 'instagram-likes', 'title' => 'Instagram Likes', 'base_price' => 10500, 'sort_order' => 21],
-        ['slug' => 'instagram-comments', 'title' => 'Instagram Comments', 'base_price' => 11000, 'sort_order' => 22],
-        ['slug' => 'tiktok-likes', 'title' => 'TikTok Likes', 'base_price' => 13000, 'sort_order' => 31],
-        ['slug' => 'tiktok-comments', 'title' => 'TikTok Comments', 'base_price' => 13500, 'sort_order' => 32],
-        ['slug' => 'twitter-likes', 'title' => 'Twitter Likes', 'base_price' => 15500, 'sort_order' => 41],
-        ['slug' => 'twitter-comments', 'title' => 'Twitter Comments', 'base_price' => 16000, 'sort_order' => 42],
+        ['slug' => 'youtube-subscribers', 'title' => 'YouTube Subscribers', 'base_price' => 10000, 'sort_order' => 4, 'status' => PlatformProductStatus::Draft],
     ];
 
     public static function descriptionFor(string $slug, string $title): string
     {
-        [$platform, $metric] = array_pad(explode('-', $slug, 2), 2, '');
+        $metric = str_starts_with($slug, 'youtube-') ? substr($slug, strlen('youtube-')) : '';
 
-        if ($metric === 'watch-hours') {
-            return 'Add watch time to a public YouTube video. Choose a package, add your video link at checkout, and track your campaign from your account.';
-        }
-
-        $name = match ($platform) {
-            'youtube' => 'YouTube',
-            'facebook' => 'Facebook',
-            'instagram' => 'Instagram',
-            'tiktok' => 'TikTok',
-            default => null,
+        return match ($metric) {
+            'watch-hours' => 'Add watch time to a public YouTube video. Choose a package, add your video link at checkout, and track your campaign from your account.',
+            'subscribers' => 'Grow the subscriber count of a public YouTube channel. Choose a package, add your channel link at checkout, and track your campaign from your account.',
+            'views' => 'Order views for a public YouTube video. Choose a package, add your video link at checkout, and track your campaign from your account.',
+            'likes', 'comments' => "Order {$metric} for a public YouTube video. Choose a package, add the link at checkout, and track progress from your account.",
+            default => "Choose a {$title} package, add your link at checkout, and track progress from your account.",
         };
-
-        $target = match (true) {
-            $platform === 'twitter' => 'post on X (Twitter)',
-            $platform === 'instagram' => 'Instagram Reel or post',
-            $platform === 'tiktok' => 'TikTok video',
-            $metric === 'views' => $name.' video',
-            $name !== null => $name.' post or video',
-            default => null,
-        };
-
-        if ($target === null || ! in_array($metric, ['views', 'likes', 'comments'], true)) {
-            return "Choose a {$title} package, add your link at checkout, and track progress from your account.";
-        }
-
-        if ($metric === 'views') {
-            $link = in_array($platform, ['youtube', 'facebook', 'tiktok'], true) ? 'your video link' : 'the link';
-
-            return "Order views for a public {$target}. Choose a package, add {$link} at checkout, and track your campaign from your account.";
-        }
-
-        return "Order {$metric} for a public {$target}. Choose a package, add the link at checkout, and track progress from your account.";
     }
 
     public function run(): void
@@ -194,7 +135,7 @@ class PlatformCatalogSeeder extends Seeder
     }
 
     /**
-     * @param  array{slug: string, title: string, base_price: int, sort_order: int}  $row
+     * @param  array{slug: string, title: string, base_price: int, sort_order: int, status?: PlatformProductStatus}  $row
      */
     private function upsertAdditionalProduct(array $row, string $type): PlatformProduct
     {
@@ -225,7 +166,7 @@ class PlatformCatalogSeeder extends Seeder
             'title' => $row['title'],
             'product_type' => $type,
             'description' => self::descriptionFor($row['slug'], $row['title']),
-            'status' => PlatformProductStatus::Published,
+            'status' => $row['status'] ?? PlatformProductStatus::Published,
             'is_featured' => false,
             'sort_order' => $row['sort_order'],
             'base_price' => $row['base_price'],

@@ -19,7 +19,7 @@ class ServicesYouTubeSeparationTest extends TestCase
         Artisan::call('catalog:backfill-hierarchy');
     }
 
-    public function test_services_page_puts_youtube_and_other_social_beside_the_filters(): void
+    public function test_services_page_shows_only_youtube_beside_the_filters(): void
     {
         $response = $this->get(route('services'));
 
@@ -27,7 +27,8 @@ class ServicesYouTubeSeparationTest extends TestCase
             ->assertSee('services-yt-featured', false)
             ->assertSee('Buy Watch Hours', false)
             ->assertSee('Other YouTube services', false)
-            ->assertSee('Other social media services', false)
+            ->assertDontSee('Other social media services', false)
+            ->assertDontSee('id="other-social-services"', false)
             ->assertDontSee('Campaign services</h1>', false)
             ->assertDontSee('id="marketplace-search"', false)
             ->assertDontSee('Available campaign services', false);
@@ -38,35 +39,24 @@ class ServicesYouTubeSeparationTest extends TestCase
         $resultsPos = strpos($html, 'id="services-results"');
         $watchHoursPos = strpos($html, 'id="youtube-watch-hours"');
         $otherYouTubePos = strpos($html, 'id="other-youtube-services"');
-        $otherSocialPos = strpos($html, 'id="other-social-services"');
 
-        foreach ([$filtersPos, $resultsPos, $watchHoursPos, $otherYouTubePos, $otherSocialPos] as $pos) {
+        foreach ([$filtersPos, $resultsPos, $watchHoursPos, $otherYouTubePos] as $pos) {
             $this->assertNotFalse($pos);
         }
         $this->assertLessThan($resultsPos, $filtersPos);
         $this->assertLessThan($watchHoursPos, $resultsPos);
         $this->assertLessThan($otherYouTubePos, $watchHoursPos);
-        $this->assertLessThan($otherSocialPos, $otherYouTubePos);
 
         $filters = substr($html, $filtersPos, $resultsPos - $filtersPos);
         $this->assertStringContainsString('value="youtube"', $filters);
-        $this->assertStringContainsString('value="facebook"', $filters);
-        $this->assertLessThan(strpos($filters, 'value="facebook"'), strpos($filters, 'value="youtube"'));
+        foreach (['facebook', 'instagram', 'tiktok', 'twitter'] as $removed) {
+            $this->assertStringNotContainsString('value="'.$removed.'"', $filters);
+        }
 
-        $youtubeChunk = substr($html, $otherYouTubePos, $otherSocialPos - $otherYouTubePos);
+        $youtubeChunk = substr($html, $otherYouTubePos);
         $this->assertStringContainsString('YouTube Views', $youtubeChunk);
         $this->assertStringContainsString('YouTube Likes', $youtubeChunk);
         $this->assertStringContainsString('YouTube Comments', $youtubeChunk);
-        $this->assertStringNotContainsString('youtube-watch-hours', $youtubeChunk);
-
-        $otherChunk = substr($html, $otherSocialPos);
-        $this->assertStringNotContainsString('youtube-watch-hours', $otherChunk);
-        $this->assertStringNotContainsString('YouTube Views', $otherChunk);
-        $this->assertStringNotContainsString('YouTube Likes', $otherChunk);
-        $this->assertStringContainsString('Facebook', $otherChunk);
-        $this->assertStringContainsString('Instagram', $otherChunk);
-        $this->assertStringContainsString('TikTok', $otherChunk);
-        $this->assertStringContainsString('Twitter', $otherChunk);
     }
 
     public function test_youtube_filter_shows_only_youtube_services(): void
@@ -80,20 +70,17 @@ class ServicesYouTubeSeparationTest extends TestCase
         $this->assertStringContainsString('Other YouTube services', $html);
         $this->assertStringContainsString('YouTube Likes', $html);
         $this->assertStringNotContainsString('id="other-social-services"', $html);
-        $this->assertStringNotContainsString('Facebook Likes', $html);
     }
 
-    public function test_platform_filter_hides_youtube_blocks(): void
+    public function test_removed_platform_filter_falls_back_to_youtube(): void
     {
         $html = $this->get(route('services', ['category' => 'facebook']), [
             'X-Services-Filter' => '1',
             'X-Requested-With' => 'XMLHttpRequest',
         ])->assertOk()->getContent();
 
-        $this->assertStringContainsString('Facebook Likes', $html);
-        $this->assertStringNotContainsString('services-yt-featured', $html);
-        $this->assertStringNotContainsString('Other YouTube services', $html);
-        $this->assertStringNotContainsString('YouTube Likes', $html);
+        $this->assertStringContainsString('services-yt-featured', $html);
+        $this->assertStringNotContainsString('Facebook', $html);
     }
 
     public function test_products_without_admin_images_render_no_stock_images(): void

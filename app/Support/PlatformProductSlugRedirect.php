@@ -7,6 +7,21 @@ namespace App\Support;
  */
 final class PlatformProductSlugRedirect
 {
+    /** Category slugs and product slug prefixes of platforms that are no longer offered. */
+    private const RETIRED_PLATFORMS = ['facebook', 'instagram', 'tiktok', 'twitter', 'x'];
+
+    public static function isRetiredPlatformSlug(string $slug): bool
+    {
+        $slug = strtolower(trim($slug));
+        foreach (self::RETIRED_PLATFORMS as $platform) {
+            if ($slug === $platform || str_starts_with($slug, $platform.'-')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function resolve(string $slug): ?string
     {
         $map = config('platform_products.slug_redirects', []);

@@ -47,12 +47,12 @@ class TaskController extends Controller
             ?? ($campaign?->meta['platform'] ?? null);
 
         $taskMode = 'proof';
-        if ($metric === EngagementMetric::Views && in_array($platform, ['x', 'twitter'], true)) {
-            $taskMode = 'x_action';
-        } elseif ($metric?->usesWatchSession() && ! in_array($platform, ['x', 'twitter'], true)) {
+        if ($metric?->usesWatchSession()) {
             $taskMode = 'watch_session';
         } elseif ($metric?->usesCountChangeVerification()) {
             $taskMode = 'count_change_proof';
+        } elseif ($metric?->targetsChannel()) {
+            $taskMode = 'subscribe';
         }
 
         $embed = $campaign?->target_url
@@ -80,11 +80,7 @@ class TaskController extends Controller
             'proof_notes' => ['nullable', 'string', 'max:5000'],
         ];
 
-        if ($metric?->usesCountChangeVerification() || ($metric === EngagementMetric::Views && in_array(
-            EngagementMetric::platformFromProductSlug($participation->campaign?->product?->slug),
-            ['x', 'twitter'],
-            true
-        ))) {
+        if ($metric?->usesCountChangeVerification() || $metric?->targetsChannel()) {
             $rules['proof_url'] = ['required', 'url', 'max:2048'];
         }
 
