@@ -62,8 +62,9 @@ class HomeHeroTest extends TestCase
         $otherTitles = collect($youtube['others'])->pluck('title')->all();
         $this->assertContains('YouTube Views', $otherTitles);
         $this->assertContains('YouTube Likes', $otherTitles);
-        $this->assertContains('YouTube Comments', $otherTitles);
-        $this->assertNotContains('YouTube Subscribers', $otherTitles);
+        $this->assertContains('YouTube Comments + Watch Hours', $otherTitles);
+        $this->assertNotContains('YouTube Subscribers + Watch Hours', $otherTitles);
+        $this->assertNotContains('YouTube Subscribers + Watch Hours + Comments', $otherTitles);
     }
 
     public function test_home_youtube_cards_without_admin_image_render_no_stock_image(): void

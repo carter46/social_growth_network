@@ -420,6 +420,7 @@ class CatalogBrowseService
             'youtube-comments',
             'youtube-watch-hours',
             'youtube-subscribers',
+            'youtube-subscribers-watch-comments',
         ]);
 
         if (! is_array($youtubeSlugs) || $youtubeSlugs === []) {
@@ -443,7 +444,7 @@ class CatalogBrowseService
             $featured = $this->mapHomeProductCard($products->get('youtube-watch-hours'));
         }
 
-        $supportingOrder = ['youtube-views', 'youtube-likes', 'youtube-comments', 'youtube-subscribers'];
+        $supportingOrder = ['youtube-views', 'youtube-likes', 'youtube-comments', 'youtube-subscribers', 'youtube-subscribers-watch-comments'];
         $others = [];
         foreach ($supportingOrder as $slug) {
             if (! $products->has($slug)) {

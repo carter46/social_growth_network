@@ -10,6 +10,7 @@ use App\Models\PlatformProduct;
 use App\Models\PlatformProductVariant;
 use App\Services\Engagement\EngagementProbeManager;
 use App\Services\Engagement\TargetUrlValidator;
+use App\Support\ProductTaskProfile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -48,11 +49,30 @@ class CampaignFulfillmentService
         $agentReward = $this->agentReward($product, $item, $options);
 
         $targetUrl = TargetUrlValidator::normalize($options['target_url'] ?? $options['campaign_url'] ?? null);
-        $metric = EngagementMetric::fromProductSlug($product->slug);
+        $profile = ProductTaskProfile::forOrderOptions($product->slug, $options);
+        $metric = $profile->legacyMetric();
         $platform = EngagementMetric::platformFromProductSlug($product->slug);
 
-        // Likes/comments always use count_change mode even if baseline probe fails now.
-        $verificationMode = $metric?->usesCountChangeVerification() ? 'count_change' : 'manual';
+        // Likes (and legacy single-task comments) use count_change even if the baseline probe fails now.
+        $verificationMode = match (true) {
+            $profile->isMultiTask() => 'tasks',
+            $profile->usesCountChangeVerification() => 'count_change',
+            default => 'manual',
+        };
+
+        $channelUrl = $profile->needsChannelUrl()
+            ? TargetUrlValidator::normalize($options['channel_url'] ?? null)
+            : ($profile->targetIsChannel() ? $targetUrl : null);
+        $channelRef = TargetUrlValidator::extractYoutubeChannelRef($channelUrl);
+        $channelId = $options['channel_id'] ?? (($channelRef['type'] ?? null) === 'id' ? $channelRef['value'] : null);
+        $videoId = $options['video_id'] ?? TargetUrlValidator::extractYoutubeVideoId($targetUrl);
+
+        $completionMinutes = (int) (array_key_exists('completion_minutes', $options)
+            ? $options['completion_minutes']
+            : $product->completion_minutes);
+        $estimatedMinutes = array_key_exists('estimated_minutes', $options)
+            ? $options['estimated_minutes']
+            : $product->estimated_minutes;
 
         // Create first without HTTP — checkout may already hold payment locks.
         $campaign = Campaign::query()->create([
@@ -74,17 +94,28 @@ class CampaignFulfillmentService
             'locked_creator_price' => $item->unit_price,
             'locked_agent_reward' => $agentReward,
             'status' => Campaign::STATUS_ACTIVE,
-            'estimated_minutes' => $product->estimated_minutes,
+            'estimated_minutes' => $estimatedMinutes,
+            'required_tasks' => $profile->usesStepFlow() && $profile->isMultiTask() ? $profile->taskValues() : null,
+            'channel_url' => $channelUrl,
+            'channel_id' => $channelId ? substr((string) $channelId, 0, 64) : null,
+            'video_id' => $videoId ? substr((string) $videoId, 0, 32) : null,
+            'comment_instructions' => $profile->needsCommentInstructions()
+                ? mb_substr(trim((string) ($options['comment_instructions'] ?? '')), 0, 1000)
+                : null,
+            'completion_minutes' => $completionMinutes > 0 ? $completionMinutes : null,
             'meta' => [
                 'product_title' => $product->title,
                 'product_slug' => $product->slug,
                 'variant_id' => $item->platform_product_variant_id,
                 'options' => $options,
                 'platform' => $platform,
+                'match_verified' => (bool) ($options['match_verified'] ?? false),
             ],
         ]);
 
-        if ($metric?->usesCountChangeVerification() && $targetUrl && $platform) {
+        app(CampaignBudgetService::class)->holdForCampaign($campaign);
+
+        if ($profile->usesCountChangeVerification() && $targetUrl && $platform) {
             $campaignId = $campaign->id;
             $probe = function () use ($campaignId, $platform, $metric, $targetUrl) {
                 try {

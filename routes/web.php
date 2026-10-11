@@ -351,6 +351,31 @@ Route::middleware(['auth', 'verified', 'role:agent'])->prefix('agent')->name('ag
     Route::post('/tasks/{participation}/start-watch', [\App\Http\Controllers\Agent\TaskController::class, 'startWatch'])
         ->middleware('throttle:20,1')
         ->name('.tasks.start-watch');
+    Route::post('/tasks/{participation}/steps/{task}', [\App\Http\Controllers\Agent\TaskController::class, 'saveStep'])
+        ->whereIn('task', ['subscribe', 'comment'])
+        ->middleware('throttle:30,1')
+        ->name('.tasks.steps.save');
+    Route::post('/tasks/{participation}/proceed', [\App\Http\Controllers\Agent\TaskController::class, 'proceed'])
+        ->middleware('throttle:30,1')
+        ->name('.tasks.proceed');
+    Route::post('/tasks/{participation}/submit-task', [\App\Http\Controllers\Agent\TaskController::class, 'submitTask'])
+        ->middleware('throttle:20,1')
+        ->name('.tasks.submit-task');
+    Route::post('/tasks/{participation}/heartbeat', [\App\Http\Controllers\Agent\TaskController::class, 'heartbeat'])
+        ->middleware('throttle:30,1')
+        ->name('.tasks.heartbeat');
+
+    Route::prefix('youtube-channel')->name('.youtube-channel')->controller(\App\Http\Controllers\Agent\YoutubeChannelController::class)->group(function () {
+        Route::get('/', 'show')->name('.show');
+        Route::post('/preview', 'preview')->middleware('throttle:20,1')->name('.preview');
+        Route::post('/', 'store')->middleware('throttle:10,1')->name('.store');
+        Route::post('/check', 'check')->middleware('throttle:10,1')->name('.check');
+        Route::post('/retry', 'retry')->middleware('throttle:5,1')->name('.retry');
+        Route::post('/change', 'requestChange')->middleware('throttle:5,1')->name('.change');
+        Route::get('/oauth', 'oauthRedirect')->name('.oauth');
+        Route::get('/oauth/callback', 'oauthCallback')->name('.oauth.callback');
+        Route::post('/oauth/disconnect', 'oauthDisconnect')->name('.oauth.disconnect');
+    });
 
     Route::get('/notifications', [UserNotificationController::class, 'index'])->name('.notifications');
     Route::post('/notifications/{notification}/read', [UserNotificationController::class, 'markRead'])->name('.notifications.read');
@@ -388,10 +413,16 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::get('/campaigns', [\App\Http\Controllers\Admin\CampaignAdminController::class, 'index'])->name('.campaigns');
         Route::get('/campaigns/{campaign}', [\App\Http\Controllers\Admin\CampaignAdminController::class, 'show'])->name('.campaigns.show');
         Route::post('/campaigns/{campaign}/status', [\App\Http\Controllers\Admin\CampaignAdminController::class, 'updateStatus'])->name('.campaigns.status');
+        Route::post('/campaigns/{campaign}/participations/{participation}/release', [\App\Http\Controllers\Admin\CampaignAdminController::class, 'releaseParticipation'])->name('.campaigns.participations.release');
         Route::get('/verifications', [\App\Http\Controllers\Admin\VerificationAdminController::class, 'index'])->name('.verifications');
         Route::get('/verifications/{participation}', [\App\Http\Controllers\Admin\VerificationAdminController::class, 'show'])->name('.verifications.show');
         Route::post('/verifications/{participation}/approve', [\App\Http\Controllers\Admin\VerificationAdminController::class, 'approve'])->name('.verifications.approve');
         Route::post('/verifications/{participation}/reject', [\App\Http\Controllers\Admin\VerificationAdminController::class, 'reject'])->name('.verifications.reject');
+        Route::post('/verifications/{participation}/check-comment', [\App\Http\Controllers\Admin\VerificationAdminController::class, 'checkComment'])->middleware('throttle:20,1')->name('.verifications.check-comment');
+        Route::get('/youtube-identities', [\App\Http\Controllers\Admin\YoutubeIdentityAdminController::class, 'index'])->name('.youtube-identities.index');
+        Route::post('/youtube-identities/{identity}/approve', [\App\Http\Controllers\Admin\YoutubeIdentityAdminController::class, 'approve'])->name('.youtube-identities.approve');
+        Route::post('/youtube-identities/{identity}/reject', [\App\Http\Controllers\Admin\YoutubeIdentityAdminController::class, 'reject'])->name('.youtube-identities.reject');
+        Route::post('/youtube-identities/{identity}/approve-change', [\App\Http\Controllers\Admin\YoutubeIdentityAdminController::class, 'approveChange'])->name('.youtube-identities.approve-change');
         Route::get('/users/manual-purchase/catalog', [UserManagementController::class, 'manualPurchaseCatalog'])->name('.users.manual-purchase.catalog');
         Route::get('/users/{user}', [UserManagementController::class, 'show'])->name('.users.show');
         Route::get('/users/{user}/edit', [UserManagementController::class, 'edit'])->name('.users.edit');

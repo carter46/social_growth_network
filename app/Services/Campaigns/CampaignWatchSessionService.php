@@ -2,7 +2,7 @@
 
 namespace App\Services\Campaigns;
 
-use App\Enums\EngagementMetric;
+use App\Enums\CampaignTask;
 use App\Models\Campaign;
 use App\Models\CampaignParticipation;
 use App\Models\CampaignWatchSession;
@@ -14,20 +14,28 @@ class CampaignWatchSessionService
 {
     public function __construct(
         private CampaignParticipationService $participations,
+        private CampaignTaskFlowService $taskFlow,
+        private ParticipationExpiryService $expiry,
     ) {}
 
     public function start(CampaignParticipation $participation): CampaignWatchSession
     {
+        $this->expireIfOverdue($participation);
+
         return DB::transaction(function () use ($participation) {
             $participation = CampaignParticipation::query()->whereKey($participation->id)->lockForUpdate()->firstOrFail();
 
-            if ($participation->status !== CampaignParticipation::STATUS_STARTED) {
+            if ($participation->status !== CampaignParticipation::STATUS_STARTED || $participation->isPastDeadline()) {
                 throw new InvalidArgumentException('Watch session can only start for an active task.');
             }
 
             $campaign = $participation->campaign()->with('product')->firstOrFail();
             $campaign->assertAllowsAgentWork();
             $this->assertTimedWatchAllowed($campaign);
+
+            if ($campaign->usesStepFlow()) {
+                $this->taskFlow->assertWatchStepActive($participation);
+            }
 
             $minutes = max(1, (int) ($campaign->estimated_minutes ?: 1));
 
@@ -46,12 +54,18 @@ class CampaignWatchSessionService
         });
     }
 
+    /**
+     * Standalone Watch Hours / Views pay on claim. On bundled tasks the claim only marks
+     * the watch step done; payment waits for the final submission and checks.
+     */
     public function claim(CampaignParticipation $participation, string $token): CampaignParticipation
     {
+        $this->expireIfOverdue($participation);
+
         return DB::transaction(function () use ($participation, $token) {
             $participation = CampaignParticipation::query()->whereKey($participation->id)->lockForUpdate()->firstOrFail();
 
-            if ($participation->status !== CampaignParticipation::STATUS_STARTED) {
+            if ($participation->status !== CampaignParticipation::STATUS_STARTED || $participation->isPastDeadline()) {
                 throw new InvalidArgumentException('This task cannot be claimed.');
             }
 
@@ -73,6 +87,14 @@ class CampaignWatchSessionService
                 throw new InvalidArgumentException('Required watch time has not elapsed yet.');
             }
 
+            if ($campaign->usesStepFlow()) {
+                $this->taskFlow->markWatchDone($participation, (int) $session->required_seconds);
+                $session->claimed_at = now();
+                $session->save();
+
+                return $participation->fresh();
+            }
+
             $session->claimed_at = now();
             $session->save();
 
@@ -82,13 +104,18 @@ class CampaignWatchSessionService
 
     private function assertTimedWatchAllowed(Campaign $campaign): void
     {
-        $metric = EngagementMetric::tryFrom((string) ($campaign->engagement_metric ?? ''))
-            ?? EngagementMetric::fromProductSlug($campaign->product?->slug ?? ($campaign->meta['product_slug'] ?? null));
-        $platform = $campaign->meta['platform']
-            ?? EngagementMetric::platformFromProductSlug($campaign->product?->slug ?? ($campaign->meta['product_slug'] ?? null));
-
-        if (! $metric?->requiresTimedSession($platform)) {
+        if (! $campaign->taskProfile()->has(CampaignTask::Watch)) {
             throw new InvalidArgumentException('This campaign does not use timed watch sessions.');
+        }
+    }
+
+    private function expireIfOverdue(CampaignParticipation $participation): void
+    {
+        $fresh = CampaignParticipation::query()->find($participation->id);
+        if ($fresh && $fresh->isPastDeadline()) {
+            $this->expiry->expire($fresh);
+
+            throw new InvalidArgumentException('Time ran out for this task, so it can no longer be completed.');
         }
     }
 }

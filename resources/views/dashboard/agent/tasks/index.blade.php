@@ -28,7 +28,15 @@
         @foreach ($participations as $participation)
             <tr class="hover:bg-muted/50">
                 <x-dashboard.td class="font-medium">{{ $participation->campaign?->title }}</x-dashboard.td>
-                <x-dashboard.td><x-dashboard.badge :status="$participation->status" /></x-dashboard.td>
+                <x-dashboard.td>
+                    <x-dashboard.badge :status="$participation->status" />
+                    @if ($participation->status === 'started' && $participation->expires_at)
+                        @php $left = $participation->secondsRemaining(); @endphp
+                        <span @class(['ml-1 text-xs', 'text-danger' => $left !== null && $participation->campaign?->completion_minutes && $left < $participation->campaign->completion_minutes * 60 * 0.2, 'text-text-muted' => ! ($left !== null && $participation->campaign?->completion_minutes && $left < $participation->campaign->completion_minutes * 60 * 0.2)])>
+                            {{ $left > 0 ? __(':time left', ['time' => $left >= 3600 ? floor($left / 3600).'h '.floor(($left % 3600) / 60).'m' : max(1, (int) ceil($left / 60)).'m']) : __('Time is up') }}
+                        </span>
+                    @endif
+                </x-dashboard.td>
                 <x-dashboard.td>₦{{ number_format((float) $participation->reward_amount, 2) }}</x-dashboard.td>
                 <x-dashboard.td>
                     <x-dashboard.button :href="route('agent.tasks.show', $participation)" variant="link" size="xs">Open</x-dashboard.button>

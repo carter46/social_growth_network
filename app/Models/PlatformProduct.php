@@ -42,6 +42,8 @@ class PlatformProduct extends Model
         'agent_reward_per_completion',
         'agent_reward_percent',
         'estimated_minutes',
+        'completion_minutes',
+        'task_order',
         'meta',
     ];
 
@@ -71,7 +73,38 @@ class PlatformProduct extends Model
             'agent_reward_per_completion' => 'decimal:2',
             'agent_reward_percent' => 'decimal:2',
             'estimated_minutes' => 'integer',
+            'completion_minutes' => 'integer',
+            'task_order' => 'array',
         ];
+    }
+
+    public function taskProfile(): \App\Support\ProductTaskProfile
+    {
+        return \App\Support\ProductTaskProfile::forProduct($this);
+    }
+
+    /**
+     * Setup problems that block selling this product (watch time, completion time).
+     *
+     * @return list<string>
+     */
+    public function taskSetupIssues(): array
+    {
+        $profile = $this->taskProfile();
+        $issues = [];
+        $watch = (int) ($this->estimated_minutes ?? 0);
+        $complete = (int) ($this->completion_minutes ?? 0);
+
+        if ($profile->needsWatchMinutes() && $watch < 1) {
+            $issues[] = 'Needs watch time';
+        }
+        if ($profile->requiresCompletionTime() && $complete < 1) {
+            $issues[] = 'Needs completion time';
+        } elseif ($complete > 0 && $profile->needsWatchMinutes() && $watch > 0 && $complete <= $watch) {
+            $issues[] = 'Completion time must be longer than watch time';
+        }
+
+        return $issues;
     }
 
     /** Legacy flavor category (table may be dropped). */
@@ -134,7 +167,8 @@ class PlatformProduct extends Model
     public function isPurchasable(): bool
     {
         return (float) ($this->agent_reward_percent ?? 0) > 0
-            && (bool) $this->pricingVariant()?->isPerUnit();
+            && (bool) $this->pricingVariant()?->isPerUnit()
+            && $this->taskSetupIssues() === [];
     }
 
     public function siteIntegration(): \Illuminate\Database\Eloquent\Relations\HasOne

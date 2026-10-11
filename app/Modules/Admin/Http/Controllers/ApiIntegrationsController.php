@@ -15,11 +15,38 @@ class ApiIntegrationsController extends Controller
     {
         return view('dashboard.admin.settings.api-integrations', [
             'youtubeKey' => (string) SystemSetting::get('api_youtube_data_key', ''),
+            'oauthEnabled' => SystemSetting::enabled('youtube_oauth_enabled'),
+            'oauthClientId' => (string) SystemSetting::get('youtube_oauth_client_id', ''),
+            'oauthHasSecret' => trim((string) SystemSetting::get('youtube_oauth_client_secret', '')) !== '',
+            'oauthCallbackUrl' => route('agent.youtube-channel.oauth.callback'),
         ]);
     }
 
     public function update(Request $request): RedirectResponse
     {
+        if ($request->input('channel') === 'youtube_oauth') {
+            $data = $request->validate([
+                'youtube_oauth_client_id' => ['nullable', 'string', 'max:255'],
+                'youtube_oauth_client_secret' => ['nullable', 'string', 'max:255'],
+            ]);
+
+            $clientId = trim((string) ($data['youtube_oauth_client_id'] ?? ''));
+            $secret = trim((string) ($data['youtube_oauth_client_secret'] ?? ''));
+            $hasSecret = $secret !== '' || trim((string) SystemSetting::get('youtube_oauth_client_secret', '')) !== '';
+
+            if ($request->boolean('youtube_oauth_enabled') && ($clientId === '' || ! $hasSecret)) {
+                return back()->withInput()->with('error', __('Add the Google client ID and client secret before turning on "Connect with Google".'));
+            }
+
+            SystemSetting::set('youtube_oauth_client_id', $clientId);
+            if ($secret !== '') {
+                SystemSetting::set('youtube_oauth_client_secret', $secret);
+            }
+            SystemSetting::set('youtube_oauth_enabled', $request->boolean('youtube_oauth_enabled'));
+
+            return back()->with('status', __('Google sign-in settings saved.'));
+        }
+
         $data = $request->validate([
             'channel' => ['required', 'in:youtube'],
             'api_youtube_data_key' => ['nullable', 'string', 'max:255'],
@@ -48,7 +75,7 @@ class ApiIntegrationsController extends Controller
                 'key' => $key,
             ]);
         } catch (\Throwable $e) {
-            return back()->with('error', __('YouTube Data API test failed: :msg', ['msg' => $e->getMessage()]));
+            return back()->with('error', __('YouTube Data API test failed: :msg', ['msg' => \App\Services\Engagement\YoutubeChannelApi::redactKey($e->getMessage())]));
         }
 
         if ($response->successful()) {

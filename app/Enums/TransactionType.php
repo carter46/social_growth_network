@@ -15,6 +15,8 @@ enum TransactionType: string
     case WithdrawalHold = 'withdrawal_hold';
     case CampaignReward = 'campaign_reward';
     case ReferralCommission = 'referral_commission';
+    case CampaignBudgetHold = 'campaign_budget_hold';
+    case CampaignBudgetRelease = 'campaign_budget_release';
 
     public function label(): string
     {
@@ -30,6 +32,8 @@ enum TransactionType: string
             self::WithdrawalHold => 'Withdrawal hold',
             self::CampaignReward => 'Campaign reward',
             self::ReferralCommission => 'Referral commission',
+            self::CampaignBudgetHold => 'Campaign budget held',
+            self::CampaignBudgetRelease => 'Campaign budget settled',
         };
     }
 

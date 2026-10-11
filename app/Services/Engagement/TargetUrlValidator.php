@@ -3,6 +3,7 @@
 namespace App\Services\Engagement;
 
 use App\Enums\EngagementMetric;
+use App\Support\ProductTaskProfile;
 use Illuminate\Support\Str;
 
 class TargetUrlValidator
@@ -137,6 +138,20 @@ class TargetUrlValidator
         };
     }
 
+    /** Comment ID from a "copy link" comment URL (watch?v=...&lc=...). */
+    public static function extractYoutubeCommentId(?string $url): ?string
+    {
+        $url = self::normalize($url);
+        if (! $url || self::platformFromUrl($url) !== 'youtube') {
+            return null;
+        }
+
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+        $id = $query['lc'] ?? null;
+
+        return is_string($id) && preg_match('/^[A-Za-z0-9_.-]{10,128}$/', $id) ? $id : null;
+    }
+
     /** Stable key for comparing two links to the same channel. */
     public static function youtubeChannelKey(?string $url): ?string
     {
@@ -147,10 +162,10 @@ class TargetUrlValidator
 
     public static function assertValidForProduct(string $url, string $productSlug): void
     {
-        $metric = EngagementMetric::fromProductSlug($productSlug);
+        $profile = ProductTaskProfile::forSlug($productSlug);
         $platform = EngagementMetric::platformFromProductSlug($productSlug);
 
-        if (! $metric || ! $platform) {
+        if (! $profile->legacyMetric() || ! $platform) {
             return;
         }
 
@@ -158,7 +173,7 @@ class TargetUrlValidator
             throw new \InvalidArgumentException('Please provide a YouTube link.');
         }
 
-        if ($metric->targetsChannel()) {
+        if ($profile->targetIsChannel()) {
             if (! self::isYoutubeChannelUrl($url)) {
                 throw new \InvalidArgumentException(
                     'Please provide your YouTube channel link (for example https://www.youtube.com/@yourchannel). Video links are not accepted.'

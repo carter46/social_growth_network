@@ -8,8 +8,9 @@
     $fromPrice = $product->displayPrice();
     $pricingVariant = $product->pricingVariant();
     $pricingLabel = $pricingVariant?->isPerUnit()
-        ? $pricingVariant->pricingLabel(\App\Enums\EngagementMetric::fromProductSlug($product->slug))
+        ? $pricingVariant->pricingLabel($product->taskProfile()->legacyMetric())
         : null;
+    $cardProfile = $product->taskProfile();
     $dotColors = [
         'youtube' => 'bg-red-500',
     ];
@@ -41,9 +42,14 @@
             {{ \Illuminate\Support\Str::limit(strip_tags((string) ($product->description ?? '')), 160) ?: 'Enter how many you need, add your link, and pay securely.' }}
         </p>
 
-        @if($pricingLabel)
+        @if($pricingLabel || $cardProfile->isMultiTask())
             <div class="flex flex-wrap gap-1.5 mb-5">
-                <span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium">{{ $pricingLabel }}</span>
+                @if($pricingLabel)
+                    <span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium">{{ $pricingLabel }}</span>
+                @endif
+                @if($cardProfile->isMultiTask())
+                    <span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium">{{ $cardProfile->sequenceLabel() }}</span>
+                @endif
             </div>
         @endif
 

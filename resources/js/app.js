@@ -481,6 +481,73 @@ document.addEventListener('alpine:init', () => {
         };
     });
 
+    Alpine.data('taskCountdown', (opts = {}) => ({
+        remaining: opts.secondsRemaining === null || opts.secondsRemaining === undefined ? null : Number(opts.secondsRemaining),
+        total: Number(opts.totalSeconds || 0),
+        heartbeatUrl: opts.heartbeatUrl || '',
+        csrf: opts.csrf || '',
+        tick: null,
+        beat: null,
+        expired: false,
+        get display() {
+            if (this.remaining === null) return '';
+            const s = Math.max(0, this.remaining);
+            const h = Math.floor(s / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            const r = s % 60;
+            return h > 0
+                ? `${h}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`
+                : `${m}:${String(r).padStart(2, '0')}`;
+        },
+        get warning() {
+            if (this.remaining === null || this.total <= 0) return false;
+            return this.remaining < this.total * 0.2;
+        },
+        init() {
+            if (this.remaining !== null) {
+                this.tick = setInterval(() => {
+                    if (this.remaining === null || this.remaining <= 0) return;
+                    this.remaining -= 1;
+                    if (this.remaining <= 0) {
+                        this.heartbeat();
+                    }
+                }, 1000);
+            }
+            this.beat = setInterval(() => this.heartbeat(), 5 * 60 * 1000);
+        },
+        async heartbeat() {
+            if (!this.heartbeatUrl) return;
+            try {
+                const response = await fetch(this.heartbeatUrl, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': this.csrf,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
+                if (!response.ok) return;
+                const data = await response.json().catch(() => ({}));
+                if (data.expired || (data.status && data.status !== 'started')) {
+                    this.expired = !!data.expired;
+                    this.destroy();
+                    window.location.reload();
+                    return;
+                }
+                if (data.seconds_remaining !== null && data.seconds_remaining !== undefined) {
+                    this.remaining = Number(data.seconds_remaining);
+                }
+            } catch {
+                // Offline for a moment: the next heartbeat retries.
+            }
+        },
+        destroy() {
+            if (this.tick) clearInterval(this.tick);
+            if (this.beat) clearInterval(this.beat);
+        },
+    }));
+
     Alpine.data('platformCheckout', (variants = [], options = {}) => assignAlpineHelpers(
         {},
         createDomainSearchHelpers(),

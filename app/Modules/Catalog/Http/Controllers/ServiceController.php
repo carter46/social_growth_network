@@ -132,6 +132,7 @@ class ServiceController extends Controller
                 'youtube-comments',
                 'youtube-watch-hours',
                 'youtube-subscribers',
+                'youtube-subscribers-watch-comments',
             ]));
         }
 
@@ -187,6 +188,7 @@ class ServiceController extends Controller
         return view('pages.services-group', [
             'groupSlug' => $group,
             'content' => $resolved,
+            'products' => $products,
             'typeKeys' => [],
             'typeCards' => collect(),
             'categories' => collect(),

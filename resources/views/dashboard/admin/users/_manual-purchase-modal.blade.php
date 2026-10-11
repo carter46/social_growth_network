@@ -15,6 +15,8 @@
         variantId: '',
         units: '',
         targetUrl: '',
+        channelUrl: '',
+        commentInstructions: '',
         domainFqdn: '',
         purchasedAt: new Date().toISOString().slice(0, 10),
         markPaid: true,
@@ -46,6 +48,8 @@
             this.variantId = '';
             this.units = '';
             this.targetUrl = '';
+            this.channelUrl = '';
+            this.commentInstructions = '';
             this.domainFqdn = '';
             this.purchasedAt = new Date().toISOString().slice(0, 10);
             this.markPaid = true;
@@ -159,6 +163,16 @@
                         error = 'Enter the campaign link (post, video or profile URL).';
                         return;
                     }
+                    if (selectedProduct?.needs_channel_url && !/^https?:\/\/\S+\.\S+/i.test(channelUrl.trim())) {
+                        $event.preventDefault();
+                        error = 'Enter the channel URL agents will subscribe to.';
+                        return;
+                    }
+                    if (selectedProduct?.needs_comment_instructions && !commentInstructions.trim()) {
+                        $event.preventDefault();
+                        error = 'Enter the comment instructions.';
+                        return;
+                    }
                     if (isWebsite && !domainFqdn.trim()) {
                         $event.preventDefault();
                         error = 'Enter the customer\'s existing domain.';
@@ -258,7 +272,7 @@
                 </div>
 
                 <div x-show="selectedProduct" x-cloak>
-                    <label class="mb-1 block text-sm font-medium text-text-secondary">Campaign link</label>
+                    <label class="mb-1 block text-sm font-medium text-text-secondary" x-text="selectedProduct?.target_is_channel ? 'Channel URL' : 'Video URL'"></label>
                     <input
                         type="url"
                         name="target_url"
@@ -267,7 +281,36 @@
                         :required="!!selectedProduct"
                         class="w-full rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm"
                     />
-                    <p class="mt-1 text-xs text-text-muted">The YouTube video or channel URL agents will work on.</p>
+                    <p class="mt-1 text-xs text-text-muted">
+                        <span x-show="selectedProduct?.needs_channel_url || selectedProduct?.needs_comment_instructions">Agents do: <span x-text="selectedProduct?.tasks"></span>. Each unit is one new agent completing all tasks.</span>
+                        <span x-show="!(selectedProduct?.needs_channel_url || selectedProduct?.needs_comment_instructions)">The YouTube video or channel URL agents will work on.</span>
+                    </p>
+                </div>
+
+                <div x-show="selectedProduct?.needs_channel_url" x-cloak>
+                    <label class="mb-1 block text-sm font-medium text-text-secondary">Channel URL</label>
+                    <input
+                        type="url"
+                        name="channel_url"
+                        x-model="channelUrl"
+                        placeholder="https://www.youtube.com/@channel"
+                        :required="!!selectedProduct?.needs_channel_url"
+                        class="w-full rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm"
+                    />
+                    <p class="mt-1 text-xs text-text-muted">The channel agents subscribe to. The video must be on this channel.</p>
+                </div>
+
+                <div x-show="selectedProduct?.needs_comment_instructions" x-cloak>
+                    <label class="mb-1 block text-sm font-medium text-text-secondary">Comment instructions</label>
+                    <textarea
+                        name="comment_instructions"
+                        x-model="commentInstructions"
+                        rows="3"
+                        maxlength="1000"
+                        :required="!!selectedProduct?.needs_comment_instructions"
+                        class="w-full rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm"
+                    ></textarea>
+                    <p class="mt-1 text-xs text-text-muted">What agents should comment about (up to 1,000 characters).</p>
                 </div>
 
                 <div x-show="isWebsite" x-cloak class="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">

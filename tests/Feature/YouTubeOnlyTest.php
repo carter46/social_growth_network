@@ -113,12 +113,12 @@ class YouTubeOnlyTest extends TestCase
         }
 
         try {
-            TargetUrlValidator::assertValidForProduct('https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube-subscribers');
-            $this->fail('Video links should be rejected for Subscribers.');
+            TargetUrlValidator::assertValidForProduct('https://www.youtube.com/@examplechannel', 'youtube-subscribers');
+            $this->fail('Subscribers + Watch Hours needs a video link; the channel goes in its own field.');
         } catch (InvalidArgumentException) {
         }
 
-        TargetUrlValidator::assertValidForProduct('https://www.youtube.com/@examplechannel', 'youtube-subscribers');
+        TargetUrlValidator::assertValidForProduct('https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube-subscribers');
 
         $this->assertSame('handle:examplechannel', TargetUrlValidator::youtubeChannelKey('https://youtube.com/@ExampleChannel/videos'));
         $this->assertNull(TargetUrlValidator::youtubeChannelKey('https://www.youtube.com/watch?v=dQw4w9WgXcQ'));
@@ -131,6 +131,7 @@ class YouTubeOnlyTest extends TestCase
         $sameChannel = $this->campaign($subscribers, 'https://youtube.com/@ExampleChannel/featured', 'subscribers');
         $otherChannel = $this->campaign($subscribers, 'https://www.youtube.com/@anotherchannel', 'subscribers');
         $agent = User::factory()->agent()->kycApproved()->create();
+        $this->linkVerifiedYoutubeChannel($agent);
 
         CampaignParticipation::query()->create([
             'campaign_id' => $first->id,
@@ -144,7 +145,7 @@ class YouTubeOnlyTest extends TestCase
 
         $this->assertSame($otherChannel->id, $service->start($agent, $otherChannel)->campaign_id);
 
-        $this->expectExceptionMessage('You already took a subscriber task for this YouTube channel.');
+        $this->expectExceptionMessage(\App\Services\Campaigns\AgentEligibilityService::NOT_AVAILABLE);
         $service->start($agent, $sameChannel);
     }
 

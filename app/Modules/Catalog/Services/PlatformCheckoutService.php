@@ -56,6 +56,9 @@ class PlatformCheckoutService
     {
         $requested = (string) ($data['payment_method'] ?? 'wallet');
 
+        // Resolved outside the order transaction because it may call the YouTube Data API.
+        $data['campaign_brief'] = app(\App\Services\Campaigns\CampaignBriefService::class)->resolve($product, $data);
+
         if ($requested === Order::PAYMENT_MANUAL_BANK_TRANSFER) {
             if (! $allowManualWithoutToggle && ! $this->manualBankTransferEnabledForCheckout()) {
                 throw new InvalidArgumentException('Manual bank transfer is not available.');
@@ -723,6 +726,10 @@ class PlatformCheckoutService
             throw new InvalidArgumentException('This product is no longer available.');
         }
 
+        if ($product->taskSetupIssues() !== []) {
+            throw new InvalidArgumentException('This product is not available to buy yet. Please try again later.');
+        }
+
         $lines = [];
         $pendingDomainQuotes = [];
 
@@ -788,7 +795,7 @@ class PlatformCheckoutService
             }
         }
 
-        $metric = \App\Enums\EngagementMetric::fromProductSlug($product->slug);
+        $metric = $product->taskProfile()->legacyMetric();
 
         if (! $variant || ! $variant->isPerUnit() || (float) ($product->agent_reward_percent ?? 0) <= 0) {
             throw new InvalidArgumentException('This product is not available to buy yet. Please try again later.');
@@ -844,8 +851,19 @@ class PlatformCheckoutService
             } elseif ($product->requiresTargetUrl()) {
                 throw new InvalidArgumentException('A valid YouTube link is required for this campaign package.');
             }
-        } elseif (\App\Enums\EngagementMetric::fromProductSlug($product->slug)) {
+        } elseif ($product->taskProfile()->legacyMetric()) {
             throw new InvalidArgumentException('A YouTube link is required for this campaign package.');
+        }
+
+        if (is_array($data['campaign_brief'] ?? null)) {
+            $domainOptions = array_merge($domainOptions, $data['campaign_brief']);
+        }
+
+        if ($product->isCampaignProduct()) {
+            $domainOptions = array_merge(
+                $domainOptions,
+                app(\App\Services\Campaigns\CampaignBriefService::class)->taskSnapshot($product),
+            );
         }
 
         if (! empty($data['purchased_at'])) {

@@ -1,6 +1,8 @@
 @php
     $tile = 'rounded-xl bg-muted/40 px-4 py-3';
-    $minutes = (int) ($campaign->estimated_minutes ?? 0);
+    $completionMinutes = (int) ($campaign->completion_minutes ?? 0);
+    $minutes = $completionMinutes > 0 ? $completionMinutes : (int) ($campaign->estimated_minutes ?? 0);
+    $tileProfile = $campaign->taskProfile();
     $description = trim(strip_tags((string) ($campaign->product?->description ?? '')));
     $status = $status ?? null;
 @endphp
@@ -20,10 +22,24 @@
         <p class="mt-0.5 text-lg font-semibold text-text-primary">{{ number_format($campaign->availableStartSlots()) }}</p>
     </div>
     <div class="{{ $tile }}">
-        <p class="text-xs text-text-muted">{{ __('Estimated time') }}</p>
+        <p class="text-xs text-text-muted">{{ $completionMinutes > 0 ? __('Time to complete') : __('Estimated time') }}</p>
         <p class="mt-0.5 text-lg font-semibold text-text-primary">{{ $minutes > 0 ? trans_choice(':count min|:count mins', $minutes) : '-' }}</p>
     </div>
 </div>
+
+@if ($campaign->usesStepFlow())
+    <div class="{{ $tile }}">
+        <p class="text-xs text-text-muted">{{ __('Tasks, in order') }}</p>
+        <div class="mt-1 flex flex-wrap items-center gap-1.5">
+            @foreach ($tileProfile->tasks() as $index => $tileTask)
+                <x-dashboard.badge status="info">{{ $index + 1 }}. {{ $tileTask->shortLabel() }}</x-dashboard.badge>
+            @endforeach
+        </div>
+        @if ((int) ($campaign->estimated_minutes ?? 0) > 0 && $tileProfile->needsWatchMinutes())
+            <p class="mt-1 text-xs text-text-muted">{{ __('Includes :count minutes of watching.', ['count' => (int) $campaign->estimated_minutes]) }}</p>
+        @endif
+    </div>
+@endif
 
 @if ($campaign->target_url)
     <div class="{{ $tile }}">

@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers\Agent;
 
+use App\Enums\CampaignTask;
 use App\Enums\EngagementMetric;
 use App\Http\Controllers\Controller;
 use App\Models\CampaignParticipation;
 use App\Services\Campaigns\CampaignParticipationService;
+use App\Services\Campaigns\CampaignTaskFlowService;
 use App\Services\Campaigns\CampaignWatchSessionService;
+use App\Services\Campaigns\ParticipationExpiryService;
 use App\Services\Engagement\VideoEmbedResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -18,6 +21,8 @@ class TaskController extends Controller
     public function __construct(
         private CampaignParticipationService $participations,
         private CampaignWatchSessionService $watchSessions,
+        private CampaignTaskFlowService $taskFlow,
+        private ParticipationExpiryService $expiry,
         private VideoEmbedResolver $embeds,
     ) {}
 
@@ -28,7 +33,7 @@ class TaskController extends Controller
 
     public function incomplete(): View
     {
-        return $this->list(['rejected'], 'Incomplete tasks');
+        return $this->list(['rejected', CampaignParticipation::STATUS_EXPIRED], 'Incomplete tasks');
     }
 
     public function completed(): View
@@ -39,15 +44,20 @@ class TaskController extends Controller
     public function show(CampaignParticipation $participation): View
     {
         $this->authorizeAgent($participation);
-        $participation->load('campaign.product');
+        $this->expireIfOverdue($participation);
+        $participation->refresh()->load(['campaign.product', 'steps']);
         $campaign = $participation->campaign;
-        $metric = EngagementMetric::tryFrom((string) ($campaign?->engagement_metric ?? ''))
-            ?? EngagementMetric::fromProductSlug($campaign?->product?->slug);
+        $profile = $campaign?->taskProfile();
+        $metric = $profile?->legacyMetric();
         $platform = EngagementMetric::platformFromProductSlug($campaign?->product?->slug)
             ?? ($campaign?->meta['platform'] ?? null);
 
+        $usesSteps = (bool) $campaign?->usesStepFlow();
+
         $taskMode = 'proof';
-        if ($metric?->usesWatchSession()) {
+        if ($usesSteps) {
+            $taskMode = 'steps';
+        } elseif ($metric?->usesWatchSession()) {
             $taskMode = 'watch_session';
         } elseif ($metric?->usesCountChangeVerification()) {
             $taskMode = 'count_change_proof';
@@ -62,9 +72,13 @@ class TaskController extends Controller
         return view('dashboard.agent.tasks.show', [
             'participation' => $participation,
             'metric' => $metric,
+            'profile' => $profile,
             'platform' => $platform,
             'taskMode' => $taskMode,
             'embed' => $embed,
+            'steps' => $usesSteps ? $participation->steps : collect(),
+            'secondsRemaining' => $participation->secondsRemaining(),
+            'totalSeconds' => $campaign?->completion_minutes ? (int) $campaign->completion_minutes * 60 : null,
         ]);
     }
 
@@ -72,8 +86,7 @@ class TaskController extends Controller
     {
         $this->authorizeAgent($participation);
         $participation->loadMissing('campaign.product');
-        $metric = EngagementMetric::tryFrom((string) ($participation->campaign?->engagement_metric ?? ''))
-            ?? EngagementMetric::fromProductSlug($participation->campaign?->product?->slug);
+        $metric = $participation->campaign?->taskProfile()->legacyMetric();
 
         $rules = [
             'proof_url' => ['nullable', 'url', 'max:2048'],
@@ -95,6 +108,82 @@ class TaskController extends Controller
         return redirect()
             ->route('agent.tasks.show', $participation)
             ->with('status', __('Submission sent for verification.'));
+    }
+
+    public function saveStep(Request $request, CampaignParticipation $participation, string $task): RedirectResponse
+    {
+        $this->authorizeAgent($participation);
+        $step = CampaignTask::tryFrom($task);
+        abort_unless($step && in_array($step, [CampaignTask::Subscribe, CampaignTask::Comment], true), 404);
+
+        $validated = $request->validate([
+            'proof_url' => [$step === CampaignTask::Comment ? 'required' : 'nullable', 'url', 'max:2048'],
+            'proof_notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        try {
+            $this->taskFlow->saveStep($participation, $request->user(), $step, $validated);
+        } catch (\InvalidArgumentException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+
+        return redirect()
+            ->route('agent.tasks.show', $participation)
+            ->with('status', __(':step marked done. Proceed when you are ready.', ['step' => $step->label()]));
+    }
+
+    public function proceed(Request $request, CampaignParticipation $participation): RedirectResponse
+    {
+        $this->authorizeAgent($participation);
+
+        try {
+            $next = $this->taskFlow->proceed($participation, $request->user());
+        } catch (\InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()
+            ->route('agent.tasks.show', $participation)
+            ->with('status', $next
+                ? __('Next step: :step.', ['step' => $next->taskEnum()?->label() ?? $next->task])
+                : __('All steps are done. Submit the task when you are ready.'));
+    }
+
+    public function submitTask(Request $request, CampaignParticipation $participation): RedirectResponse
+    {
+        $this->authorizeAgent($participation);
+
+        try {
+            $this->taskFlow->submit($participation, $request->user());
+        } catch (\InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()
+            ->route('agent.tasks.show', $participation)
+            ->with('status', __('Task submitted. We are checking each step now.'));
+    }
+
+    /** Keeps the session alive while a task page is open and reports the time left. */
+    public function heartbeat(Request $request, CampaignParticipation $participation): JsonResponse
+    {
+        $this->authorizeAgent($participation);
+
+        $participation->refresh();
+        if ($participation->status === CampaignParticipation::STATUS_STARTED && $participation->isPastDeadline()) {
+            $this->expiry->expire($participation);
+            $participation->refresh();
+        }
+
+        if ($participation->status === CampaignParticipation::STATUS_STARTED) {
+            $participation->forceFill(['last_heartbeat_at' => now()])->save();
+        }
+
+        return response()->json([
+            'status' => $participation->status,
+            'expired' => $participation->status === CampaignParticipation::STATUS_EXPIRED,
+            'seconds_remaining' => $participation->secondsRemaining(),
+        ]);
     }
 
     public function startWatch(Request $request, CampaignParticipation $participation): RedirectResponse|JsonResponse
@@ -136,9 +225,13 @@ class TaskController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
+        $usesSteps = (bool) $participation->campaign?->usesStepFlow();
+
         return redirect()
             ->route('agent.tasks.show', $participation)
-            ->with('status', __('Reward claimed. Thanks for completing this task.'));
+            ->with('status', $usesSteps
+                ? __('Watch step done. Proceed when you are ready.')
+                : __('Reward claimed. Thanks for completing this task.'));
     }
 
     /**
@@ -157,6 +250,13 @@ class TaskController extends Controller
             'participations' => $participations,
             'title' => $title,
         ]);
+    }
+
+    private function expireIfOverdue(CampaignParticipation $participation): void
+    {
+        if ($participation->status === CampaignParticipation::STATUS_STARTED && $participation->isPastDeadline()) {
+            $this->expiry->expire($participation);
+        }
     }
 
     private function authorizeAgent(CampaignParticipation $participation): void

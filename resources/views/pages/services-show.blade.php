@@ -23,7 +23,7 @@
     }
 
     $subtitle = null;
-    $metric = \App\Enums\EngagementMetric::fromProductSlug($product->slug);
+    $metric = $product->taskProfile()->legacyMetric();
     $pricingVariant = $product->pricingVariant();
     $pricing = $product->isPurchasable() ? $pricingVariant->storefrontPayload($metric) : null;
 

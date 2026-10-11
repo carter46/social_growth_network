@@ -21,7 +21,9 @@
         'completed' => 'Closed. Set automatically when all units are delivered.',
         'rejected' => 'Closed. Agents cannot join, submit or be paid.',
         'suspended' => 'Frozen. Agents cannot join, submit or be paid until you change the status.',
-        'cancelled' => 'Closed. Agents cannot join, submit or be paid. No refund is sent automatically.',
+        'cancelled' => $budget
+            ? 'Closed to new agents. Tasks already in progress can finish or expire, then the creator is refunded the price of every unit never completed.'
+            : 'Closed. Agents cannot join, submit or be paid. This older campaign has no held budget, so no refund is sent automatically.',
     ];
 @endphp
 
@@ -40,6 +42,11 @@
     @endif
     @if (session('error'))
         <x-dashboard.alert type="error" class="mb-4">{{ session('error') }}</x-dashboard.alert>
+    @endif
+    @if (! $budget && \App\Services\Campaigns\CampaignBudgetService::isUnfunded($campaign))
+        <x-dashboard.alert type="warning" class="mb-4" title="Agent budget not held">
+            The platform wallet could not cover {{ $naira($campaign->meta['funding_shortfall'] ?? 0) }} when this campaign went live, so rewards are paid from platform revenue. Top up the platform wallet, then run <code>php artisan campaigns:backfill-budgets --dry-run</code> to review.
+        </x-dashboard.alert>
     @endif
 
     <x-dashboard.card class="mb-4">
@@ -159,8 +166,95 @@
                     <p class="mt-0.5 text-xs text-text-muted">Total cost minus total agent budget</p>
                 </div>
             </dl>
+
+            <h3 class="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-text-muted">Held budget</h3>
+            @if ($budget)
+                <dl class="grid gap-3 text-sm sm:grid-cols-2">
+                    <div class="{{ $tile }}">
+                        <dt class="text-text-muted">Held</dt>
+                        <dd class="mt-1 font-medium text-text-primary">{{ $naira($budget->funded_amount) }}</dd>
+                        <p class="mt-0.5 text-xs text-text-muted">{{ ucfirst($budget->status) }}</p>
+                    </div>
+                    <div class="{{ $tile }}">
+                        <dt class="text-text-muted">Paid from hold</dt>
+                        <dd class="mt-1 font-medium text-success">{{ $naira($budget->paid_amount) }}</dd>
+                    </div>
+                    <div class="{{ $tile }}">
+                        <dt class="text-text-muted">Refunded to creator</dt>
+                        <dd class="mt-1 font-medium text-text-primary">{{ $naira($budget->refunded_amount) }}</dd>
+                    </div>
+                    <div class="{{ $tile }}">
+                        <dt class="text-text-muted">Remaining in hold</dt>
+                        <dd class="mt-1 font-medium text-text-primary">{{ $naira($budget->remaining()) }}</dd>
+                        @if ((float) $budget->released_amount > 0)
+                            <p class="mt-0.5 text-xs text-text-muted">{{ $naira($budget->released_amount) }} released to revenue</p>
+                        @endif
+                    </div>
+                </dl>
+            @else
+                <p class="text-xs text-text-muted">No budget is held for this campaign (created before budget holds, or the platform wallet could not cover it). Rewards use the older payout path. Run <code>php artisan campaigns:backfill-budgets --dry-run</code> to review.</p>
+            @endif
         </x-dashboard.card>
     </div>
+
+    <x-dashboard.card class="mb-4">
+        <h2 class="mb-3 text-sm font-semibold">What agents do (snapshot)</h2>
+        <dl class="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            <div class="{{ $tile }} sm:col-span-2">
+                <dt class="text-text-muted">Tasks, in order</dt>
+                <dd class="mt-1 font-medium text-text-primary">
+                    @foreach ($profile->tasks() as $i => $task)
+                        <span class="mr-1 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">{{ $i + 1 }}. {{ $task->shortLabel() }}</span>
+                    @endforeach
+                    @unless ($profile->usesStepFlow())
+                        <span class="block text-xs text-text-muted">Single-task flow</span>
+                    @endunless
+                </dd>
+            </div>
+            <div class="{{ $tile }}">
+                <dt class="text-text-muted">Time to complete</dt>
+                <dd class="mt-1 font-medium text-text-primary">{{ $campaign->completion_minutes ? $campaign->completion_minutes.' min' : 'No deadline' }}</dd>
+                <p class="mt-0.5 text-xs text-text-muted">{{ number_format($counts['expired']) }} expired</p>
+            </div>
+            <div class="{{ $tile }}">
+                <dt class="text-text-muted">Watch time</dt>
+                <dd class="mt-1 font-medium text-text-primary">{{ $campaign->estimated_minutes ? $campaign->estimated_minutes.' min' : '-' }}</dd>
+            </div>
+            @if ($campaign->video_id)
+                <div class="{{ $tile }}">
+                    <dt class="text-text-muted">Video ID</dt>
+                    <dd class="mt-1 font-mono text-xs text-text-primary break-all">{{ $campaign->video_id }}</dd>
+                </div>
+            @endif
+            @if ($campaign->channel_url || $campaign->channel_id)
+                <div class="{{ $tile }}">
+                    <dt class="text-text-muted">Channel</dt>
+                    <dd class="mt-1 text-text-primary break-all">
+                        @if ($campaign->channel_url)
+                            <a href="{{ $campaign->channel_url }}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">{{ $campaign->channel_url }}</a>
+                        @endif
+                        @if ($campaign->channel_id)
+                            <span class="block font-mono text-xs text-text-muted">{{ $campaign->channel_id }}</span>
+                        @endif
+                    </dd>
+                </div>
+            @endif
+            @if ($profile->usesStepFlow())
+                <div class="{{ $tile }}">
+                    <dt class="text-text-muted">Video and channel match</dt>
+                    <dd class="mt-1 font-medium {{ ($campaign->meta['match_verified'] ?? false) ? 'text-success' : 'text-warning' }}">
+                        {{ ($campaign->meta['match_verified'] ?? false) ? 'Verified with the YouTube API' : 'Unverified match' }}
+                    </dd>
+                </div>
+            @endif
+            @if ($campaign->comment_instructions)
+                <div class="{{ $tile }} sm:col-span-2 lg:col-span-4">
+                    <dt class="text-text-muted">Comment instructions</dt>
+                    <dd class="mt-1 whitespace-pre-line text-text-primary">{{ $campaign->comment_instructions }}</dd>
+                </div>
+            @endif
+        </dl>
+    </x-dashboard.card>
 
     <x-dashboard.card class="mb-4">
         <div x-data="{ selected: @js($campaign->status), help: @js($statusHelp) }">
@@ -198,8 +292,14 @@
                 <x-dashboard.td>{{ $participation->started_at?->format('M j, Y') ?? '-' }}</x-dashboard.td>
                 <x-dashboard.td>{{ $participation->paid_at?->format('M j, Y') ?? '-' }}</x-dashboard.td>
                 <x-dashboard.td>
-                    @if (in_array($participation->status, ['submitted', 'under_review'], true))
+                    @if (in_array($participation->status, ['submitted', 'under_review', 'verifying'], true))
                         <x-dashboard.button :href="route('admin.verifications.show', $participation)" variant="link" size="xs">Review</x-dashboard.button>
+                    @elseif ($participation->status === 'started')
+                        <form method="POST" action="{{ route('admin.campaigns.participations.release', [$campaign, $participation]) }}"
+                              onsubmit="return confirm('Release this task? The agent loses it, nothing is paid, and the slot opens for other agents.');">
+                            @csrf
+                            <x-dashboard.button type="submit" variant="link" size="xs">Release</x-dashboard.button>
+                        </form>
                     @endif
                 </x-dashboard.td>
             </tr>

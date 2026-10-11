@@ -1,11 +1,16 @@
 @php
-    $engagementMetric = $engagementMetric ?? \App\Enums\EngagementMetric::fromProductSlug($product->slug);
-    $destinationLabel = match ($engagementMetric) {
-        \App\Enums\EngagementMetric::Subscribers => 'Channel URL',
-        null => 'Campaign link',
+    $linkProfile = $product->taskProfile();
+    $engagementMetric = $engagementMetric ?? $linkProfile->legacyMetric();
+    $destinationLabel = match (true) {
+        $linkProfile->targetIsChannel() => 'Channel URL',
+        $engagementMetric === null => 'Campaign link',
         default => 'Video URL',
     };
-    $destinationHelp = match ($engagementMetric) {
+    $destinationHelp = match (true) {
+        $linkProfile->isMultiTask() && $linkProfile->needsChannelUrl() => 'Public YouTube video agents will watch'.($linkProfile->has(\App\Enums\CampaignTask::Comment) ? ' and comment on' : '').'. It must be a video on the channel you enter below.',
+        $linkProfile->isMultiTask() => 'Public YouTube video agents will watch and comment on. Comments must be turned on for this video. Channel links are not accepted.',
+        default => null,
+    } ?? match ($engagementMetric) {
         \App\Enums\EngagementMetric::Likes, \App\Enums\EngagementMetric::Comments => 'Public YouTube video URL where you want likes or comments. Channel links are not accepted.',
         \App\Enums\EngagementMetric::Views, \App\Enums\EngagementMetric::WatchHours => 'Public YouTube video URL where you want views or watch sessions. Channel links are not accepted.',
         \App\Enums\EngagementMetric::Subscribers => 'Your public YouTube channel link, for example https://www.youtube.com/@yourchannel. Video links are not accepted.',

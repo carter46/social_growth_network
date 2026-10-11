@@ -34,7 +34,7 @@ class PlatformCatalogTrim
         $removed = [];
         $allowedTypes = [];
         // Non-type keys in platform_products.php (not product_type allow-lists).
-        $metaKeys = ['retired_services', 'slug_redirects'];
+        $metaKeys = ['retired_services', 'slug_redirects', 'tasks', 'metrics', 'completion_time_required'];
         $legacyAliases = PlatformProductSlugRedirect::legacySlugs();
 
         foreach ($config as $typeSlug => $keepSlugs) {

@@ -24,6 +24,36 @@
         <x-dashboard.alert type="danger" class="mb-4">{{ session('error') }}</x-dashboard.alert>
     @endif
 
+    @if ($participation->status === 'expired')
+        <x-dashboard.alert type="danger" class="mb-4" title="Time ran out">
+            This task was not finished in time, so it was cancelled for you and the slot was opened for another agent. You were not paid for it.
+        </x-dashboard.alert>
+    @endif
+
+    @if ($participation->status === 'started')
+        <div
+            class="mb-4"
+            x-data="taskCountdown({
+                secondsRemaining: @js($secondsRemaining),
+                totalSeconds: @js($totalSeconds),
+                heartbeatUrl: @js(route('agent.tasks.heartbeat', $participation)),
+                csrf: @js(csrf_token()),
+            })"
+        >
+            @if ($secondsRemaining !== null)
+                <div
+                    class="flex flex-wrap items-center justify-between gap-2 rounded-xl border px-4 py-3"
+                    :class="warning ? 'border-danger/40 bg-danger/5' : 'border-border-default bg-muted/30'"
+                    aria-live="polite"
+                >
+                    <p class="text-sm text-text-secondary">Time left to finish every step</p>
+                    <p class="text-lg font-semibold" :class="warning ? 'text-danger' : 'text-text-primary'" x-text="display">{{ gmdate($secondsRemaining >= 3600 ? 'G:i:s' : 'i:s', $secondsRemaining) }}</p>
+                    <p class="w-full text-xs text-text-muted" x-show="warning" x-cloak>Less than 20% of your time is left. If time runs out, the task is cancelled and you are not paid.</p>
+                </div>
+            @endif
+        </div>
+    @endif
+
     @if ($campaign)
         <x-dashboard.card class="mb-4 space-y-3">
             @include('dashboard.agent.partials.campaign-tiles', [
@@ -39,7 +69,15 @@
             <x-dashboard.alert type="warning" title="Rejection reason">{{ $participation->rejection_reason }}</x-dashboard.alert>
         @endif
 
-        @if ($taskMode === 'watch_session' && $participation->status === 'started')
+        @if ($taskMode === 'steps')
+            @include('dashboard.agent.tasks._steps', [
+                'campaign' => $campaign,
+                'steps' => $steps,
+                'embed' => $embed,
+                'watchToken' => $watchToken,
+                'requiredSeconds' => $requiredSeconds,
+            ])
+        @elseif ($taskMode === 'watch_session' && $participation->status === 'started')
             @php $hasEmbed = ($embed['mode'] ?? '') === 'embed' && ! empty($embed['html']); @endphp
             <div class="space-y-4" x-data="watchTaskModal({
                 requiredSeconds: {{ (int) $requiredSeconds }},

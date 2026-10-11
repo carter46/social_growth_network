@@ -70,12 +70,12 @@ class CheckoutUrlPreviewTest extends TestCase
             'youtube-subscribers'
         );
 
+        // Subscribers units also watch a video, so the main link is the video; the channel goes in its own field.
         $this->assertSame('open_url', $channel['mode']);
-        $this->assertSame('youtube', $channel['platform']);
-        $this->assertStringContainsString('channel', $channel['note']);
+        $this->assertStringNotContainsString('Open the link to confirm this is the channel', $channel['note']);
 
-        $this->assertSame('open_url', $video['mode']);
-        $this->assertStringContainsString('Video links are not accepted', $video['note']);
+        $this->assertSame('embed', $video['mode']);
+        $this->assertSame('youtube', $video['platform']);
     }
 
     public function test_agent_video_embed_resolver_still_embeds_youtube(): void

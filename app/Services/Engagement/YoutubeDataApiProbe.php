@@ -56,7 +56,7 @@ class YoutubeDataApiProbe implements EngagementProbeInterface
                 EngagementMetric::Subscribers => null,
             };
         } catch (\Throwable $e) {
-            Log::warning('YouTube Data API probe failed', ['error' => $e->getMessage()]);
+            Log::warning('YouTube Data API probe failed', ['error' => YoutubeChannelApi::redactKey($e->getMessage())]);
 
             return null;
         }

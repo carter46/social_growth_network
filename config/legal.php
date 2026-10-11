@@ -178,6 +178,7 @@ return [
                         'Account details such as name, email, role (Creator and/or Agent), and profile settings.',
                         'Campaign and order data including package selections, target URLs, instructions, and progress status.',
                         'Agent task activity and proof assets (for example screenshots, links, and metadata needed for verification).',
+                        'For Agents who take YouTube tasks: the public YouTube channel you link (channel ID, name, handle and image), and the public subscriptions and comments we check through the YouTube Data API to verify tasks. If you choose "Connect with Google", we request read-only access to identify your channel, and you can disconnect at any time.',
                         'KYC documents and identity data when required for compliance, funding, or withdrawals.',
                         'Payment and wallet records, including deposits, payments, rewards, and withdrawals.',
                         'Technical logs, device signals, and support communications needed for security and customer service.',

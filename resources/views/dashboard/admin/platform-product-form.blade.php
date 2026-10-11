@@ -4,7 +4,13 @@
 
 @section('content')
 @php
-    $engagementMetric = \App\Enums\EngagementMetric::fromProductSlug($product->slug);
+    $taskProfile = $product->taskProfile();
+    $engagementMetric = $taskProfile->legacyMetric();
+    $savedOrder = \App\Support\ProductTaskProfile::normalizeOrder(
+        \App\Support\ProductTaskProfile::allowedTasks($product->slug),
+        old('task_order', $product->task_order),
+    ) ?? $taskProfile->tasks();
+    $taskOrderPayload = array_map(fn ($task) => ['value' => $task->value, 'label' => $task->label()], $savedOrder);
     $pricingVariant = $product->pricingVariant();
     $labelVariant = $pricingVariant ?? new \App\Models\PlatformProductVariant();
     $unitSingular = $labelVariant->resolveUnitLabel($engagementMetric);
@@ -21,15 +27,11 @@
     $heroPreview = $heroId
         ? \App\Models\MediaAsset::query()->with('variants')->find((int) $heroId)?->thumbnailUrl()
         : null;
-    $minutesLabel = $engagementMetric?->requiresTimedSession(
-        \App\Enums\EngagementMetric::platformFromProductSlug($product->slug)
-    )
-        ? 'Required watch session (minutes)'
+    $minutesLabel = $taskProfile->needsWatchMinutes()
+        ? 'Watch time (minutes)'
         : 'Estimated minutes per task';
-    $minutesHint = $engagementMetric?->requiresTimedSession(
-        \App\Enums\EngagementMetric::platformFromProductSlug($product->slug)
-    )
-        ? 'Minutes the agent must complete in the watch session before claiming. Not a guarantee of platform watch hours or views.'
+    $minutesHint = $taskProfile->needsWatchMinutes()
+        ? 'Minutes the agent must keep the watch timer running. Not a guarantee of platform watch hours or views.'
         : 'Shown to agents as estimated time, not a retake lock.';
     $inputClass = 'w-full rounded-xl border border-border-default bg-elevated px-3 py-2.5 text-sm';
 @endphp
@@ -165,15 +167,88 @@
                 </div>
             </div>
 
-            <div class="sm:max-w-sm">
-                <x-dashboard.input
-                    :label="$minutesLabel"
-                    name="estimated_minutes"
-                    type="number"
-                    min="1"
-                    :value="old('estimated_minutes', $product->estimated_minutes)"
-                    :hint="$minutesHint"
-                />
+            <div
+                class="space-y-4 rounded-xl border border-border-subtle px-4 py-4"
+                x-data="{
+                    order: @js($taskOrderPayload),
+                    dragIndex: null,
+                    watch: @js((string) old('estimated_minutes', $product->estimated_minutes)),
+                    complete: @js((string) old('completion_minutes', $product->completion_minutes)),
+                    needsWatch: @js($taskProfile->needsWatchMinutes()),
+                    move(from, to) {
+                        if (from === null || to < 0 || to >= this.order.length || from === to) return;
+                        const [task] = this.order.splice(from, 1);
+                        this.order.splice(to, 0, task);
+                    },
+                    get completionTooShort() {
+                        const w = Number(this.watch), c = Number(this.complete);
+                        return this.needsWatch && w > 0 && c > 0 && c <= w;
+                    },
+                }"
+            >
+                <div class="flex flex-wrap items-center gap-2">
+                    <p class="text-sm font-medium text-text-primary">Tasks and timing</p>
+                    @foreach($product->taskSetupIssues() as $issue)
+                        <x-dashboard.badge status="danger">{{ $issue }}</x-dashboard.badge>
+                    @endforeach
+                </div>
+
+                <div>
+                    <p class="text-xs text-text-muted">
+                        Tasks for this product are fixed{{ count($taskOrderPayload) > 1 ? '. Drag them, or use the arrows, to set the order agents follow.' : '.' }}
+                        New orders use the saved order. Existing campaigns keep the order they were bought with.
+                    </p>
+                    <ol class="mt-2 space-y-2">
+                        <template x-for="(task, index) in order" :key="task.value">
+                            <li
+                                class="flex items-center justify-between gap-3 rounded-lg border border-border-default bg-elevated px-3 py-2 text-sm"
+                                :class="dragIndex === index ? 'opacity-60' : ''"
+                                @if(count($taskOrderPayload) > 1)
+                                    draggable="true"
+                                    @dragstart="dragIndex = index; $event.dataTransfer.effectAllowed = 'move'"
+                                    @dragover.prevent
+                                    @drop.prevent="move(dragIndex, index); dragIndex = null"
+                                    @dragend="dragIndex = null"
+                                @endif
+                            >
+                                <span class="flex items-center gap-2">
+                                    @if(count($taskOrderPayload) > 1)
+                                        <span class="cursor-grab select-none text-text-muted" aria-hidden="true">⋮⋮</span>
+                                    @endif
+                                    <span class="font-medium text-text-primary" x-text="(index + 1) + '. ' + task.label"></span>
+                                </span>
+                                @if(count($taskOrderPayload) > 1)
+                                    <span class="flex items-center gap-1">
+                                        <button type="button" class="rounded border border-border-default px-2 py-0.5 text-xs disabled:opacity-40" :disabled="index === 0" @click="move(index, index - 1)" aria-label="Move up">↑</button>
+                                        <button type="button" class="rounded border border-border-default px-2 py-0.5 text-xs disabled:opacity-40" :disabled="index === order.length - 1" @click="move(index, index + 1)" aria-label="Move down">↓</button>
+                                    </span>
+                                    <input type="hidden" name="task_order[]" :value="task.value">
+                                @endif
+                            </li>
+                        </template>
+                    </ol>
+                    @error('task_order')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
+                </div>
+
+                <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div>
+                        <label class="mb-1 block text-xs text-text-muted">{{ $minutesLabel }}@if($taskProfile->needsWatchMinutes()) <span class="text-danger">*</span>@endif</label>
+                        <input type="number" min="1" max="10080" step="1" name="estimated_minutes" x-model="watch" class="{{ $inputClass }}" @required($taskProfile->needsWatchMinutes())>
+                        <p class="mt-1 text-xs text-text-muted">{{ $minutesHint }}</p>
+                        @error('estimated_minutes')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs text-text-muted">Time to complete (minutes)@if($taskProfile->requiresCompletionTime()) <span class="text-danger">*</span>@endif</label>
+                        <input type="number" min="1" max="10080" step="1" name="completion_minutes" x-model="complete" class="{{ $inputClass }}" @required($taskProfile->requiresCompletionTime())>
+                        <p class="mt-1 text-xs text-text-muted">
+                            How long an agent has to finish every step after starting. If time runs out, the task is cancelled for that agent and the slot opens again.
+                            @if($taskProfile->needsWatchMinutes()) Must be longer than the watch time. @endif
+                            @unless($taskProfile->requiresCompletionTime()) Optional for this product. @endunless
+                        </p>
+                        <p class="mt-1 text-xs text-danger" x-show="completionTooShort" x-cloak>Time to complete must be longer than the watch time.</p>
+                        @error('completion_minutes')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
+                    </div>
+                </div>
             </div>
 
             <x-dashboard.media-picker

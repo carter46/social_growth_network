@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\EngagementMetric;
+use App\Support\ProductTaskProfile;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -158,7 +159,9 @@ class PlatformProductVariant extends Model
             return (string) $this->unit_label;
         }
 
-        $metric ??= EngagementMetric::fromProductSlug($this->product?->slug);
+        if ($metric === null) {
+            return ProductTaskProfile::forSlug($this->product?->slug)->unitLabel();
+        }
 
         return match ($metric) {
             EngagementMetric::Likes => 'like',
@@ -166,7 +169,6 @@ class PlatformProductVariant extends Model
             EngagementMetric::Views => 'view',
             EngagementMetric::WatchHours => 'watch hour',
             EngagementMetric::Subscribers => 'subscriber',
-            default => 'unit',
         };
     }
 
@@ -190,7 +192,7 @@ class PlatformProductVariant extends Model
      */
     public function storefrontPayload(?EngagementMetric $metric = null): array
     {
-        $metric ??= EngagementMetric::fromProductSlug($this->product?->slug);
+        $metric ??= ProductTaskProfile::forSlug($this->product?->slug)->legacyMetric();
 
         return [
             'id' => $this->id,

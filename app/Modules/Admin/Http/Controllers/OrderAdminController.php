@@ -64,7 +64,7 @@ class OrderAdminController extends Controller
         $products = PlatformProduct::query()
             ->visibleToPublic()
             ->orderBy('title')
-            ->get(['id', 'title', 'slug', 'product_type']);
+            ->get(['id', 'title', 'slug', 'product_type', 'task_order']);
 
         $users = User::query()
             ->orderBy('name')
@@ -84,6 +84,8 @@ class OrderAdminController extends Controller
             'product_slug' => ['required', 'string', 'max:255'],
             'quantity' => ['required', 'integer', 'min:1', 'max:1000000'],
             'target_url' => ['required', 'string', 'url', 'max:2048'],
+            'channel_url' => ['nullable', 'string', 'url', 'max:500'],
+            'comment_instructions' => ['nullable', 'string', 'max:'.\App\Services\Campaigns\CampaignBriefService::COMMENT_INSTRUCTIONS_MAX],
             'mark_paid' => ['nullable', 'boolean'],
         ]);
 
@@ -110,6 +112,8 @@ class OrderAdminController extends Controller
             'variant_id' => $variant->id,
             'quantity' => $quantity,
             'target_url' => $validated['target_url'],
+            'channel_url' => $validated['channel_url'] ?? null,
+            'comment_instructions' => $validated['comment_instructions'] ?? null,
             'domain_mode' => 'none',
             'idempotency_key' => (string) Str::uuid(),
             'payment_method' => Order::PAYMENT_MANUAL_BANK_TRANSFER,

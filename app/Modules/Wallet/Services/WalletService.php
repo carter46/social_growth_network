@@ -659,6 +659,180 @@ class WalletService
         });
     }
 
+    /**
+     * Move a campaign's agent budget into the platform wallet's locked balance.
+     * The reference CMP-HOLD-{id} is unique, so a campaign is held at most once.
+     */
+    public function holdCampaignBudget(int $campaignId, string $amount, ?int $orderId = null): Transaction
+    {
+        $amountStr = number_format((float) $amount, 2, '.', '');
+
+        return DB::transaction(function () use ($campaignId, $amountStr, $orderId) {
+            $platformWallet = Wallet::where('id', $this->getPlatformWallet()->id)->lockForUpdate()->firstOrFail();
+
+            if (bccomp((string) $platformWallet->availableBalance(), $amountStr, 2) < 0) {
+                throw new InvalidArgumentException('Platform wallet has insufficient available balance to hold this campaign budget.');
+            }
+
+            $platformWallet->locked_balance = bcadd((string) $platformWallet->locked_balance, $amountStr, 2);
+            $platformWallet->save();
+
+            $this->createHold($platformWallet, WalletHoldReason::CampaignBudget, $campaignId, (float) $amountStr);
+
+            return $this->createLedgerEntry($platformWallet, [
+                'reference' => 'CMP-HOLD-'.$campaignId,
+                'user_id' => $platformWallet->user_id,
+                'order_id' => $orderId,
+                'type' => TransactionType::CampaignBudgetHold->value,
+                'label' => 'Campaign budget held',
+                'description' => 'Agent budget held for campaign #'.$campaignId,
+                'amount' => 0,
+                'currency' => 'NGN',
+                'status' => 'completed',
+            ]);
+        });
+    }
+
+    /**
+     * Pay one campaign reward out of the held budget: the platform wallet's balance and
+     * locked balance both drop, the agent is credited. CMP-PAY-{participation} is unique,
+     * so a second payment for the same participation fails at the database.
+     */
+    public function payCampaignRewardFromHold(User $agent, int $participationId, string $amount, string $label): Transaction
+    {
+        $amountStr = number_format((float) $amount, 2, '.', '');
+        if (bccomp($amountStr, '0', 2) <= 0) {
+            throw new InvalidArgumentException('Reward amount must be positive.');
+        }
+
+        return DB::transaction(function () use ($agent, $participationId, $amountStr, $label) {
+            $platformWallet = Wallet::where('id', $this->getPlatformWallet()->id)->lockForUpdate()->firstOrFail();
+            if (bccomp((string) $platformWallet->locked_balance, $amountStr, 2) < 0
+                || bccomp((string) $platformWallet->balance, $amountStr, 2) < 0) {
+                throw new InvalidArgumentException('Held campaign funds are insufficient for this payout.');
+            }
+
+            $agentWallet = Wallet::query()->where('user_id', $agent->id)->lockForUpdate()->first();
+            if (! $agentWallet) {
+                throw new InvalidArgumentException('User has no wallet to credit.');
+            }
+
+            $platformWallet->balance = bcsub((string) $platformWallet->balance, $amountStr, 2);
+            $platformWallet->locked_balance = bcsub((string) $platformWallet->locked_balance, $amountStr, 2);
+            $platformWallet->save();
+
+            $this->createLedgerEntry($platformWallet, [
+                'reference' => 'CMP-PAY-'.$participationId.'-P',
+                'user_id' => $platformWallet->user_id,
+                'type' => TransactionType::CampaignReward->value,
+                'label' => 'Campaign reward paid from hold',
+                'description' => $label.' (task #'.$participationId.')',
+                'amount' => -((float) $amountStr),
+                'currency' => 'NGN',
+                'status' => 'completed',
+            ]);
+
+            $agentWallet->balance = bcadd((string) $agentWallet->balance, $amountStr, 2);
+            $agentWallet->save();
+
+            return $this->createLedgerEntry($agentWallet, [
+                'reference' => 'CMP-PAY-'.$participationId,
+                'user_id' => $agent->id,
+                'type' => TransactionType::CampaignReward->value,
+                'label' => $label,
+                'description' => $label,
+                'amount' => (float) $amountStr,
+                'currency' => $agentWallet->currency ?: 'NGN',
+                'status' => 'completed',
+            ]);
+        });
+    }
+
+    /** Release leftover held funds back to platform revenue (balance unchanged, lock removed). */
+    public function releaseCampaignBudget(int $campaignId, string $amount): ?Transaction
+    {
+        $amountStr = number_format((float) $amount, 2, '.', '');
+        if (bccomp($amountStr, '0', 2) <= 0) {
+            // Nothing left to unlock (every unit was paid), but the hold row still has to close.
+            $this->transitionHold($this->getPlatformWallet()->id, WalletHoldReason::CampaignBudget, $campaignId, WalletHoldStatus::Released);
+
+            return null;
+        }
+
+        return DB::transaction(function () use ($campaignId, $amountStr) {
+            $platformWallet = Wallet::where('id', $this->getPlatformWallet()->id)->lockForUpdate()->firstOrFail();
+            $release = bccomp((string) $platformWallet->locked_balance, $amountStr, 2) < 0
+                ? number_format(max(0, (float) $platformWallet->locked_balance), 2, '.', '')
+                : $amountStr;
+
+            $platformWallet->locked_balance = bcsub((string) $platformWallet->locked_balance, $release, 2);
+            $platformWallet->save();
+
+            $this->transitionHold($platformWallet->id, WalletHoldReason::CampaignBudget, $campaignId, WalletHoldStatus::Released);
+
+            return $this->createLedgerEntry($platformWallet, [
+                'reference' => 'CMP-SETTLE-'.$campaignId,
+                'user_id' => $platformWallet->user_id,
+                'type' => TransactionType::CampaignBudgetRelease->value,
+                'label' => 'Campaign budget settled',
+                'description' => 'Unused held funds ('.$release.') released to revenue for campaign #'.$campaignId,
+                'amount' => 0,
+                'currency' => 'NGN',
+                'status' => 'completed',
+            ]);
+        });
+    }
+
+    /**
+     * Refund a cancelled campaign's unused units to the creator. The held part is unlocked;
+     * the whole refund leaves the platform balance. CMP-REFUND-{id} is unique.
+     */
+    public function refundCampaign(Wallet $creatorWallet, int $campaignId, string $refundTotal, string $heldPart): Transaction
+    {
+        $total = number_format((float) $refundTotal, 2, '.', '');
+        $held = number_format((float) $heldPart, 2, '.', '');
+
+        return DB::transaction(function () use ($creatorWallet, $campaignId, $total, $held) {
+            $platformWallet = Wallet::where('id', $this->getPlatformWallet()->id)->lockForUpdate()->firstOrFail();
+            if (bccomp((string) $platformWallet->balance, $total, 2) < 0
+                || bccomp((string) $platformWallet->locked_balance, $held, 2) < 0) {
+                throw new InvalidArgumentException('Platform wallet balance is insufficient for this refund.');
+            }
+
+            $platformWallet->balance = bcsub((string) $platformWallet->balance, $total, 2);
+            $platformWallet->locked_balance = bcsub((string) $platformWallet->locked_balance, $held, 2);
+            $platformWallet->save();
+
+            $this->transitionHold($platformWallet->id, WalletHoldReason::CampaignBudget, $campaignId, WalletHoldStatus::Released);
+
+            $this->createLedgerEntry($platformWallet, [
+                'reference' => 'CMP-REFUND-'.$campaignId.'-P',
+                'user_id' => $platformWallet->user_id,
+                'type' => TransactionType::Refund->value,
+                'label' => 'Campaign refund',
+                'description' => 'Refund of unused units for campaign #'.$campaignId,
+                'amount' => -((float) $total),
+                'currency' => 'NGN',
+                'status' => 'completed',
+            ]);
+
+            $creatorWallet = Wallet::where('id', $creatorWallet->id)->lockForUpdate()->firstOrFail();
+            $creatorWallet->balance = bcadd((string) $creatorWallet->balance, $total, 2);
+            $creatorWallet->save();
+
+            return $this->createLedgerEntry($creatorWallet, [
+                'reference' => 'CMP-REFUND-'.$campaignId,
+                'user_id' => $creatorWallet->user_id,
+                'type' => TransactionType::Refund->value,
+                'label' => 'Campaign refund',
+                'description' => 'Refund for unused units of cancelled campaign #'.$campaignId,
+                'amount' => (float) $total,
+                'currency' => $creatorWallet->currency ?: 'NGN',
+                'status' => 'completed',
+            ]);
+        });
+    }
+
     public function getPlatformWallet(): Wallet
     {
         $wallet = Wallet::query()

@@ -15,10 +15,21 @@ class CampaignMarketplaceTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // The SQLite schema still references the dropped escrows table from transactions.
+        if (! \Illuminate\Support\Facades\Schema::hasTable('escrows')) {
+            \Illuminate\Support\Facades\Schema::create('escrows', fn (\Illuminate\Database\Schema\Blueprint $table) => $table->id());
+        }
+    }
+
     public function test_agent_can_start_submit_and_admin_can_approve_reward(): void
     {
         $creator = User::factory()->creator()->create();
         $agent = User::factory()->agent()->kycApproved()->create();
+        $this->linkVerifiedYoutubeChannel($agent);
         \App\Models\Wallet::factory()->create([
             'user_id' => $agent->id,
             'balance' => 0,
@@ -117,6 +128,7 @@ class CampaignMarketplaceTest extends TestCase
     {
         $creator = User::factory()->creator()->create();
         $agent = User::factory()->agent()->kycApproved()->create();
+        $this->linkVerifiedYoutubeChannel($agent);
         \App\Models\Wallet::factory()->create(['user_id' => $agent->id]);
 
         $campaign = Campaign::query()->create([
@@ -145,6 +157,7 @@ class CampaignMarketplaceTest extends TestCase
     {
         $creator = User::factory()->creator()->create();
         $agent = User::factory()->agent()->kycApproved()->create();
+        $this->linkVerifiedYoutubeChannel($agent);
         \App\Models\Wallet::factory()->create(['user_id' => $agent->id]);
 
         $campaign = Campaign::query()->create([
@@ -181,6 +194,7 @@ class CampaignMarketplaceTest extends TestCase
     {
         $creator = User::factory()->creator()->create();
         $agent = User::factory()->agent()->kycApproved()->create();
+        $this->linkVerifiedYoutubeChannel($agent);
         \App\Models\Wallet::factory()->create(['user_id' => $agent->id, 'balance' => 0]);
 
         $campaign = Campaign::query()->create([
@@ -218,6 +232,7 @@ class CampaignMarketplaceTest extends TestCase
 
         $creator = User::factory()->creator()->create();
         $agent = User::factory()->agent()->kycApproved()->create();
+        $this->linkVerifiedYoutubeChannel($agent);
         \App\Models\Wallet::factory()->create(['user_id' => $agent->id, 'balance' => 0]);
 
         $campaign = Campaign::query()->create([
@@ -272,6 +287,7 @@ class CampaignMarketplaceTest extends TestCase
     {
         $creator = User::factory()->creator()->create();
         $agent = User::factory()->agent()->kycApproved()->create();
+        $this->linkVerifiedYoutubeChannel($agent);
         \App\Models\Wallet::factory()->create(['user_id' => $agent->id, 'balance' => 0]);
 
         $campaign = Campaign::query()->create([
@@ -298,6 +314,7 @@ class CampaignMarketplaceTest extends TestCase
     {
         $creator = User::factory()->creator()->create();
         $agent = User::factory()->agent()->kycApproved()->create();
+        $this->linkVerifiedYoutubeChannel($agent);
         \App\Models\Wallet::factory()->create(['user_id' => $agent->id, 'balance' => 0]);
 
         $campaign = Campaign::query()->create([
@@ -330,6 +347,7 @@ class CampaignMarketplaceTest extends TestCase
     {
         $creator = User::factory()->creator()->create();
         $agent = User::factory()->agent()->kycApproved()->create();
+        $this->linkVerifiedYoutubeChannel($agent);
         \App\Models\Wallet::factory()->create(['user_id' => $agent->id, 'balance' => 0]);
 
         $campaign = Campaign::query()->create([
@@ -365,6 +383,7 @@ class CampaignMarketplaceTest extends TestCase
     {
         \App\Models\SystemSetting::set('kyc_required', '0');
         $agent = User::factory()->agent()->kycApproved()->create();
+        $this->linkVerifiedYoutubeChannel($agent);
         \App\Models\Wallet::factory()->create(['user_id' => $agent->id, 'balance' => 0, 'locked_balance' => 0]);
         \App\Models\UserBankAccount::create([
             'user_id' => $agent->id,

@@ -31,7 +31,12 @@
         </x-slot:head>
         @foreach ($queue as $participation)
             <tr class="hover:bg-muted/50">
-                <x-dashboard.td class="font-medium">{{ $participation->campaign?->title }}</x-dashboard.td>
+                <x-dashboard.td class="font-medium">
+                    {{ $participation->campaign?->title }}
+                    @if ((int) $participation->steps_count > 1)
+                        <x-dashboard.badge status="info">{{ (int) $participation->steps_count }} tasks</x-dashboard.badge>
+                    @endif
+                </x-dashboard.td>
                 <x-dashboard.td>{{ $participation->agent?->email }}</x-dashboard.td>
                 <x-dashboard.td>{{ $participation->submitted_at?->format('Y-m-d H:i') }}</x-dashboard.td>
                 <x-dashboard.td><x-dashboard.badge :status="$participation->status" /></x-dashboard.td>

@@ -177,7 +177,7 @@ class DiscoverServicesController extends Controller
         $isCampaignStyle = $product
             && (
                 (bool) ($product->is_campaign ?? false)
-                || EngagementMetric::fromProductSlug($product->slug) !== null
+                || $product->taskProfile()->legacyMetric() !== null
             );
 
         if (! $isCampaignStyle) {
@@ -216,7 +216,7 @@ class DiscoverServicesController extends Controller
 
         $defaultVariant = $product->pricingVariant();
         $variants = collect($defaultVariant ? [$defaultVariant] : []);
-        $metric = EngagementMetric::fromProductSlug($product->slug);
+        $metric = $product->taskProfile()->legacyMetric();
 
         if (! $product->isPurchasable()) {
             return redirect()
@@ -233,11 +233,14 @@ class DiscoverServicesController extends Controller
                 ->route('dashboard.services.product', array_filter([
                     'slug' => $product->slug,
                     'target_url' => $request->query('target_url'),
+                    'channel_url' => $request->query('channel_url'),
+                    'comment_instructions' => $request->query('comment_instructions'),
                 ]))
                 ->with('error', 'Enter between '.number_format($min).' and '.number_format($max).' '.$defaultVariant->resolveUnitLabelPlural($metric).' before checkout.');
         }
 
         $targetUrl = null;
+        $brief = [];
         if ($product->requiresTargetUrl()) {
             $targetUrl = TargetUrlValidator::normalize($request->query('target_url'));
             $linkError = $targetUrl === null ? 'Enter your link before checkout.' : null;
@@ -248,11 +251,25 @@ class DiscoverServicesController extends Controller
                     $linkError = $e->getMessage();
                 }
             }
+            $briefInput = [
+                'target_url' => (string) $request->query('target_url', ''),
+                'channel_url' => (string) $request->query('channel_url', ''),
+                'comment_instructions' => (string) $request->query('comment_instructions', ''),
+            ];
+            $linkErrorField = 'target_url';
+            if ($linkError === null) {
+                try {
+                    $brief = app(\App\Services\Campaigns\CampaignBriefService::class)->resolve($product, $briefInput);
+                } catch (\App\Services\Campaigns\CampaignBriefException $e) {
+                    $linkError = $e->getMessage();
+                    $linkErrorField = $e->field;
+                }
+            }
             if ($linkError !== null) {
                 return redirect()
                     ->route('dashboard.services.product', $product->slug)
-                    ->withInput(['target_url' => (string) $request->query('target_url', '')])
-                    ->withErrors(['target_url' => $linkError]);
+                    ->withInput($briefInput + ['units' => $selectedUnits])
+                    ->withErrors([$linkErrorField => $linkError]);
             }
         }
 
@@ -274,6 +291,8 @@ class DiscoverServicesController extends Controller
             'selectedUnits' => $selectedUnits,
             'engagementMetric' => $metric,
             'targetUrl' => $targetUrl,
+            'taskProfile' => $product->taskProfile(),
+            'campaignBrief' => $brief,
             'basePrice' => (float) $product->displayPrice(),
             'showPlanSummary' => $showPlanSummary,
             'isWebsitePackage' => false,
@@ -332,11 +351,24 @@ class DiscoverServicesController extends Controller
             'renew_user_tool_id' => ['nullable', 'integer', 'exists:user_tools,id'],
             'payment_method' => ['nullable', 'in:'.implode(',', $allowedMethods)],
             'target_url' => [
-                Rule::requiredIf(fn () => EngagementMetric::fromProductSlug($product->slug) !== null),
+                Rule::requiredIf(fn () => $product->taskProfile()->legacyMetric() !== null),
                 'nullable',
                 'string',
                 'url',
                 'max:2048',
+            ],
+            'channel_url' => [
+                Rule::requiredIf(fn () => $product->taskProfile()->needsChannelUrl()),
+                'nullable',
+                'string',
+                'url',
+                'max:500',
+            ],
+            'comment_instructions' => [
+                Rule::requiredIf(fn () => $product->taskProfile()->needsCommentInstructions()),
+                'nullable',
+                'string',
+                'max:'.\App\Services\Campaigns\CampaignBriefService::COMMENT_INSTRUCTIONS_MAX,
             ],
         ];
 
@@ -347,7 +379,7 @@ class DiscoverServicesController extends Controller
             return back()->withInput()->with('error', 'This product is not available to buy yet. Please try again later.');
         }
 
-        $metric = EngagementMetric::fromProductSlug($product->slug);
+        $metric = $product->taskProfile()->legacyMetric();
         $units = (int) $data['quantity'];
         $min = $variant->effectiveMinUnits();
         $max = $variant->effectiveMaxUnits();

@@ -11,6 +11,7 @@ use App\Models\ProductType;
 use App\Models\ServiceCategory;
 use App\Services\Media\MediaPathService;
 use App\Services\Media\MediaUsageService;
+use App\Support\ProductTaskProfile;
 use App\Support\SortOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -132,7 +133,8 @@ class PlatformProductAdminController extends Controller
                 ->with('error', __('That product is not under a fixed platform category.'));
         }
 
-        $metric = \App\Enums\EngagementMetric::fromProductSlug($platformProduct->slug);
+        $profile = $platformProduct->taskProfile();
+        $allowedTasks = array_map(fn ($task) => $task->value, ProductTaskProfile::allowedTasks($platformProduct->slug));
 
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -149,17 +151,48 @@ class PlatformProductAdminController extends Controller
             'pricing.price' => ['required', 'numeric', 'min:0.01'],
             'agent_reward_percent' => ['required', 'numeric', 'min:0.01', 'max:100'],
             'estimated_minutes' => [
-                Rule::requiredIf((bool) $metric?->requiresTimedSession(
-                    \App\Enums\EngagementMetric::platformFromProductSlug($platformProduct->slug)
-                )),
+                Rule::requiredIf($profile->needsWatchMinutes()),
                 'nullable',
                 'integer',
                 'min:1',
                 'max:10080',
             ],
+            'completion_minutes' => [
+                Rule::requiredIf($profile->requiresCompletionTime()),
+                'nullable',
+                'integer',
+                'min:1',
+                'max:10080',
+            ],
+            'task_order' => ['nullable', 'array'],
+            'task_order.*' => ['string', Rule::in($allowedTasks)],
         ], [
             'pricing.max_units.gte' => 'Maximum purchase must be greater than or equal to the minimum purchase.',
+            'estimated_minutes.required' => 'Enter the watch time in minutes.',
+            'completion_minutes.required' => 'Enter the time to complete in minutes.',
         ]);
+
+        $watchMinutes = (int) ($data['estimated_minutes'] ?? 0);
+        $completionMinutes = (int) ($data['completion_minutes'] ?? 0);
+        if ($completionMinutes > 0 && $profile->needsWatchMinutes() && $watchMinutes > 0 && $completionMinutes <= $watchMinutes) {
+            throw ValidationException::withMessages([
+                'completion_minutes' => "Time to complete must be longer than the watch time ({$watchMinutes} minutes), so agents have time for every step.",
+            ]);
+        }
+
+        $taskOrder = null;
+        if (count($allowedTasks) > 1) {
+            $normalized = ProductTaskProfile::normalizeOrder(
+                ProductTaskProfile::allowedTasks($platformProduct->slug),
+                $data['task_order'] ?? $platformProduct->task_order ?? $allowedTasks,
+            );
+            if ($normalized === null) {
+                throw ValidationException::withMessages([
+                    'task_order' => 'The task order must include each task exactly once.',
+                ]);
+            }
+            $taskOrder = array_map(fn ($task) => $task->value, $normalized);
+        }
 
         $unitPrice = PlatformProductVariant::computeUnitPriceFromPackagePrice(
             $data['pricing']['price'],
@@ -184,20 +217,24 @@ class PlatformProductAdminController extends Controller
             'is_campaign' => true,
             'agent_reward_percent' => $data['agent_reward_percent'],
             'estimated_minutes' => $data['estimated_minutes'] ?? null,
+            'completion_minutes' => $completionMinutes > 0 ? $completionMinutes : null,
+            'task_order' => $taskOrder,
         ];
 
-        $platformProduct->update($updatePayload);
+        DB::transaction(function () use ($platformProduct, $updatePayload, $data, $unitPrice, $heroMediaId) {
+            $platformProduct->update($updatePayload);
 
-        $this->syncPricing($platformProduct, $data['pricing'], $unitPrice);
-        SortOrder::normalize($this->systemProductSiblingsQuery());
+            $this->syncPricing($platformProduct, $data['pricing'], $unitPrice);
+            SortOrder::normalize($this->systemProductSiblingsQuery());
 
-        $this->mediaUsages->syncUsages($platformProduct, [
-            'hero' => $heroMediaId,
-        ]);
+            $this->mediaUsages->syncUsages($platformProduct, [
+                'hero' => $heroMediaId,
+            ]);
 
-        if ($data['status'] === PlatformProductStatus::Published->value) {
-            $this->assertPublishable($platformProduct->fresh(['variants']));
-        }
+            if ($data['status'] === PlatformProductStatus::Published->value) {
+                $this->assertPublishable($platformProduct->fresh(['variants']));
+            }
+        });
 
         return redirect()
             ->route('admin.platform-products.edit', $platformProduct)
@@ -306,6 +343,12 @@ class PlatformProductAdminController extends Controller
         if ((float) ($product->agent_reward_percent ?? 0) <= 0) {
             throw ValidationException::withMessages([
                 'status' => 'Published products need an agent reward percentage.',
+            ]);
+        }
+        $taskIssues = $product->taskSetupIssues();
+        if ($taskIssues !== []) {
+            throw ValidationException::withMessages([
+                'status' => 'Fix this before publishing: '.implode(', ', $taskIssues).'.',
             ]);
         }
     }

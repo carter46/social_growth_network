@@ -53,6 +53,11 @@ enum EngagementMetric: string
 
         $slug = strtolower(trim($slug));
 
+        $explicit = (array) config('platform_products.metrics', []);
+        if (isset($explicit[$slug]) && ($metric = self::tryFrom((string) $explicit[$slug]))) {
+            return $metric;
+        }
+
         return match (true) {
             str_ends_with($slug, '-likes') => self::Likes,
             str_ends_with($slug, '-comments') => self::Comments,

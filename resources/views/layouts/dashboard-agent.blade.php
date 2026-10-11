@@ -25,6 +25,7 @@
             @include('partials.sidebar-agent')
 
             <x-dashboard.scroll-main>
+                @include('dashboard.agent.partials.youtube-channel-banner')
                 @yield('content')
             </x-dashboard.scroll-main>
         </div>

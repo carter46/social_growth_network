@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use App\Observers\CampaignObserver;
+use App\Support\ProductTaskProfile;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[ObservedBy([CampaignObserver::class])]
 class Campaign extends Model
@@ -59,11 +61,19 @@ class Campaign extends Model
         'status',
         'estimated_minutes',
         'meta',
+        'required_tasks',
+        'channel_url',
+        'channel_id',
+        'video_id',
+        'comment_instructions',
+        'completion_minutes',
     ];
 
     protected function casts(): array
     {
         return [
+            'required_tasks' => 'array',
+            'completion_minutes' => 'integer',
             'quantity' => 'integer',
             'completed_count' => 'integer',
             'baseline_count' => 'integer',
@@ -118,6 +128,22 @@ class Campaign extends Model
         return $this->hasMany(CampaignParticipation::class);
     }
 
+    public function budget(): HasOne
+    {
+        return $this->hasOne(CampaignBudget::class);
+    }
+
+    public function taskProfile(): ProductTaskProfile
+    {
+        return ProductTaskProfile::forCampaign($this);
+    }
+
+    /** Bundled step flow (snapshot of a multi-task product). */
+    public function usesStepFlow(): bool
+    {
+        return $this->taskProfile()->usesStepFlow();
+    }
+
     public const STATUS_LABELS = [
         self::STATUS_DRAFT => 'Draft',
         self::STATUS_PENDING_REVIEW => 'Pending review',
@@ -159,7 +185,14 @@ class Campaign extends Model
 
     public function allowsAgentWork(): bool
     {
-        return in_array($this->status, self::WORKABLE_STATUSES, true);
+        if (in_array($this->status, self::WORKABLE_STATUSES, true)) {
+            return true;
+        }
+
+        // A cancelled campaign with a held budget lets tasks already in progress finish or expire.
+        return $this->status === self::STATUS_CANCELLED
+            && \Illuminate\Support\Facades\Schema::hasTable('campaign_budgets')
+            && $this->budget()->where('status', CampaignBudget::STATUS_HELD)->exists();
     }
 
     public function assertAllowsAgentWork(): void

@@ -67,7 +67,7 @@
     <div id="other-youtube-services">
         <div class="mb-4">
             <h3 class="text-lg sm:text-xl font-bold text-slate-900 font-display">Other YouTube services</h3>
-            <p class="text-slate-500 text-sm mt-1">Views, likes, and comments for your YouTube videos.</p>
+            <p class="text-slate-500 text-sm mt-1">Views and likes for your videos, plus combined packages where each agent subscribes, watches or comments in one task.</p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
             @foreach($youtubeOthers as $product)

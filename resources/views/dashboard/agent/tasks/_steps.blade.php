@@ -1,0 +1,149 @@
+@use('App\Enums\CampaignTask')
+@use('App\Models\CampaignParticipationTask', 'Step')
+@php
+    $isStarted = $participation->status === 'started';
+    $activeStep = $steps->firstWhere('status', Step::STATUS_ACTIVE);
+    $hasLocked = $steps->contains('status', Step::STATUS_LOCKED);
+    $allDone = $steps->isNotEmpty() && $steps->every(fn ($s) => $s->status === Step::STATUS_DONE);
+    $hasEmbed = ($embed['mode'] ?? '') === 'embed' && ! empty($embed['html']);
+    $videoUrl = $campaign?->target_url;
+    $channelUrl = $campaign?->channel_url;
+    $statusBadge = [
+        Step::STATUS_LOCKED => 'neutral',
+        Step::STATUS_ACTIVE => 'info',
+        Step::STATUS_DONE => 'info',
+        Step::STATUS_CHECKING => 'verifying',
+        Step::STATUS_VERIFIED => 'success',
+        Step::STATUS_NEEDS_REVIEW => 'pending',
+        Step::STATUS_ACCEPTED => 'success',
+        Step::STATUS_REJECTED => 'danger',
+        Step::STATUS_EXPIRED => 'expired',
+    ];
+@endphp
+
+<div class="space-y-4">
+    @if ($isStarted)
+        <div class="rounded-xl bg-muted/40 px-4 py-3 text-sm text-text-secondary">
+            <p class="font-medium text-text-primary">How this task works</p>
+            <p class="mt-1">Do each step in order. When a step is done, tap <strong>Proceed to next task</strong>. After the last step, tap <strong>Submit task</strong>. Nothing is checked until you submit, and you are paid once every step is accepted.</p>
+        </div>
+    @elseif (in_array($participation->status, ['submitted', 'verifying', 'under_review'], true))
+        <x-dashboard.alert type="info">Your task is submitted. We are checking each step. Some checks run again a little later, and some go to an admin for review.</x-dashboard.alert>
+    @endif
+
+    <ol class="space-y-3">
+        @foreach ($steps as $step)
+            @php $task = $step->taskEnum(); @endphp
+            <li class="rounded-xl border border-border-default px-4 py-3 space-y-3 {{ $step->status === Step::STATUS_ACTIVE ? 'bg-elevated' : '' }}">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <p class="text-sm font-semibold text-text-primary">{{ $step->position }}. {{ $task?->label() ?? $step->task }}</p>
+                    <x-dashboard.badge :status="$statusBadge[$step->status] ?? 'neutral'">{{ $step->statusLabel() }}</x-dashboard.badge>
+                </div>
+
+                @if ($step->rejection_reason)
+                    <p class="text-sm text-danger">{{ $step->rejection_reason }}</p>
+                @endif
+
+                @if ($isStarted && $step->status === Step::STATUS_ACTIVE)
+                    @if ($task === CampaignTask::Subscribe)
+                        <div class="space-y-3">
+                            <p class="text-sm text-text-secondary">Open the channel, subscribe with the YouTube channel you linked, then mark this step done. A screenshot link is optional but helps if your subscriptions are private.</p>
+                            @if ($channelUrl)
+                                <a href="{{ $channelUrl }}" target="_blank" rel="noopener" class="inline-flex text-sm font-medium text-primary hover:underline">Open the channel on YouTube</a>
+                            @endif
+                            <form method="POST" action="{{ route('agent.tasks.steps.save', [$participation, 'subscribe']) }}" class="space-y-3">
+                                @csrf
+                                <x-dashboard.input name="proof_url" label="Screenshot link (optional)" :value="old('proof_url')" placeholder="https://..." />
+                                <x-dashboard.button type="submit">Mark step done</x-dashboard.button>
+                            </form>
+                        </div>
+                    @elseif ($task === CampaignTask::Watch)
+                        <div class="space-y-3" x-data="watchTaskModal({
+                            requiredSeconds: {{ (int) $requiredSeconds }},
+                            token: @js($watchToken),
+                            startUrl: @js(route('agent.tasks.start-watch', $participation)),
+                            claimUrl: @js(route('agent.tasks.claim-watch', $participation)),
+                            csrf: @js(csrf_token()),
+                        })">
+                            <p class="text-sm text-text-secondary">
+                                Tap <strong>Start watching</strong>, press play on the video and keep this page open for {{ (int) ceil($requiredSeconds / 60) }} minutes.
+                            </p>
+                            @if ($hasEmbed)
+                                <div class="overflow-hidden rounded-xl border border-border-default">{!! $embed['html'] !!}</div>
+                            @elseif (! empty($embed['open_url']))
+                                <a href="{{ $embed['open_url'] }}" target="_blank" rel="noopener" class="inline-flex text-sm font-medium text-primary hover:underline">Open the video</a>
+                            @endif
+                            <div class="flex flex-wrap items-center gap-3">
+                                <template x-if="! token">
+                                    <x-dashboard.button type="button" x-on:click="start()" x-bind:disabled="starting">
+                                        <span x-text="starting ? 'Starting...' : 'Start watching'">Start watching</span>
+                                    </x-dashboard.button>
+                                </template>
+                                <template x-if="token && ! done">
+                                    <p class="rounded-lg bg-muted/40 px-3 py-2 text-sm font-semibold text-text-primary" aria-live="polite">
+                                        Watch time left: <span x-text="display"></span>
+                                    </p>
+                                </template>
+                                <template x-if="done">
+                                    <form method="POST" :action="claimUrl" x-on:submit="claim()">
+                                        <input type="hidden" name="_token" :value="csrf">
+                                        <input type="hidden" name="token" :value="token">
+                                        <x-dashboard.button type="submit" x-bind:disabled="claiming">Finish watch step</x-dashboard.button>
+                                    </form>
+                                </template>
+                            </div>
+                            <p class="text-sm text-danger" x-show="error" x-text="error" x-cloak></p>
+                            <p class="text-xs text-text-muted" x-show="token && ! done" x-cloak>Leaving this page before the watch timer finishes resets the watch step.</p>
+                        </div>
+                    @elseif ($task === CampaignTask::Comment)
+                        <div class="space-y-3">
+                            @if (filled($campaign?->comment_instructions))
+                                <div class="rounded-lg border border-border-default bg-muted/20 px-3 py-2">
+                                    <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">What to comment about</p>
+                                    <p class="mt-1 text-sm text-text-primary whitespace-pre-line break-words">{{ $campaign->comment_instructions }}</p>
+                                </div>
+                            @endif
+                            <p class="text-sm text-text-secondary">Write your own comment on the video in your own words, using the YouTube channel you linked.</p>
+                            @if ($videoUrl)
+                                <a href="{{ $videoUrl }}" target="_blank" rel="noopener" class="inline-flex text-sm font-medium text-primary hover:underline">Open the video on YouTube</a>
+                            @endif
+                            <details class="text-sm text-text-secondary">
+                                <summary class="cursor-pointer font-medium text-text-primary">How to copy your comment link</summary>
+                                <ol class="mt-2 list-decimal space-y-1 pl-5">
+                                    <li>On a computer, click the time under your name on your comment (for example "1 minute ago"). The page address now ends with <span class="font-mono">lc=...</span>. Copy it from the address bar.</li>
+                                    <li>On the YouTube app, tap the three dots next to your comment, then <strong>Share</strong> (or <strong>Copy link</strong>) if you see it.</li>
+                                    <li>Paste the link below. It must contain <span class="font-mono">lc=</span>.</li>
+                                </ol>
+                            </details>
+                            <form method="POST" action="{{ route('agent.tasks.steps.save', [$participation, 'comment']) }}" class="space-y-3">
+                                @csrf
+                                <x-dashboard.input name="proof_url" label="Link to your comment" :value="old('proof_url')" placeholder="https://www.youtube.com/watch?v=...&lc=..." required />
+                                <x-dashboard.button type="submit">Mark step done</x-dashboard.button>
+                            </form>
+                        </div>
+                    @endif
+                @endif
+
+                @if ($step->proof_url && ! in_array($step->status, [Step::STATUS_LOCKED, Step::STATUS_ACTIVE], true))
+                    <p class="text-xs text-text-muted break-all">Your link: <a href="{{ $step->proof_url }}" target="_blank" rel="noopener" class="underline">{{ $step->proof_url }}</a></p>
+                @endif
+                @if ($step->evidence_method === 'timer' && $step->status !== Step::STATUS_LOCKED)
+                    <p class="text-xs text-text-muted">Timer completed, viewing not verified.</p>
+                @endif
+            </li>
+        @endforeach
+    </ol>
+
+    @if ($isStarted && ! $activeStep && $hasLocked)
+        <form method="POST" action="{{ route('agent.tasks.proceed', $participation) }}">
+            @csrf
+            <x-dashboard.button type="submit">Proceed to next task</x-dashboard.button>
+        </form>
+    @elseif ($isStarted && $allDone)
+        <form method="POST" action="{{ route('agent.tasks.submit-task', $participation) }}" class="space-y-2">
+            @csrf
+            <p class="text-sm text-text-secondary">Every step is done. Submit the task to start the checks.</p>
+            <x-dashboard.button type="submit" icon="verified">Submit task</x-dashboard.button>
+        </form>
+    @endif
+</div>

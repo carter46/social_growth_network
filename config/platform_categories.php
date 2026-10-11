@@ -22,6 +22,7 @@ return [
             'youtube-comments',
             'youtube-watch-hours',
             'youtube-subscribers',
+            'youtube-subscribers-watch-comments',
         ],
     ],
 

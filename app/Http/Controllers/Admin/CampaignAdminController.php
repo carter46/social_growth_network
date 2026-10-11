@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\EngagementMetric;
 use App\Http\Controllers\Controller;
 use App\Models\Campaign;
+use App\Models\CampaignBudget;
 use App\Models\CampaignParticipation;
+use App\Modules\Admin\Services\AuditLogService;
+use App\Services\Campaigns\CampaignBudgetService;
+use App\Services\Campaigns\ParticipationExpiryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -24,8 +27,19 @@ class CampaignAdminController extends Controller
             $query->where('status', $status);
         }
 
+        $heldTotals = null;
+        if (CampaignBudgetService::enabled()) {
+            $held = CampaignBudget::query()->where('status', CampaignBudget::STATUS_HELD);
+            $heldTotals = [
+                'count' => (clone $held)->count(),
+                'remaining' => number_format(max(0, (float) (clone $held)->selectRaw('COALESCE(SUM(funded_amount - paid_amount - refunded_amount - released_amount), 0) as t')->value('t')), 2, '.', ''),
+                'paid' => number_format((float) CampaignBudget::query()->sum('paid_amount'), 2, '.', ''),
+            ];
+        }
+
         return view('dashboard.admin.campaigns.index', [
             'campaigns' => $query->paginate(25)->withQueryString(),
+            'heldTotals' => $heldTotals,
             'status' => $status,
         ]);
     }
@@ -41,8 +55,9 @@ class CampaignAdminController extends Controller
             'participations' => fn ($q) => $q->with('agent')->orderByDesc('created_at'),
         ]);
 
-        $metric = EngagementMetric::tryFrom((string) ($campaign->engagement_metric ?? ''))
-            ?? EngagementMetric::fromProductSlug($campaign->product?->slug);
+        $profile = $campaign->taskProfile();
+        $metric = $profile->legacyMetric();
+        $budget = CampaignBudgetService::enabled() ? $campaign->budget()->first() : null;
         $quantity = max(0, (int) $campaign->quantity);
         $reward = (string) $campaign->locked_agent_reward;
 
@@ -68,6 +83,8 @@ class CampaignAdminController extends Controller
         return view('dashboard.admin.campaigns.show', [
             'campaign' => $campaign,
             'metric' => $metric,
+            'profile' => $profile,
+            'budget' => $budget,
             'unitLabel' => $campaign->variant?->resolveUnitLabelPlural($metric)
                 ?? ($metric ? strtolower($metric->label()) : 'units'),
             'finance' => [
@@ -85,6 +102,7 @@ class CampaignAdminController extends Controller
                 'awaiting_review' => $participations->whereIn('status', $pendingStatuses)->count(),
                 'paid' => $participations->whereIn('status', $paidStatuses)->count(),
                 'rejected' => $participations->where('status', CampaignParticipation::STATUS_REJECTED)->count(),
+                'expired' => $participations->where('status', CampaignParticipation::STATUS_EXPIRED)->count(),
             ],
         ]);
     }
@@ -99,8 +117,90 @@ class CampaignAdminController extends Controller
             return back()->with('error', __('All units on this campaign are already delivered. Set it to Completed instead.'));
         }
 
+        $budget = $campaign->budget()->first();
+        if ($budget && $budget->status !== CampaignBudget::STATUS_HELD
+            && in_array($validated['status'], Campaign::WORKABLE_STATUSES, true)) {
+            return back()->with('error', __('This campaign\'s budget was already settled or refunded, so it cannot be reopened.'));
+        }
+
+        // Agents can only finish and be paid while the campaign is workable (or cancelled with a held budget).
+        $closing = [Campaign::STATUS_COMPLETED, Campaign::STATUS_SUSPENDED, Campaign::STATUS_REJECTED];
+        if (in_array($validated['status'], $closing, true) && $validated['status'] !== $campaign->status) {
+            $inFlight = app(CampaignBudgetService::class)->inFlightCount($campaign);
+            if ($inFlight > 0) {
+                return back()->with('error', trans_choice(
+                    '{1} 1 agent task is still in progress or awaiting review. Pause the campaign, or cancel it (unused units are refunded once that task finishes), then try again.|[2,*] :count agent tasks are still in progress or awaiting review. Pause the campaign, or cancel it (unused units are refunded once those tasks finish), then try again.',
+                    $inFlight,
+                    ['count' => $inFlight],
+                ));
+            }
+        }
+
+        $previousStatus = $campaign->status;
         $campaign->update(['status' => $validated['status']]);
 
+        app(AuditLogService::class)->logFromRequest(
+            $request,
+            $request->user()?->id,
+            'campaign.status_changed',
+            $campaign,
+            ['status' => $previousStatus],
+            ['status' => $campaign->status],
+        );
+
+        if ($campaign->status === Campaign::STATUS_COMPLETED) {
+            app(CampaignBudgetService::class)->settle($campaign);
+        }
+
+        if ($campaign->status === Campaign::STATUS_CANCELLED && $budget) {
+            try {
+                $refunded = app(CampaignBudgetService::class)->refundIfCancelled($campaign);
+            } catch (\InvalidArgumentException $e) {
+                return back()->with('error', __('Campaign cancelled, but the refund could not be sent: :reason', ['reason' => $e->getMessage()]));
+            }
+
+            if ($refunded !== null) {
+                return back()->with('status', __('Campaign cancelled. ₦:amount was refunded to the creator\'s wallet.', ['amount' => number_format((float) $refunded, 2)]));
+            }
+
+            return back()->with('status', __('Campaign cancelled. New agents can no longer start it. The refund for unused units is sent automatically once tasks already in progress finish or expire (the creator needs a wallet).'));
+        }
+
         return back()->with('status', __('Campaign status changed to :status.', ['status' => $campaign->statusLabel()]));
+    }
+
+    /** Frees the slot of a started task the agent abandoned. Nothing is paid for it. */
+    public function releaseParticipation(Request $request, Campaign $campaign, CampaignParticipation $participation): RedirectResponse
+    {
+        abort_unless((int) $participation->campaign_id === (int) $campaign->id, 404);
+
+        if (! app(ParticipationExpiryService::class)->release($participation)) {
+            return back()->with('error', __('Only tasks that are still in progress can be released.'));
+        }
+
+        app(AuditLogService::class)->logFromRequest(
+            $request,
+            $request->user()?->id,
+            'campaign.participation_released',
+            $participation,
+            ['status' => CampaignParticipation::STATUS_STARTED],
+            ['status' => CampaignParticipation::STATUS_EXPIRED],
+            ['campaign_id' => $campaign->id, 'agent_id' => $participation->agent_id],
+        );
+
+        $campaign->refresh();
+        if ($campaign->status === Campaign::STATUS_CANCELLED) {
+            try {
+                $refunded = app(CampaignBudgetService::class)->refundIfCancelled($campaign);
+            } catch (\InvalidArgumentException $e) {
+                return back()->with('error', __('Task released, but the refund could not be sent: :reason', ['reason' => $e->getMessage()]));
+            }
+
+            if ($refunded !== null) {
+                return back()->with('status', __('Task released. ₦:amount was refunded to the creator\'s wallet.', ['amount' => number_format((float) $refunded, 2)]));
+            }
+        }
+
+        return back()->with('status', __('Task released. The agent was told, and the slot is open again.'));
     }
 }

@@ -36,6 +36,18 @@ $scheduleCommand('campaigns:verify-engagement', 'campaigns:verify-engagement')
     ->everyMinute()
     ->withoutOverlapping(5);
 
+$scheduleCommand('campaigns:expire-participations', 'campaigns:expire-participations')
+    ->everyMinute()
+    ->withoutOverlapping(5);
+
+$scheduleCommand('campaigns:verify-steps', 'campaigns:verify-steps')
+    ->everyMinute()
+    ->withoutOverlapping(5);
+
+$scheduleCommand('youtube:check-identity-codes', 'youtube:check-identity-codes')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(10);
+
 Schedule::call(function () {
     \Illuminate\Support\Facades\Cache::forget('sitemap.xml.v2');
 })->dailyAt('02:30')->name('refresh-sitemap-cache');

@@ -15,11 +15,16 @@
     $pricingVariant = $product->pricingVariant();
     $heroUrl = media_url($product->heroMedia, $product->hero_image, 'large')
         ?? media_url($product->heroMedia, $product->hero_image, 'medium');
-    $metric = \App\Enums\EngagementMetric::fromProductSlug($product->slug);
+    $taskProfile = $product->taskProfile();
+    $metric = $taskProfile->legacyMetric();
     $pricing = $product->isPurchasable() ? $pricingVariant->storefrontPayload($metric) : null;
     $isDomainProduct = $isDomainProduct ?? false;
     $needsTargetUrl = ! $isDomainProduct && $product->requiresTargetUrl();
+    $needsChannelUrl = $needsTargetUrl && $taskProfile->needsChannelUrl();
+    $needsCommentInstructions = $needsTargetUrl && $taskProfile->needsCommentInstructions();
     $initialTargetUrl = (string) old('target_url', request()->query('target_url', ''));
+    $initialChannelUrl = (string) old('channel_url', request()->query('channel_url', ''));
+    $initialCommentInstructions = (string) old('comment_instructions', request()->query('comment_instructions', ''));
     $initialUnits = (int) request()->query('units', $pricing['min_units'] ?? 0);
 @endphp
 <x-layout.page
@@ -35,12 +40,24 @@
             units: {{ $initialUnits }},
             needsTargetUrl: @js($needsTargetUrl),
             targetUrl: @js($initialTargetUrl),
+            needsChannelUrl: @js($needsChannelUrl),
+            channelUrl: @js($initialChannelUrl),
+            needsCommentInstructions: @js($needsCommentInstructions),
+            commentInstructions: @js($initialCommentInstructions),
             get targetUrlValid() {
                 if (! this.needsTargetUrl) return true;
                 return /^https?:\/\/[^\s.]+\.[^\s]+$/i.test(String(this.targetUrl || '').trim());
             },
+            get briefValid() {
+                if (this.needsChannelUrl && ! /^https?:\/\/[^\s.]+\.[^\s]+$/i.test(String(this.channelUrl || '').trim())) return false;
+                if (this.needsCommentInstructions) {
+                    const text = String(this.commentInstructions || '').trim();
+                    if (text.length === 0 || text.length > 1000) return false;
+                }
+                return true;
+            },
             get canContinue() {
-                return !!this.pricing && this.unitsValid && this.targetUrlValid;
+                return !!this.pricing && this.unitsValid && this.targetUrlValid && this.briefValid;
             },
             get unitsValid() {
                 if (! this.pricing) return false;
@@ -57,6 +74,12 @@
                 let url = base + (base.includes('?') ? '&' : '?') + 'units=' + encodeURIComponent(String(this.units || ''));
                 if (this.needsTargetUrl) {
                     url += '&target_url=' + encodeURIComponent(String(this.targetUrl || '').trim());
+                }
+                if (this.needsChannelUrl) {
+                    url += '&channel_url=' + encodeURIComponent(String(this.channelUrl || '').trim());
+                }
+                if (this.needsCommentInstructions) {
+                    url += '&comment_instructions=' + encodeURIComponent(String(this.commentInstructions || '').trim());
                 }
                 return url;
             }
@@ -149,6 +172,13 @@
                                 <p class="text-xs text-danger">{{ $message }}</p>
                             @enderror
                         </x-dashboard.card>
+                        @if($taskProfile->isMultiTask())
+                            <x-dashboard.card class="h-fit">
+                                @include('dashboard.user.discover._campaign-brief-fields', [
+                                    'product' => $product,
+                                ])
+                            </x-dashboard.card>
+                        @endif
                     @endif
 
                     <x-dashboard.card class="space-y-4 h-fit">
@@ -174,6 +204,7 @@
                         >Continue to checkout</x-dashboard.button>
                         @if($needsTargetUrl)
                             <p class="text-xs text-text-muted" x-show="!targetUrlValid" x-cloak>Enter your link above to continue.</p>
+                            <p class="text-xs text-text-muted" x-show="targetUrlValid && !briefValid" x-cloak>Fill in the campaign details above to continue.</p>
                         @endif
                         @if($groupSlug)
                             <a href="{{ route('dashboard.services.browse', $groupSlug) }}" class="inline-flex text-sm text-text-secondary hover:text-primary">← Back to {{ $groupLabel ?? 'services' }}</a>

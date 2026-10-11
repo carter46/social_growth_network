@@ -96,12 +96,15 @@ class EngagementVerificationService
             }
 
             // Promote metric mode if baseline failed at create but product is likes/comments.
-            $metric = EngagementMetric::tryFrom((string) $campaign->engagement_metric)
-                ?? EngagementMetric::fromProductSlug($campaign->product?->slug ?? ($campaign->meta['product_slug'] ?? null));
+            $profile = $campaign->taskProfile();
+            if ($profile->usesStepFlow()) {
+                return null;
+            }
+            $metric = $profile->legacyMetric();
             $platform = $campaign->meta['platform']
                 ?? EngagementMetric::platformFromProductSlug($campaign->product?->slug ?? ($campaign->meta['product_slug'] ?? null));
 
-            if ($metric?->usesCountChangeVerification() && $campaign->verification_mode !== 'count_change') {
+            if ($profile->usesCountChangeVerification() && $campaign->verification_mode !== 'count_change') {
                 $campaign->verification_mode = 'count_change';
                 $campaign->save();
             }
@@ -118,7 +121,7 @@ class EngagementVerificationService
                 ->lockForUpdate()
                 ->first();
 
-            if (! $next || ! $metric?->usesCountChangeVerification() || $platform !== 'youtube' || ! $campaign->target_url) {
+            if (! $next || ! $profile->usesCountChangeVerification() || $platform !== 'youtube' || ! $campaign->target_url) {
                 return null;
             }
 

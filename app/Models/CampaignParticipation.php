@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CampaignParticipation extends Model
 {
@@ -21,6 +22,9 @@ class CampaignParticipation extends Model
 
     public const STATUS_PAID = 'paid';
 
+    /** The completion deadline passed before the agent submitted. Final; the slot is freed. */
+    public const STATUS_EXPIRED = 'expired';
+
     public const STATUSES = [
         self::STATUS_STARTED,
         self::STATUS_SUBMITTED,
@@ -29,6 +33,13 @@ class CampaignParticipation extends Model
         self::STATUS_APPROVED,
         self::STATUS_REJECTED,
         self::STATUS_PAID,
+        self::STATUS_EXPIRED,
+    ];
+
+    public const FINAL_STATUSES = [
+        self::STATUS_REJECTED,
+        self::STATUS_PAID,
+        self::STATUS_EXPIRED,
     ];
 
     protected $fillable = [
@@ -48,6 +59,8 @@ class CampaignParticipation extends Model
         'rejection_reason',
         'paid_at',
         'reward_amount',
+        'expires_at',
+        'last_heartbeat_at',
     ];
 
     protected function casts(): array
@@ -58,6 +71,8 @@ class CampaignParticipation extends Model
             'reviewed_at' => 'datetime',
             'paid_at' => 'datetime',
             'verification_started_at' => 'datetime',
+            'expires_at' => 'datetime',
+            'last_heartbeat_at' => 'datetime',
             'reward_amount' => 'decimal:2',
             'pre_count' => 'integer',
             'post_count' => 'integer',
@@ -78,5 +93,27 @@ class CampaignParticipation extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function steps(): HasMany
+    {
+        return $this->hasMany(CampaignParticipationTask::class, 'participation_id')->orderBy('position');
+    }
+
+    /** Deadline passed while the agent was still working (review time never counts). */
+    public function isPastDeadline(): bool
+    {
+        return $this->status === self::STATUS_STARTED
+            && $this->expires_at !== null
+            && now()->greaterThanOrEqualTo($this->expires_at);
+    }
+
+    public function secondsRemaining(): ?int
+    {
+        if ($this->status !== self::STATUS_STARTED || $this->expires_at === null) {
+            return null;
+        }
+
+        return max(0, (int) now()->diffInSeconds($this->expires_at, false));
     }
 }

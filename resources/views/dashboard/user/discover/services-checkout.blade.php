@@ -8,19 +8,26 @@
     $gatewayOn = (bool) ($gatewayEnabled ?? false);
     $manualBankOn = (bool) ($manualBankTransferEnabled ?? false);
     $defaultMethod = $hasWallet ? 'wallet' : ($gatewayOn ? 'gateway' : ($manualBankOn ? 'manual_bank_transfer' : 'wallet'));
-    $variantPayload = $variants->map(function ($v) use ($product) {
-        $metric = \App\Enums\EngagementMetric::fromProductSlug($product->slug);
-
-        return $v->storefrontPayload($metric) + ['is_default' => (bool) $v->is_default];
+    $taskProfile = $taskProfile ?? $product->taskProfile();
+    $campaignBrief = $campaignBrief ?? [];
+    $variantPayload = $variants->map(function ($v) use ($taskProfile) {
+        return $v->storefrontPayload($taskProfile->legacyMetric()) + ['is_default' => (bool) $v->is_default];
     })->values();
     $selectedVariant = $variants->firstWhere('id', $defaultVariantId);
     $selectedUnits = (int) ($selectedUnits ?? 1);
-    $engagementMetric = $engagementMetric ?? \App\Enums\EngagementMetric::fromProductSlug($product->slug);
-    $destinationLabel = match ($engagementMetric) {
-        \App\Enums\EngagementMetric::Subscribers => 'Channel URL',
-        null => 'Campaign link',
+    $engagementMetric = $engagementMetric ?? $taskProfile->legacyMetric();
+    $destinationLabel = match (true) {
+        $taskProfile->targetIsChannel() => 'Channel URL',
+        $engagementMetric === null => 'Campaign link',
         default => 'Video URL',
     };
+    $changeLinkQuery = array_filter([
+        'slug' => $product->slug,
+        'units' => (int) $selectedUnits,
+        'target_url' => $targetUrl ?? null,
+        'channel_url' => $campaignBrief['channel_url'] ?? null,
+        'comment_instructions' => $campaignBrief['comment_instructions'] ?? null,
+    ]);
     $checkoutOptions = [
         'defaultVariantId' => $defaultVariantId,
         'selectedUnits' => $selectedUnits,
@@ -145,7 +152,7 @@
                                 ₦{{ number_format((float) bcmul($selectedVariant->billingUnitPrice(), (string) (int) $selectedUnits, 2), 2) }}
                             </p>
                             <p class="pt-1 text-xs text-text-muted">
-                                <a href="{{ route('dashboard.services.product', array_filter(['slug' => $product->slug, 'units' => (int) $selectedUnits, 'target_url' => $targetUrl ?? null])) }}" class="underline hover:text-primary">Change quantity</a>
+                                <a href="{{ route('dashboard.services.product', $changeLinkQuery) }}" class="underline hover:text-primary">Change quantity</a>
                             </p>
                         </div>
                     @else
@@ -161,8 +168,41 @@
                                 <p class="text-xs text-danger">{{ $message }}</p>
                             @enderror
                             <p class="pt-1 text-xs text-text-muted">
-                                <a href="{{ route('dashboard.services.product', ['slug' => $product->slug, 'units' => (int) $selectedUnits, 'target_url' => $targetUrl]) }}" class="underline hover:text-primary">Change link</a>
+                                <a href="{{ route('dashboard.services.product', $changeLinkQuery) }}" class="underline hover:text-primary">Change link</a>
                             </p>
+                        </div>
+                    @endif
+
+                    @if($taskProfile->isMultiTask() && filled($targetUrl ?? null))
+                        <div class="rounded-xl border border-border-default bg-muted/20 px-4 py-3 space-y-3">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">What each agent does</p>
+                                <p class="text-sm text-text-primary">{{ $taskProfile->sequenceLabel() }}</p>
+                                <p class="text-xs text-text-muted">Each unit is one new agent completing all tasks, in this order.</p>
+                            </div>
+                            @if(filled($campaignBrief['channel_url'] ?? null))
+                                <input type="hidden" name="channel_url" value="{{ $campaignBrief['channel_url'] }}">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Channel URL</p>
+                                    <a href="{{ $campaignBrief['channel_url'] }}" target="_blank" rel="noopener noreferrer" class="block text-sm font-medium text-text-primary break-all hover:text-primary">{{ $campaignBrief['channel_url'] }}</a>
+                                    @error('channel_url')
+                                        <p class="text-xs text-danger">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            @endif
+                            @if(filled($campaignBrief['comment_instructions'] ?? null))
+                                <input type="hidden" name="comment_instructions" value="{{ $campaignBrief['comment_instructions'] }}">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Comment instructions</p>
+                                    <p class="text-sm text-text-primary whitespace-pre-line break-words">{{ $campaignBrief['comment_instructions'] }}</p>
+                                    @error('comment_instructions')
+                                        <p class="text-xs text-danger">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            @endif
+                            @if(! ($campaignBrief['match_verified'] ?? false) && filled($campaignBrief['channel_url'] ?? null))
+                                <p class="text-xs text-text-muted">We couldn't confirm the video is on this channel right now. Please double-check both links before you pay.</p>
+                            @endif
                         </div>
                     @endif
 

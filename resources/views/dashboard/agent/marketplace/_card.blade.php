@@ -12,6 +12,7 @@
     $dot = $dotColors[$product?->categorySlug() ?? ''] ?? 'bg-primary';
     $slotsLeft = $campaign->availableStartSlots();
     $minutes = (int) ($campaign->estimated_minutes ?? 0);
+    $completionMinutes = (int) ($campaign->completion_minutes ?? 0);
 @endphp
 <article class="bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm flex flex-col group hover:shadow-md transition-shadow">
     <a href="{{ $href }}" class="relative block h-44 w-full overflow-hidden bg-slate-100" tabindex="-1" aria-hidden="true">
@@ -42,9 +43,23 @@
             <span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium">
                 {{ trans_choice(':count slot left|:count slots left', $slotsLeft) }}
             </span>
-            <span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium">
-                {{ $minutes > 0 ? trans_choice(':count min|:count mins', $minutes) : __('Quick task') }}
-            </span>
+            @if ($completionMinutes > 0)
+                <span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium">
+                    {{ __(':time to complete', ['time' => trans_choice(':count min|:count mins', $completionMinutes)]) }}
+                </span>
+            @else
+                <span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium">
+                    {{ $minutes > 0 ? trans_choice(':count min|:count mins', $minutes) : __('Quick task') }}
+                </span>
+            @endif
+            @if ($campaign->usesStepFlow())
+                <span class="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-medium">
+                    {{ __(':count tasks', ['count' => count($campaign->taskProfile()->tasks())]) }}
+                </span>
+                @foreach ($campaign->taskProfile()->tasks() as $cardTask)
+                    <span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium">{{ $cardTask->shortLabel() }}</span>
+                @endforeach
+            @endif
         </div>
 
         <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between gap-3">

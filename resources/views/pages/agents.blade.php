@@ -28,7 +28,7 @@
                     {!! $ytWord('Complete YouTube Watch Hours and other YouTube tasks.') !!}
                 </h1>
                 <p class="text-base sm:text-lg text-slate-600 max-w-xl leading-relaxed">
-                    Take on YouTube Watch Hours, views, likes, comments, and subscriber tasks when campaigns are open. Follow each task’s instructions, submit your proof, and earn a reward when your work is approved.
+                    Take on YouTube Watch Hours, views, likes, and combined tasks (subscribe, watch and comment) when campaigns are open. Link your YouTube channel once, follow each step in order within the time shown, then submit the task. You earn a reward when every step is approved.
                 </p>
                 <p class="text-sm text-slate-500 max-w-xl leading-relaxed">
                     Rewards depend on task requirements and approval. Completing a session does not guarantee official platform metrics, and open tasks are not always available.
