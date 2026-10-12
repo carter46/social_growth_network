@@ -5,16 +5,12 @@
 @section('content')
 @php
     $taskProfile = $product->taskProfile();
-    $engagementMetric = $taskProfile->legacyMetric();
     $savedOrder = \App\Support\ProductTaskProfile::normalizeOrder(
         \App\Support\ProductTaskProfile::allowedTasks($product->slug),
         old('task_order', $product->task_order),
     ) ?? $taskProfile->tasks();
     $taskOrderPayload = array_map(fn ($task) => ['value' => $task->value, 'label' => $task->label()], $savedOrder);
     $pricingVariant = $product->pricingVariant();
-    $labelVariant = $pricingVariant ?? new \App\Models\PlatformProductVariant();
-    $unitSingular = $labelVariant->resolveUnitLabel($engagementMetric);
-    $unitPlural = $labelVariant->resolveUnitLabelPlural($engagementMetric);
     $defaultUnits = \App\Models\PlatformProductVariant::REFERENCE_UNITS;
     $pricing = [
         'min_units' => old('pricing.min_units', $pricingVariant?->min_units ?? $defaultUnits),
@@ -59,8 +55,6 @@
             x-data="{
                 submitting: false,
                 pricing: @js($pricing),
-                unitSingular: @js($unitSingular),
-                unitPlural: @js($unitPlural),
                 unitPrice() {
                     const price = Number(this.pricing.price);
                     const units = Number(this.pricing.pricing_units);
@@ -103,8 +97,8 @@
             </div>
 
             <x-dashboard.select label="Status" name="status" required>
-                <option value="published" @selected(old('status', $product->status?->value ?? $product->status) === 'published')>Published (active)</option>
-                <option value="draft" @selected(old('status', $product->status?->value ?? $product->status) === 'draft')>Draft (deactivated)</option>
+                <option value="published" @selected(old('status', $product->status?->value ?? $product->status) === 'published')>Active</option>
+                <option value="draft" @selected(old('status', $product->status?->value ?? $product->status) === 'draft')>Deactivated</option>
             </x-dashboard.select>
 
             <label class="flex items-center gap-2 text-sm">
@@ -116,7 +110,7 @@
                 <div>
                     <p class="text-sm font-medium text-text-primary">Pricing</p>
                     <p class="text-xs text-text-muted">
-                        Creators enter any quantity between the minimum and maximum purchase. They pay the unit price for every {{ $unitSingular }}.
+                        Creators enter any quantity between the minimum and maximum purchase and pay the unit price for each unit. One unit is one agent completing every task for this product.
                     </p>
                 </div>
 
@@ -126,23 +120,23 @@
 
                 <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <div>
-                        <label class="mb-1 block text-xs text-text-muted">Minimum purchase ({{ $unitPlural }})</label>
+                        <label class="mb-1 block text-xs text-text-muted">Minimum purchase</label>
                         <input type="number" min="1" step="1" name="pricing[min_units]" x-model="pricing.min_units" class="{{ $inputClass }}" required>
                         @error('pricing.min_units')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
                     </div>
                     <div>
-                        <label class="mb-1 block text-xs text-text-muted">Maximum purchase ({{ $unitPlural }})</label>
+                        <label class="mb-1 block text-xs text-text-muted">Maximum purchase</label>
                         <input type="number" min="1" step="1" name="pricing[max_units]" x-model="pricing.max_units" class="{{ $inputClass }}" required>
                         @error('pricing.max_units')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
                     </div>
                     <div>
-                        <label class="mb-1 block text-xs text-text-muted">Pricing unit (price is per this many {{ $unitPlural }})</label>
+                        <label class="mb-1 block text-xs text-text-muted">Pricing units (the price below is for this many units)</label>
                         <input type="number" min="1" step="1" name="pricing[pricing_units]" x-model="pricing.pricing_units" class="{{ $inputClass }}" required>
                         @error('pricing.pricing_units')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="mb-1 block text-xs text-text-muted">
-                            Price per <span x-text="Number(pricing.pricing_units || 0).toLocaleString()"></span> {{ $unitPlural }} (NGN)
+                            Price per <span x-text="Number(pricing.pricing_units || 0).toLocaleString()"></span> (NGN)
                         </label>
                         <input type="number" min="0.01" step="0.01" name="pricing[price]" x-model="pricing.price" class="{{ $inputClass }}" required>
                         @error('pricing.price')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
@@ -151,17 +145,17 @@
                         <label class="mb-1 block text-xs text-text-muted">Agent reward (% of the unit price)</label>
                         <input type="number" min="0.01" max="100" step="0.01" name="agent_reward_percent" x-model="pricing.reward_percent" class="{{ $inputClass }}" required>
                         @error('agent_reward_percent')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
-                        <p class="mt-1 text-xs text-text-muted">Each agent completes one {{ $unitSingular }} per campaign. The reward is locked into each campaign at purchase.</p>
+                        <p class="mt-1 text-xs text-text-muted">Each agent completes one unit per campaign. The reward is locked into each campaign at purchase.</p>
                     </div>
                 </div>
 
                 <div class="rounded-lg border border-border-default bg-elevated/60 px-3 py-2 text-xs text-text-secondary" x-show="unitPrice() !== null" x-cloak>
                     <p>
-                        Unit price: <span class="font-semibold text-text-primary" x-text="formatMoney(unitPrice())"></span> per {{ $unitSingular }}
-                        · Agent earns <span class="font-semibold text-text-primary" x-text="formatMoney(agentReward())"></span> per completed {{ $unitSingular }}
+                        Unit price: <span class="font-semibold text-text-primary" x-text="formatMoney(unitPrice())"></span> per unit
+                        · Agent earns <span class="font-semibold text-text-primary" x-text="formatMoney(agentReward())"></span> per completed unit
                     </p>
                     <p class="mt-1">
-                        Example: <span x-text="exampleUnits().toLocaleString()"></span> {{ $unitPlural }} =
+                        Example: <span x-text="exampleUnits().toLocaleString()"></span> units =
                         <span class="font-semibold text-text-primary" x-text="formatMoney(Math.round(exampleUnits() * unitPrice() * 100) / 100)"></span>
                     </p>
                 </div>

@@ -159,8 +159,9 @@ class PlatformProductVariant extends Model
             return (string) $this->unit_label;
         }
 
-        if ($metric === null) {
-            return ProductTaskProfile::forSlug($this->product?->slug)->unitLabel();
+        $profile = ProductTaskProfile::forSlug($this->product?->slug);
+        if ($metric === null || $profile->isMultiTask()) {
+            return $profile->unitLabel();
         }
 
         return match ($metric) {

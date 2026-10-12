@@ -49,7 +49,7 @@
             <p class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-3">
                 {{ $brandName }}
             </p>
-            <h1 class="text-[length:clamp(1.625rem,7.8vw,2rem)] sm:text-4xl md:text-5xl lg:text-[52px] font-extrabold text-slate-900 tracking-tight leading-[1.15] text-balance mb-4 sm:mb-5 font-display">
+            <h1 class="home-hero-title sm:text-4xl md:text-5xl lg:text-[52px] font-extrabold text-slate-900 tracking-tight leading-[1.15] text-balance mb-4 sm:mb-5 font-display">
                 {!! $ytWord('Pay People to Subscribe, Watch, Like and Comment on Your YouTube Videos.') !!}
             </h1>
             <p class="text-base sm:text-lg lg:text-xl text-slate-600 font-normal leading-relaxed mb-8 sm:mb-10 max-w-xl mx-auto">

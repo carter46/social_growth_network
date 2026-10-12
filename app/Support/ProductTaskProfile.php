@@ -236,6 +236,10 @@ final class ProductTaskProfile
     /** Singular label for one unit (one agent completing every task once). */
     public function unitLabel(): string
     {
+        if ($this->isMultiTask()) {
+            return 'unit';
+        }
+
         return match ($this->metric) {
             EngagementMetric::Likes => 'like',
             EngagementMetric::Comments => 'comment',

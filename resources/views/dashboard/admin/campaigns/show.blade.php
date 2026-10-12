@@ -86,7 +86,7 @@
                 </div>
                 <div class="{{ $tile }}">
                     <dt class="text-text-muted">Engagement</dt>
-                    <dd class="mt-1 font-medium text-text-primary">{{ $metric?->label() ?? '-' }}</dd>
+                    <dd class="mt-1 font-medium text-text-primary">{{ $profile->isMultiTask() ? $profile->sequenceLabel(' + ') : ($metric?->label() ?? '-') }}</dd>
                 </div>
                 <div class="{{ $tile }}">
                     <dt class="text-text-muted">Units bought</dt>

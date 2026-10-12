@@ -35,9 +35,13 @@ class PlatformProductAdminController extends Controller
             SortOrder::normalize($siblings);
         }
 
-        $products = PlatformProduct::query()
+        $status = match ($request->string('status')->toString()) {
+            'deactivated', PlatformProductStatus::Draft->value, PlatformProductStatus::Archived->value => 'deactivated',
+            default => 'active',
+        };
+
+        $base = PlatformProduct::query()
             ->offered()
-            ->with(['serviceCategory', 'productType.serviceCategory', 'heroMedia.variants', 'activeVariants'])
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = '%'.$request->string('q')->toString().'%';
                 $q->where(function ($inner) use ($term) {
@@ -46,7 +50,6 @@ class PlatformProductAdminController extends Controller
                         ->orWhere('description', 'like', $term);
                 });
             })
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->get('status')))
             ->when($request->filled('service'), fn ($q) => $q->where('product_type_id', $request->integer('service')))
             ->when($request->filled('category'), function ($q) use ($request) {
                 $q->where('service_category_id', $request->integer('category'));
@@ -60,14 +63,31 @@ class PlatformProductAdminController extends Controller
                 } elseif ($request->get('featured') === '0') {
                     $q->where('is_featured', false);
                 }
-            })
+            });
+
+        $activeCount = (clone $base)->where('status', PlatformProductStatus::Published->value)->count();
+        $deactivatedCount = (clone $base)->where('status', '!=', PlatformProductStatus::Published->value)->count();
+
+        $products = $base
+            ->with(['serviceCategory', 'productType.serviceCategory', 'heroMedia.variants', 'activeVariants'])
+            ->where('status', $status === 'active' ? '=' : '!=', PlatformProductStatus::Published->value)
             ->orderBy('sort_order')
             ->orderBy('title')
             ->paginate(20)
             ->withQueryString();
 
-        return view('dashboard.admin.platform-products', [
+        $data = [
             'products' => $products,
+            'status' => $status,
+            'activeCount' => $activeCount,
+            'deactivatedCount' => $deactivatedCount,
+        ];
+
+        if ($request->headers->get('X-Dashboard-Tab') === '1') {
+            return view('dashboard.admin.platform-products._table', $data);
+        }
+
+        return view('dashboard.admin.platform-products', $data + [
             'types' => PlatformProductType::cases(),
             'serviceCategories' => ServiceCategory::query()->listed()->orderBy('sort_order')->orderBy('name')->get(),
             'services' => ProductType::query()
@@ -78,7 +98,6 @@ class PlatformProductAdminController extends Controller
                 ->get(),
             'filters' => [
                 'q' => $request->string('q')->toString(),
-                'status' => $request->get('status'),
                 'category' => $request->get('category'),
                 'service' => $request->get('service'),
                 'type' => $request->get('type'),
@@ -332,23 +351,23 @@ class PlatformProductAdminController extends Controller
     {
         if (! $product->isOffered()) {
             throw ValidationException::withMessages([
-                'status' => 'This service is no longer offered, so it cannot be published.',
+                'status' => 'This service is no longer offered, so it cannot be activated.',
             ]);
         }
         if (! $product->pricingVariant()) {
             throw ValidationException::withMessages([
-                'status' => 'Published products need pricing (minimum, maximum, pricing unit and price).',
+                'status' => 'Active products need pricing (minimum, maximum, pricing units and price).',
             ]);
         }
         if ((float) ($product->agent_reward_percent ?? 0) <= 0) {
             throw ValidationException::withMessages([
-                'status' => 'Published products need an agent reward percentage.',
+                'status' => 'Active products need an agent reward percentage.',
             ]);
         }
         $taskIssues = $product->taskSetupIssues();
         if ($taskIssues !== []) {
             throw ValidationException::withMessages([
-                'status' => 'Fix this before publishing: '.implode(', ', $taskIssues).'.',
+                'status' => 'Fix this before activating: '.implode(', ', $taskIssues).'.',
             ]);
         }
     }
