@@ -21,9 +21,18 @@
         $engagementMetric === null => 'Campaign link',
         default => 'Video URL',
     };
+    $packageQuote = $packageQuote ?? null;
+    $companionQty = $packageQuote
+        ? array_diff_key($packageQuote['task_quantities'], array_flip(array_filter([$packageQuote['main_task']])))
+        : [];
+    $companionInputs = [];
+    foreach ($packageQuote['task_limits'] ?? [] as $task => $range) {
+        $companionInputs[$task] = (int) ($companionQty[$task] ?? 0);
+    }
     $changeLinkQuery = array_filter([
         'slug' => $product->slug,
         'units' => (int) $selectedUnits,
+        'qty' => $companionInputs ?: null,
         'target_url' => $targetUrl ?? null,
         'channel_url' => $campaignBrief['channel_url'] ?? null,
         'comment_instructions' => $campaignBrief['comment_instructions'] ?? null,
@@ -31,6 +40,7 @@
     $checkoutOptions = [
         'defaultVariantId' => $defaultVariantId,
         'selectedUnits' => $selectedUnits,
+        'packageTotal' => $packageQuote['total'] ?? null,
         'basePrice' => $basePrice,
         'paymentMethod' => $defaultMethod,
         'showPlanSummary' => (bool) ($showPlanSummary ?? false),
@@ -132,7 +142,7 @@
                         <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Domain</p>
                         <p class="text-lg font-semibold text-text-primary" x-text="domainFqdn || '-'"></p>
                         <p class="text-sm text-text-secondary">
-                            Registration · <span x-text="'₦' + retailFormatted"></span>
+                            Registration · <span x-text="retailFormatted"></span>
                             <span x-show="domainPremium" x-cloak class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Premium</span>
                         </p>
                     </div>
@@ -142,14 +152,30 @@
                     @if(($showPlanSummary ?? false) && $selectedVariant)
                         <input type="hidden" name="variant_id" value="{{ $selectedVariant->id }}">
                         <input type="hidden" name="quantity" value="{{ (int) $selectedUnits }}">
+                        @foreach($companionInputs as $task => $qty)
+                            <input type="hidden" name="qty[{{ $task }}]" value="{{ $qty }}">
+                        @endforeach
                         <div class="rounded-xl border border-border-default bg-muted/20 px-4 py-3 space-y-1">
                             <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Your order</p>
-                            <p class="text-lg font-semibold text-text-primary">
-                                {{ number_format((int) $selectedUnits) }} {{ $selectedVariant->resolveUnitLabelPlural($engagementMetric) }}
-                            </p>
+                            @if($taskProfile->isMultiTask() && $packageQuote)
+                                @foreach($taskProfile->tasks() as $task)
+                                    @if(($packageQuote['task_quantities'][$task->value] ?? 0) > 0)
+                                        <p class="text-sm font-semibold text-text-primary">
+                                            {{ number_format($packageQuote['task_quantities'][$task->value]) }} {{ strtolower($taskProfile->quantityLabel($task)) }}
+                                        </p>
+                                    @endif
+                                @endforeach
+                                @if($packageQuote['extra_units'] > 0)
+                                    <p class="text-xs text-text-muted">Includes {{ number_format($packageQuote['extra_units']) }} extra units above the package minimums.</p>
+                                @endif
+                            @else
+                                <p class="text-lg font-semibold text-text-primary">
+                                    {{ number_format((int) $selectedUnits) }} {{ $selectedVariant->resolveUnitLabelPlural($engagementMetric) }}
+                                </p>
+                            @endif
                             <p class="text-sm text-text-secondary">{{ $selectedVariant->pricingLabel($engagementMetric) }}</p>
                             <p class="text-2xl font-bold text-primary">
-                                ₦{{ number_format((float) bcmul($selectedVariant->billingUnitPrice(), (string) (int) $selectedUnits, 2), 2) }}
+                                {{ money((float) ($packageQuote['total'] ?? bcmul($selectedVariant->billingUnitPrice(), (string) (int) $selectedUnits, 2)), 2) }}
                             </p>
                             <p class="pt-1 text-xs text-text-muted">
                                 <a href="{{ route('dashboard.services.product', $changeLinkQuery) }}" class="underline hover:text-primary">Change quantity</a>
@@ -178,7 +204,7 @@
                             <div>
                                 <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">What each agent does</p>
                                 <p class="text-sm text-text-primary">{{ $taskProfile->sequenceLabel() }}</p>
-                                <p class="text-xs text-text-muted">Each unit is one new agent completing all tasks, in this order.</p>
+                                <p class="text-xs text-text-muted">Each new agent completes every step that still needs agents, in this order. A step closes for new agents once its target is reached.</p>
                             </div>
                             @if(filled($campaignBrief['channel_url'] ?? null))
                                 <input type="hidden" name="channel_url" value="{{ $campaignBrief['channel_url'] }}">
@@ -341,7 +367,7 @@
                                 <input type="radio" name="payment_method" value="wallet" x-model="paymentMethod" class="mt-1 accent-primary" @checked($defaultMethod === 'wallet')>
                                 <span>
                                     <span class="block text-sm font-medium text-text-primary">Wallet balance</span>
-                                    <span class="block text-xs text-text-muted">Available: ₦{{ number_format((float) $wallet->balance, 2) }}</span>
+                                    <span class="block text-xs text-text-muted">Available: {{ money((float) $wallet->balance, 2) }}</span>
                                 </span>
                             </label>
                         @endif
@@ -351,9 +377,12 @@
                                 <input type="radio" name="payment_method" value="gateway" x-model="paymentMethod" class="mt-1 accent-primary" @checked($defaultMethod === 'gateway')>
                                 <span>
                                     <span class="block text-sm font-medium text-text-primary">Pay directly</span>
-                                    <span class="block text-xs text-text-muted">Card or bank transfer via payment gateway</span>
+                                    <span class="block text-xs text-text-muted">Card, bank, mobile money and other methods on a secure payment page</span>
                                 </span>
                             </label>
+                            <div x-show="paymentMethod === 'gateway'" x-cloak class="ml-7">
+                                @include('partials.payments.gateway-choice', ['gateways' => $gateways ?? [], 'selected' => old('gateway', $defaultGateway ?? null)])
+                            </div>
                         @endif
                         @if($manualBankOn)
                             <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-border-default px-4 py-3"
@@ -370,7 +399,7 @@
                         x-show="paymentMethod === 'wallet' && walletShortfall > 0"
                         x-cloak
                         class="mt-2 text-xs text-danger"
-                        x-text="'Insufficient balance. You need ₦' + walletShortfallFormatted + ' more to pay from wallet.'"
+                        x-text="'Insufficient balance. You need ' + walletShortfallFormatted + ' more to pay from wallet.'"
                     ></p>
                 </div>
 
@@ -378,7 +407,7 @@
 
                 <div class="flex items-center justify-between border-t border-border-default pt-4">
                     <span class="text-text-secondary">Total</span>
-                    <span class="text-2xl font-bold text-primary" x-text="'₦' + totalFormatted"></span>
+                    <span class="text-2xl font-bold text-primary" x-text="totalFormatted"></span>
                 </div>
 
                 <x-dashboard.button type="submit" icon="orders" class="w-full" x-bind:disabled="!canSubmit">

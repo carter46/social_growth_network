@@ -5,10 +5,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Allowed withdrawal banks (Monnify name enquiry / payouts)
+    | Nigerian payout banks
     |--------------------------------------------------------------------------
-    | Matched case-insensitively against Monnify bank names. Heritage Bank is
-    | excluded (license revoked). Duplicate user labels are deduped by code.
+    | Matched case-insensitively against the gateway's Nigerian bank list. Other
+    | countries show the gateway list as returned. Heritage Bank is excluded
+    | (license revoked). Duplicate labels are deduped by code.
     */
     'allowed_bank_patterns' => [
         'access bank',

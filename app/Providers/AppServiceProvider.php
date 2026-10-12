@@ -27,7 +27,7 @@ use App\Listeners\RecordProductActivity;
 use App\Listeners\WriteAuditLogFromEvent;
 use App\Modules\Admin\Services\AuditLogService;
 use App\Modules\Wallet\Contracts\WalletProviderInterface;
-use App\Modules\Wallet\Payments\PayoutGateway;
+use App\Modules\Wallet\Payments\GatewayRegistry;
 use App\Modules\Wallet\Providers\ManualProvider;
 use App\Modules\Wallet\Services\WalletProvisioningService;
 use App\Modules\Wallet\Services\WalletService;
@@ -67,16 +67,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(\App\Support\Demo\DemoBatchTracker::class);
         $this->app->bind(WalletProviderInterface::class, ManualProvider::class);
         $this->app->singleton(WalletService::class);
-        $this->app->singleton(\App\Modules\Wallet\Payments\Monnify\MonnifyClient::class);
-        $this->app->singleton(\App\Modules\Wallet\Payments\Monnify\MonnifyPaymentRail::class);
-        $this->app->bind(
-            \App\Modules\Wallet\Payments\Contracts\PaymentRailInterface::class,
-            \App\Modules\Wallet\Payments\Monnify\MonnifyPaymentRail::class
-        );
-        $this->app->bind(
-            PayoutGateway::class,
-            fn ($app) => PayoutGateway::from($app->make(\App\Modules\Wallet\Payments\Contracts\PaymentRailInterface::class))
-        );
+        $this->app->singleton(\App\Modules\Wallet\Payments\GatewayHealth::class);
+        $this->app->singleton(GatewayRegistry::class);
         $this->app->singleton(\App\Services\Domains\Providers\NameCom\NameComClient::class);
         $this->app->singleton(\App\Services\Domains\Providers\NameCom\NameComProvider::class);
         $this->app->singleton(\App\Services\Domains\Providers\DomainNameApi\DomainNameApiClient::class);

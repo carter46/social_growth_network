@@ -32,8 +32,8 @@
     @else
         <x-dashboard.stat-grid :count="2">
             <x-dashboard.stats-card
-                label="Balance (NGN)"
-                :value="'₦' . number_format($wallet->availableBalance(), 2)"
+                :label="'Balance ('.site_currency()->code.')'"
+                :value="money($wallet->availableBalance(), 2)"
                 icon="wallet"
             >
                 <div class="mt-4 flex flex-wrap gap-2">
@@ -56,14 +56,14 @@
             <x-slot:head>
                 <x-dashboard.th>Reference</x-dashboard.th>
                 <x-dashboard.th>Type</x-dashboard.th>
-                <x-dashboard.th>Amount (NGN)</x-dashboard.th>
+                <x-dashboard.th>Amount ({{ site_currency()->code }})</x-dashboard.th>
                 <x-dashboard.th>Status</x-dashboard.th>
             </x-slot:head>
             @foreach ($transactions as $tx)
                 <tr class="hover:bg-muted/50">
                     <x-dashboard.td class="font-medium">{{ $tx->reference }}</x-dashboard.td>
                     <x-dashboard.td>{{ \App\Enums\TransactionType::labelFor($tx->type) }}</x-dashboard.td>
-                    <x-dashboard.td>₦{{ number_format($tx->amount, 2) }}</x-dashboard.td>
+                    <x-dashboard.td>{{ money($tx->amount, 2) }}</x-dashboard.td>
                     <x-dashboard.td><x-dashboard.badge :status="$tx->status" /></x-dashboard.td>
                 </tr>
             @endforeach

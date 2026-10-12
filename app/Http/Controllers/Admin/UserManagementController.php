@@ -456,6 +456,10 @@ class UserManagementController extends Controller
             'target_is_channel' => $product->taskProfile()->targetIsChannel(),
             'needs_channel_url' => $product->taskProfile()->needsChannelUrl(),
             'needs_comment_instructions' => $product->taskProfile()->needsCommentInstructions(),
+            'companions' => array_values(array_filter(
+                app(\App\Services\Catalog\PackageQuoteService::class)->layout($product)['rows'] ?? [],
+                fn (array $row) => ! $row['primary'],
+            )),
             'product_type' => $product->product_type?->value,
             'product_type_id' => $product->product_type_id,
             'service_category_id' => $product->service_category_id,
@@ -489,6 +493,8 @@ class UserManagementController extends Controller
             'product_slug' => ['required', 'string', 'max:255'],
             'variant_id' => ['required', 'integer', 'exists:platform_product_variants,id'],
             'units' => ['nullable', 'integer', 'min:1', 'max:1000000'],
+            'qty' => ['nullable', 'array'],
+            'qty.*' => ['nullable', 'integer', 'min:0', 'max:1000000'],
             'target_url' => ['required', 'string', 'url', 'max:2048'],
             'channel_url' => ['nullable', 'string', 'url', 'max:500'],
             'comment_instructions' => ['nullable', 'string', 'max:'.\App\Services\Campaigns\CampaignBriefService::COMMENT_INSTRUCTIONS_MAX],
@@ -509,20 +515,22 @@ class UserManagementController extends Controller
             ->firstOrFail();
 
         $quantity = 1;
+        $taskQuantities = array_map('intval', array_filter((array) ($validated['qty'] ?? []), fn ($v) => $v !== null && $v !== ''));
         if ($variant->isPerUnit()) {
             $quantity = (int) ($validated['units'] ?? $variant->effectiveMinUnits());
-            $min = $variant->effectiveMinUnits();
-            $max = $variant->effectiveMaxUnits();
-            if ($quantity < $min || $quantity > $max) {
+            try {
+                app(\App\Services\Catalog\PackageQuoteService::class)->quote($product, $quantity, $taskQuantities, $variant);
+            } catch (\App\Services\Catalog\PackageQuoteException $e) {
                 return redirect()
                     ->route('admin.users.show', $user)
-                    ->with('error', "Units must be between {$min} and {$max}.");
+                    ->with('error', $e->getMessage());
             }
         }
 
         $data = [
             'variant_id' => (int) $validated['variant_id'],
             'quantity' => $quantity,
+            'task_quantities' => $taskQuantities,
             'target_url' => $validated['target_url'],
             'channel_url' => $validated['channel_url'] ?? null,
             'comment_instructions' => $validated['comment_instructions'] ?? null,
@@ -818,7 +826,16 @@ class UserManagementController extends Controller
             'country' => ['nullable', 'string', 'size:2'],
             'bio' => ['nullable', 'string', 'max:2000'],
             'kyc_level' => ['nullable', 'integer', 'min:0', 'max:4'],
+            'name_change_note' => ['nullable', 'string', 'max:500'],
         ]);
+
+        $nameChangeNote = trim((string) ($data['name_change_note'] ?? ''));
+        unset($data['name_change_note']);
+        if (trim($data['name']) !== trim((string) $user->name) && $user->nameLockedByPayoutAccount() && $nameChangeNote === '') {
+            return back()->withInput()->withErrors([
+                'name_change_note' => __('This member has payout accounts in their current name. Add a note explaining the name change.'),
+            ]);
+        }
 
         if (isset($data['country'])) {
             $data['country'] = strtoupper($data['country']);
@@ -840,7 +857,7 @@ class UserManagementController extends Controller
 
         $this->audit->log(auth()->id(), 'user.updated', $user, $old, $user->only([
             'name', 'username', 'email', 'phone', 'country', 'bio', 'kyc_level',
-        ]), $request->ip());
+        ]) + ($nameChangeNote !== '' ? ['name_change_note' => $nameChangeNote] : []), $request->ip());
 
         return redirect()
             ->route('admin.users.show', $user)
@@ -1204,9 +1221,9 @@ class UserManagementController extends Controller
             new NotificationMessage(
                 type: 'order.created',
                 title: __('Purchase recorded'),
-                body: __('A purchase was created for you. Order :ref for ₦:amount is awaiting payment confirmation.', [
+                body: __('A purchase was created for you. Order :ref for :amount is awaiting payment confirmation.', [
                     'ref' => $order->reference,
-                    'amount' => number_format((float) ($order->total_amount ?? $order->amount), 2),
+                    'amount' => money($order->total_amount ?? $order->amount),
                 ]),
                 actionUrl: Route::has('dashboard.orders') ? route('dashboard.orders') : null,
                 meta: [

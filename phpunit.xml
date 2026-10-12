@@ -32,5 +32,7 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="YOUTUBE_OEMBED_FALLBACK" value="false"/>
+        <env name="YOUTUBE_BLOCK_WHEN_UNAVAILABLE" value="false"/>
     </php>
 </phpunit>

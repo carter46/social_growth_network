@@ -43,9 +43,14 @@
                 </div>
                 <div class="rounded-xl bg-muted/40 px-4 py-3">
                     <dt class="text-text-muted">Campaign cost</dt>
-                    <dd class="mt-1 text-base font-semibold text-text-primary">₦{{ number_format((float) $campaign->totalCost(), 2) }}</dd>
+                    <dd class="mt-1 text-base font-semibold text-text-primary">{{ money((float) $campaign->totalCost(), 2) }}</dd>
                 </div>
             </dl>
+            @if ($campaign->usesTaskTargets())
+                <div class="mt-4 border-t border-border-subtle pt-4">
+                    @include('partials.campaigns.step-progress', ['campaign' => $campaign])
+                </div>
+            @endif
         </x-dashboard.card>
     </div>
 </x-layout.page>

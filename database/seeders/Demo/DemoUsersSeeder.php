@@ -61,7 +61,7 @@ class DemoUsersSeeder extends Seeder
                     'type' => WalletType::User,
                     'balance' => 0,
                     'locked_balance' => 0,
-                    'currency' => 'NGN',
+                    'currency' => config('platform.currency'),
                     'status' => 'active',
                 ]
             );

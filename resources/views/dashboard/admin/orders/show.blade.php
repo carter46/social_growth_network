@@ -30,7 +30,7 @@
             <h2 class="text-lg font-semibold text-text-primary">Order</h2>
             <dl class="space-y-2">
                 <div class="flex justify-between gap-4"><dt class="text-text-muted">User</dt><dd>{{ \App\Models\User::labelFor($order->user) }}</dd></div>
-                <div class="flex justify-between gap-4"><dt class="text-text-muted">Amount</dt><dd class="font-semibold">₦{{ number_format((float) $order->total_amount, 2) }}</dd></div>
+                <div class="flex justify-between gap-4"><dt class="text-text-muted">Amount</dt><dd class="font-semibold">{{ money((float) $order->total_amount, 2) }}</dd></div>
                 <div class="flex justify-between gap-4"><dt class="text-text-muted">Payment</dt><dd>{{ str_replace('_', ' ', $order->payment_method ?? '—') }}</dd></div>
                 <div class="flex justify-between gap-4"><dt class="text-text-muted">Status</dt><dd><x-dashboard.badge :status="$order->status" /></dd></div>
                 @if ($order->payment_submitted_at)
@@ -81,7 +81,7 @@
                 @foreach ($order->items as $item)
                     <li class="flex justify-between gap-4 border-b border-border-subtle pb-2">
                         <span>{{ $item->variant?->displayLabel() ?? 'Product #'.$item->item_id }} × {{ $item->quantity }}</span>
-                        <span>₦{{ number_format((float) $item->line_total, 2) }}</span>
+                        <span>{{ money((float) $item->line_total, 2) }}</span>
                     </li>
                 @endforeach
             </ul>
@@ -92,6 +92,12 @@
                     <div class="flex justify-between gap-4"><dt class="text-text-muted">Bank</dt><dd>{{ $bankDetails['bank_name'] ?: '—' }}</dd></div>
                     <div class="flex justify-between gap-4"><dt class="text-text-muted">Account</dt><dd class="font-mono">{{ $bankDetails['account_number'] ?: '—' }}</dd></div>
                     <div class="flex justify-between gap-4"><dt class="text-text-muted">Name</dt><dd>{{ $bankDetails['account_name'] ?: '—' }}</dd></div>
+                    @if (filled($bankDetails['swift'] ?? null))
+                        <div class="flex justify-between gap-4"><dt class="text-text-muted">SWIFT/BIC</dt><dd class="font-mono">{{ $bankDetails['swift'] }}</dd></div>
+                    @endif
+                    @if (filled($bankDetails['iban'] ?? null))
+                        <div class="flex justify-between gap-4"><dt class="text-text-muted">IBAN</dt><dd class="font-mono">{{ $bankDetails['iban'] }}</dd></div>
+                    @endif
                 </dl>
 
                 @if (! empty($meta['payer_bank_name']) || ! empty($meta['transfer_reference']))

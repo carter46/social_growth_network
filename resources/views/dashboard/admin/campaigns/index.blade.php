@@ -16,12 +16,12 @@
             <dl class="grid gap-3 text-sm sm:grid-cols-3">
                 <div class="rounded-xl bg-muted/40 px-4 py-3">
                     <dt class="text-text-muted">Currently held for campaigns</dt>
-                    <dd class="mt-1 text-base font-semibold text-text-primary">₦{{ number_format((float) $heldTotals['remaining'], 2) }}</dd>
+                    <dd class="mt-1 text-base font-semibold text-text-primary">{{ money((float) $heldTotals['remaining'], 2) }}</dd>
                     <p class="mt-0.5 text-xs text-text-muted">Agent budgets not yet paid out</p>
                 </div>
                 <div class="rounded-xl bg-muted/40 px-4 py-3">
                     <dt class="text-text-muted">Paid to agents from holds</dt>
-                    <dd class="mt-1 font-medium text-text-primary">₦{{ number_format((float) $heldTotals['paid'], 2) }}</dd>
+                    <dd class="mt-1 font-medium text-text-primary">{{ money((float) $heldTotals['paid'], 2) }}</dd>
                 </div>
                 <div class="rounded-xl bg-muted/40 px-4 py-3">
                     <dt class="text-text-muted">Campaigns with a held budget</dt>

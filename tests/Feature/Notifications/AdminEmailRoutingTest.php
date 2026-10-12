@@ -115,16 +115,16 @@ class AdminEmailRoutingTest extends TestCase
             'wallet_id' => $user->wallet->id,
             'method' => 'bank',
             'amount' => 5000,
-            'currency' => 'NGN',
+            'currency' => 'USD',
             'status' => 'pending',
             'reference' => 'DEP-ROUTE-001',
         ]);
 
-        WalletFundingSubmitted::dispatch($funding->id, $user->id, 5000, 'NGN', 'bank');
+        WalletFundingSubmitted::dispatch($funding->id, $user->id, 5000, 'USD', 'bank');
 
         $this->assertDatabaseHas('admin_notifications', ['type' => 'wallet.deposit_submitted']);
 
-        WalletFunded::dispatch($user->id, 99, 5000, 'NGN');
+        WalletFunded::dispatch($user->id, 99, 5000, 'USD');
 
         $this->assertDatabaseHas('admin_notifications', ['type' => 'wallet.deposit_credited']);
     }
@@ -180,7 +180,7 @@ class AdminEmailRoutingTest extends TestCase
             'wallet_id' => $user->wallet->id,
             'method' => 'bank',
             'amount' => 2500,
-            'currency' => 'NGN',
+            'currency' => 'USD',
             'status' => 'pending',
             'reference' => 'DEP-FAIL-MAIL',
         ]);
@@ -249,7 +249,7 @@ class AdminEmailRoutingTest extends TestCase
             'wallet_id' => $user->wallet->id,
             'method' => 'bank',
             'amount' => 5000,
-            'currency' => 'NGN',
+            'currency' => 'USD',
             'status' => 'pending',
             'reference' => 'DEP-ROLLBACK',
         ]);
@@ -257,7 +257,7 @@ class AdminEmailRoutingTest extends TestCase
         try {
             DB::transaction(function () use ($funding, $user) {
                 DB::afterCommit(function () use ($funding, $user) {
-                    WalletFundingSubmitted::dispatch($funding->id, $user->id, 5000, 'NGN', 'bank');
+                    WalletFundingSubmitted::dispatch($funding->id, $user->id, 5000, 'USD', 'bank');
                 });
 
                 throw new \RuntimeException('rollback');
@@ -270,7 +270,7 @@ class AdminEmailRoutingTest extends TestCase
 
         DB::transaction(function () use ($funding, $user) {
             DB::afterCommit(function () use ($funding, $user) {
-                WalletFundingSubmitted::dispatch($funding->id, $user->id, 5000, 'NGN', 'bank');
+                WalletFundingSubmitted::dispatch($funding->id, $user->id, 5000, 'USD', 'bank');
             });
         });
 

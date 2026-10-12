@@ -13,6 +13,8 @@ class WithdrawalRequested
         public int $withdrawalId,
         public int $userId,
         public float $amount,
-        public string $currency = 'NGN',
-    ) {}
+        public string $currency = '',
+    ) {
+        $this->currency = $this->currency ?: \App\Support\Money\Currency::current()->code;
+    }
 }

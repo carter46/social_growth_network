@@ -40,11 +40,19 @@
                 <div class="rounded-xl bg-muted/40 px-4 py-3 text-sm">
                     <p class="font-medium text-text-primary">What you'll do, in order</p>
                     <ol class="mt-1 list-decimal space-y-0.5 pl-5 text-text-secondary">
-                        @foreach ($profile->tasks() as $task)
+                        @php
+                            $shownTasks = $participation
+                                ? $participation->steps()->orderBy('position')->get()->map(fn ($step) => $step->taskEnum())->filter()->values()->all()
+                                : $campaign->openTasks();
+                        @endphp
+                        @foreach ($shownTasks as $task)
                             <li>{{ $task->label() }}</li>
                         @endforeach
                     </ol>
-                    <p class="mt-2 text-xs text-text-muted">Complete every step, then submit the task once. The reward is paid only when every step is accepted.</p>
+                    <p class="mt-2 text-xs text-text-muted">Complete every step, then submit the task once. You get one reward, paid only when every step is accepted.</p>
+                    @if (! $participation && $campaign->usesTaskTargets() && count($shownTasks) < count($profile->tasks()))
+                        <p class="mt-1 text-xs text-text-muted">Some steps on this campaign already have enough agents, so they are not part of your task.</p>
+                    @endif
                 </div>
             @endif
             @if ($campaign->completion_minutes && ! $participation)

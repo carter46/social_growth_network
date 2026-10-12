@@ -8,7 +8,7 @@
             <h3 class="mb-3 text-sm font-semibold text-text-primary">Wallet</h3>
             <p class="text-text-secondary">
                 @if ($wallet ?? null)
-                    Balance: ₦{{ number_format($wallet->balance ?? 0, 2) }}
+                    Balance: {{ money($wallet->balance ?? 0, 2) }}
                 @else
                     No wallet provisioned.
                 @endif
@@ -32,7 +32,7 @@
                 <dl class="grid gap-3 sm:grid-cols-2">
                     <div>
                         <dt class="text-xs text-text-muted">Balance</dt>
-                        <dd class="text-lg font-semibold text-text-primary">₦{{ number_format($wallet->balance ?? 0, 2) }}</dd>
+                        <dd class="text-lg font-semibold text-text-primary">{{ money($wallet->balance ?? 0, 2) }}</dd>
                     </div>
                     <div>
                         <dt class="text-xs text-text-muted">Status</dt>

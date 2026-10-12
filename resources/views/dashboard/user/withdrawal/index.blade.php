@@ -32,7 +32,7 @@
     <x-dashboard.table
         :empty="$withdrawals->isEmpty()"
         empty-title="No withdrawals yet"
-        empty-description="Request a bank withdrawal when you have available NGN balance."
+        empty-description="Request a bank withdrawal when you have available balance."
         empty-icon="withdraw"
         :empty-action="['href' => route($prefix.'.withdrawal.create'), 'label' => 'New withdrawal']"
         striped
@@ -47,7 +47,7 @@
                 <x-dashboard.td class="font-medium">
                     <a href="{{ route($prefix.'.withdrawal.show', $w) }}" class="underline">{{ $w->reference }}</a>
                 </x-dashboard.td>
-                <x-dashboard.td>₦{{ number_format($w->amount, 2) }}</x-dashboard.td>
+                <x-dashboard.td>{{ money($w->amount, 2) }}</x-dashboard.td>
                 <x-dashboard.td><x-dashboard.badge :status="$w->status" /></x-dashboard.td>
             </tr>
         @endforeach

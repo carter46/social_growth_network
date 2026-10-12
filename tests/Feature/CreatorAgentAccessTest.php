@@ -6,7 +6,6 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletFunding;
 use App\Models\Withdrawal;
-use App\Modules\Wallet\Services\DepositCheckoutService;
 use App\Modules\Wallet\Services\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use InvalidArgumentException;
@@ -213,7 +212,7 @@ class CreatorAgentAccessTest extends TestCase
             'user_id' => $owner->id,
             'wallet_id' => $owner->wallet->id,
             'amount' => 100,
-            'currency' => 'NGN',
+            'currency' => 'USD',
             'bank_name' => 'GTBank',
             'bank_code' => '058',
             'account_number' => '0123456789',
@@ -234,20 +233,17 @@ class CreatorAgentAccessTest extends TestCase
         $wallet = Wallet::factory()->create([
             'user_id' => $agent->id,
             'balance' => 0,
-            'reserved_account_number' => '1234567890',
-            'reserved_bank_name' => 'Test Bank',
-            'reserved_account_reference' => 'RA-AGENT',
         ]);
 
         $funding = WalletFunding::create([
             'user_id' => $agent->id,
             'wallet_id' => $wallet->id,
-            'method' => 'monnify_checkout',
-            'amount' => 1000,
-            'currency' => 'NGN',
+            'method' => 'bachs_checkout',
+            'amount' => 10,
+            'currency' => 'USD',
             'status' => 'processing',
             'internal_status' => 'processing',
-            'provider' => 'monnify',
+            'provider' => 'bachs',
             'provider_payment_reference' => 'DEP-AGENT-TEST',
             'reference' => 'DEP-AGENT-TEST',
         ]);
@@ -256,34 +252,5 @@ class CreatorAgentAccessTest extends TestCase
         $this->expectExceptionMessage('Agents cannot receive deposit credits');
 
         app(WalletService::class)->creditFromFunding($funding);
-    }
-
-    public function test_reserved_payment_credit_skips_agent_and_clears_rails(): void
-    {
-        $agent = User::factory()->agent()->kycApproved()->create();
-        $wallet = Wallet::factory()->create([
-            'user_id' => $agent->id,
-            'balance' => 0,
-            'reserved_account_number' => '9988776655',
-            'reserved_bank_name' => 'Test Bank',
-            'reserved_account_reference' => 'RA-AGENT-2',
-        ]);
-
-        $result = app(DepositCheckoutService::class)->creditReservedPayment([
-            'paymentReference' => 'RSV-AGENT-TEST',
-            'amountPaid' => '500.00',
-            'paymentStatus' => 'PAID',
-            'destinationAccountInformation' => [
-                'accountNumber' => '9988776655',
-            ],
-        ]);
-
-        $this->assertNull($result);
-        $wallet->refresh();
-        $this->assertNull($wallet->reserved_account_number);
-        $this->assertSame(0.0, (float) $wallet->balance);
-        $this->assertDatabaseMissing('wallet_fundings', [
-            'provider_payment_reference' => 'RSV-AGENT-TEST',
-        ]);
     }
 }

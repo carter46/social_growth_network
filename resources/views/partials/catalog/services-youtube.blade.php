@@ -34,7 +34,7 @@
                 <div class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-4">
                     @if(! empty($watchHours['from_price']))
                         <span class="text-sm font-semibold text-slate-700">
-                            From ₦{{ number_format((float) $watchHours['from_price'], 0) }}
+                            From {{ money((float) $watchHours['from_price'], 2) }}
                         </span>
                     @endif
                     <a

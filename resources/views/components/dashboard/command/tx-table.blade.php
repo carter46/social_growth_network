@@ -37,7 +37,7 @@
                 <tr>
                     <th class="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Reference</th>
                     <th class="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Client / Actor</th>
-                    <th class="px-6 py-3 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Amount (NGN)</th>
+                    <th class="px-6 py-3 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Amount ({{ site_currency()->code }})</th>
                     <th class="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
                     <th class="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">When</th>
                     <th class="px-4 py-3"></th>

@@ -183,6 +183,54 @@ final class ProductTaskProfile
         return in_array($task, $this->tasks, true);
     }
 
+    /** The service the product is priced on (its main quantity). */
+    public function primaryTask(): ?CampaignTask
+    {
+        $fromMetric = CampaignTask::fromMetric($this->metric);
+        if ($fromMetric !== null && $this->has($fromMetric)) {
+            return $fromMetric;
+        }
+
+        return $this->tasks[0] ?? null;
+    }
+
+    /**
+     * Tasks other than the main one, in the product's task order.
+     *
+     * @return list<CampaignTask>
+     */
+    public function companionTasks(): array
+    {
+        $primary = $this->primaryTask();
+
+        return array_values(array_filter($this->tasks, fn (CampaignTask $t) => $t !== $primary));
+    }
+
+    /** Customer-facing name for the quantity of one task. */
+    public function quantityLabel(CampaignTask $task): string
+    {
+        if ($task === $this->primaryTask()) {
+            $fromMetric = match ($this->metric) {
+                EngagementMetric::Likes => 'Likes',
+                EngagementMetric::Comments => 'Comments',
+                EngagementMetric::Views => 'Views',
+                EngagementMetric::WatchHours => 'Watch hours',
+                EngagementMetric::Subscribers => 'Subscribers',
+                default => null,
+            };
+            if ($fromMetric !== null) {
+                return $fromMetric;
+            }
+        }
+
+        return match ($task) {
+            CampaignTask::Subscribe => 'Subscribers',
+            CampaignTask::Watch => 'Watch hours',
+            CampaignTask::Comment => 'Comments',
+            CampaignTask::Like => 'Likes',
+        };
+    }
+
     public function legacyMetric(): ?EngagementMetric
     {
         return $this->metric;

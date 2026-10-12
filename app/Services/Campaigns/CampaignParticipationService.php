@@ -9,6 +9,7 @@ use App\Models\CampaignParticipationTask;
 use App\Models\ReferralCommission;
 use App\Models\User;
 use App\Services\Referrals\ReferralCommissionService;
+use App\Support\Money\Money;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -63,6 +64,12 @@ class CampaignParticipationService
                 throw new InvalidArgumentException('You already joined this campaign.');
             }
 
+            // Under the campaign lock, so two agents can't both take the last place on a step.
+            $openTasks = $campaign->openTasks();
+            if ($campaign->usesTaskTargets() && $openTasks === []) {
+                throw new InvalidArgumentException('This campaign has no remaining slots.');
+            }
+
             $eligibility->assertEligible($agent, $campaign);
 
             $minutes = (int) ($campaign->completion_minutes ?? 0);
@@ -78,7 +85,7 @@ class CampaignParticipationService
             ]);
 
             if ($campaign->usesStepFlow()) {
-                app(CampaignTaskFlowService::class)->createSteps($participation, $campaign);
+                app(CampaignTaskFlowService::class)->createSteps($participation, $campaign, $openTasks);
             }
 
             return $participation;
@@ -183,9 +190,9 @@ class CampaignParticipationService
 
             $agent = User::query()->with('wallet')->findOrFail($participation->agent_id);
             // Financial integrity: always pay the participation snapshot, never product price.
-            $amount = number_format((float) $participation->reward_amount, 2, '.', '');
+            $amount = Money::round((string) $participation->reward_amount, 4);
 
-            if (bccomp($amount, '0', 2) > 0) {
+            if (bccomp($amount, '0', 4) > 0) {
                 if (! $agent->wallet) {
                     throw new InvalidArgumentException('Agent has no wallet to credit.');
                 }
@@ -216,7 +223,7 @@ class CampaignParticipationService
                 'paid_at' => now(),
             ]);
 
-            if (bccomp($amount, '0', 2) > 0 && $agent->referred_by_id) {
+            if (bccomp($amount, '0', 4) > 0 && $agent->referred_by_id) {
                 $paid = $participation->fresh();
                 DB::afterCommit(function () use ($agent, $paid) {
                     try {

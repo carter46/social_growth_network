@@ -356,7 +356,7 @@
                         max="100"
                         label="When an agent refers an agent (%)"
                         :value="old('referral_agent_percent', $referral['agent_percent'])"
-                        hint="Percentage of every task reward the referred agent earns. Example: 50% of a ₦4 reward is ₦2."
+                        hint="Percentage of every task reward the referred agent earns. Example: 50% of a $0.04 reward is $0.02."
                     />
                     <x-dashboard.input
                         name="referral_creator_percent"

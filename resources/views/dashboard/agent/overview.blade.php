@@ -14,8 +14,8 @@
     <div class="space-y-4">
         <x-dashboard.stats-card
             label="Available Balance"
-            :value="'₦' . number_format($balanceNgn ?? 0, 2)"
-            :hint="'Locked: ₦' . number_format($lockedNgn ?? 0, 2)"
+            :value="money($availableBalance ?? 0, 2)"
+            :hint="'Locked: '.money($lockedBalance ?? 0, 2)"
             icon="wallet"
         >
             <div class="mt-4 flex flex-wrap gap-2">

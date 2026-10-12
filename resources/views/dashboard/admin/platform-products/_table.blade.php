@@ -68,7 +68,7 @@
                     {{ $isActive ? 'Active' : ($isArchived ? 'Archived' : 'Deactivated') }}
                 </x-dashboard.badge>
             </x-dashboard.td>
-            <x-dashboard.td>₦{{ number_format($product->displayPrice(), 2) }}</x-dashboard.td>
+            <x-dashboard.td>{{ money($product->displayPrice(), 2) }}</x-dashboard.td>
             <x-dashboard.td>
                 <x-dashboard.row-actions>
                     <x-dashboard.menu-item :href="route('admin.platform-products.edit', $product)">Edit</x-dashboard.menu-item>

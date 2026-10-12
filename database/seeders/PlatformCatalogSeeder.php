@@ -16,14 +16,14 @@ class PlatformCatalogSeeder extends Seeder
      * Existing Views products: rename in place (preserve IDs).
      * Lookup: new slug first → else old slug → else create.
      *
-     * @var array<int, array{new_slug: string, old_slug: string, title: string, base_price: int, sort_order: int}>
+     * @var array<int, array{new_slug: string, old_slug: string, title: string, base_price: int|float, sort_order: int}>
      */
     private const VIEWS_RENAMES = [
         [
             'new_slug' => 'youtube-views',
             'old_slug' => 'youtube-views-lite',
             'title' => 'YouTube Views',
-            'base_price' => 5000,
+            'base_price' => 3.5,
             'sort_order' => 0,
         ],
     ];
@@ -32,14 +32,14 @@ class PlatformCatalogSeeder extends Seeder
      * New products created when missing (Likes / Comments / YouTube extras).
      * Subscribers starts as a draft until an admin sets pricing and publishes it.
      *
-     * @var array<int, array{slug: string, title: string, base_price: int, sort_order: int, status?: PlatformProductStatus}>
+     * @var array<int, array{slug: string, title: string, base_price: int|float, sort_order: int, status?: PlatformProductStatus}>
      */
     private const ADDITIONAL_PRODUCTS = [
-        ['slug' => 'youtube-likes', 'title' => 'YouTube Likes', 'base_price' => 5500, 'sort_order' => 1],
-        ['slug' => 'youtube-comments', 'title' => 'YouTube Comments + Watch Hours', 'base_price' => 6000, 'sort_order' => 2],
-        ['slug' => 'youtube-watch-hours', 'title' => 'YouTube Watch Hours', 'base_price' => 8000, 'sort_order' => 3],
-        ['slug' => 'youtube-subscribers', 'title' => 'YouTube Subscribers + Watch Hours', 'base_price' => 10000, 'sort_order' => 4, 'status' => PlatformProductStatus::Draft],
-        ['slug' => 'youtube-subscribers-watch-comments', 'title' => 'YouTube Subscribers + Watch Hours + Comments', 'base_price' => 12000, 'sort_order' => 5, 'status' => PlatformProductStatus::Draft],
+        ['slug' => 'youtube-likes', 'title' => 'YouTube Likes', 'base_price' => 3.75, 'sort_order' => 1],
+        ['slug' => 'youtube-comments', 'title' => 'YouTube Comments + Watch Hours', 'base_price' => 4, 'sort_order' => 2],
+        ['slug' => 'youtube-watch-hours', 'title' => 'YouTube Watch Hours', 'base_price' => 5.5, 'sort_order' => 3],
+        ['slug' => 'youtube-subscribers', 'title' => 'YouTube Subscribers + Watch Hours', 'base_price' => 6.5, 'sort_order' => 4, 'status' => PlatformProductStatus::Draft],
+        ['slug' => 'youtube-subscribers-watch-comments', 'title' => 'YouTube Subscribers + Watch Hours + Comments', 'base_price' => 8, 'sort_order' => 5, 'status' => PlatformProductStatus::Draft],
     ];
 
     public static function descriptionFor(string $slug, string $title): string
@@ -85,7 +85,7 @@ class PlatformCatalogSeeder extends Seeder
     }
 
     /**
-     * @param  array{new_slug: string, old_slug: string, title: string, base_price: int, sort_order: int}  $row
+     * @param  array{new_slug: string, old_slug: string, title: string, base_price: int|float, sort_order: int}  $row
      */
     private function findOrCreateViewsProduct(array $row, string $type): PlatformProduct
     {
@@ -113,7 +113,7 @@ class PlatformCatalogSeeder extends Seeder
                 $updates['base_price'] = $row['base_price'];
             }
             if (Schema::hasColumn('platform_products', 'currency') && ! filled($product->currency)) {
-                $updates['currency'] = 'NGN';
+                $updates['currency'] = config('platform.currency');
             }
 
             $product->forceFill($updates)->save();
@@ -130,7 +130,7 @@ class PlatformCatalogSeeder extends Seeder
             'is_featured' => $row['sort_order'] < 20,
             'sort_order' => $row['sort_order'],
             'base_price' => $row['base_price'],
-            'currency' => 'NGN',
+            'currency' => config('platform.currency'),
             'provider' => 'manual',
             'fulfillment_mode' => 'manual',
             'auto_renew' => false,
@@ -138,7 +138,7 @@ class PlatformCatalogSeeder extends Seeder
     }
 
     /**
-     * @param  array{slug: string, title: string, base_price: int, sort_order: int, status?: PlatformProductStatus}  $row
+     * @param  array{slug: string, title: string, base_price: int|float, sort_order: int, status?: PlatformProductStatus}  $row
      */
     private function upsertAdditionalProduct(array $row, string $type): PlatformProduct
     {
@@ -156,7 +156,7 @@ class PlatformCatalogSeeder extends Seeder
                 $updates['base_price'] = $row['base_price'];
             }
             if (Schema::hasColumn('platform_products', 'currency') && ! filled($existing->currency)) {
-                $updates['currency'] = 'NGN';
+                $updates['currency'] = config('platform.currency');
             }
 
             $existing->forceFill($updates)->save();
@@ -173,7 +173,7 @@ class PlatformCatalogSeeder extends Seeder
             'is_featured' => false,
             'sort_order' => $row['sort_order'],
             'base_price' => $row['base_price'],
-            'currency' => 'NGN',
+            'currency' => config('platform.currency'),
             'provider' => 'manual',
             'fulfillment_mode' => 'manual',
             'auto_renew' => false,

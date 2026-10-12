@@ -33,8 +33,8 @@
     @else
         <x-dashboard.stat-grid :count="4">
             <x-dashboard.stats-card
-                label="Balance (NGN)"
-                :value="'₦' . number_format($wallet->balance, 2)"
+                :label="'Balance ('.site_currency()->code.')'"
+                :value="money($wallet->balance, 2)"
                 icon="wallet"
             >
                 <div class="mt-4 flex flex-col gap-2">
@@ -43,12 +43,12 @@
             </x-dashboard.stats-card>
             <x-dashboard.stats-card
                 label="Locked (Held)"
-                :value="'₦' . number_format($wallet->locked_balance, 2)"
+                :value="money($wallet->locked_balance, 2)"
                 icon="lock"
             />
             <x-dashboard.stats-card
                 label="Available"
-                :value="'₦' . number_format($wallet->availableBalance(), 2)"
+                :value="money($wallet->availableBalance(), 2)"
                 icon="wallet"
             />
             <x-dashboard.card class="flex flex-col justify-center gap-3 min-h-[120px]">
@@ -56,6 +56,61 @@
                 <x-dashboard.button :href="route($prefix.'.history')" variant="ghost" size="sm" icon="history">Transaction History</x-dashboard.button>
             </x-dashboard.card>
         </x-dashboard.stat-grid>
+
+        @if (($connectAvailable ?? false) && Route::has('agent.payouts.connect'))
+            @php
+                $connection = $payoutConnection ?? null;
+                $connectStatus = $connection?->status ?? \App\Models\PayoutConnection::NOT_STARTED;
+                $badgeStatus = match ($connectStatus) {
+                    \App\Models\PayoutConnection::ACTIVE => 'success',
+                    \App\Models\PayoutConnection::UNDER_REVIEW => 'pending',
+                    \App\Models\PayoutConnection::RESTRICTED, \App\Models\PayoutConnection::REJECTED => 'danger',
+                    default => 'warning',
+                };
+            @endphp
+            <x-dashboard.card class="mt-4">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-sm font-semibold text-text-primary">Payout account</h2>
+                            <x-dashboard.badge :status="$badgeStatus">{{ $connection?->label() ?? \App\Models\PayoutConnection::STATUS_LABELS[\App\Models\PayoutConnection::NOT_STARTED] }}</x-dashboard.badge>
+                        </div>
+                        <p class="mt-1 text-sm text-text-secondary">
+                            @switch($connectStatus)
+                                @case(\App\Models\PayoutConnection::ACTIVE)
+                                    Your account is ready to receive withdrawals.
+                                    @break
+                                @case(\App\Models\PayoutConnection::UNDER_REVIEW)
+                                    Bachs is reviewing your details. Withdrawals open once the review is finished.
+                                    @break
+                                @case(\App\Models\PayoutConnection::RESTRICTED)
+                                    Bachs needs more information before payouts can resume.
+                                    @break
+                                @case(\App\Models\PayoutConnection::REJECTED)
+                                    Bachs could not approve this account. Contact support for help.
+                                    @break
+                                @default
+                                    Connect a bank account through our payout partner Bachs to withdraw your earnings.
+                            @endswitch
+                        </p>
+                    </div>
+                    @if ($connectStatus !== \App\Models\PayoutConnection::REJECTED && $connectStatus !== \App\Models\PayoutConnection::UNDER_REVIEW)
+                        <form method="POST" action="{{ route('agent.payouts.connect') }}" x-data="{ submitting: false }" @submit="submitting = true">
+                            @csrf
+                            <x-dashboard.button type="submit" size="sm" icon="withdraw" x-bind:disabled="submitting">
+                                @if ($connectStatus === \App\Models\PayoutConnection::ACTIVE)
+                                    Update payout details
+                                @elseif ($connection && filled($connection->account_id))
+                                    Continue setup
+                                @else
+                                    Connect bank account
+                                @endif
+                            </x-dashboard.button>
+                        </form>
+                    @endif
+                </div>
+            </x-dashboard.card>
+        @endif
 
         <x-dashboard.alert type="info" class="mt-4">
             Agents earn by completing verified tasks. Self-serve deposits are not available on agent accounts.
@@ -72,14 +127,14 @@
             <x-slot:head>
                 <x-dashboard.th>Reference</x-dashboard.th>
                 <x-dashboard.th>Type</x-dashboard.th>
-                <x-dashboard.th>Amount (NGN)</x-dashboard.th>
+                <x-dashboard.th>Amount ({{ site_currency()->code }})</x-dashboard.th>
                 <x-dashboard.th>Status</x-dashboard.th>
             </x-slot:head>
             @foreach ($transactions as $tx)
                 <tr class="hover:bg-muted/50">
                     <x-dashboard.td class="font-medium">{{ $tx->reference }}</x-dashboard.td>
                     <x-dashboard.td>{{ \App\Enums\TransactionType::labelFor($tx->type) }}</x-dashboard.td>
-                    <x-dashboard.td>₦{{ number_format($tx->amount, 2) }}</x-dashboard.td>
+                    <x-dashboard.td>{{ money($tx->amount, 2) }}</x-dashboard.td>
                     <x-dashboard.td><x-dashboard.badge :status="$tx->status" /></x-dashboard.td>
                 </tr>
             @endforeach

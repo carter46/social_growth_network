@@ -2,6 +2,7 @@ import './bootstrap';
 import './pwa-install';
 import './scroll-reveal';
 import './dashboard-theme';
+import { formatMoney } from './money';
 import { registerPullToRefresh } from './dashboard-pull-refresh';
 import { mountCommandCharts, bindCommandRange } from './command-charts';
 import { initGoogleIdentity } from './google-identity';
@@ -11,6 +12,7 @@ import { createCheckoutValidationHelpers } from './checkout-validation';
 import { registerAdminConnectionTest } from './admin-connection-test';
 import { registerManualBankPayment } from './manual-bank-payment';
 import { registerServicesMarketplace } from './services-marketplace';
+import { registerPackageConfigurator } from './package-configurator';
 import { copyToClipboard, copyFromAsync, copyFailedMessage } from './copy-to-clipboard';
 import Alpine from 'alpinejs';
 import Chart from 'chart.js/auto';
@@ -34,6 +36,7 @@ document.addEventListener('alpine:init', () => {
     registerAdminConnectionTest(Alpine);
     registerManualBankPayment(Alpine);
     registerServicesMarketplace(Alpine);
+    registerPackageConfigurator(Alpine);
 
     Alpine.data('toastStore', (initial = []) => ({
         toasts: [],
@@ -559,6 +562,7 @@ document.addEventListener('alpine:init', () => {
             ?? variants[0]?.id
             ?? null,
         qty: Number(options.selectedUnits || 1),
+        packageTotal: options.packageTotal != null ? Number(options.packageTotal) : null,
         productPageUrl: options.productPageUrl || '',
         domainMode: options.domainMode
             ?? (options.requireDomainChoice ? 'buy' : 'none'),
@@ -711,7 +715,9 @@ document.addEventListener('alpine:init', () => {
             if (this.isDomainProduct) return this.domainAddon;
             const row = this.selectedVariant;
             let sum;
-            if (row?.per_unit) {
+            if (row?.per_unit && this.packageTotal !== null) {
+                sum = this.packageTotal;
+            } else if (row?.per_unit) {
                 sum = this.planUnit * (Number(this.qty) || 0);
             } else {
                 sum = this.planUnit; // fixed: no package multiplier
@@ -728,10 +734,10 @@ document.addEventListener('alpine:init', () => {
             this.qty = 1;
         },
         get totalFormatted() {
-            return new Intl.NumberFormat('en-NG', { maximumFractionDigits: 2 }).format(this.total);
+            return formatMoney(this.total, { precision: 2 });
         },
         get retailFormatted() {
-            return new Intl.NumberFormat('en-NG', { maximumFractionDigits: 0 }).format(this.domainRetailPrice || 0);
+            return formatMoney(this.domainRetailPrice || 0, { precision: 2 });
         },
         get isAdvancedTldSelected() {
             return (this.domainTldsAdvanced || []).some((row) => row.tld === this.domainTld);
@@ -921,7 +927,7 @@ document.addEventListener('alpine:init', () => {
         domainMessage: '',
         domainAvailable: false,
         get retailFormatted() {
-            return new Intl.NumberFormat('en-NG', { maximumFractionDigits: 0 }).format(this.domainRetailPrice || 0);
+            return formatMoney(this.domainRetailPrice || 0, { precision: 2 });
         },
         get canCheckout() {
             return Boolean(this.domainQuoteToken && this.domainFqdn && this.domainAvailable);
@@ -1252,89 +1258,6 @@ document.addEventListener('alpine:init', () => {
             }
             if (this._onPopState) {
                 window.removeEventListener('popstate', this._onPopState);
-            }
-        },
-    }));
-
-    Alpine.data('bankReplaceResolve', (resolveUrl, csrfToken, banks = []) => ({
-        banks: Array.isArray(banks) ? banks : [],
-        bankQuery: '',
-        bankOpen: false,
-        bankCode: '',
-        bankName: '',
-        accountNumber: '',
-        resolving: false,
-        resolved: null,
-        error: '',
-        _resolveTimer: null,
-        get filteredBanks() {
-            const q = String(this.bankQuery || '').trim().toLowerCase();
-            const list = this.banks.filter((bank) => {
-                const name = String(bank?.name || '').toLowerCase();
-                return q === '' ? true : name.includes(q);
-            });
-            return list.slice(0, q === '' ? 12 : 20);
-        },
-        selectBank(bank) {
-            this.bankCode = bank.code;
-            this.bankName = bank.name;
-            this.bankQuery = bank.name;
-            this.bankOpen = false;
-            this.resolved = null;
-            this.error = '';
-            this.tryResolve();
-        },
-        clearBank() {
-            this.bankCode = '';
-            this.bankName = '';
-            this.bankQuery = '';
-            this.bankOpen = false;
-            this.resolved = null;
-            this.error = '';
-        },
-        tryResolve() {
-            clearTimeout(this._resolveTimer);
-            this.error = '';
-            const digits = String(this.accountNumber || '').replace(/\D/g, '');
-            if (!this.bankCode || digits.length < 10) {
-                this.resolved = null;
-                return;
-            }
-            this._resolveTimer = setTimeout(() => this.resolveAccount(digits), 300);
-        },
-        async resolveAccount(digits) {
-            this.resolving = true;
-            this.error = '';
-            try {
-                const res = await fetch(resolveUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Accept: 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    body: JSON.stringify({
-                        bank_code: this.bankCode,
-                        bank_name: this.bankName,
-                        account_number: digits,
-                    }),
-                });
-                const data = await res.json().catch(() => ({}));
-                if (!res.ok) {
-                    this.resolved = null;
-                    this.error = data.message || 'Could not resolve this account.';
-                    return;
-                }
-                this.resolved = data.resolved || null;
-                if (this.resolved) {
-                    this.accountNumber = this.resolved.accountNumber;
-                }
-            } catch {
-                this.resolved = null;
-                this.error = 'Network error. Check your connection and try again.';
-            } finally {
-                this.resolving = false;
             }
         },
     }));

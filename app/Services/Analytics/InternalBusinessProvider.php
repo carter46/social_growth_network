@@ -27,7 +27,7 @@ class InternalBusinessProvider
     {
         return [
             'users_total' => $this->snapshotValue('users.total', $period),
-            'sales_total_ngn' => $this->snapshotValue('sales.total_ngn', $period),
+            'sales_total' => $this->snapshotValue('sales.total', $period) ?? $this->snapshotValue('sales.total_ngn', $period),
             'transactions_total' => $this->snapshotValue('transactions.total', $period),
             'tickets_total' => $this->snapshotValue('tickets.total', $period),
             'tickets_open' => $this->snapshotValue('tickets.open', $period),
@@ -113,7 +113,7 @@ class InternalBusinessProvider
     public function chartStrip(int $days = 7): array
     {
         $keys = [
-            'revenue.daily' => 'Revenue (NGN)',
+            'revenue.daily' => 'Revenue ('.site_currency()->code.')',
             'users.daily' => 'New users',
             'fundings.daily' => 'Wallet fundings',
         ];
@@ -283,7 +283,7 @@ class InternalBusinessProvider
                 ->where('type', 'purchase')
                 ->whereBetween('created_at', [$from, $to])
                 ->count(),
-            'platform_gmv_ngn' => (float) (clone $platformOrders)
+            'platform_gmv' => (float) (clone $platformOrders)
                 ->whereIn('status', ['paid', 'completed', 'processing'])
                 ->sum('total_amount'),
         ];

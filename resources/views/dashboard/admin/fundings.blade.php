@@ -5,14 +5,14 @@
 @section('content')
 <x-layout.page
     title="Wallet fundings"
-    subtitle="Online checkout, reserved accounts, and historical records."
+    subtitle="Online checkout deposits and historical records."
     width="full"
     :breadcrumb="[
         ['Admin', route('admin')],
         ['Wallet fundings', null],
     ]"
 >
-    <x-dashboard.table :empty="$fundings->isEmpty()" empty-title="No deposit requests" empty-description="Online payment and reserved-account credits appear here. Order bank transfers are under Orders." empty-icon="deposit" striped>
+    <x-dashboard.table :empty="$fundings->isEmpty()" empty-title="No deposit requests" empty-description="Online payment deposits appear here. Order bank transfers are under Orders." empty-icon="deposit" striped>
         <x-slot:head>
             <x-dashboard.th>User / Ref</x-dashboard.th>
             <x-dashboard.th>Method</x-dashboard.th>
@@ -27,8 +27,8 @@
                     <div class="font-medium text-text-primary">{{ \App\Models\User::labelFor($f->user) }}</div>
                     <div class="mt-0.5 font-mono text-[11px] leading-snug text-text-muted break-all">{{ $f->reference }}</div>
                 </x-dashboard.td>
-                <x-dashboard.td>{{ $f->method }}</x-dashboard.td>
-                <x-dashboard.td>₦{{ number_format($f->amount, 2) }}</x-dashboard.td>
+                <x-dashboard.td>{{ $f->provider ? ucfirst((string) $f->provider) : $f->method }}</x-dashboard.td>
+                <x-dashboard.td>{{ money($f->amount, 2) }}</x-dashboard.td>
                 @php $isHeld = $f->internal_status === \App\Modules\Wallet\Services\DepositCheckoutService::HELD_OVER_LIMIT; @endphp
                 <x-dashboard.td>
                     <x-dashboard.badge :status="$f->status" />
@@ -64,7 +64,7 @@
                             confirm-label="Verify and credit"
                             :form-action="route('admin.fundings.approve', $f)"
                         >
-                            We will check this payment with the payment gateway. ₦{{ number_format($f->amount, 2) }} is credited to {{ \App\Models\User::labelFor($f->user) }} only if the gateway confirms it was paid.
+                            We will check this payment with the payment gateway. {{ money($f->amount, 2) }} is credited to {{ \App\Models\User::labelFor($f->user) }} only if the gateway confirms it was paid.
                         </x-dashboard.modal>
                         <x-dashboard.modal
                             name="reject-funding-{{ $f->id }}"
@@ -89,7 +89,7 @@
                             <x-slot:form>
                                 <input type="hidden" name="reason" value="Admin reversal">
                             </x-slot:form>
-                            This will debit the user wallet for ₦{{ number_format($f->amount, 2) }}.
+                            This will debit the user wallet for {{ money($f->amount, 2) }}.
                         </x-dashboard.modal>
                     @endif
                 </x-dashboard.td>

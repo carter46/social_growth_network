@@ -25,6 +25,8 @@
             required
             autofocus
             autocomplete="name"
+            :readonly="$user->nameLockedByPayoutAccount()"
+            :hint="$user->nameLockedByPayoutAccount() ? __('Locked because your payout accounts are in this name. Contact support to change it.') : null"
         />
 
         <x-dashboard.input

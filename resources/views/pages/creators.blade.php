@@ -14,7 +14,9 @@
     $watchHoursHref = is_array($watchHours) && filled($watchHours['href'] ?? null)
         ? $watchHours['href']
         : route('services.segment', 'youtube');
-    $buyWatchHoursHref = route('dashboard.services.product', 'youtube-watch-hours');
+    $buyWatchHoursHref = is_array($watchHours) && filled($watchHours['href'] ?? null)
+        ? $watchHours['href']
+        : route('services.show', ['type' => 'youtube', 'productSlug' => 'youtube-watch-hours']);
     $ytWord = static function (string $text, string $tone = 'red'): string {
         $class = $tone === 'white' ? 'text-white' : 'text-red-600';
 
@@ -109,7 +111,7 @@
                         </h3>
                         <p class="text-slate-600 mb-6 max-w-lg">{{ $watchHours['short_description'] }}</p>
                         @if(! empty($watchHours['from_price']))
-                            <p class="text-sm font-semibold text-slate-700 mb-4">From ₦{{ number_format((float) $watchHours['from_price'], 0) }}</p>
+                            <p class="text-sm font-semibold text-slate-700 mb-4">From {{ money((float) $watchHours['from_price'], 2) }}</p>
                         @endif
                         <div class="flex flex-wrap gap-3">
                             <a href="{{ $buyWatchHoursHref }}" class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm px-5 py-3 rounded-lg transition-colors">
@@ -146,7 +148,7 @@
                         <p class="text-sm text-slate-600 mb-3 line-clamp-2">{{ $product['short_description'] }}</p>
                         <span class="text-sm font-semibold text-primary">
                             @if(! empty($product['from_price']))
-                                From ₦{{ number_format((float) $product['from_price'], 0) }}
+                                From {{ money((float) $product['from_price'], 2) }}
                             @else
                                 View package →
                             @endif

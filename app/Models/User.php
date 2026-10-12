@@ -89,6 +89,25 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasOne(UserBankAccount::class)->where('active', true);
     }
 
+    public function payoutAccounts(): HasMany
+    {
+        return $this->hasMany(PayoutAccount::class)->where('active', true)->orderByDesc('is_primary')->orderBy('id');
+    }
+
+    public function primaryPayoutAccount(): HasOne
+    {
+        return $this->hasOne(PayoutAccount::class)->where('active', true)->where('is_primary', true);
+    }
+
+    /**
+     * Payout accounts must be in the profile name, so the name is locked once one exists.
+     * Only an admin may change it then.
+     */
+    public function nameLockedByPayoutAccount(): bool
+    {
+        return PayoutAccount::query()->where('user_id', $this->id)->exists();
+    }
+
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);

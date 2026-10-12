@@ -23,7 +23,7 @@ return [
                     'title' => 'Acceptance of Terms',
                     'number' => '01',
                     'paragraphs' => [
-                        'By accessing or using :site_name (“the Platform”), including campaign services, the Agent task marketplace, and the Naira wallet, you confirm that you have read, understood, and agree to these Terms of Service.',
+                        'By accessing or using :site_name (“the Platform”), including campaign services, the Agent task marketplace, and the US dollar (USD) wallet, you confirm that you have read, understood, and agree to these Terms of Service.',
                         'If you do not agree, you must stop using the Platform. We may update these terms from time to time; continued use after changes are posted means you accept the updated terms.',
                     ],
                 ],
@@ -102,10 +102,12 @@ return [
                     'title' => 'Financial Transactions',
                     'number' => '06',
                     'paragraphs' => [
-                        'Wallet funding, campaign payment, Agent reward credits, and withdrawals are subject to verification, admin review where required, fees, and applicable payment-provider rules (including Monnify and bank partners when enabled).',
+                        'Wallet funding, campaign payment, Agent reward credits, and withdrawals are subject to verification, admin review where required, fees, and applicable payment-provider rules (including our payment gateways and bank partners when enabled). All amounts on the Platform are in US dollars (USD).',
                     ],
                     'bullets' => [
-                        'You may fund or pay with wallet balance, card/transfer gateway, reserved virtual account deposit, or manual bank transfer when those methods are enabled.',
+                        'You may fund or pay with wallet balance, a card or bank payment gateway, or manual bank transfer when those methods are enabled.',
+                        'Withdrawals are sent in USD to a payout account in your own name. The payout provider may convert the amount to your local currency at its own rate. Provider fees and any platform fee are shown before you confirm a withdrawal.',
+                        'If a payout is returned because the account details you supplied were wrong, the amount is returned to your wallet, less any returned payout fee you accepted when adding that account and that the provider charged.',
                         'You are responsible for providing correct bank details for deposits and withdrawals. We are not liable for losses from incorrect details you supply.',
                         'Deposits, rewards, and withdrawals may take from minutes up to longer review windows depending on method, KYC status, and compliance checks.',
                         'KYC may be required before wallet creation, higher funding limits, withdrawals, or high-tier campaigns.',
@@ -164,7 +166,7 @@ return [
             'label' => 'Privacy Policy',
             'eyebrow' => 'Data & Privacy',
             'intro' => 'How :site_name collects, uses, and protects information for Creators, Agents, payments, KYC, and campaign verification.',
-            'summary' => 'We collect account, campaign, proof, KYC, and payment data needed to operate the Creator–Agent marketplace and your Naira wallet. Last updated September 2026.',
+            'summary' => 'We collect account, campaign, proof, KYC, and payment data needed to operate the Creator–Agent marketplace and your US dollar (USD) wallet. Last updated September 2026.',
             'sections' => [
                 [
                     'id' => 'collect',
@@ -215,7 +217,7 @@ return [
                     'title' => 'Sharing',
                     'number' => '04',
                     'paragraphs' => [
-                        'We may share data with payment processors (such as Monnify), KYC providers, hosting and security vendors, and other service providers who help operate the Platform, under appropriate safeguards. We may also disclose information when required by law or to protect the Platform, Creators, Agents, or the public from fraud or abuse.',
+                        'We may share data with payment processors (such as our payment gateways and payout providers), KYC providers, hosting and security vendors, and other service providers who help operate the Platform, under appropriate safeguards. We may also disclose information when required by law or to protect the Platform, Creators, Agents, or the public from fraud or abuse.',
                     ],
                 ],
                 [

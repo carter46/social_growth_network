@@ -11,7 +11,7 @@
             <p class="text-lg font-semibold text-primary break-all">
                 <span x-text="domainFqdn"></span>
                 <span class="mx-1">·</span>
-                <span class="whitespace-nowrap" x-text="'₦' + retailFormatted"></span>
+                <span class="whitespace-nowrap" x-text="retailFormatted"></span>
                 <span x-show="domainPremium" class="ml-2 inline-block whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Premium</span>
             </p>
         </div>
@@ -37,7 +37,7 @@
                         >Selected</span>
                     </span>
                     <span class="mt-0.5 block text-xs" :class="selectedSuggestionTld === row.tld ? 'text-primary' : 'text-text-muted'">
-                        <span x-text="'₦' + formatSuggestionPrice(row.retail_price)"></span>
+                        <span x-text="formatSuggestionPrice(row.retail_price)"></span>
                         <span x-show="row.premium" class="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">Premium</span>
                     </span>
                 </button>

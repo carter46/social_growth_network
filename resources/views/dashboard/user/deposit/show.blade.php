@@ -23,7 +23,7 @@
                     <dt class="shrink-0 text-text-muted">Reference</dt>
                     <dd class="font-mono text-xs break-all sm:text-right sm:text-sm">{{ $funding->reference }}</dd>
                 </div>
-                <div class="flex justify-between gap-3"><dt class="text-text-muted">Amount</dt><dd class="font-medium">₦{{ number_format($funding->amount, 2) }}</dd></div>
+                <div class="flex justify-between gap-3"><dt class="text-text-muted">Amount</dt><dd class="font-medium">{{ money($funding->amount, 2) }}</dd></div>
                 <div class="flex justify-between gap-3"><dt class="text-text-muted">Method</dt><dd class="break-words text-right">{{ $funding->method }}</dd></div>
                 @if ($funding->checkout_url && $funding->status !== 'approved' && ! $funding->isCheckoutExpired())
                     <div class="pt-2">

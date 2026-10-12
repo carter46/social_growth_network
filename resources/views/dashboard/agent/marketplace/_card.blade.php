@@ -53,10 +53,11 @@
                 </span>
             @endif
             @if ($campaign->usesStepFlow())
+                @php $cardTasks = $campaign->openTasks(); @endphp
                 <span class="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-medium">
-                    {{ __(':count tasks', ['count' => count($campaign->taskProfile()->tasks())]) }}
+                    {{ trans_choice(':count task|:count tasks', count($cardTasks)) }}
                 </span>
-                @foreach ($campaign->taskProfile()->tasks() as $cardTask)
+                @foreach ($cardTasks as $cardTask)
                     <span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium">{{ $cardTask->shortLabel() }}</span>
                 @endforeach
             @endif
@@ -66,7 +67,7 @@
             <div class="min-w-0">
                 <span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">{{ __('Reward') }}</span>
                 <span class="font-display text-xl font-bold text-slate-900 tracking-tight">
-                    ₦{{ number_format((float) $campaign->locked_agent_reward, 2) }}
+                    {{ money($campaign->locked_agent_reward, 2, 4) }}
                 </span>
             </div>
             <a

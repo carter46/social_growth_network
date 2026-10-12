@@ -14,7 +14,7 @@ class WalletHold extends Model
     protected function casts(): array
     {
         return [
-            'amount' => 'decimal:2',
+            'amount' => 'decimal:4',
             'reason_type' => WalletHoldReason::class,
             'status' => WalletHoldStatus::class,
             'expires_at' => 'datetime',

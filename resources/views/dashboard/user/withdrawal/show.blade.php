@@ -17,6 +17,49 @@
         {{ $withdrawal->reference }}
     </p>
 
+    @if (session('status'))
+        <x-dashboard.alert type="success" class="mb-4">{{ session('status') }}</x-dashboard.alert>
+    @endif
+    @if (session('error'))
+        <x-dashboard.alert type="danger" class="mb-4">{{ session('error') }}</x-dashboard.alert>
+    @endif
+
+    @if ($withdrawal->awaitingAgentConfirmation())
+        @php
+            $requote = (array) ($withdrawal->requote_snapshot ?? []);
+            $newProviderFee = (string) ($requote['provider_fee'] ?? $withdrawal->provider_fee);
+            $newFee = bcadd($newProviderFee, (string) $withdrawal->platform_fee, 2);
+            $newNet = bcsub((string) $withdrawal->amount, $newFee, 2);
+        @endphp
+        <x-dashboard.card class="mb-6 space-y-3 text-sm">
+            <h2 class="text-base font-semibold text-text-primary">The payout fee went up</h2>
+            <p class="text-text-secondary">The payment provider's fee for this payout is now higher than when you requested it. Accept the new fee, or cancel for a full refund.</p>
+            <dl class="space-y-1">
+                <div class="flex justify-between gap-4"><dt>You withdraw</dt><dd class="font-medium">{{ money($withdrawal->amount, 2) }}</dd></div>
+                <div class="flex justify-between gap-4"><dt>Provider fee</dt><dd>{{ money($withdrawal->provider_fee, 2) }} → <strong>{{ money($newProviderFee, 2) }}</strong></dd></div>
+                @if (bccomp((string) $withdrawal->platform_fee, '0', 2) > 0)
+                    <div class="flex justify-between gap-4"><dt>Platform fee</dt><dd>{{ money($withdrawal->platform_fee, 2) }}</dd></div>
+                @endif
+                <div class="flex justify-between gap-4 border-t border-border-subtle pt-1"><dt>Sent to your account</dt><dd class="font-semibold">{{ money($newNet, 2) }}</dd></div>
+            </dl>
+            @if ($withdrawal->confirmation_expires_at)
+                <p class="text-xs text-text-muted">If you don't answer by {{ $withdrawal->confirmation_expires_at->toDayDateTimeString() }}, the withdrawal is cancelled and fully refunded.</p>
+            @endif
+            <div class="flex flex-wrap gap-2">
+                @if (bccomp($newNet, '0', 2) > 0)
+                    <form method="POST" action="{{ route($prefix.'.withdrawal.accept-fee', $withdrawal) }}">
+                        @csrf
+                        <x-dashboard.button type="submit" size="sm" variant="primary">Accept new fee</x-dashboard.button>
+                    </form>
+                @endif
+                <form method="POST" action="{{ route($prefix.'.withdrawal.cancel', $withdrawal) }}" onsubmit="return confirm('Cancel this withdrawal? The full amount returns to your balance.');">
+                    @csrf
+                    <x-dashboard.button type="submit" size="sm" variant="secondary">Cancel and refund</x-dashboard.button>
+                </form>
+            </div>
+        </x-dashboard.card>
+    @endif
+
     <div class="grid gap-6 lg:grid-cols-2">
         <x-dashboard.card>
             <dl class="space-y-2 text-sm">
@@ -24,13 +67,21 @@
                     <dt class="shrink-0 text-text-muted">Reference</dt>
                     <dd class="font-mono text-xs break-all sm:text-right sm:text-sm">{{ $withdrawal->reference }}</dd>
                 </div>
-                <div class="flex justify-between"><dt class="text-text-muted">Amount</dt><dd class="font-medium">₦{{ number_format($withdrawal->amount, 2) }}</dd></div>
-                <div class="flex justify-between"><dt class="text-text-muted">Bank</dt><dd>{{ $withdrawal->bank_name }}</dd></div>
+                <div class="flex justify-between"><dt class="text-text-muted">Amount</dt><dd class="font-medium">{{ money($withdrawal->amount, 2) }}</dd></div>
+                @if (bccomp((string) $withdrawal->fee_amount, '0', 2) > 0)
+                    <div class="flex justify-between"><dt class="text-text-muted">Withdrawal fee</dt><dd>{{ money($withdrawal->fee_amount, 2) }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-text-muted">Sent to your account</dt><dd class="font-medium">{{ money($withdrawal->netPayoutAmount(), 2) }}</dd></div>
+                @endif
+                <div class="flex justify-between"><dt class="text-text-muted">Destination</dt><dd>{{ $withdrawal->destinationLabel() }}</dd></div>
+                <div class="flex justify-between"><dt class="text-text-muted">{{ $withdrawal->method === 'mobile_money' ? 'Network' : 'Bank' }}</dt><dd>{{ $withdrawal->bank_name }}</dd></div>
                 <div class="flex justify-between"><dt class="text-text-muted">Account</dt><dd>{{ $withdrawal->maskedAccountNumber() }}</dd></div>
                 <div class="flex justify-between"><dt class="text-text-muted">Name</dt><dd>{{ $withdrawal->account_name }}</dd></div>
+                @if (bccomp((string) $withdrawal->bounce_fee_amount, '0', 2) > 0)
+                    <div class="flex justify-between"><dt class="text-text-muted">Bounce fee</dt><dd>{{ money($withdrawal->bounce_fee_amount, 2) }}@if ($withdrawal->bounce_waived_at) (waived)@endif</dd></div>
+                @endif
             </dl>
             @if ($withdrawal->isOpen())
-                <p class="mt-4 text-sm text-text-secondary">This withdrawal is in progress. You cannot cancel or change the bank until it finishes.</p>
+                <p class="mt-4 text-sm text-text-secondary">This withdrawal is in progress. You can't change payout accounts until it finishes.</p>
             @endif
         </x-dashboard.card>
         <x-dashboard.card>

@@ -72,6 +72,26 @@ if (! function_exists('email_branding_logo_url')) {
     }
 }
 
+if (! function_exists('money')) {
+    /**
+     * Format an amount in the site currency, e.g. money(12.5) → "$12.50", money('0.0025') → "$0.0025".
+     * At cent precision a sub-cent part is shown up to the ledger scale, so small rewards never display as $0.00.
+     */
+    function money(string|int|float|null $amount, int $decimals = 2, ?int $maxDecimals = null): string
+    {
+        $maxDecimals ??= $decimals === 2 ? \App\Support\Money\Money::ledgerScale() : null;
+
+        return \App\Support\Money\Money::format($amount, $decimals, $maxDecimals);
+    }
+}
+
+if (! function_exists('site_currency')) {
+    function site_currency(): \App\Support\Money\Currency
+    {
+        return \App\Support\Money\Currency::current();
+    }
+}
+
 if (! function_exists('mask_secret')) {
     /**
      * Mask a stored secret for form placeholders (never put the real value in the input).

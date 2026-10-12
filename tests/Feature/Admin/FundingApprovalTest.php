@@ -5,21 +5,21 @@ namespace Tests\Feature\Admin;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Models\WalletFunding;
-use App\Modules\Wallet\Payments\Contracts\PaymentRailInterface;
 use App\Modules\Wallet\Services\WalletProvisioningService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\Support\FakePaymentRail;
+use Tests\Support\FakeGateway;
 use Tests\TestCase;
 
 class FundingApprovalTest extends TestCase
 {
     use RefreshDatabase;
 
+    private FakeGateway $gateway;
+
     protected function setUp(): void
     {
         parent::setUp();
-        FakePaymentRail::reset();
-        $this->app->bind(PaymentRailInterface::class, FakePaymentRail::class);
+        $this->gateway = FakeGateway::install(['fake'])['fake'];
     }
 
     public function test_admin_cannot_credit_gateway_deposit_the_gateway_has_not_confirmed(): void
@@ -32,14 +32,15 @@ class FundingApprovalTest extends TestCase
         $funding = WalletFunding::create([
             'user_id' => $user->id,
             'wallet_id' => $user->wallet->id,
-            'method' => 'monnify_checkout',
-            'amount' => 5000,
-            'currency' => 'NGN',
+            'method' => 'fake_checkout',
+            'provider' => 'fake',
+            'amount' => 50,
+            'currency' => 'USD',
             'status' => 'pending',
             'reference' => 'DEP-TEST-003',
             'provider_payment_reference' => 'DEP-TEST-003',
         ]);
-        FakePaymentRail::$verifyResult = ['paymentStatus' => 'PENDING', 'amountPaid' => '0'];
+        $this->gateway->verifyStatus = 'pending';
 
         $this->actingAs($this->admin())
             ->post(route('admin.fundings.approve', $funding))
@@ -68,8 +69,8 @@ class FundingApprovalTest extends TestCase
             'user_id' => $user->id,
             'wallet_id' => $user->wallet->id,
             'method' => 'bank',
-            'amount' => 5000,
-            'currency' => 'NGN',
+            'amount' => 50,
+            'currency' => 'USD',
             'status' => 'pending',
             'reference' => 'DEP-TEST-001',
         ]);
@@ -96,19 +97,20 @@ class FundingApprovalTest extends TestCase
         $funding = WalletFunding::create([
             'user_id' => $user->id,
             'wallet_id' => $user->wallet->id,
-            'method' => 'monnify_checkout',
-            'amount' => 3000,
-            'currency' => 'NGN',
+            'method' => 'fake_checkout',
+            'provider' => 'fake',
+            'amount' => 30,
+            'currency' => 'USD',
             'status' => 'pending',
             'reference' => 'DEP-TEST-002',
             'provider_payment_reference' => 'DEP-TEST-002',
         ]);
-        FakePaymentRail::$verifyResult = ['paymentStatus' => 'PAID', 'amountPaid' => '3000.00'];
+        $this->gateway->verifyAmount = '30.00';
 
         $admin = $this->admin();
         $this->actingAs($admin)->post(route('admin.fundings.approve', $funding));
         $user->wallet->refresh();
-        $this->assertEquals(3000.0, (float) $user->wallet->balance);
+        $this->assertEquals(30.0, (float) $user->wallet->balance);
 
         $this->actingAs($admin)
             ->post(route('admin.fundings.reverse', $funding->fresh()), ['reason' => 'Duplicate deposit'])

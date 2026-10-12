@@ -1,5 +1,7 @@
-export function formatCheckoutNgn(amount) {
-    return new Intl.NumberFormat('en-NG', { maximumFractionDigits: 2 }).format(Number(amount) || 0);
+import { formatMoney } from './money';
+
+export function formatCheckoutAmount(amount) {
+    return formatMoney(amount, { precision: 2 });
 }
 
 export function validateRegistrant(registrant = {}) {
@@ -59,7 +61,7 @@ export function validateWalletPayment(total, balance) {
     if (walletBalance < orderTotal) {
         return {
             valid: false,
-            message: `Insufficient wallet balance. You need ₦${formatCheckoutNgn(orderTotal)} but only have ₦${formatCheckoutNgn(walletBalance)} available.`,
+            message: `Insufficient wallet balance. You need ${formatCheckoutAmount(orderTotal)} but only have ${formatCheckoutAmount(walletBalance)} available.`,
         };
     }
 
@@ -88,7 +90,7 @@ export function createCheckoutValidationHelpers() {
             return Math.max(0, (Number(this.total) || 0) - (Number(this.walletBalance) || 0));
         },
         get walletShortfallFormatted() {
-            return formatCheckoutNgn(this.walletShortfall);
+            return formatCheckoutAmount(this.walletShortfall);
         },
         buildSubmitBlockedMessage() {
             if (this.isDomainProduct || (this.requireDomainChoice && this.domainMode === 'buy')) {
@@ -116,7 +118,7 @@ export function createCheckoutValidationHelpers() {
             }
 
             if (this.paymentMethod === 'wallet' && this.walletShortfall > 0) {
-                return `Insufficient wallet balance. Add at least ₦${this.walletShortfallFormatted} to continue.`;
+                return `Insufficient wallet balance. Add at least ${this.walletShortfallFormatted} to continue.`;
             }
 
             return 'Complete all required fields before paying.';

@@ -15,7 +15,7 @@
     @endif
     <div class="{{ $tile }}">
         <p class="text-xs text-text-muted">{{ __('Reward') }}</p>
-        <p class="mt-0.5 text-lg font-semibold text-text-primary">₦{{ number_format((float) $reward, 2) }}</p>
+        <p class="mt-0.5 text-lg font-semibold text-text-primary">{{ money($reward, 2, 4) }}</p>
     </div>
     <div class="{{ $tile }}">
         <p class="text-xs text-text-muted">{{ __('Slots left') }}</p>

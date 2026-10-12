@@ -14,6 +14,7 @@
         productSlug: '',
         variantId: '',
         units: '',
+        qty: {},
         targetUrl: '',
         channelUrl: '',
         commentInstructions: '',
@@ -35,6 +36,16 @@
         get isPerUnit() {
             return !!(this.selectedVariant && this.selectedVariant.per_unit);
         },
+        get companions() {
+            return this.isPerUnit ? (this.selectedProduct?.companions || []) : [];
+        },
+        get extraUnits() {
+            return this.companions.reduce((sum, row) => sum + Math.max(0, Number(this.qty[row.task] || 0) - Number(row.min)), 0);
+        },
+        get perUnitTotal() {
+            const price = Number(this.selectedVariant?.unit_price || 0);
+            return price * (Number(this.units || 0) + this.extraUnits);
+        },
         reset() {
             this.userId = null;
             this.userLabel = '';
@@ -47,6 +58,7 @@
             this.productSlug = '';
             this.variantId = '';
             this.units = '';
+            this.qty = {};
             this.targetUrl = '';
             this.channelUrl = '';
             this.commentInstructions = '';
@@ -109,6 +121,9 @@
             } else {
                 this.units = '';
             }
+            const qty = {};
+            (this.selectedProduct?.companions || []).forEach(row => { qty[row.task] = String(row.min); });
+            this.qty = qty;
         },
     }"
     x-on:admin-manual-purchase.window="
@@ -155,6 +170,15 @@
                         if (!Number.isFinite(u) || u < min || u > max) {
                             $event.preventDefault();
                             error = 'Enter units between ' + min + ' and ' + max + '.';
+                            return;
+                        }
+                        const badRow = companions.find(row => {
+                            const q = Number(qty[row.task]);
+                            return !Number.isFinite(q) || q < Number(row.min) || q > Number(row.max);
+                        });
+                        if (badRow) {
+                            $event.preventDefault();
+                            error = 'Enter between ' + badRow.min + ' and ' + badRow.max + ' ' + badRow.label + '.';
                             return;
                         }
                     }
@@ -242,16 +266,16 @@
                             <option
                                 :value="variant.id"
                                 x-text="variant.label + ' — ' + (variant.per_unit
-                                    ? ('From ₦' + Number(variant.starting_from || 0).toLocaleString())
-                                    : ('₦' + Number(variant.price).toLocaleString())) + (variant.duration_months ? (' · ' + variant.duration_months + ' mo') : '')"
+                                    ? ('From ' + window.formatMoney(variant.starting_from || 0))
+                                    : window.formatMoney(variant.price)) + (variant.duration_months ? (' · ' + variant.duration_months + ' mo') : '')"
                             ></option>
                         </template>
                     </select>
                     <p x-show="selectedVariant && !isPerUnit" x-cloak class="mt-1 text-xs text-text-muted">
-                        Selected price: ₦<span x-text="selectedVariant ? Number(selectedVariant.price).toLocaleString(undefined, {minimumFractionDigits: 2}) : ''"></span>
+                        Selected price: <span x-text="selectedVariant ? window.formatMoney(selectedVariant.price) : ''"></span>
                     </p>
                     <p x-show="isPerUnit" x-cloak class="mt-1 text-xs text-text-muted">
-                        ₦<span x-text="selectedVariant ? Number(selectedVariant.unit_price || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4}) : ''"></span>
+                        <span x-text="selectedVariant ? window.formatMoney(selectedVariant.unit_price || 0, { precision: 2, max: 6 }) : ''"></span>
                         per unit · min <span x-text="selectedVariant?.min_units"></span>
                     </p>
                 </div>
@@ -270,6 +294,29 @@
                         class="w-full rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm"
                     />
                 </div>
+
+                <template x-for="row in companions" :key="productSlug + row.task">
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-text-secondary" x-text="row.label"></label>
+                        <input
+                            type="number"
+                            :name="'qty[' + row.task + ']'"
+                            x-model="qty[row.task]"
+                            :min="row.min"
+                            :max="row.max"
+                            required
+                            class="w-full rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm"
+                        />
+                        <p class="mt-1 text-xs text-text-muted">
+                            Between <span x-text="Number(row.min).toLocaleString()"></span> and <span x-text="Number(row.max).toLocaleString()"></span>. Units above the minimum are billed at the unit price.
+                        </p>
+                    </div>
+                </template>
+
+                <p x-show="isPerUnit" x-cloak class="text-sm text-text-secondary">
+                    Total: <span class="font-semibold text-text-primary" x-text="window.formatMoney(perUnitTotal)"></span>
+                    <span x-show="extraUnits > 0" x-cloak class="text-xs text-text-muted">(includes <span x-text="extraUnits.toLocaleString()"></span> extra units)</span>
+                </p>
 
                 <div x-show="selectedProduct" x-cloak>
                     <label class="mb-1 block text-sm font-medium text-text-secondary" x-text="selectedProduct?.target_is_channel ? 'Channel URL' : 'Video URL'"></label>

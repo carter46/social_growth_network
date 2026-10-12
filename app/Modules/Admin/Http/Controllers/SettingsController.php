@@ -101,9 +101,20 @@ class SettingsController extends Controller
 
     public function paymentSettings(): View
     {
+        $registry = app(\App\Modules\Wallet\Payments\GatewayRegistry::class);
+
         return view('dashboard.admin.settings-payments', [
-            'monnify' => IntegrationProvider::forProvider(IntegrationProvider::MONNIFY),
-            'monnifyWebhookUrl' => url('/webhooks/monnify'),
+            'gateways' => $registry->all(),
+            'collectionOrder' => $registry->collectionOrder(),
+            'payoutOrder' => $registry->payoutOrder(),
+            'health' => $registry->health(),
+            'siteCurrency' => site_currency()->code,
+            'payoutGate' => [
+                'open' => \App\Modules\Wallet\Payments\PayoutGate::isOpen(),
+                'reasons' => \App\Modules\Wallet\Payments\PayoutGate::reasons(),
+                'enabled' => SystemSetting::enabled(\App\Modules\Wallet\Payments\PayoutGate::SETTING_ENABLED, false),
+                'verified_at' => \App\Modules\Wallet\Payments\PayoutGate::cutoverVerifiedAt(),
+            ],
             'manualBankTransfer' => SystemSetting::manualBankTransferDetails(),
             'manualBankTransferEnabled' => SystemSetting::manualBankTransferEnabled(),
             'manualBankTransferSaveUrl' => Route::has('admin.settings.manual-bank-transfer')
@@ -696,8 +707,20 @@ class SettingsController extends Controller
             'manual_bank_transfer_bank_name' => ['nullable', 'string', 'max:120'],
             'manual_bank_transfer_account_number' => ['nullable', 'string', 'max:40'],
             'manual_bank_transfer_account_name' => ['nullable', 'string', 'max:120'],
+            'manual_bank_transfer_swift' => ['nullable', 'string', 'regex:/^[A-Za-z]{6}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$/'],
+            'manual_bank_transfer_routing_number' => ['nullable', 'string', 'regex:/^\d{9}$/'],
+            'manual_bank_transfer_iban' => ['nullable', 'string', 'max:40'],
+            'manual_bank_transfer_bank_address' => ['nullable', 'string', 'max:255'],
             'manual_bank_transfer_instructions' => ['nullable', 'string', 'max:2000'],
+        ], [
+            'manual_bank_transfer_swift.regex' => 'Enter an 8 or 11 character SWIFT/BIC code.',
+            'manual_bank_transfer_routing_number.regex' => 'A US routing number has 9 digits.',
         ]);
+
+        if (filled($validated['manual_bank_transfer_iban'] ?? null)
+            && ! \App\Support\Payouts\AccountFormat::validIban((string) $validated['manual_bank_transfer_iban'])) {
+            return back()->withInput()->withErrors(['manual_bank_transfer_iban' => 'This IBAN is not valid.']);
+        }
 
         $enabled = $request->boolean('manual_bank_transfer_enabled');
 
@@ -719,6 +742,10 @@ class SettingsController extends Controller
         SystemSetting::set('manual_bank_transfer_bank_name', $validated['manual_bank_transfer_bank_name'] ?? '');
         SystemSetting::set('manual_bank_transfer_account_number', $validated['manual_bank_transfer_account_number'] ?? '');
         SystemSetting::set('manual_bank_transfer_account_name', $validated['manual_bank_transfer_account_name'] ?? '');
+        SystemSetting::set('manual_bank_transfer_swift', strtoupper((string) ($validated['manual_bank_transfer_swift'] ?? '')));
+        SystemSetting::set('manual_bank_transfer_routing_number', $validated['manual_bank_transfer_routing_number'] ?? '');
+        SystemSetting::set('manual_bank_transfer_iban', strtoupper(str_replace(' ', '', (string) ($validated['manual_bank_transfer_iban'] ?? ''))));
+        SystemSetting::set('manual_bank_transfer_bank_address', $validated['manual_bank_transfer_bank_address'] ?? '');
         SystemSetting::set('manual_bank_transfer_instructions', $validated['manual_bank_transfer_instructions'] ?? '');
 
         $this->audit->log(auth()->id(), 'settings.manual_bank_transfer.updated', null, null, [
@@ -726,114 +753,6 @@ class SettingsController extends Controller
         ], $request->ip());
 
         return back()->with('status', __('Manual bank transfer settings saved.'));
-    }
-
-    public function updateMonnify(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'monnify_enabled' => ['nullable', 'boolean'],
-            'monnify_api_key' => ['nullable', 'string', 'max:255'],
-            'monnify_secret_key' => ['nullable', 'string', 'max:255'],
-            'monnify_contract_code' => ['nullable', 'string', 'max:100'],
-            'monnify_wallet_account_number' => ['nullable', 'string', 'max:30'],
-            'monnify_environment' => ['nullable', 'in:sandbox,live'],
-            'monnify_reserved_accounts_without_kyc' => ['nullable', 'boolean'],
-            'monnify_webhook_allowed_ips' => ['nullable', 'string', 'max:500'],
-        ]);
-
-        $enabled = $request->boolean('monnify_enabled');
-        $row = IntegrationProvider::forProvider(IntegrationProvider::MONNIFY);
-        $row->enabled = $enabled;
-
-        $credentials = [];
-        foreach ([
-            'api_key' => 'monnify_api_key',
-            'secret_key' => 'monnify_secret_key',
-            'contract_code' => 'monnify_contract_code',
-            'wallet_account_number' => 'monnify_wallet_account_number',
-        ] as $credKey => $input) {
-            $value = trim((string) ($validated[$input] ?? ''));
-            if ($value !== '') {
-                $credentials[$credKey] = $value;
-            }
-        }
-        if ($credentials !== []) {
-            $row->mergeCredentials($credentials);
-        }
-
-        $allowedIps = collect(preg_split('/[\s,]+/', (string) ($validated['monnify_webhook_allowed_ips'] ?? '')))
-            ->map(fn ($ip) => trim($ip))
-            ->filter()
-            ->values()
-            ->all();
-
-        $row->meta = array_merge($row->meta ?? [], [
-            'environment' => $validated['monnify_environment'] ?? ($row->meta['environment'] ?? 'sandbox'),
-            'reserved_accounts_without_kyc' => $request->boolean('monnify_reserved_accounts_without_kyc'),
-            // Empty input clears override so runtime default (35.242.133.146) applies.
-            'webhook_allowed_ips' => $allowedIps !== [] ? $allowedIps : null,
-        ]);
-
-        $configured = filled($row->credential('api_key'))
-            && filled($row->credential('secret_key'))
-            && filled($row->credential('contract_code'));
-
-        $row->status = $enabled && $configured ? 'connected' : 'idle';
-        $row->save();
-
-        app(\App\Modules\Wallet\Payments\Monnify\MonnifyClient::class)->clearTokenCache();
-
-        $this->audit->log(auth()->id(), 'settings.monnify.updated', $row, null, [
-            'enabled' => $enabled,
-            'environment' => $row->meta['environment'] ?? 'sandbox',
-        ], $request->ip());
-
-        return back()->with('status', __('Monnify settings saved.'));
-    }
-
-    public function testMonnify(Request $request): RedirectResponse|JsonResponse
-    {
-        $client = app(\App\Modules\Wallet\Payments\Monnify\MonnifyClient::class);
-        $row = IntegrationProvider::forProvider(IntegrationProvider::MONNIFY);
-        $wantsJson = $request->expectsJson() || $request->ajax();
-
-        try {
-            $client->clearTokenCache();
-            $token = $client->accessToken();
-            $ok = filled($token);
-            $message = 'Monnify login succeeded.';
-            if ($ok && filled($client->walletAccountNumber())) {
-                try {
-                    $bal = app(\App\Modules\Wallet\Payments\Monnify\MonnifyPaymentRail::class)->getMerchantWalletBalance();
-                    $message .= ' Merchant wallet balance: ₦'.number_format($bal, 2);
-                } catch (Throwable $e) {
-                    $message .= ' (Wallet balance check: '.$e->getMessage().')';
-                }
-            }
-            $row->recordSuccess();
-            $this->audit->log(auth()->id(), 'settings.monnify.connection_test', $row, null, ['ok' => true], $request->ip());
-
-            if ($wantsJson) {
-                return response()->json(['ok' => true, 'message' => $message]);
-            }
-
-            return back()->with('status', $message);
-        } catch (Throwable $e) {
-            $row->recordFailure($e->getMessage());
-            $this->audit->log(auth()->id(), 'settings.monnify.connection_test', $row, null, ['ok' => false], $request->ip());
-
-            if ($wantsJson) {
-                return response()->json([
-                    'ok' => false,
-                    'message' => $e->getMessage(),
-                    'errors' => ['monnify_test' => [$e->getMessage()]],
-                ], 422);
-            }
-
-            return back()->withInput()->withErrors([
-                'monnify_test' => $e->getMessage(),
-            ]);
-        }
     }
 
     /**

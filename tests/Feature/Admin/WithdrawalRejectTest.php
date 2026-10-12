@@ -26,7 +26,7 @@ class WithdrawalRejectTest extends TestCase
             'user_id' => $user->id,
             'wallet_id' => $wallet->id,
             'amount' => 1000,
-            'currency' => 'NGN',
+            'currency' => 'USD',
             'bank_name' => 'GTBank',
             'bank_code' => '058',
             'account_number' => '0123456789',
@@ -61,7 +61,7 @@ class WithdrawalRejectTest extends TestCase
             'user_id' => $user->id,
             'wallet_id' => $wallet->id,
             'amount' => 1000,
-            'currency' => 'NGN',
+            'currency' => 'USD',
             'bank_name' => 'GTBank',
             'bank_code' => '058',
             'account_number' => '0123456789',
@@ -75,7 +75,7 @@ class WithdrawalRejectTest extends TestCase
         $wallet->refresh();
         $this->assertEquals(5000.0, (float) $wallet->balance);
         $this->assertEquals(1000.0, (float) $wallet->locked_balance);
-        $this->assertEquals(4000.0, $wallet->availableBalance());
+        $this->assertSame('4000.0000', $wallet->availableBalance());
 
         $this->actingAs($admin)->post(route('admin.withdrawals.reject', $withdrawal));
 

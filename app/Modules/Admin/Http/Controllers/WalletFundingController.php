@@ -8,7 +8,7 @@ use App\Models\Transaction;
 use App\Models\WalletFunding;
 use App\Modules\Admin\Services\AuditLogService;
 use App\Modules\Admin\Services\FinancialAuditLog;
-use App\Modules\Wallet\Payments\Contracts\PaymentRailInterface;
+use App\Modules\Wallet\Payments\GatewayRegistry;
 use App\Modules\Wallet\Services\DepositCheckoutService;
 use App\Modules\Wallet\Services\WalletService;
 use Illuminate\Http\RedirectResponse;
@@ -24,7 +24,7 @@ class WalletFundingController extends Controller
         private AuditLogService $audit,
         private FinancialAuditLog $financialAudit,
         private DepositCheckoutService $deposits,
-        private PaymentRailInterface $rail,
+        private GatewayRegistry $gateways,
     ) {}
 
     public function index(): View
@@ -47,7 +47,8 @@ class WalletFundingController extends Controller
         }
 
         // Wallets are only credited for payments the gateway confirms; admins cannot credit unpaid deposits.
-        if (! $funding->provider_payment_reference || ! $this->rail->isConfigured()) {
+        $driver = $this->gateways->collectionDriver((string) $funding->provider);
+        if (! $funding->provider_payment_reference || ! $driver || ! $driver->isConfigured()) {
             return back()->with('error', __('This deposit cannot be checked with the payment gateway, so the wallet was not credited.'));
         }
 
@@ -61,7 +62,7 @@ class WalletFundingController extends Controller
 
         if ($funding->status !== 'approved' && $funding->internal_status !== 'completed') {
             return back()->with('error', __(':gateway has not confirmed this payment (status: :status). The wallet was not credited.', [
-                'gateway' => $this->rail->displayName(),
+                'gateway' => $driver->displayName(),
                 'status' => $funding->provider_status ?: 'unknown',
             ]));
         }
@@ -80,7 +81,7 @@ class WalletFundingController extends Controller
             $request->header('X-Request-Id'),
         );
 
-        return back()->with('status', __('Payment confirmed by :gateway. Wallet credited.', ['gateway' => $this->rail->displayName()]));
+        return back()->with('status', __('Payment confirmed by :gateway. Wallet credited.', ['gateway' => $driver->displayName()]));
     }
 
     public function reject(WalletFunding $funding, Request $request): RedirectResponse

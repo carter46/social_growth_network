@@ -30,7 +30,7 @@ class PlatformRevenueMetricTest extends TestCase
             'type' => TransactionType::PlatformFee->value,
             'label' => 'Fee',
             'amount' => 1000,
-            'currency' => 'NGN',
+            'currency' => 'USD',
             'status' => 'completed',
         ]);
 
@@ -41,7 +41,7 @@ class PlatformRevenueMetricTest extends TestCase
             'type' => TransactionType::Purchase->value,
             'label' => 'Sale',
             'amount' => 5000,
-            'currency' => 'NGN',
+            'currency' => 'USD',
             'status' => 'completed',
         ]);
 
@@ -52,7 +52,7 @@ class PlatformRevenueMetricTest extends TestCase
             'type' => TransactionType::Funding->value,
             'label' => 'Funding',
             'amount' => 50000,
-            'currency' => 'NGN',
+            'currency' => 'USD',
             'status' => 'completed',
         ]);
 
@@ -63,7 +63,7 @@ class PlatformRevenueMetricTest extends TestCase
             'type' => TransactionType::EscrowRelease->value,
             'label' => 'Release',
             'amount' => 20000,
-            'currency' => 'NGN',
+            'currency' => 'USD',
             'status' => 'completed',
         ]);
 

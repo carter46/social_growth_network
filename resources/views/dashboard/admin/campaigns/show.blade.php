@@ -3,12 +3,12 @@
 @section('title', 'Campaign')
 
 @php
-    $naira = fn ($amount) => '₦'.number_format((float) $amount, 2);
-    $nairaUnit = function ($amount) {
+    $fmt = fn ($amount) => money((float) $amount, 2);
+    $moneyUnit = function ($amount) {
         $value = (float) $amount;
         $decimals = round($value, 2) == $value ? 2 : 4;
 
-        return '₦'.number_format($value, $decimals);
+        return money($value, $decimals);
     };
     $tile = 'rounded-xl bg-muted/40 px-4 py-3';
     $order = $campaign->order;
@@ -45,7 +45,7 @@
     @endif
     @if (! $budget && \App\Services\Campaigns\CampaignBudgetService::isUnfunded($campaign))
         <x-dashboard.alert type="warning" class="mb-4" title="Agent budget not held">
-            The platform wallet could not cover {{ $naira($campaign->meta['funding_shortfall'] ?? 0) }} when this campaign went live, so rewards are paid from platform revenue. Top up the platform wallet, then run <code>php artisan campaigns:backfill-budgets --dry-run</code> to review.
+            The platform wallet could not cover {{ $fmt($campaign->meta['funding_shortfall'] ?? 0) }} when this campaign went live, so rewards are paid from platform revenue. Top up the platform wallet, then run <code>php artisan campaigns:backfill-budgets --dry-run</code> to review.
         </x-dashboard.alert>
     @endif
 
@@ -74,6 +74,11 @@
                 <dd class="mt-1 font-medium text-text-primary">{{ $campaign->created_at?->format('M j, Y g:i A') }}</dd>
             </div>
         </dl>
+        @if ($campaign->usesTaskTargets())
+            <div class="mt-4 border-t border-border-subtle pt-4">
+                @include('partials.campaigns.step-progress', ['campaign' => $campaign])
+            </div>
+        @endif
     </x-dashboard.card>
 
     <div class="mb-4 grid gap-4 lg:grid-cols-2">
@@ -94,16 +99,16 @@
                 </div>
                 <div class="{{ $tile }}">
                     <dt class="text-text-muted">Price per unit</dt>
-                    <dd class="mt-1 font-medium text-text-primary">{{ $nairaUnit($finance['unit_cost']) }}</dd>
+                    <dd class="mt-1 font-medium text-text-primary">{{ $moneyUnit($finance['unit_cost']) }}</dd>
                     @if (($campaign->orderItem?->options['pricing_units'] ?? null) && ($campaign->orderItem?->options['pricing_price'] ?? null))
                         <p class="mt-0.5 text-xs text-text-muted">
-                            Priced at ₦{{ number_format((float) $campaign->orderItem->options['pricing_price'], 2) }} per {{ number_format((int) $campaign->orderItem->options['pricing_units']) }}
+                            Priced at {{ money((float) $campaign->orderItem->options['pricing_price'], 2) }} per {{ number_format((int) $campaign->orderItem->options['pricing_units']) }}
                         </p>
                     @endif
                 </div>
                 <div class="{{ $tile }}">
                     <dt class="text-text-muted">Total cost</dt>
-                    <dd class="mt-1 text-base font-semibold text-text-primary">{{ $naira($finance['total_cost']) }}</dd>
+                    <dd class="mt-1 text-base font-semibold text-text-primary">{{ $fmt($finance['total_cost']) }}</dd>
                 </div>
                 <div class="{{ $tile }}">
                     <dt class="text-text-muted">Order</dt>
@@ -136,33 +141,33 @@
             <dl class="grid gap-3 text-sm sm:grid-cols-2">
                 <div class="{{ $tile }}">
                     <dt class="text-text-muted">Agent reward per unit</dt>
-                    <dd class="mt-1 font-medium text-text-primary">{{ $naira($finance['agent_reward']) }}</dd>
+                    <dd class="mt-1 font-medium text-text-primary">{{ $fmt($finance['agent_reward']) }}</dd>
                     @if ($campaign->product?->agent_reward_percent)
                         <p class="mt-0.5 text-xs text-text-muted">{{ rtrim(rtrim(number_format((float) $campaign->product->agent_reward_percent, 2), '0'), '.') }}% of the unit price</p>
                     @endif
                 </div>
                 <div class="{{ $tile }}">
                     <dt class="text-text-muted">Total agent budget</dt>
-                    <dd class="mt-1 font-medium text-text-primary">{{ $naira($finance['agent_budget']) }}</dd>
-                    <p class="mt-0.5 text-xs text-text-muted">{{ number_format($campaign->quantity) }} × {{ $naira($finance['agent_reward']) }}</p>
+                    <dd class="mt-1 font-medium text-text-primary">{{ $fmt($finance['agent_budget']) }}</dd>
+                    <p class="mt-0.5 text-xs text-text-muted">{{ number_format($campaign->quantity) }} × {{ $fmt($finance['agent_reward']) }}</p>
                 </div>
                 <div class="{{ $tile }}">
                     <dt class="text-text-muted">Paid to agents so far</dt>
-                    <dd class="mt-1 text-base font-semibold text-success">{{ $naira($finance['paid_to_agents']) }}</dd>
+                    <dd class="mt-1 text-base font-semibold text-success">{{ $fmt($finance['paid_to_agents']) }}</dd>
                     <p class="mt-0.5 text-xs text-text-muted">{{ number_format($counts['paid']) }} {{ $counts['paid'] === 1 ? 'agent' : 'agents' }} paid</p>
                 </div>
                 <div class="{{ $tile }}">
                     <dt class="text-text-muted">Awaiting review</dt>
-                    <dd class="mt-1 font-medium text-text-primary">{{ $naira($finance['awaiting_review']) }}</dd>
+                    <dd class="mt-1 font-medium text-text-primary">{{ $fmt($finance['awaiting_review']) }}</dd>
                     <p class="mt-0.5 text-xs text-text-muted">{{ number_format($counts['awaiting_review']) }} submitted, {{ number_format($counts['in_progress']) }} in progress</p>
                 </div>
                 <div class="{{ $tile }}">
                     <dt class="text-text-muted">Agent budget left</dt>
-                    <dd class="mt-1 font-medium text-text-primary">{{ $naira($finance['agent_budget_left']) }}</dd>
+                    <dd class="mt-1 font-medium text-text-primary">{{ $fmt($finance['agent_budget_left']) }}</dd>
                 </div>
                 <div class="{{ $tile }}">
                     <dt class="text-text-muted">Platform share</dt>
-                    <dd class="mt-1 font-medium text-text-primary">{{ $naira($finance['platform_share']) }}</dd>
+                    <dd class="mt-1 font-medium text-text-primary">{{ $fmt($finance['platform_share']) }}</dd>
                     <p class="mt-0.5 text-xs text-text-muted">Total cost minus total agent budget</p>
                 </div>
             </dl>
@@ -172,22 +177,22 @@
                 <dl class="grid gap-3 text-sm sm:grid-cols-2">
                     <div class="{{ $tile }}">
                         <dt class="text-text-muted">Held</dt>
-                        <dd class="mt-1 font-medium text-text-primary">{{ $naira($budget->funded_amount) }}</dd>
+                        <dd class="mt-1 font-medium text-text-primary">{{ $fmt($budget->funded_amount) }}</dd>
                         <p class="mt-0.5 text-xs text-text-muted">{{ ucfirst($budget->status) }}</p>
                     </div>
                     <div class="{{ $tile }}">
                         <dt class="text-text-muted">Paid from hold</dt>
-                        <dd class="mt-1 font-medium text-success">{{ $naira($budget->paid_amount) }}</dd>
+                        <dd class="mt-1 font-medium text-success">{{ $fmt($budget->paid_amount) }}</dd>
                     </div>
                     <div class="{{ $tile }}">
                         <dt class="text-text-muted">Refunded to creator</dt>
-                        <dd class="mt-1 font-medium text-text-primary">{{ $naira($budget->refunded_amount) }}</dd>
+                        <dd class="mt-1 font-medium text-text-primary">{{ $fmt($budget->refunded_amount) }}</dd>
                     </div>
                     <div class="{{ $tile }}">
                         <dt class="text-text-muted">Remaining in hold</dt>
-                        <dd class="mt-1 font-medium text-text-primary">{{ $naira($budget->remaining()) }}</dd>
+                        <dd class="mt-1 font-medium text-text-primary">{{ $fmt($budget->remaining()) }}</dd>
                         @if ((float) $budget->released_amount > 0)
-                            <p class="mt-0.5 text-xs text-text-muted">{{ $naira($budget->released_amount) }} released to revenue</p>
+                            <p class="mt-0.5 text-xs text-text-muted">{{ $fmt($budget->released_amount) }} released to revenue</p>
                         @endif
                     </div>
                 </dl>
@@ -288,7 +293,7 @@
             <tr>
                 <x-dashboard.td>{{ $participation->agent?->email }}</x-dashboard.td>
                 <x-dashboard.td><x-dashboard.badge :status="$participation->status" /></x-dashboard.td>
-                <x-dashboard.td>{{ $naira($participation->reward_amount) }}</x-dashboard.td>
+                <x-dashboard.td>{{ $fmt($participation->reward_amount) }}</x-dashboard.td>
                 <x-dashboard.td>{{ $participation->started_at?->format('M j, Y') ?? '-' }}</x-dashboard.td>
                 <x-dashboard.td>{{ $participation->paid_at?->format('M j, Y') ?? '-' }}</x-dashboard.td>
                 <x-dashboard.td>

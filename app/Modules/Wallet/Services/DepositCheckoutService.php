@@ -6,54 +6,50 @@ use App\Models\PaymentTimelineEvent;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\WalletFunding;
-use App\Modules\Wallet\Payments\Contracts\PaymentRailInterface;
-use App\Modules\Wallet\Payments\Monnify\MonnifyPaymentRail;
+use App\Modules\Wallet\Payments\Data\CheckoutRequest;
+use App\Modules\Wallet\Payments\Exceptions\GatewayException;
+use App\Modules\Wallet\Payments\Exceptions\GatewayUnavailable;
+use App\Modules\Wallet\Payments\GatewayRegistry;
 use App\Services\Notifications\AdminPaymentAlertNotifier;
-use App\Services\Notifications\NotificationDispatcher;
-use App\Services\Notifications\NotificationMessage;
+use App\Support\Money\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
+/**
+ * Creator wallet deposits through a hosted gateway checkout (Bachs or Flutterwave).
+ * The creator picks the gateway; the funding remembers it, and only that gateway can confirm it.
+ */
 class DepositCheckoutService
 {
-    /** Reserved-account payment above deposit_max_amount: recorded but not credited until an admin verifies it. */
+    /** A payment above deposit_max_amount: recorded but not credited until an admin verifies it. */
     public const HELD_OVER_LIMIT = 'held_over_limit';
 
+    /** Marked failed, then the provider reported it paid. Waits for an admin to credit it. */
+    public const PAID_AFTER_FAILURE = 'paid_after_failure';
+
     public function __construct(
-        private PaymentRailInterface $rail,
+        private GatewayRegistry $gateways,
         private WalletService $wallets,
-        private MonnifyPaymentRail $monnify,
     ) {}
 
     public function gatewayEnabled(): bool
     {
-        return $this->rail->isConfigured();
+        return $this->gateways->hasCollectionGateway();
     }
 
-    public function gatewayName(): string
+    /** @return array<string, string> key => display name, in admin order */
+    public function availableGateways(): array
     {
-        return $this->rail->displayName();
+        return collect($this->gateways->availableCollectionGateways())
+            ->map(fn ($driver) => $driver->displayName())
+            ->all();
     }
 
-    private function checkoutMethod(): string
+    public function defaultGatewayKey(): ?string
     {
-        return $this->rail->providerKey().'_checkout';
-    }
-
-    public function reservedAccountsAllowed(User $user): bool
-    {
-        if (! SystemSetting::kycRequired()) {
-            $meta = \App\Models\IntegrationProvider::forProvider(\App\Models\IntegrationProvider::MONNIFY)->meta ?? [];
-
-            return (bool) ($meta['reserved_accounts_without_kyc'] ?? false);
-        }
-
-        $minLevel = SystemSetting::kycRequiredLevel('reserved_account', 1);
-
-        return (int) $user->kyc_level >= $minLevel;
+        return $this->gateways->defaultCollectionKey();
     }
 
     public function assertDepositKyc(User $user): void
@@ -74,7 +70,7 @@ class DepositCheckoutService
         }
     }
 
-    public function startCheckout(User $user, float $amount, string $redirectUrl): WalletFunding
+    public function startCheckout(User $user, string|float $amount, string $callbackUrl, ?string $gatewayKey = null): WalletFunding
     {
         if ($user->hasRole('agent')) {
             throw new InvalidArgumentException('Agents cannot deposit funds.');
@@ -86,83 +82,106 @@ class DepositCheckoutService
 
         $this->assertDepositKyc($user);
 
-        if (! $this->gatewayEnabled()) {
-            throw new InvalidArgumentException('Card/transfer checkout is not available right now.');
+        try {
+            $driver = $this->gateways->collection($gatewayKey);
+        } catch (GatewayUnavailable $e) {
+            throw new InvalidArgumentException($e->getMessage());
         }
 
-        $depositMin = (float) SystemSetting::get('deposit_min_amount', 100);
-        if ($amount < $depositMin) {
-            throw new InvalidArgumentException('Amount is below the minimum deposit.');
+        $amount = Money::round((string) $amount, 2);
+        $depositMin = Money::round((string) SystemSetting::get('deposit_min_amount', 1), 2);
+        $depositMax = Money::round((string) SystemSetting::get('deposit_max_amount', 5000), 2);
+        if (Money::cmp($amount, $depositMin, 2) < 0) {
+            throw new InvalidArgumentException('Amount is below the minimum deposit of '.money($depositMin).'.');
+        }
+        if (Money::cmp($amount, $depositMax, 2) > 0) {
+            throw new InvalidArgumentException('Amount is above the maximum deposit of '.money($depositMax).'.');
         }
 
-        $depositMax = (float) SystemSetting::get('deposit_max_amount', 1000000);
-        if ($amount > $depositMax) {
-            throw new InvalidArgumentException('Amount is above the maximum deposit.');
+        $key = $driver->key();
+        $method = $key.'_checkout';
+        $currency = (string) config('platform.currency', 'USD');
+
+        $open = WalletFunding::query()
+            ->where('user_id', $user->id)
+            ->where('method', $method)
+            ->whereIn('status', ['pending', 'processing'])
+            ->where('amount', $amount)
+            ->whereNotNull('checkout_url')
+            ->where('checkout_expires_at', '>', now()->addMinutes(2))
+            ->latest('id')
+            ->first();
+        if ($open) {
+            return $open;
         }
 
-        return DB::transaction(function () use ($user, $amount, $redirectUrl) {
-            $open = WalletFunding::query()
-                ->where('user_id', $user->id)
-                ->where('method', $this->checkoutMethod())
-                ->whereIn('status', ['pending', 'processing'])
-                ->where('amount', $amount)
-                ->where(function ($q) {
-                    $q->whereNull('checkout_expires_at')
-                        ->orWhere('checkout_expires_at', '>', now());
-                })
-                ->lockForUpdate()
-                ->latest('id')
-                ->first();
+        $reference = 'DEP-'.strtoupper((string) Str::ulid());
 
-            if ($open && filled($open->checkout_url) && ! $open->isCheckoutExpired()) {
-                return $open;
-            }
-
-            $paymentReference = 'DEP-'.strtoupper((string) Str::ulid());
-
+        $funding = DB::transaction(function () use ($user, $amount, $currency, $method, $key, $reference) {
             $funding = WalletFunding::create([
                 'user_id' => $user->id,
                 'wallet_id' => $user->wallet->id,
-                'method' => $this->checkoutMethod(),
+                'method' => $method,
                 'amount' => $amount,
-                'currency' => 'NGN',
+                'currency' => $currency,
                 'status' => 'pending',
                 'internal_status' => 'pending',
-                'provider' => $this->rail->providerKey(),
-                'provider_payment_reference' => $paymentReference,
-                'reference' => $paymentReference,
+                'provider' => $key,
+                'provider_payment_reference' => $reference,
+                'reference' => $reference,
             ]);
 
             PaymentTimelineEvent::record($funding, 'created', 'Created');
 
-            $init = $this->rail->initializeCheckout([
-                'amount' => $amount,
-                'paymentReference' => $paymentReference,
-                'customerName' => $user->name,
-                'customerEmail' => $user->email,
-                'redirectUrl' => $redirectUrl,
-                'paymentDescription' => 'Wallet funding '.$paymentReference,
-            ]);
-
-            $funding->update([
-                'checkout_url' => $init['checkoutUrl'],
-                'provider_transaction_reference' => $init['transactionReference'],
-                'checkout_expires_at' => now()->addMinutes(40),
-                'internal_status' => 'processing',
-                'status' => 'processing',
-                'provider_status' => 'PENDING',
-            ]);
-
-            PaymentTimelineEvent::record($funding, 'sent_to_provider', 'Sent to '.$this->rail->displayName());
-
-            return $funding->fresh();
+            return $funding;
         });
+
+        $separator = str_contains($callbackUrl, '?') ? '&' : '?';
+        $returnUrl = $callbackUrl.$separator.'reference='.urlencode($reference);
+        $minutes = (int) config('payments.checkout_expiry_minutes', 40);
+
+        try {
+            $session = $driver->initializeCheckout(new CheckoutRequest(
+                amount: $amount,
+                currency: $currency,
+                reference: $reference,
+                customerEmail: (string) $user->email,
+                customerName: (string) $user->name,
+                callbackUrl: $returnUrl,
+                description: 'Wallet deposit '.$reference,
+                cancelUrl: $returnUrl,
+                expiresInMinutes: $minutes,
+                metadata: ['type' => 'deposit', 'funding_id' => $funding->id],
+            ));
+        } catch (GatewayException $e) {
+            Log::warning('deposit.checkout_failed', ['funding_id' => $funding->id, 'gateway' => $key, 'code' => $e->providerCode, 'error' => $e->getMessage()]);
+            $funding->update(['status' => 'failed', 'internal_status' => 'failed', 'provider_status' => 'INIT_FAILED']);
+            PaymentTimelineEvent::record($funding, 'failed', 'Could not open '.$driver->displayName().' checkout');
+
+            throw new InvalidArgumentException('We could not open '.$driver->displayName().' right now. Try again, or choose another payment option.');
+        }
+
+        $funding->update([
+            'checkout_url' => $session->checkoutUrl,
+            'provider_transaction_reference' => $session->providerReference,
+            'checkout_expires_at' => $session->expiresAt ?? now()->addMinutes($minutes),
+            'internal_status' => 'processing',
+            'status' => 'processing',
+            'provider_status' => 'PENDING',
+        ]);
+
+        PaymentTimelineEvent::record($funding, 'sent_to_provider', 'Sent to '.$driver->displayName());
+
+        return $funding->fresh();
     }
 
     /**
+     * Ask the funding's own gateway whether it was paid, and credit the wallet once.
+     *
      * @param  bool  $releaseHeld  Only an admin action may credit a payment held for being over the deposit limit.
+     * @param  bool  $adminCredit  Only an admin action may credit a deposit marked failed; it is still re-verified first.
      */
-    public function completeFromReturn(string $paymentReference, bool $releaseHeld = false): WalletFunding
+    public function completeFromReturn(string $paymentReference, bool $releaseHeld = false, bool $adminCredit = false): WalletFunding
     {
         $funding = WalletFunding::query()
             ->where('provider_payment_reference', $paymentReference)
@@ -176,225 +195,73 @@ class DepositCheckoutService
             return $funding;
         }
 
-        $verified = $this->rail->verifyTransaction($paymentReference);
-        $status = strtoupper((string) ($verified['paymentStatus'] ?? ''));
-        $amountPaid = (string) ($verified['amountPaid'] ?? '0');
-
-        $funding->update([
-            'provider_status' => $status,
-            'provider_transaction_reference' => $verified['transactionReference'] ?? $funding->provider_transaction_reference,
-        ]);
-
-        if (! in_array($status, ['PAID', 'SUCCESS', 'COMPLETED'], true)) {
-            return $funding;
+        $driver = $this->gateways->collectionDriver((string) $funding->provider);
+        if (! $driver) {
+            throw new InvalidArgumentException('This deposit was made with a payment provider that is no longer available. An admin will review it.');
         }
 
-        if (bccomp($amountPaid, (string) $funding->amount, 2) !== 0) {
-            throw new InvalidArgumentException('Paid amount does not match funding amount.');
+        $event = $driver->verify($paymentReference, $funding->provider_transaction_reference);
+
+        $funding->update([
+            'provider_status' => strtoupper($event->status),
+            'provider_transaction_reference' => $event->providerReference ?? $funding->provider_transaction_reference,
+        ]);
+
+        if (! $event->succeeded()) {
+            if ($event->failed() && in_array($funding->status, ['pending', 'processing'], true)) {
+                $funding->update(['status' => 'failed', 'internal_status' => 'failed']);
+                PaymentTimelineEvent::record($funding, 'failed', 'Payment not completed', ['code' => $event->failureCode]);
+            }
+
+            return $funding->fresh();
+        }
+
+        $currencyMatches = strtoupper((string) $event->currency) === strtoupper((string) $funding->currency);
+        if (! $currencyMatches || Money::cmp((string) $event->amount, (string) $funding->amount, 2) !== 0) {
+            app(AdminPaymentAlertNotifier::class)->amountMismatch(
+                'Deposit '.$funding->reference,
+                money($funding->amount),
+                trim(($event->currency ?? '').' '.($event->amount ?? '?')),
+                ['funding_id' => $funding->id],
+                (string) $funding->provider,
+            );
+            PaymentTimelineEvent::record($funding, 'amount_mismatch', 'Paid amount does not match', [
+                'paid' => $event->amount, 'currency' => $event->currency,
+            ]);
+
+            throw new InvalidArgumentException('Paid amount does not match the deposit amount. An admin will review it.');
         }
 
         $owner = User::query()->find($funding->user_id);
         if ($owner?->hasRole('agent')) {
-            $this->clearReservedDepositRails($owner);
             throw new InvalidArgumentException('Agents cannot receive deposit credits.');
         }
 
-        PaymentTimelineEvent::record($funding, 'verified', 'Payment verified with '.$this->rail->displayName());
+        $markedFailed = in_array($funding->status, ['failed', 'rejected', 'reversed'], true)
+            || in_array($funding->internal_status, ['failed', self::PAID_AFTER_FAILURE], true);
+        if ($markedFailed) {
+            if (! $adminCredit || in_array($funding->status, ['rejected', 'reversed'], true)) {
+                if ($funding->internal_status !== self::PAID_AFTER_FAILURE) {
+                    $funding->update(['internal_status' => self::PAID_AFTER_FAILURE]);
+                    PaymentTimelineEvent::record($funding, 'paid_after_failure', $driver->displayName().' reports this deposit paid after it was marked failed');
+                }
+                app(AdminPaymentAlertNotifier::class)->paidAfterFailure(
+                    (string) $funding->reference,
+                    (string) $funding->amount,
+                    ['funding_id' => $funding->id],
+                    (string) $funding->provider,
+                );
+
+                return $funding->fresh();
+            }
+
+            $funding->update(['status' => 'processing', 'internal_status' => 'processing']);
+            PaymentTimelineEvent::record($funding, 'admin_credit', 'Admin credited after the provider confirmed payment');
+        }
+
+        PaymentTimelineEvent::record($funding, 'verified', 'Payment verified with '.$driver->displayName());
         $this->wallets->creditFromFunding($funding);
 
         return $funding->fresh();
-    }
-
-    /**
-     * @return array{accountNumber: string, bankName: string, accountReference: string}
-     */
-    public function ensureReservedAccount(User $user): array
-    {
-        if ($user->hasRole('agent')) {
-            throw new InvalidArgumentException('Agents cannot deposit funds.');
-        }
-
-        if (! $this->reservedAccountsAllowed($user)) {
-            throw new InvalidArgumentException('Complete KYC to get a reserved deposit account.');
-        }
-
-        if (! $this->gatewayEnabled()) {
-            throw new InvalidArgumentException('Reserved accounts are not available right now.');
-        }
-
-        $wallet = $user->wallet;
-        if (! $wallet) {
-            throw new InvalidArgumentException('Create a wallet first.');
-        }
-
-        if (filled($wallet->reserved_account_number)) {
-            return [
-                'accountNumber' => (string) $wallet->reserved_account_number,
-                'bankName' => (string) $wallet->reserved_bank_name,
-                'accountReference' => (string) $wallet->reserved_account_reference,
-            ];
-        }
-
-        $accountReference = 'RA-'.$user->id.'-'.Str::lower(Str::random(8));
-        $body = $this->monnify->createReservedAccount([
-            'accountReference' => $accountReference,
-            'accountName' => $user->name,
-            'customerEmail' => $user->email,
-        ]);
-
-        $accounts = $body['accounts'] ?? [];
-        $first = $accounts[0] ?? null;
-        $accountNumber = (string) ($first['accountNumber'] ?? $body['accountNumber'] ?? '');
-        $bankName = (string) ($first['bankName'] ?? $body['bankName'] ?? '');
-
-        $wallet->update([
-            'reserved_account_number' => $accountNumber,
-            'reserved_bank_name' => $bankName,
-            'reserved_account_reference' => $accountReference,
-        ]);
-
-        return [
-            'accountNumber' => $accountNumber,
-            'bankName' => $bankName,
-            'accountReference' => $accountReference,
-        ];
-    }
-
-    /**
-     * Credit from reserved-account webhook when paymentReference is not a checkout DEP- ref.
-     */
-    public function creditReservedPayment(array $verified): ?WalletFunding
-    {
-        $accountNumber = (string) data_get($verified, 'destinationAccountInformation.accountNumber')
-            ?: (string) data_get($verified, 'accountDetails.accountNumber', '');
-        $paymentReference = (string) ($verified['paymentReference'] ?? '');
-        $amountPaid = (string) ($verified['amountPaid'] ?? '0');
-
-        if ($paymentReference === '' || bccomp($amountPaid, '0', 2) <= 0) {
-            return null;
-        }
-
-        $existing = WalletFunding::where('provider_payment_reference', $paymentReference)->first();
-        if ($existing) {
-            $existingOwner = User::query()->find($existing->user_id);
-            if ($existingOwner?->hasRole('agent')) {
-                $this->clearReservedDepositRails($existingOwner);
-
-                return null;
-            }
-
-            if (! in_array($existing->internal_status, ['completed', self::HELD_OVER_LIMIT], true)) {
-                $this->wallets->creditFromFunding($existing);
-            }
-
-            return $existing;
-        }
-
-        $wallet = null;
-        if ($accountNumber !== '') {
-            $wallet = \App\Models\Wallet::where('reserved_account_number', $accountNumber)->first();
-        }
-
-        if (! $wallet) {
-            return null;
-        }
-
-        $owner = User::query()->find($wallet->user_id);
-        if ($owner?->hasRole('agent')) {
-            $this->clearReservedDepositRails($owner);
-
-            return null;
-        }
-
-        $depositMax = (string) SystemSetting::get('deposit_max_amount', 1000000);
-        $overLimit = bccomp($amountPaid, $depositMax, 2) > 0;
-
-        $funding = WalletFunding::create([
-            'user_id' => $wallet->user_id,
-            'wallet_id' => $wallet->id,
-            'method' => 'monnify_reserved',
-            'amount' => $amountPaid,
-            'currency' => 'NGN',
-            'status' => $overLimit ? 'pending' : 'processing',
-            'internal_status' => $overLimit ? self::HELD_OVER_LIMIT : 'processing',
-            'provider' => 'monnify',
-            'provider_payment_reference' => $paymentReference,
-            'provider_transaction_reference' => $verified['transactionReference'] ?? null,
-            'provider_status' => $verified['paymentStatus'] ?? 'PAID',
-            'reference' => $paymentReference,
-            'reserved_account_number' => $wallet->reserved_account_number,
-            'reserved_bank_name' => $wallet->reserved_bank_name,
-            'reserved_account_reference' => $wallet->reserved_account_reference,
-        ]);
-
-        PaymentTimelineEvent::record($funding, 'created', 'Reserved account payment');
-
-        if ($overLimit) {
-            PaymentTimelineEvent::record($funding, 'held', 'Held for admin review: above the maximum deposit');
-            $this->notifyDepositHeld($funding, $owner, $depositMax);
-
-            return $funding;
-        }
-
-        $this->wallets->creditFromFunding($funding);
-
-        return $funding;
-    }
-
-    /**
-     * Agents are withdraw-only — strip any leftover Monnify reserved deposit rails.
-     */
-    public function clearReservedDepositRails(User $user): void
-    {
-        $wallet = $user->wallet;
-        if (! $wallet) {
-            return;
-        }
-
-        if (
-            blank($wallet->reserved_account_number)
-            && blank($wallet->reserved_bank_name)
-            && blank($wallet->reserved_account_reference)
-        ) {
-            return;
-        }
-
-        $wallet->update([
-            'reserved_account_number' => null,
-            'reserved_bank_name' => null,
-            'reserved_account_reference' => null,
-        ]);
-    }
-
-    private function notifyDepositHeld(WalletFunding $funding, ?User $owner, string $depositMax): void
-    {
-        try {
-            app(AdminPaymentAlertNotifier::class)->depositHeld(
-                (string) $funding->reference,
-                (string) $funding->amount,
-                $depositMax,
-                ['funding_id' => $funding->id]
-            );
-
-            if ($owner) {
-                app(NotificationDispatcher::class)->notifyUser(
-                    $owner,
-                    new NotificationMessage(
-                        type: 'wallet.deposit_held',
-                        title: __('Deposit under review'),
-                        body: __('We received ₦:amount, which is above the ₦:max maximum deposit. Our team will review it before it is added to your wallet.', [
-                            'amount' => number_format((float) $funding->amount, 2),
-                            'max' => number_format((float) $depositMax, 2),
-                        ]),
-                        actionUrl: Route::has('dashboard.wallet') ? route('dashboard.wallet') : null,
-                        meta: ['funding_id' => $funding->id],
-                        emailSubject: __('Your deposit is under review'),
-                        dedupeKey: 'wallet.deposit_held.'.$funding->id,
-                    )
-                );
-            }
-        } catch (\Throwable $e) {
-            Log::warning('deposit.held_notify_failed', ['funding_id' => $funding->id, 'error' => $e->getMessage()]);
-        }
     }
 }

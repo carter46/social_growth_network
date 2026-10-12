@@ -22,7 +22,11 @@ $scheduleCommand('support:prune-attachments', 'support:prune-attachments')->hour
 $scheduleCommand('support:remind-unanswered', 'support:remind-unanswered')->everyFifteenMinutes();
 $scheduleCommand('cache:prune-stale-tags', 'cache:prune-stale-tags')->daily();
 
-$scheduleCommand('monnify:reconcile', 'monnify:reconcile')->everyFiveMinutes();
+$scheduleCommand('payments:reconcile', 'payments:reconcile')->everyFiveMinutes()->withoutOverlapping(10);
+$scheduleCommand('payments:sync-coverage', 'payments:sync-coverage')->daily()->at('03:30');
+$scheduleCommand('payments:check-fee-quotes', 'payments:check-fee-quotes')->daily()->at('03:45');
+$scheduleCommand('payments:sync-connect', 'payments:sync-connect')->hourly()->withoutOverlapping(30);
+$scheduleCommand('payments:bachs-stranded --alert', 'payments:bachs-stranded')->daily()->at('04:30');
 $scheduleCommand('referrals:release-pending', 'referrals:release-pending')->hourly();
 
 $scheduleCommand('analytics:rollup-kpis', 'analytics:rollup-kpis')->hourly();

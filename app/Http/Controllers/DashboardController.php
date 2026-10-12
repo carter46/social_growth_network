@@ -13,9 +13,9 @@ class DashboardController extends Controller
         $user = auth()->user();
         $wallet = $user->wallet;
 
-        $balanceNgn = $wallet ? $wallet->availableBalance() : 0;
-        $lockedNgn = $wallet ? (float) $wallet->locked_balance : 0;
-        $totalNgn = $wallet ? (float) $wallet->balance : 0;
+        $availableBalance = $wallet ? $wallet->availableBalance() : 0;
+        $lockedBalance = $wallet ? (float) $wallet->locked_balance : 0;
+        $totalBalance = $wallet ? (float) $wallet->balance : 0;
 
         $activeOrdersCount = $user->orders()
             ->where('source', 'platform')
@@ -35,9 +35,9 @@ class DashboardController extends Controller
 
         return view('dashboard.user.overview', [
             'wallet' => $wallet,
-            'balanceNgn' => $balanceNgn,
-            'lockedNgn' => $lockedNgn,
-            'totalNgn' => $totalNgn,
+            'availableBalance' => $availableBalance,
+            'lockedBalance' => $lockedBalance,
+            'totalBalance' => $totalBalance,
             'activeOrdersCount' => $activeOrdersCount,
             'ordersAwaitingLabel' => $ordersAwaiting > 0 ? "{$ordersAwaiting} in progress" : 'All caught up',
             'featuredServices' => $featuredServices,

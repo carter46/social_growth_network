@@ -64,7 +64,12 @@ class OrderAdminController extends Controller
         $products = PlatformProduct::query()
             ->visibleToPublic()
             ->orderBy('title')
-            ->get(['id', 'title', 'slug', 'product_type', 'task_order']);
+            ->get();
+
+        $quotes = app(\App\Services\Catalog\PackageQuoteService::class);
+        $companions = $products->mapWithKeys(fn (PlatformProduct $p) => [
+            $p->slug => collect($quotes->layout($p)['rows'] ?? [])->where('primary', false)->values()->all(),
+        ]);
 
         $users = User::query()
             ->orderBy('name')
@@ -73,6 +78,7 @@ class OrderAdminController extends Controller
 
         return view('dashboard.admin.orders.create', [
             'products' => $products,
+            'companions' => $companions,
             'users' => $users,
         ]);
     }
@@ -83,6 +89,8 @@ class OrderAdminController extends Controller
             'user_id' => ['required', 'integer', 'exists:users,id'],
             'product_slug' => ['required', 'string', 'max:255'],
             'quantity' => ['required', 'integer', 'min:1', 'max:1000000'],
+            'qty' => ['nullable', 'array'],
+            'qty.*' => ['nullable', 'integer', 'min:0', 'max:1000000'],
             'target_url' => ['required', 'string', 'url', 'max:2048'],
             'channel_url' => ['nullable', 'string', 'url', 'max:500'],
             'comment_instructions' => ['nullable', 'string', 'max:'.\App\Services\Campaigns\CampaignBriefService::COMMENT_INSTRUCTIONS_MAX],
@@ -100,10 +108,11 @@ class OrderAdminController extends Controller
         }
 
         $quantity = (int) $validated['quantity'];
-        $min = $variant->effectiveMinUnits();
-        $max = $variant->effectiveMaxUnits();
-        if ($quantity < $min || $quantity > $max) {
-            return back()->withInput()->with('error', 'Quantity must be between '.number_format($min).' and '.number_format($max).'.');
+        $taskQuantities = array_map('intval', array_filter((array) ($validated['qty'] ?? []), fn ($v) => $v !== null && $v !== ''));
+        try {
+            app(\App\Services\Catalog\PackageQuoteService::class)->quote($product, $quantity, $taskQuantities, $variant);
+        } catch (\App\Services\Catalog\PackageQuoteException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
         }
 
         $user = User::query()->findOrFail((int) $validated['user_id']);
@@ -111,6 +120,7 @@ class OrderAdminController extends Controller
         $data = [
             'variant_id' => $variant->id,
             'quantity' => $quantity,
+            'task_quantities' => $taskQuantities,
             'target_url' => $validated['target_url'],
             'channel_url' => $validated['channel_url'] ?? null,
             'comment_instructions' => $validated['comment_instructions'] ?? null,

@@ -19,6 +19,16 @@
         'price' => old('pricing.price', $pricingVariant?->price ?? ''),
         'reward_percent' => old('agent_reward_percent', $product->agent_reward_percent),
     ];
+    $primaryTask = $taskProfile->primaryTask();
+    $savedLimits = is_array($product->task_limits) ? $product->task_limits : [];
+    $companionRows = array_map(fn ($task) => [
+        'task' => $task->value,
+        'label' => $taskProfile->quantityLabel($task),
+        'min' => (string) old('task_limits.'.$task->value.'.min', $savedLimits[$task->value]['min'] ?? ''),
+        'max' => (string) old('task_limits.'.$task->value.'.max', $savedLimits[$task->value]['max'] ?? ''),
+    ], $taskProfile->companionTasks());
+    $pricing['companions'] = $companionRows;
+    $pricing['main_label'] = $primaryTask ? strtolower($taskProfile->quantityLabel($primaryTask)) : 'units';
     $heroId = old('hero_media_id', $product->hero_media_id);
     $heroPreview = $heroId
         ? \App\Models\MediaAsset::query()->with('variants')->find((int) $heroId)?->thumbnailUrl()
@@ -70,9 +80,13 @@
                 exampleUnits() {
                     return Math.max(1, Math.round(Number(this.pricing.min_units) || 1));
                 },
+                companionValid(row) {
+                    const min = Number(row.min), max = Number(row.max);
+                    return row.min !== '' && row.max !== '' && Number.isInteger(min) && Number.isInteger(max) && min >= 0 && max >= 1 && max >= min;
+                },
                 formatMoney(n) {
                     if (n === null || n === undefined || !Number.isFinite(n)) return '-';
-                    return '₦' + n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+                    return window.formatMoney(n, { precision: 2, max: 6 });
                 }
             }"
             @submit="submitting = true"
@@ -110,7 +124,12 @@
                 <div>
                     <p class="text-sm font-medium text-text-primary">Pricing</p>
                     <p class="text-xs text-text-muted">
-                        Creators enter any quantity between the minimum and maximum purchase and pay the unit price for each unit. One unit is one agent completing every task for this product.
+                        Creators enter any quantity between the minimum and maximum purchase and pay the unit price for each unit.
+                        @if($companionRows !== [])
+                            The minimum and maximum here are for the main service ({{ $pricing['main_label'] }}).
+                        @else
+                            One unit is one agent completing the task.
+                        @endif
                     </p>
                 </div>
 
@@ -136,7 +155,7 @@
                     </div>
                     <div>
                         <label class="mb-1 block text-xs text-text-muted">
-                            Price per <span x-text="Number(pricing.pricing_units || 0).toLocaleString()"></span> (NGN)
+                            Price per <span x-text="Number(pricing.pricing_units || 0).toLocaleString()"></span> ({{ site_currency()->code }})
                         </label>
                         <input type="number" min="0.01" step="0.01" name="pricing[price]" x-model="pricing.price" class="{{ $inputClass }}" required>
                         @error('pricing.price')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
@@ -159,6 +178,45 @@
                         <span class="font-semibold text-text-primary" x-text="formatMoney(Math.round(exampleUnits() * unitPrice() * 100) / 100)"></span>
                     </p>
                 </div>
+
+                @if($companionRows !== [])
+                    <div class="space-y-3 border-t border-border-subtle pt-4">
+                        <div>
+                            <p class="text-sm font-medium text-text-primary">Companion services</p>
+                            <p class="text-xs text-text-muted">
+                                The price above is for the main service ({{ $pricing['main_label'] }}). Each companion's minimum is included in the package price.
+                                Creators can add more up to the maximum; each extra unit costs the same unit price. A minimum of 0 makes the service optional.
+                            </p>
+                        </div>
+                        <template x-for="row in pricing.companions" :key="row.task">
+                            <div class="grid grid-cols-1 gap-3 md:grid-cols-3 md:items-end">
+                                <p class="text-sm font-medium text-text-primary" x-text="row.label"></p>
+                                <div>
+                                    <label class="mb-1 block text-xs text-text-muted">Minimum</label>
+                                    <input type="number" min="0" step="1" :name="'task_limits[' + row.task + '][min]'" x-model="row.min" class="{{ $inputClass }}" required>
+                                </div>
+                                <div>
+                                    <label class="mb-1 block text-xs text-text-muted">Maximum</label>
+                                    <input type="number" min="1" step="1" :name="'task_limits[' + row.task + '][max]'" x-model="row.max" class="{{ $inputClass }}" required>
+                                </div>
+                                <p class="text-xs text-danger md:col-span-3" x-show="!companionValid(row)" x-cloak>Enter whole numbers. Maximum must be at least 1 and not below the minimum.</p>
+                            </div>
+                        </template>
+                        @foreach($companionRows as $row)
+                            @error('task_limits.'.$row['task'].'.min')<p class="text-xs text-danger">{{ $message }}</p>@enderror
+                            @error('task_limits.'.$row['task'].'.max')<p class="text-xs text-danger">{{ $message }}</p>@enderror
+                        @endforeach
+                        @error('task_limits')<p class="text-xs text-danger">{{ $message }}</p>@enderror
+
+                        <div class="rounded-lg border border-border-default bg-elevated/60 px-3 py-2 text-xs text-text-secondary" x-show="unitPrice() !== null" x-cloak>
+                            <p>
+                                Package price: <span class="font-semibold text-text-primary" x-text="formatMoney(Math.round(exampleUnits() * unitPrice() * 100) / 100)"></span>
+                                for <span x-text="exampleUnits().toLocaleString() + ' {{ $pricing['main_label'] }}'"></span><template x-for="row in pricing.companions" :key="'s-' + row.task"><span x-show="Number(row.min) > 0" x-text="', ' + Number(row.min).toLocaleString() + ' ' + row.label.toLowerCase()"></span></template>.
+                            </p>
+                            <p class="mt-1">Agents earn one reward of <span class="font-semibold text-text-primary" x-text="formatMoney(agentReward())"></span> each, paid after they finish every step they were given.</p>
+                        </div>
+                    </div>
+                @endif
             </div>
 
             <div

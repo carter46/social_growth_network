@@ -68,19 +68,21 @@ class VariantUnitPricingTest extends TestCase
 
     public function test_unit_price_and_agent_reward_math(): void
     {
-        $this->assertSame('8.0000', PlatformProductVariant::computeUnitPriceFromPackagePrice(8000, 1000));
-        $this->assertSame('16.0000', PlatformProductVariant::computeUnitPriceFromPackagePrice(8000, 500));
+        $this->assertSame('8.000000', PlatformProductVariant::computeUnitPriceFromPackagePrice(8000, 1000));
+        $this->assertSame('16.000000', PlatformProductVariant::computeUnitPriceFromPackagePrice(8000, 500));
+        $this->assertSame('0.002500', PlatformProductVariant::computeUnitPriceFromPackagePrice('2.50', 1000));
         $this->assertSame('12000.00', bcmul('8.0000', '1500', 2));
         $this->assertSame('400000.00', bcmul('8.0000', '50000', 2));
-        $this->assertSame('4.00', PlatformProductVariant::agentRewardForUnitPrice('8.0000', 50));
-        $this->assertSame('5.00', PlatformProductVariant::agentRewardForUnitPrice('20.0000', 25));
+        $this->assertSame('4.0000', PlatformProductVariant::agentRewardForUnitPrice('8.0000', 50));
+        $this->assertSame('5.0000', PlatformProductVariant::agentRewardForUnitPrice('20.0000', 25));
+        $this->assertSame('0.0012', PlatformProductVariant::agentRewardForUnitPrice('0.0025', 50));
     }
 
     public function test_pricing_label(): void
     {
         $variant = $this->seedProduct()->pricingVariant();
 
-        $this->assertSame('₦8,000 per 1,000 views', $variant->pricingLabel());
+        $this->assertSame('$8,000 per 1,000 views', $variant->pricingLabel());
     }
 
     public function test_admin_saves_single_pricing_and_reward_percent(): void
@@ -109,7 +111,7 @@ class VariantUnitPricingTest extends TestCase
         $variant = $product->pricingVariant();
         $this->assertTrue($variant->isPerUnit());
         $this->assertSame(500, (int) $variant->pricing_units);
-        $this->assertSame('16.0000', $variant->billingUnitPrice());
+        $this->assertSame('16.000000', $variant->billingUnitPrice());
         $this->assertSame(500, (int) $variant->min_units);
         $this->assertSame(50000, (int) $variant->max_units);
         $this->assertEquals(25.0, (float) $product->agent_reward_percent);

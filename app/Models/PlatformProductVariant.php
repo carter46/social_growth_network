@@ -18,6 +18,9 @@ class PlatformProductVariant extends Model
 
     public const DEFAULT_MAX_UNITS = 100000;
 
+    /** Smallest per-unit agent reward a product may be set up with (4-decimal ledger). */
+    public const MIN_AGENT_REWARD = '0.0001';
+
     protected $fillable = [
         'platform_product_id',
         'name',
@@ -42,7 +45,7 @@ class PlatformProductVariant extends Model
     {
         return [
             'price' => 'decimal:2',
-            'unit_price' => 'decimal:4',
+            'unit_price' => 'decimal:6',
             'pricing_units' => 'integer',
             'min_units' => 'integer',
             'max_units' => 'integer',
@@ -77,7 +80,7 @@ class PlatformProductVariant extends Model
      */
     public static function computeUnitPriceFromPackagePrice(float|string $packagePrice, int $pricingUnits = self::REFERENCE_UNITS): string
     {
-        return bcdiv(number_format((float) $packagePrice, 2, '.', ''), (string) max(1, $pricingUnits), 4);
+        return bcdiv(number_format((float) $packagePrice, 2, '.', ''), (string) max(1, $pricingUnits), 6);
     }
 
     public function effectivePricingUnits(): int
@@ -89,7 +92,7 @@ class PlatformProductVariant extends Model
     {
         if ($this->isPerUnit()) {
             if ($this->unit_price !== null) {
-                return number_format((float) $this->unit_price, 4, '.', '');
+                return number_format((float) $this->unit_price, 6, '.', '');
             }
 
             return self::computeUnitPriceFromPackagePrice((float) $this->price, $this->effectivePricingUnits());
@@ -99,14 +102,14 @@ class PlatformProductVariant extends Model
     }
 
     /**
-     * Agent earning for one completed unit, rounded down to the kobo.
+     * Agent earning for one completed unit, rounded down to the ledger scale (4 decimals).
      */
     public static function agentRewardForUnitPrice(float|string|null $unitPrice, float|string|null $percent): string
     {
-        $unit = number_format(max(0, (float) $unitPrice), 4, '.', '');
+        $unit = number_format(max(0, (float) $unitPrice), 6, '.', '');
         $pct = number_format(min(100, max(0, (float) $percent)), 2, '.', '');
 
-        return bcdiv(bcmul($unit, $pct, 6), '100', 2);
+        return bcdiv(bcmul($unit, $pct, 8), '100', 4);
     }
 
     public function agentRewardPerUnit(float|string|null $percent): string
@@ -114,12 +117,12 @@ class PlatformProductVariant extends Model
         return self::agentRewardForUnitPrice($this->billingUnitPrice(), $percent);
     }
 
-    /** e.g. "₦8,000 per 1,000 views" or "₦8 per view". */
+    /** e.g. "$8 per 1,000 views" or "$0.008 per view". */
     public function pricingLabel(?EngagementMetric $metric = null): string
     {
         $units = $this->effectivePricingUnits();
         $price = (float) $this->price;
-        $amount = '₦'.number_format($price, fmod($price, 1.0) === 0.0 ? 0 : 2);
+        $amount = money($price, fmod($price, 1.0) === 0.0 ? 0 : 2);
 
         if ($units === 1) {
             return $amount.' per '.$this->resolveUnitLabel($metric);

@@ -37,7 +37,7 @@
         <div class="flex-1"></div>
         @if($price !== null)
             <div class="mt-1 flex flex-wrap items-center justify-between gap-2">
-                <span class="font-bold text-primary text-sm sm:text-base">From ₦{{ number_format((float) $price, 0) }}</span>
+                <span class="font-bold text-primary text-sm sm:text-base">From {{ money((float) $price, 2) }}</span>
                 <x-ui.button :href="$href" size="xs" variant="primary">
                     {{ $ctaLabel }}
                 </x-ui.button>

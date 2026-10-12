@@ -95,7 +95,7 @@ class MyToolsShowTest extends TestCase
         $response->assertOk()
             ->assertSee('Our team is configuring your service. Your admin login details will appear once done.', false)
             ->assertDontSee('Setup in progress')
-            ->assertSee('₦27,000.00')
+            ->assertSee('$27,000.00')
             ->assertSee('Site URL')
             ->assertSee('Admin login email')
             ->assertSee('Password')

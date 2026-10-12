@@ -35,7 +35,7 @@ class DemoWalletSeeder extends Seeder
                 'wallet_id' => $wallet->id,
                 'method' => 'bank',
                 'amount' => $baseAmount,
-                'currency' => 'NGN',
+                'currency' => config('platform.currency'),
                 'status' => 'approved',
                 'reference' => $ctx->ref('DEP'),
                 'approved_by' => $finance->id,
@@ -53,7 +53,7 @@ class DemoWalletSeeder extends Seeder
                 'label' => 'Deposit (bank)',
                 'description' => 'Wallet funding approved',
                 'amount' => $baseAmount,
-                'currency' => 'NGN',
+                'currency' => config('platform.currency'),
                 'status' => 'completed',
             ]);
             $ctx->stamp($baseTxn, $baseAt->copy()->addHours(2));
@@ -71,7 +71,7 @@ class DemoWalletSeeder extends Seeder
                     'wallet_id' => $wallet->id,
                     'method' => 'bank',
                     'amount' => $amount,
-                    'currency' => 'NGN',
+                    'currency' => config('platform.currency'),
                     'status' => 'approved',
                     'reference' => $ref,
                     'approved_by' => $finance->id,
@@ -90,7 +90,7 @@ class DemoWalletSeeder extends Seeder
                     'label' => 'Deposit (bank)',
                     'description' => 'Wallet funding approved',
                     'amount' => $amount,
-                    'currency' => 'NGN',
+                    'currency' => config('platform.currency'),
                     'status' => 'completed',
                 ]);
                 $ctx->stamp($txn, $at->copy()->addHours(2));
@@ -104,7 +104,7 @@ class DemoWalletSeeder extends Seeder
                     'wallet_id' => $wallet->id,
                     'method' => 'bank',
                     'amount' => 20000,
-                    'currency' => 'NGN',
+                    'currency' => config('platform.currency'),
                     'status' => 'pending',
                     'reference' => $ctx->ref('DEP'),
                     'metadata' => ['demo' => true, 'pending' => true],
@@ -118,7 +118,7 @@ class DemoWalletSeeder extends Seeder
                     'user_id' => $user->id,
                     'wallet_id' => $wallet->id,
                     'amount' => 12000,
-                    'currency' => 'NGN',
+                    'currency' => config('platform.currency'),
                     'status' => 'completed',
                     'reference' => $ctx->ref('WDR'),
                     'bank_name' => 'Demo Bank',
@@ -138,7 +138,7 @@ class DemoWalletSeeder extends Seeder
                     'label' => 'Withdrawal',
                     'description' => 'Payout completed',
                     'amount' => -12000,
-                    'currency' => 'NGN',
+                    'currency' => config('platform.currency'),
                     'status' => 'completed',
                 ]);
                 $ctx->stamp($txn, $at->copy()->addDay());
@@ -151,7 +151,7 @@ class DemoWalletSeeder extends Seeder
                     'user_id' => $user->id,
                     'wallet_id' => $wallet->id,
                     'amount' => 5000,
-                    'currency' => 'NGN',
+                    'currency' => config('platform.currency'),
                     'status' => 'pending',
                     'reference' => $ctx->ref('WDR'),
                     'bank_name' => 'Demo Bank',
@@ -171,7 +171,7 @@ class DemoWalletSeeder extends Seeder
             'wallet_id' => $aliceWallet->id,
             'method' => 'bank',
             'amount' => 10000,
-            'currency' => 'NGN',
+            'currency' => config('platform.currency'),
             'status' => 'reversed',
             'reference' => $ctx->ref('DEP'),
             'approved_by' => $finance->id,
@@ -193,7 +193,7 @@ class DemoWalletSeeder extends Seeder
             'label' => 'Deposit (bank)',
             'description' => 'Wallet funding approved',
             'amount' => 10000,
-            'currency' => 'NGN',
+            'currency' => config('platform.currency'),
             'status' => 'completed',
         ]);
         $ctx->stamp($orig, $revAt);
@@ -209,7 +209,7 @@ class DemoWalletSeeder extends Seeder
             'label' => 'Reversal',
             'description' => 'Duplicate credit',
             'amount' => -10000,
-            'currency' => 'NGN',
+            'currency' => config('platform.currency'),
             'status' => 'completed',
         ]);
         $ctx->stamp($reversal, $revAt->copy()->addDays(1));
@@ -230,7 +230,7 @@ class DemoWalletSeeder extends Seeder
                 'label' => 'Admin adjustment',
                 'description' => 'Demo goodwill credit',
                 'amount' => 500,
-                'currency' => 'NGN',
+                'currency' => config('platform.currency'),
                 'status' => 'completed',
             ]);
             $ctx->stamp($adj, $at);

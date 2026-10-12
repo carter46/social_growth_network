@@ -10,6 +10,11 @@ use App\Modules\Catalog\Services\CatalogBrowseService;
 use App\Modules\Catalog\Services\CatalogContentResolver;
 use App\Modules\Catalog\Services\PlatformCheckoutService;
 use App\Services\Analytics\UserActivityRecorder;
+use App\Services\Campaigns\CampaignBriefException;
+use App\Services\Catalog\PackageLinkValidator;
+use App\Services\Catalog\PackageQuoteException;
+use App\Services\Catalog\PackageQuoteService;
+use App\Services\Catalog\PurchaseDraftService;
 use App\Services\Engagement\TargetUrlValidator;
 use App\Support\PlatformProductSlugRedirect;
 use Illuminate\Http\JsonResponse;
@@ -225,51 +230,36 @@ class DiscoverServicesController extends Controller
         }
 
         $showPlanSummary = true;
-        $selectedUnits = max(0, $request->integer('units'));
-        $min = $defaultVariant->effectiveMinUnits();
-        $max = $defaultVariant->effectiveMaxUnits();
-        if ($selectedUnits < $min || $selectedUnits > $max) {
+        $selectedQty = is_array($request->query('qty')) ? $request->query('qty') : [];
+        $briefInput = [
+            'target_url' => (string) $request->query('target_url', ''),
+            'channel_url' => (string) $request->query('channel_url', ''),
+            'comment_instructions' => (string) $request->query('comment_instructions', ''),
+        ];
+        $backInput = $briefInput + ['units' => (string) $request->query('units', ''), 'qty' => $selectedQty];
+
+        try {
+            $quote = app(PackageQuoteService::class)->quote($product, (string) $request->query('units', ''), $selectedQty, $defaultVariant);
+        } catch (PackageQuoteException $e) {
             return redirect()
-                ->route('dashboard.services.product', array_filter([
-                    'slug' => $product->slug,
-                    'target_url' => $request->query('target_url'),
-                    'channel_url' => $request->query('channel_url'),
-                    'comment_instructions' => $request->query('comment_instructions'),
-                ]))
-                ->with('error', 'Enter between '.number_format($min).' and '.number_format($max).' '.$defaultVariant->resolveUnitLabelPlural($metric).' before checkout.');
+                ->route('dashboard.services.product', $product->slug)
+                ->withInput($backInput)
+                ->withErrors([$e->field => $e->getMessage()])
+                ->with('error', $e->getMessage());
         }
+        $selectedUnits = $quote['main_qty'];
 
         $targetUrl = null;
         $brief = [];
         if ($product->requiresTargetUrl()) {
-            $targetUrl = TargetUrlValidator::normalize($request->query('target_url'));
-            $linkError = $targetUrl === null ? 'Enter your link before checkout.' : null;
-            if ($targetUrl !== null) {
-                try {
-                    TargetUrlValidator::assertValidForProduct($targetUrl, (string) $product->slug);
-                } catch (InvalidArgumentException $e) {
-                    $linkError = $e->getMessage();
-                }
-            }
-            $briefInput = [
-                'target_url' => (string) $request->query('target_url', ''),
-                'channel_url' => (string) $request->query('channel_url', ''),
-                'comment_instructions' => (string) $request->query('comment_instructions', ''),
-            ];
-            $linkErrorField = 'target_url';
-            if ($linkError === null) {
-                try {
-                    $brief = app(\App\Services\Campaigns\CampaignBriefService::class)->resolve($product, $briefInput);
-                } catch (\App\Services\Campaigns\CampaignBriefException $e) {
-                    $linkError = $e->getMessage();
-                    $linkErrorField = $e->field;
-                }
-            }
-            if ($linkError !== null) {
+            try {
+                $brief = app(PackageLinkValidator::class)->validate($product, $briefInput);
+                $targetUrl = TargetUrlValidator::normalize($briefInput['target_url']);
+            } catch (CampaignBriefException $e) {
                 return redirect()
                     ->route('dashboard.services.product', $product->slug)
-                    ->withInput($briefInput + ['units' => $selectedUnits])
-                    ->withErrors([$linkErrorField => $linkError]);
+                    ->withInput($backInput)
+                    ->withErrors([$e->field => $e->getMessage()]);
             }
         }
 
@@ -293,6 +283,8 @@ class DiscoverServicesController extends Controller
             'targetUrl' => $targetUrl,
             'taskProfile' => $product->taskProfile(),
             'campaignBrief' => $brief,
+            'packageQuote' => $quote,
+            'packageLayout' => app(PackageQuoteService::class)->layout($product),
             'basePrice' => (float) $product->displayPrice(),
             'showPlanSummary' => $showPlanSummary,
             'isWebsitePackage' => false,
@@ -307,6 +299,8 @@ class DiscoverServicesController extends Controller
             'wallet' => $request->user()->wallet,
             'renewTool' => $renewTool,
             'gatewayEnabled' => $this->checkoutService->gatewayEnabled(),
+            'gateways' => $this->checkoutService->availableGateways(),
+            'defaultGateway' => $this->checkoutService->defaultGatewayKey(),
             'manualBankTransferEnabled' => $this->checkoutService->manualBankTransferEnabledForCheckout(),
         ]);
     }
@@ -347,9 +341,12 @@ class DiscoverServicesController extends Controller
         $rules = [
             'variant_id' => ['nullable', 'integer', 'exists:platform_product_variants,id'],
             'quantity' => ['required', 'integer', 'min:1', 'max:1000000'],
+            'qty' => ['nullable', 'array'],
+            'qty.*' => ['nullable', 'integer', 'min:0', 'max:1000000'],
             'idempotency_key' => ['required', 'string', 'uuid', 'max:64'],
             'renew_user_tool_id' => ['nullable', 'integer', 'exists:user_tools,id'],
             'payment_method' => ['nullable', 'in:'.implode(',', $allowedMethods)],
+            'gateway' => ['nullable', 'string', 'max:40'],
             'target_url' => [
                 Rule::requiredIf(fn () => $product->taskProfile()->legacyMetric() !== null),
                 'nullable',
@@ -379,15 +376,20 @@ class DiscoverServicesController extends Controller
             return back()->withInput()->with('error', 'This product is not available to buy yet. Please try again later.');
         }
 
-        $metric = $product->taskProfile()->legacyMetric();
-        $units = (int) $data['quantity'];
-        $min = $variant->effectiveMinUnits();
-        $max = $variant->effectiveMaxUnits();
-        if ($units < $min || $units > $max) {
-            return back()->withInput()->with(
-                'error',
-                'Quantity must be between '.number_format($min).' and '.number_format($max).' '.$variant->resolveUnitLabelPlural($metric).'.'
-            );
+        $data['task_quantities'] = array_map('intval', (array) ($data['qty'] ?? []));
+        unset($data['qty']);
+        try {
+            app(PackageQuoteService::class)->quote($product, (string) $data['quantity'], $data['task_quantities'], $variant);
+        } catch (PackageQuoteException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+
+        if ($product->requiresTargetUrl()) {
+            try {
+                $data['campaign_brief'] = app(PackageLinkValidator::class)->validate($product, $data);
+            } catch (CampaignBriefException $e) {
+                return back()->withInput()->withErrors([$e->field => $e->getMessage()])->with('error', $e->getMessage());
+            }
         }
 
         $data['variant_id'] = $variant->id;
@@ -405,6 +407,7 @@ class DiscoverServicesController extends Controller
 
         try {
             $order = $this->checkoutService->purchase($request->user(), $product, $data);
+            app(PurchaseDraftService::class)->clear($product->slug);
         } catch (InvalidArgumentException $e) {
             return back()->withInput()->with('error', $e->getMessage());
         } catch (\Throwable $e) {
@@ -468,8 +471,8 @@ class DiscoverServicesController extends Controller
             ? route('dashboard.service-orders')
             : route('dashboard.services.checkout', $slug);
 
-        $paymentReference = $request->string('paymentReference')->toString()
-            ?: $request->string('payment_reference')->toString();
+        $paymentReference = $request->string('reference')->toString()
+            ?: $request->string('tx_ref')->toString();
 
         if ($paymentReference === '') {
             return redirect()
@@ -490,15 +493,7 @@ class DiscoverServicesController extends Controller
         }
 
         try {
-            $rail = app(\App\Modules\Wallet\Payments\Contracts\PaymentRailInterface::class);
-            $verified = $rail->verifyTransaction($paymentReference);
-            $status = strtoupper((string) ($verified['paymentStatus'] ?? ''));
-            $amountPaid = (string) ($verified['amountPaid'] ?? '0');
-
-            if (in_array($status, ['PAID', 'SUCCESS', 'COMPLETED'], true)
-                && bccomp($amountPaid, (string) $order->total_amount, 2) === 0) {
-                $order = $this->checkoutService->fulfillPaidGatewayOrder($order);
-            }
+            $order = $this->checkoutService->confirmGatewayOrder($order);
         } catch (\Throwable $e) {
             Log::warning('Platform gateway callback verify failed', [
                 'order_id' => $order->id,

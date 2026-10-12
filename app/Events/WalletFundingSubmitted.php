@@ -13,7 +13,9 @@ class WalletFundingSubmitted
         public int $fundingId,
         public int $userId,
         public float $amount,
-        public string $currency = 'NGN',
+        public string $currency = '',
         public string $method = 'bank',
-    ) {}
+    ) {
+        $this->currency = $this->currency ?: \App\Support\Money\Currency::current()->code;
+    }
 }

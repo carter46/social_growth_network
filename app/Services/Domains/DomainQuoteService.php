@@ -622,7 +622,7 @@ class DomainQuoteService
     }
 
     /**
-     * @return array{tld: string, provider_cost: float, provider_currency: string, retail_ngn: float}|null
+     * @return array{tld: string, provider_cost: float, provider_currency: string, retail: float}|null
      */
     public function pricingFloorExample(PlatformProduct $product): ?array
     {
@@ -649,7 +649,7 @@ class DomainQuoteService
                 'tld' => $cheapest->tld,
                 'provider_cost' => $cheapest->registrationCost,
                 'provider_currency' => $cheapest->currency,
-                'retail_ngn' => (float) $priced['retail_price'],
+                'retail' => (float) $priced['retail_price'],
             ];
         } catch (\Throwable) {
             return null;

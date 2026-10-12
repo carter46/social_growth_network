@@ -45,7 +45,7 @@ class AnalyticsService implements AnalyticsServiceInterface
 
         if ($user->can('finance.manage') || $user->can('analytics.view')) {
             $kpis = $this->business->kpis();
-            $overview['kpis']['sales_total_ngn'] = $kpis['sales_total_ngn'];
+            $overview['kpis']['sales_total'] = $kpis['sales_total'];
             $overview['kpis']['transactions_total'] = $kpis['transactions_total'];
         }
 

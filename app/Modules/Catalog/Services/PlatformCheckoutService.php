@@ -12,8 +12,13 @@ use App\Models\PlatformProductVariant;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\UserTool;
-use App\Modules\Wallet\Payments\Contracts\PaymentRailInterface;
+use App\Modules\Wallet\Payments\Data\CheckoutRequest;
+use App\Modules\Wallet\Payments\Exceptions\GatewayException;
+use App\Modules\Wallet\Payments\Exceptions\GatewayUnavailable;
+use App\Modules\Wallet\Payments\GatewayRegistry;
 use App\Modules\Wallet\Services\WalletService;
+use App\Services\Notifications\AdminPaymentAlertNotifier;
+use App\Support\Money\Money;
 use App\Services\Domains\DomainCheckoutValidator;
 use App\Services\Domains\DomainConnectionService;
 use App\Services\Domains\DomainQuoteService;
@@ -32,7 +37,7 @@ class PlatformCheckoutService
     public function __construct(
         private WalletService $walletService,
         private UserToolProvisioningService $userTools,
-        private PaymentRailInterface $paymentRail,
+        private GatewayRegistry $gateways,
         private DomainCheckoutValidator $domainCheckout,
         private DomainQuoteService $domainQuotes,
         private DomainConnectionService $domainConnections,
@@ -40,7 +45,68 @@ class PlatformCheckoutService
 
     public function gatewayEnabled(): bool
     {
-        return $this->paymentRail->isConfigured();
+        return $this->gateways->hasCollectionGateway();
+    }
+
+    /** @return array<string, string> key => display name, in admin order */
+    public function availableGateways(): array
+    {
+        return collect($this->gateways->availableCollectionGateways())
+            ->map(fn ($driver) => $driver->displayName())
+            ->all();
+    }
+
+    public function defaultGatewayKey(): ?string
+    {
+        return $this->gateways->defaultCollectionKey();
+    }
+
+    /**
+     * Ask the order's own gateway whether it was paid; fulfil it once when it was.
+     */
+    public function confirmGatewayOrder(Order $order): Order
+    {
+        if ($order->status === 'paid') {
+            return $order;
+        }
+
+        if ($order->payment_method !== 'gateway' || ! filled($order->provider_payment_reference)) {
+            throw new InvalidArgumentException('This order was not paid through a payment gateway.');
+        }
+
+        $driver = $this->gateways->collectionDriver((string) $order->payment_provider);
+        if (! $driver) {
+            throw new InvalidArgumentException('The payment provider for this order is no longer available. An admin will review it.');
+        }
+
+        $event = $driver->verify((string) $order->provider_payment_reference, $order->provider_transaction_reference);
+
+        $metadata = (array) ($order->payment_metadata ?? []);
+        $metadata['last_verify'] = ['status' => $event->status, 'at' => now()->toIso8601String(), 'code' => $event->failureCode];
+        $order->update([
+            'provider_transaction_reference' => $event->providerReference ?? $order->provider_transaction_reference,
+            'payment_metadata' => $metadata,
+        ]);
+
+        if (! $event->succeeded()) {
+            return $order->fresh();
+        }
+
+        $expectedCurrency = (string) config('platform.currency', 'USD');
+        if (strtoupper((string) $event->currency) !== strtoupper($expectedCurrency)
+            || Money::cmp((string) $event->amount, (string) $order->total_amount, 2) !== 0) {
+            app(AdminPaymentAlertNotifier::class)->amountMismatch(
+                'Order '.$order->reference,
+                money($order->total_amount),
+                trim(($event->currency ?? '').' '.($event->amount ?? '?')),
+                ['order_id' => $order->id],
+                (string) $order->payment_provider,
+            );
+
+            throw new InvalidArgumentException('Paid amount does not match the order total. An admin will review it.');
+        }
+
+        return $this->fulfillPaidGatewayOrder($order->fresh());
     }
 
     public function manualBankTransferEnabledForCheckout(): bool
@@ -57,7 +123,9 @@ class PlatformCheckoutService
         $requested = (string) ($data['payment_method'] ?? 'wallet');
 
         // Resolved outside the order transaction because it may call the YouTube Data API.
-        $data['campaign_brief'] = app(\App\Services\Campaigns\CampaignBriefService::class)->resolve($product, $data);
+        $data['campaign_brief'] = is_array($data['campaign_brief'] ?? null)
+            ? $data['campaign_brief']
+            : app(\App\Services\Campaigns\CampaignBriefService::class)->resolve($product, $data);
 
         if ($requested === Order::PAYMENT_MANUAL_BANK_TRANSFER) {
             if (! $allowManualWithoutToggle && ! $this->manualBankTransferEnabledForCheckout()) {
@@ -94,7 +162,7 @@ class PlatformCheckoutService
     }
 
     /**
-     * Complete a pending gateway order after Monnify verify/webhook.
+     * Complete a pending gateway order after the gateway confirmed payment.
      */
     public function fulfillPaidGatewayOrder(Order $order): Order
     {
@@ -194,7 +262,7 @@ class PlatformCheckoutService
                 (int) $cancelled->id,
                 (int) $cancelled->user_id,
                 (float) $cancelled->total_amount,
-                (string) ($cancelled->currency ?? 'NGN'),
+                (string) ($cancelled->currency ?? config('platform.currency')),
                 (string) $cancelled->reference,
                 (string) ($reason ?? 'Payment not completed.'),
             );
@@ -249,7 +317,7 @@ class PlatformCheckoutService
                 (int) $order->id,
                 (int) $order->user_id,
                 (float) $order->total_amount,
-                (string) ($order->currency ?? 'NGN'),
+                (string) ($order->currency ?? config('platform.currency')),
                 (string) $order->reference,
             );
         }
@@ -500,9 +568,12 @@ class PlatformCheckoutService
      */
     private function purchaseViaGateway(User $buyer, PlatformProduct $product, array $data): Order
     {
-        if (! $this->gatewayEnabled()) {
-            throw new InvalidArgumentException('Card/transfer checkout is not available right now.');
+        try {
+            $driver = $this->gateways->collection($data['gateway'] ?? null);
+        } catch (GatewayUnavailable $e) {
+            throw new InvalidArgumentException($e->getMessage());
         }
+        $gatewayKey = $driver->key();
 
         $redirectUrl = (string) ($data['redirect_url'] ?? '');
         if ($redirectUrl === '') {
@@ -523,6 +594,7 @@ class PlatformCheckoutService
                     $existing->isAwaitingGatewayPayment()
                     && filled($existing->checkout_url)
                     && ! $existing->isCheckoutExpired()
+                    && $existing->payment_provider === $gatewayKey
                 ) {
                     return $existing;
                 }
@@ -530,7 +602,7 @@ class PlatformCheckoutService
         }
 
         try {
-            $order = DB::transaction(function () use ($buyer, $product, $data, $idempotencyKey) {
+            $order = DB::transaction(function () use ($buyer, $product, $data, $idempotencyKey, $gatewayKey) {
                 if ($idempotencyKey) {
                     $existing = Order::query()
                         ->where('user_id', $buyer->id)
@@ -541,11 +613,7 @@ class PlatformCheckoutService
                         if ($existing->status === 'paid') {
                             return $existing;
                         }
-                        if (
-                            $existing->isAwaitingGatewayPayment()
-                            && filled($existing->checkout_url)
-                            && ! $existing->isCheckoutExpired()
-                        ) {
+                        if ($existing->isAwaitingGatewayPayment()) {
                             return $existing;
                         }
                     }
@@ -565,7 +633,7 @@ class PlatformCheckoutService
                     'total_amount' => $checkout['total'],
                     'status' => 'pending',
                     'payment_method' => 'gateway',
-                    'payment_provider' => $this->paymentRail->providerKey(),
+                    'payment_provider' => $gatewayKey,
                     'provider_payment_reference' => $paymentReference,
                     'idempotency_key' => $idempotencyKey,
                 ]);
@@ -599,30 +667,60 @@ class PlatformCheckoutService
             return $this->recoverIdempotent($buyer, $idempotencyKey, $e);
         }
 
-        if ($order->status === 'paid' || (filled($order->checkout_url) && ! $order->isCheckoutExpired())) {
+        if ($order->status === 'paid') {
+            return $order;
+        }
+        if (filled($order->checkout_url) && ! $order->isCheckoutExpired() && $order->payment_provider === $gatewayKey) {
             return $order;
         }
 
-        if ($order->isCheckoutExpired() || ! filled($order->provider_payment_reference)) {
+        if ($order->payment_provider !== $gatewayKey || $order->isCheckoutExpired() || filled($order->checkout_url) || ! filled($order->provider_payment_reference)) {
+            $metadata = (array) ($order->payment_metadata ?? []);
+            if (filled($order->provider_payment_reference)) {
+                $metadata['replaced_references'] = array_slice(array_merge((array) ($metadata['replaced_references'] ?? []), [[
+                    'provider' => (string) $order->payment_provider,
+                    'reference' => (string) $order->provider_payment_reference,
+                    'transaction_reference' => $order->provider_transaction_reference,
+                    'replaced_at' => now()->toIso8601String(),
+                ]]), -10);
+            }
             $order->update([
+                'payment_metadata' => $metadata,
+                'payment_provider' => $gatewayKey,
                 'provider_payment_reference' => 'PLT-PAY-'.strtoupper((string) Str::ulid()),
+                'provider_transaction_reference' => null,
+                'checkout_url' => null,
             ]);
             $order->refresh();
         }
 
-        $init = $this->paymentRail->initializeCheckout([
-            'amount' => (float) $order->total_amount,
-            'paymentReference' => $order->provider_payment_reference,
-            'customerName' => $buyer->name,
-            'customerEmail' => $buyer->email,
-            'redirectUrl' => $redirectUrl,
-            'paymentDescription' => 'Order '.$order->reference,
-        ]);
+        $separator = str_contains($redirectUrl, '?') ? '&' : '?';
+        $returnUrl = $redirectUrl.$separator.'reference='.urlencode((string) $order->provider_payment_reference);
+        $minutes = (int) config('payments.checkout_expiry_minutes', 40);
+
+        try {
+            $session = $driver->initializeCheckout(new CheckoutRequest(
+                amount: Money::round((string) $order->total_amount, 2),
+                currency: (string) config('platform.currency', 'USD'),
+                reference: (string) $order->provider_payment_reference,
+                customerEmail: (string) $buyer->email,
+                customerName: (string) $buyer->name,
+                callbackUrl: $returnUrl,
+                description: 'Order '.$order->reference,
+                cancelUrl: $returnUrl,
+                expiresInMinutes: $minutes,
+                metadata: ['type' => 'order', 'order_id' => $order->id],
+            ));
+        } catch (GatewayException $e) {
+            Log::warning('order.checkout_failed', ['order_id' => $order->id, 'gateway' => $gatewayKey, 'code' => $e->providerCode, 'error' => $e->getMessage()]);
+
+            throw new InvalidArgumentException('We could not open '.$driver->displayName().' right now. Try again, or choose another payment option.');
+        }
 
         $order->update([
-            'checkout_url' => $init['checkoutUrl'],
-            'provider_transaction_reference' => $init['transactionReference'],
-            'checkout_expires_at' => now()->addMinutes(40),
+            'checkout_url' => $session->checkoutUrl,
+            'provider_transaction_reference' => $session->providerReference,
+            'checkout_expires_at' => $session->expiresAt ?? now()->addMinutes($minutes),
             'status' => 'processing',
         ]);
 
@@ -767,7 +865,7 @@ class PlatformCheckoutService
                 'tld' => $domainContext['tld'],
                 'domain_mode' => 'buy',
                 'retail_price' => $retail,
-                'retail_currency' => 'NGN',
+                'retail_currency' => config('platform.currency'),
                 'premium' => $quote->premium,
                 'product_title' => $domainProduct->title,
                 'domain_quote_id' => $quote->id,
@@ -801,18 +899,16 @@ class PlatformCheckoutService
             throw new InvalidArgumentException('This product is not available to buy yet. Please try again later.');
         }
 
-        $qty = (int) ($data['quantity'] ?? 0);
-        $unitPrice = $variant->billingUnitPrice();
-        $min = $variant->effectiveMinUnits();
-        $max = $variant->effectiveMaxUnits();
-        if ($qty < $min || $qty > $max) {
-            throw new InvalidArgumentException(
-                'Quantity must be between '.number_format($min).' and '.number_format($max).' '.$variant->resolveUnitLabelPlural($metric).'.'
-            );
-        }
+        $quote = app(\App\Services\Catalog\PackageQuoteService::class)->quote(
+            $product,
+            $data['quantity'] ?? null,
+            is_array($data['task_quantities'] ?? null) ? $data['task_quantities'] : [],
+            $variant,
+        );
+        $qty = $quote['main_qty'];
+        $unitPrice = $quote['unit_price'];
         $engagementQuantity = $qty;
-
-        $lineTotal = bcmul($unitPrice, (string) $qty, 2);
+        $lineTotal = $quote['total'];
 
         $renewToolId = isset($data['renew_user_tool_id']) ? (int) $data['renew_user_tool_id'] : null;
         $renewTool = null;
@@ -839,7 +935,20 @@ class PlatformCheckoutService
             'pricing_units' => $variant->effectivePricingUnits(),
             'pricing_price' => number_format((float) $variant->price, 2, '.', ''),
             'unit_label' => $variant->resolveUnitLabel($metric),
+            'unit_price' => $unitPrice,
         ];
+
+        if ($product->isCampaignProduct()
+            && bccomp(PlatformProductVariant::agentRewardForUnitPrice($unitPrice, $product->agent_reward_percent), PlatformProductVariant::MIN_AGENT_REWARD, 4) < 0) {
+            throw new InvalidArgumentException('This package is priced too low to pay agents a reward. Please contact support.');
+        }
+
+        if ($product->taskProfile()->isMultiTask()) {
+            $domainOptions['main_task'] = $quote['main_task'];
+            $domainOptions['task_quantities'] = $quote['task_quantities'];
+            $domainOptions['task_limits'] = $quote['task_limits'];
+            $domainOptions['extra_units'] = $quote['extra_units'];
+        }
 
         if (! empty($data['target_url'])) {
             $targetUrl = \App\Services\Engagement\TargetUrlValidator::normalize((string) $data['target_url']);

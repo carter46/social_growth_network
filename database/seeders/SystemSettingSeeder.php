@@ -11,9 +11,9 @@ class SystemSettingSeeder extends Seeder
     {
         $defaults = [
             'platform_fee_percent' => '2.5',
-            'withdrawal_min_amount' => '100',
-            'withdrawal_max_amount' => '1000000',
-            'deposit_min_amount' => '100',
+            'withdrawal_min_amount' => '10',
+            'withdrawal_max_amount' => '5000',
+            'deposit_min_amount' => '1',
             'live_chat_provider' => 'none',
             'smartsupp_key' => '',
             'jivo_widget_id' => '',

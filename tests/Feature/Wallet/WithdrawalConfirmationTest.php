@@ -2,62 +2,50 @@
 
 namespace Tests\Feature\Wallet;
 
+use App\Models\PayoutAccount;
 use App\Models\User;
-use App\Models\UserBankAccount;
 use App\Models\Withdrawal;
 use App\Modules\Wallet\Services\SecurityVerificationService;
-use App\Modules\Wallet\Services\WalletProvisioningService;
-use App\Modules\Wallet\Services\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Tests\Support\BuildsPayouts;
 use Tests\TestCase;
 
 class WithdrawalConfirmationTest extends TestCase
 {
+    use BuildsPayouts;
     use RefreshDatabase;
 
-    private function userWithBank(): array
+    /** @return array{0: User, 1: PayoutAccount} */
+    private function userWithPayoutAccount(): array
     {
-        $user = User::factory()->kycApproved()->create([
-            'email_verified_at' => now(),
-            'password' => Hash::make('password-123'),
-        ]);
-        $user->assignRole('agent');
-        app(WalletProvisioningService::class)->createWallet($user);
-        app(WalletService::class)->adminAdjust($user->fresh()->wallet, 5000, 'Test', 1);
+        $this->installPayoutGateways(providerFee: '1.50');
+        $this->coverRoute();
 
-        $bank = UserBankAccount::create([
-            'user_id' => $user->id,
-            'bank_name' => 'GTBank',
-            'bank_code' => '058',
-            'account_number' => '0123456789',
-            'verified_name' => 'Test User',
-            'verified_at' => now(),
-            'verified_by' => 'monnify',
-            'active' => true,
-        ]);
+        $user = $this->agentWithBalance('500.00', 'Test User');
+        $user->forceFill(['password' => Hash::make('password-123')])->save();
 
-        return [$user->fresh(), $bank];
+        return [$user->fresh(), $this->payoutAccount($user)];
     }
 
     public function test_withdrawal_requires_password_and_otp(): void
     {
-        [$user, $bank] = $this->userWithBank();
+        [$user, $account] = $this->userWithPayoutAccount();
 
         $this->actingAs($user)
             ->post(route('agent.withdrawal.otp'), [
                 'password' => 'wrong-password',
-                'amount' => 1000,
-                'user_bank_account_id' => $bank->id,
+                'amount' => 100,
+                'payout_account_id' => $account->id,
             ])
             ->assertSessionHasErrors('password');
 
         $this->actingAs($user)
             ->post(route('agent.withdrawal.otp'), [
                 'password' => 'password-123',
-                'amount' => 1000,
-                'user_bank_account_id' => $bank->id,
+                'amount' => 100,
+                'payout_account_id' => $account->id,
             ])
             ->assertRedirect(route('agent.withdrawal.create'));
 
@@ -73,20 +61,38 @@ class WithdrawalConfirmationTest extends TestCase
         $withdrawal = Withdrawal::where('user_id', $user->id)->first();
         $this->assertNotNull($withdrawal);
         $this->assertSame('pending_review', $withdrawal->internal_status);
-        $this->assertEquals(1000.0, (float) $withdrawal->amount);
+        $this->assertSame('USD', $withdrawal->currency);
+        $this->assertSame($account->id, (int) $withdrawal->payout_account_id);
+        $this->assertEquals(100.0, (float) $withdrawal->amount);
+        $this->assertEquals(1.5, (float) $withdrawal->provider_fee);
+        $this->assertEquals(98.5, (float) $withdrawal->net_amount);
 
         $user->wallet->refresh();
-        $this->assertEquals(1000.0, (float) $user->wallet->locked_balance);
+        $this->assertEquals(100.0, (float) $user->wallet->locked_balance);
+    }
+
+    public function test_withdrawal_to_a_non_primary_account_is_refused(): void
+    {
+        [$user] = $this->userWithPayoutAccount();
+        $other = $this->payoutAccount($user, ['is_primary' => false, 'details' => ['bank_code' => '001', 'account_number' => '9999999999']]);
+
+        $this->actingAs($user)
+            ->post(route('agent.withdrawal.otp'), [
+                'password' => 'password-123',
+                'amount' => 100,
+                'payout_account_id' => $other->id,
+            ])
+            ->assertSessionHasErrors('payout_account_id');
     }
 
     public function test_direct_store_redirects_to_stepped_flow(): void
     {
-        [$user, $bank] = $this->userWithBank();
+        [$user, $account] = $this->userWithPayoutAccount();
 
         $this->actingAs($user)
             ->post(route('agent.withdrawal.store'), [
-                'amount' => 500,
-                'user_bank_account_id' => $bank->id,
+                'amount' => 50,
+                'payout_account_id' => $account->id,
             ])
             ->assertRedirect(route('agent.withdrawal.create'))
             ->assertSessionHas('error');

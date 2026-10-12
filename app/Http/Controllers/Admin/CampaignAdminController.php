@@ -63,7 +63,7 @@ class CampaignAdminController extends Controller
 
         $totalCost = $campaign->totalCost();
         $unitCost = $quantity > 0 ? bcdiv($totalCost, (string) $quantity, 4) : '0';
-        $agentBudget = bcmul($reward, (string) $quantity, 2);
+        $agentBudget = bcmul($reward, (string) $quantity, 4);
 
         $participations = $campaign->participations;
         $paidStatuses = [CampaignParticipation::STATUS_APPROVED, CampaignParticipation::STATUS_PAID];
@@ -75,10 +75,10 @@ class CampaignAdminController extends Controller
 
         $paidToAgents = $participations
             ->whereIn('status', $paidStatuses)
-            ->reduce(fn (string $sum, CampaignParticipation $p) => bcadd($sum, (string) $p->reward_amount, 2), '0.00');
+            ->reduce(fn (string $sum, CampaignParticipation $p) => bcadd($sum, (string) $p->reward_amount, 4), '0.0000');
         $awaitingReview = $participations
             ->whereIn('status', $pendingStatuses)
-            ->reduce(fn (string $sum, CampaignParticipation $p) => bcadd($sum, (string) $p->reward_amount, 2), '0.00');
+            ->reduce(fn (string $sum, CampaignParticipation $p) => bcadd($sum, (string) $p->reward_amount, 4), '0.0000');
 
         return view('dashboard.admin.campaigns.show', [
             'campaign' => $campaign,
@@ -92,10 +92,10 @@ class CampaignAdminController extends Controller
                 'unit_cost' => $unitCost,
                 'agent_reward' => $reward,
                 'agent_budget' => $agentBudget,
-                'platform_share' => bcsub($totalCost, $agentBudget, 2),
+                'platform_share' => bcsub($totalCost, $agentBudget, 4),
                 'paid_to_agents' => $paidToAgents,
                 'awaiting_review' => $awaitingReview,
-                'agent_budget_left' => bcsub($agentBudget, $paidToAgents, 2),
+                'agent_budget_left' => bcsub($agentBudget, $paidToAgents, 4),
             ],
             'counts' => [
                 'in_progress' => $participations->where('status', CampaignParticipation::STATUS_STARTED)->count(),
@@ -148,22 +148,26 @@ class CampaignAdminController extends Controller
             ['status' => $campaign->status],
         );
 
-        if ($campaign->status === Campaign::STATUS_COMPLETED) {
-            app(CampaignBudgetService::class)->settle($campaign);
-        }
-
-        if ($campaign->status === Campaign::STATUS_CANCELLED && $budget) {
+        if (in_array($campaign->status, CampaignBudgetService::REFUNDING_STATUSES, true) && $previousStatus !== $campaign->status) {
             try {
-                $refunded = app(CampaignBudgetService::class)->refundIfCancelled($campaign);
+                $refunded = app(CampaignBudgetService::class)->refundUndelivered($campaign);
             } catch (\InvalidArgumentException $e) {
-                return back()->with('error', __('Campaign cancelled, but the refund could not be sent: :reason', ['reason' => $e->getMessage()]));
+                return back()->with('error', __('Campaign status changed to :status, but the refund could not be sent: :reason', [
+                    'status' => $campaign->statusLabel(),
+                    'reason' => $e->getMessage(),
+                ]));
             }
 
-            if ($refunded !== null) {
-                return back()->with('status', __('Campaign cancelled. ₦:amount was refunded to the creator\'s wallet.', ['amount' => number_format((float) $refunded, 2)]));
+            if ($refunded !== null && bccomp($refunded, '0', 2) > 0) {
+                return back()->with('status', __('Campaign status changed to :status. :amount was refunded to the creator\'s wallet for undelivered units.', [
+                    'status' => $campaign->statusLabel(),
+                    'amount' => money($refunded),
+                ]));
             }
 
-            return back()->with('status', __('Campaign cancelled. New agents can no longer start it. The refund for unused units is sent automatically once tasks already in progress finish or expire (the creator needs a wallet).'));
+            if ($refunded === null && $campaign->status === Campaign::STATUS_CANCELLED) {
+                return back()->with('status', __('Campaign cancelled. New agents can no longer start it. The refund for unused units is sent automatically once tasks already in progress finish or expire (the creator needs a wallet).'));
+            }
         }
 
         return back()->with('status', __('Campaign status changed to :status.', ['status' => $campaign->statusLabel()]));
@@ -197,7 +201,7 @@ class CampaignAdminController extends Controller
             }
 
             if ($refunded !== null) {
-                return back()->with('status', __('Task released. ₦:amount was refunded to the creator\'s wallet.', ['amount' => number_format((float) $refunded, 2)]));
+                return back()->with('status', __('Task released. :amount was refunded to the creator\'s wallet.', ['amount' => money($refunded)]));
             }
         }
 

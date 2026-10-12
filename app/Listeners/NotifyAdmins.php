@@ -198,11 +198,11 @@ class NotifyAdmins
 
         return [
             'type' => 'wallet.withdrawal_awaiting_provider_auth',
-            'title' => 'Withdrawal needs Monnify OTP',
+            'title' => 'Withdrawal needs provider authorization',
             'body' => sprintf(
-                'Withdrawal %s (₦%s) is pending Monnify authorization. Enter the OTP from your Monnify merchant email.',
+                'Withdrawal %s (%s) is pending payment provider authorization. Enter the code from the provider on the withdrawal page.',
                 $event->providerPayoutReference,
-                number_format($event->amount, 2),
+                money($event->amount),
             ),
             'actionUrl' => $detailUrl,
             'meta' => [
@@ -332,9 +332,9 @@ class NotifyAdmins
             'type' => $type,
             'title' => 'New order: '.$order->reference,
             'body' => sprintf(
-                '%s purchased for ₦%s.',
+                '%s purchased for %s.',
                 $order->user?->name ?? 'Customer',
-                number_format((float) ($order->total_amount ?? $order->amount), 2)
+                money($order->total_amount ?? $order->amount)
             ),
             'actionUrl' => Route::has('admin.orders') ? route('admin.orders') : null,
             'meta' => [

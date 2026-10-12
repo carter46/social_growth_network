@@ -33,7 +33,7 @@
         <div class="mt-auto pt-2">
             @if($price !== null)
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <span class="font-semibold text-primary">From ₦{{ number_format((float) $price, 0) }}</span>
+                    <span class="font-semibold text-primary">From {{ money((float) $price, 2) }}</span>
                     <x-dashboard.button :href="$href" size="xs" class="w-full sm:w-auto">{{ $ctaLabel }}</x-dashboard.button>
                 </div>
             @else

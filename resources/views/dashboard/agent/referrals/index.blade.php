@@ -121,12 +121,12 @@
         </div>
         <div class="{{ $tile }}">
             <p class="text-xs text-text-muted">Total referral earnings</p>
-            <p class="mt-1 text-xl font-bold text-text-primary">₦{{ number_format($stats['earned'], 2) }}</p>
+            <p class="mt-1 text-xl font-bold text-text-primary">{{ money($stats['earned'], 2) }}</p>
         </div>
         @if ($stats['pending'] > 0)
             <div class="{{ $tile }} col-span-2 lg:col-span-1">
                 <p class="text-xs text-text-muted">Pending earnings</p>
-                <p class="mt-1 text-xl font-bold text-text-primary">₦{{ number_format($stats['pending'], 2) }}</p>
+                <p class="mt-1 text-xl font-bold text-text-primary">{{ money($stats['pending'], 2) }}</p>
                 <p class="mt-1 text-xs text-text-secondary">
                     Added to your wallet once you complete <a href="{{ route('agent.account.kyc') }}" class="font-medium text-primary hover:underline">identity verification</a> and create your wallet.
                 </p>
@@ -165,7 +165,7 @@
                         <span class="text-xs text-text-secondary sm:text-sm">
                             <span class="sm:hidden">Joined </span>{{ $referral->created_at?->format('M j, Y') }}
                         </span>
-                        <span class="text-right text-sm font-semibold text-text-primary">₦{{ number_format((float) $referral->referral_earned, 2) }}</span>
+                        <span class="text-right text-sm font-semibold text-text-primary">{{ money((float) $referral->referral_earned, 2) }}</span>
                     </li>
                 @endforeach
             </ul>

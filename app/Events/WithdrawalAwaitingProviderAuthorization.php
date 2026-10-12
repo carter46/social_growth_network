@@ -14,6 +14,8 @@ class WithdrawalAwaitingProviderAuthorization
         public int $userId,
         public float $amount,
         public string $providerPayoutReference,
-        public string $currency = 'NGN',
-    ) {}
+        public string $currency = '',
+    ) {
+        $this->currency = $this->currency ?: \App\Support\Money\Currency::current()->code;
+    }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Agent;
 
 use App\Http\Controllers\Controller;
 use App\Models\CampaignParticipation;
+use App\Modules\Wallet\Payments\Bachs\BachsConnectService;
 use App\Support\MemberShell;
 use Illuminate\View\View;
 
@@ -26,15 +27,15 @@ class DashboardController extends Controller
 
         return view('dashboard.agent.overview', [
             'wallet' => $wallet,
-            'balanceNgn' => $wallet ? $wallet->availableBalance() : 0,
-            'lockedNgn' => $wallet ? (float) $wallet->locked_balance : 0,
+            'availableBalance' => $wallet ? $wallet->availableBalance() : 0,
+            'lockedBalance' => $wallet ? (float) $wallet->locked_balance : 0,
             'activeTasks' => $activeTasks,
             'completedTasks' => $completedTasks,
             'kycLevel' => $user->kyc_level,
         ]);
     }
 
-    public function wallet(): View
+    public function wallet(BachsConnectService $connect): View
     {
         $user = auth()->user();
         $wallet = $user->wallet;
@@ -52,6 +53,8 @@ class DashboardController extends Controller
             'kycLevel' => $user->kyc_level,
             'kycRequired' => \App\Models\SystemSetting::kycRequired(),
             'canCreateWallet' => $user->hasApprovedKyc(),
+            'connectAvailable' => $connect->available(),
+            'payoutConnection' => $connect->connection($user),
         ]);
     }
 }

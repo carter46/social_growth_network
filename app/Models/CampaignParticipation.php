@@ -73,7 +73,7 @@ class CampaignParticipation extends Model
             'verification_started_at' => 'datetime',
             'expires_at' => 'datetime',
             'last_heartbeat_at' => 'datetime',
-            'reward_amount' => 'decimal:2',
+            'reward_amount' => 'decimal:4',
             'pre_count' => 'integer',
             'post_count' => 'integer',
             'verify_attempts' => 'integer',

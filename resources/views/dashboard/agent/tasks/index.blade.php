@@ -37,7 +37,7 @@
                         </span>
                     @endif
                 </x-dashboard.td>
-                <x-dashboard.td>₦{{ number_format((float) $participation->reward_amount, 2) }}</x-dashboard.td>
+                <x-dashboard.td>{{ money($participation->reward_amount, 2, 4) }}</x-dashboard.td>
                 <x-dashboard.td>
                     <x-dashboard.button :href="route('agent.tasks.show', $participation)" variant="link" size="xs">Open</x-dashboard.button>
                 </x-dashboard.td>

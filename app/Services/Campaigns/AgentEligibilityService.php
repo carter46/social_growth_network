@@ -48,6 +48,8 @@ class AgentEligibilityService
         }
 
         $agentId = (int) $agent->id;
+        $hasTargets = Schema::hasColumn('campaigns', 'task_targets');
+        [$subscribeOpenSql, $subscribeOpenBindings] = $hasTargets ? $this->subscribeOpenSql($query) : ['1 = 1', []];
 
         return $query
             ->whereNotExists(fn (QueryBuilder $sub) => $sub->selectRaw('1')
@@ -57,6 +59,7 @@ class AgentEligibilityService
                 ->where('a.action', AgentYoutubeAction::ACTION_SUBSCRIBE)
                 ->where('a.status', AgentYoutubeAction::STATUS_VERIFIED)
                 ->where('campaigns.engagement_metric', 'subscribers')
+                ->whereRaw($subscribeOpenSql, $subscribeOpenBindings)
                 ->where(fn ($w) => $w->whereColumn('a.target_channel_id', 'campaigns.channel_id')
                     ->orWhere(fn ($legacy) => $legacy->whereNull('a.target_channel_id')
                         ->whereColumn('ac.channel_id', 'campaigns.channel_id'))))
@@ -68,7 +71,13 @@ class AgentEligibilityService
                 ->whereIn('p.status', self::BLOCKING_STATUSES)
                 ->where('pc.engagement_metric', 'subscribers')
                 ->where('campaigns.engagement_metric', 'subscribers')
-                ->whereColumn('pc.channel_id', 'campaigns.channel_id'))
+                ->whereColumn('pc.channel_id', 'campaigns.channel_id')
+                ->whereRaw($subscribeOpenSql, $subscribeOpenBindings)
+                ->when($hasTargets, fn ($w) => $w->where(fn ($held) => $held->whereNull('pc.task_targets')
+                    ->orWhereExists(fn (QueryBuilder $step) => $step->selectRaw('1')
+                        ->from('campaign_participation_tasks as pst')
+                        ->whereColumn('pst.participation_id', 'p.id')
+                        ->where('pst.task', CampaignTask::Subscribe->value)))))
             ->whereNotExists(fn (QueryBuilder $sub) => $sub->selectRaw('1')
                 ->from('agent_youtube_actions as a')
                 ->where('a.user_id', $agentId)
@@ -172,9 +181,34 @@ class AgentEligibilityService
         }
     }
 
+    /** The campaign asks new agents to subscribe (its subscribe target is not yet full). */
     private function hasSubscribe(Campaign $campaign): bool
     {
-        return $campaign->taskProfile()->has(CampaignTask::Subscribe);
+        if (! $campaign->taskProfile()->has(CampaignTask::Subscribe)) {
+            return false;
+        }
+
+        return ! $campaign->usesTaskTargets() || in_array(CampaignTask::Subscribe, $campaign->openTasks(), true);
+    }
+
+    /**
+     * SQL (correlated to "campaigns") that is true while new agents would be given the subscribe step:
+     * campaigns without targets always, otherwise until held subscribe steps reach the target.
+     *
+     * @return array{0: string, 1: list<string>}
+     */
+    private function subscribeOpenSql(Builder $query): array
+    {
+        $target = $query->getQuery()->getGrammar()->wrap('campaigns.task_targets->'.CampaignTask::Subscribe->value);
+        $placeholders = implode(', ', array_fill(0, count(Campaign::SLOT_STATUSES), '?'));
+
+        $sql = '(campaigns.task_targets IS NULL OR ('
+            .'SELECT COUNT(*) FROM campaign_participation_tasks st'
+            .' INNER JOIN campaign_participations sp ON sp.id = st.participation_id'
+            .' WHERE st.campaign_id = campaigns.id AND st.task = ? AND sp.status IN ('.$placeholders.')'
+            .') < '.$target.')';
+
+        return [$sql, array_merge([CampaignTask::Subscribe->value], Campaign::SLOT_STATUSES)];
     }
 
     /** Older campaigns without a canonical channel ID: compare channel links instead. */

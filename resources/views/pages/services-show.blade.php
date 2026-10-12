@@ -23,9 +23,6 @@
     }
 
     $subtitle = null;
-    $metric = $product->taskProfile()->legacyMetric();
-    $pricingVariant = $product->pricingVariant();
-    $pricing = $product->isPurchasable() ? $pricingVariant->storefrontPayload($metric) : null;
 
     $showAbout = filled($product->description);
 
@@ -75,26 +72,7 @@
 {{-- Buy box: single image + selectable variants + live price --}}
 <section class="bg-white text-slate-900">
     <div class="max-w-marketing mx-auto px-5 sm:px-6 py-10 sm:py-14">
-        <div
-            class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start"
-            x-data="{
-                pricing: @js($pricing),
-                units: {{ (int) ($pricing['min_units'] ?? 0) }},
-                get unitsValid() {
-                    if (! this.pricing) return false;
-                    const u = Number(this.units);
-                    return Number.isInteger(u) && u >= Number(this.pricing.min_units) && u <= Number(this.pricing.max_units);
-                },
-                get estimatedTotal() {
-                    if (! this.pricing) return 0;
-                    return Math.round((Number(this.pricing.unit_price) || 0) * (Number(this.units) || 0) * 100) / 100;
-                },
-                checkoutUrl() {
-                    const base = @js(route('dashboard.services.product', $product->slug));
-                    return base + (base.includes('?') ? '&' : '?') + 'units=' + encodeURIComponent(String(this.units || ''));
-                }
-            }"
-        >
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
             <div class="space-y-3">
                 <div class="aspect-[4/3] sm:aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
                     @if($heroUrl)
@@ -127,66 +105,17 @@
                     </p>
                 @endif
 
-                <div class="border-t border-b border-slate-200 py-4 space-y-4">
-                    @if($pricing)
-                        <div>
-                            <p class="text-xl font-semibold text-slate-900">{{ $pricing['pricing_label'] }}</p>
-                            <p class="mt-1 text-xs text-slate-600">
-                                Minimum: {{ number_format($pricing['min_units']) }}
-                                · Maximum: {{ number_format($pricing['max_units']) }}
-                            </p>
-                        </div>
-
-                        <div class="space-y-2">
-                            <label for="public-units-input" class="block text-sm font-medium text-slate-700">
-                                How many {{ $pricing['unit_label_plural'] }} do you need?
-                            </label>
-                            <input
-                                id="public-units-input"
-                                type="number"
-                                step="1"
-                                class="w-full max-w-xs rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900"
-                                x-model.number="units"
-                                min="{{ $pricing['min_units'] }}"
-                                max="{{ $pricing['max_units'] }}"
-                            >
-                            <p class="text-xs text-red-600" x-show="!unitsValid" x-cloak>
-                                Enter a whole number from {{ number_format($pricing['min_units']) }} to {{ number_format($pricing['max_units']) }}.
-                            </p>
-                        </div>
-
-                        <div>
-                            <span class="text-[11px] font-medium uppercase tracking-widest text-slate-500 block">Total</span>
-                            <p
-                                class="mt-1 text-2xl sm:text-3xl font-display font-bold text-primary"
-                                x-text="'₦' + Number(unitsValid ? estimatedTotal : 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"
-                            ></p>
-                        </div>
-                    @else
-                        <p class="text-sm text-slate-500">Pricing for this product is not available yet.</p>
-                    @endif
-                </div>
-
                 @if($showAbout)
                     <p class="text-sm text-slate-600 leading-relaxed whitespace-pre-line">{{ $product->description }}</p>
                 @endif
 
-                <div class="flex flex-col sm:flex-row gap-3 pt-1">
-                    @if(auth()->user()?->isAgent())
-                        <p class="text-sm text-slate-600 leading-relaxed">You're signed in as an Agent. Buying services needs a Creator account.</p>
-                    @else
-                    <x-ui.button
-                        :href="route('dashboard.services.checkout', $product->slug)"
-                        variant="primary"
-                        size="lg"
-                        class="!px-8 hover:!bg-primary-hover"
-                        x-bind:href="checkoutUrl()"
-                        x-bind:disabled="!unitsValid"
-                        @click="if (!unitsValid) { $event.preventDefault() }"
-                    >
-                        {{ auth()->check() ? 'Buy Now' : 'Log in to buy' }}
-                    </x-ui.button>
-                    @endif
+                @if(session('error'))
+                    <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{{ session('error') }}</div>
+                @endif
+
+                @include('partials.catalog.package-configurator', ['product' => $product, 'theme' => 'marketing'])
+
+                <div class="flex flex-col sm:flex-row gap-3">
                     @include('partials.catalog.view-demo-modal', ['product' => $product])
                 </div>
             </div>

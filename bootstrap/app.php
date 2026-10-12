@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(SecurityHeaders::class);
         $middleware->validateCsrfTokens(except: [
             'webhooks/monnify',
+            'webhooks/payments/*',
             'webhooks/site-integrations/*',
         ]);
         $middleware->alias([

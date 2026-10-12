@@ -70,7 +70,7 @@
                             <dt class="text-text-muted">Amount paid</dt>
                             <dd class="font-medium text-text-primary">
                                 @if ($paidAmount !== null)
-                                    ₦{{ number_format((float) $paidAmount, 2) }}
+                                    {{ money((float) $paidAmount, 2) }}
                                 @else
                                     -
                                 @endif

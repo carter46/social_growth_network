@@ -34,7 +34,7 @@
                     <a href="{{ route('admin.orders.show', $order) }}" class="mt-0.5 block text-xs text-text-muted underline hover:text-primary">{{ $order->reference }}</a>
                 </x-dashboard.td>
                 <x-dashboard.td>{{ str_replace('_', ' ', $order->payment_method ?? '—') }}</x-dashboard.td>
-                <x-dashboard.td>₦{{ number_format((float) $order->total_amount, 2) }}</x-dashboard.td>
+                <x-dashboard.td>{{ money((float) $order->total_amount, 2) }}</x-dashboard.td>
                 <x-dashboard.td>
                     <x-dashboard.badge :status="$order->status" />
                     @if($order->isAwaitingManualBankTransfer())

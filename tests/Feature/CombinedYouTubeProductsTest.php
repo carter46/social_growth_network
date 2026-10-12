@@ -266,6 +266,133 @@ class CombinedYouTubeProductsTest extends TestCase
             ->assertSessionHasErrors('completion_minutes');
     }
 
+    public function test_admin_saves_companion_limits_and_refuses_bad_ranges(): void
+    {
+        $product = PlatformProduct::query()->where('slug', self::SLUG)->firstOrFail();
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->put(route('admin.platform-products.update', $product), $this->adminProductPayload([
+                'task_limits' => [
+                    'watch' => ['min' => 20, 'max' => 400],
+                    'comment' => ['min' => 0, 'max' => 100],
+                ],
+            ]))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            ['comment' => ['min' => 0, 'max' => 100], 'watch' => ['min' => 20, 'max' => 400]],
+            $product->fresh()->companionLimits(),
+        );
+        $this->assertNotContains('Needs watch hours limits', $product->fresh()->taskSetupIssues());
+
+        $this->actingAs($admin)
+            ->put(route('admin.platform-products.update', $product), $this->adminProductPayload([
+                'task_limits' => [
+                    'watch' => ['min' => 400, 'max' => 20],
+                    'comment' => ['min' => 0, 'max' => 100],
+                ],
+            ]))
+            ->assertSessionHasErrors('task_limits.watch.max');
+
+        $this->assertSame(20, $product->fresh()->companionLimits()['watch']['min']);
+    }
+
+    public function test_combined_product_without_companion_limits_reports_a_setup_issue(): void
+    {
+        $product = PlatformProduct::query()->where('slug', self::SLUG)->firstOrFail();
+        $product->forceFill(['estimated_minutes' => 3, 'completion_minutes' => 20, 'task_limits' => null])->save();
+
+        $issues = $product->fresh()->taskSetupIssues();
+
+        $this->assertContains('Needs watch hours limits', $issues);
+        $this->assertContains('Needs comments limits', $issues);
+    }
+
+    public function test_likes_orders_keep_single_task_pricing_and_campaigns(): void
+    {
+        $product = PlatformProduct::query()->where('slug', 'youtube-likes')->firstOrFail();
+        $product->forceFill([
+            'status' => PlatformProductStatus::Published,
+            'agent_reward_percent' => 40,
+            'estimated_minutes' => 1,
+            'completion_minutes' => 30,
+        ])->save();
+        $variant = $product->pricingVariant();
+        $variant->forceFill([
+            'pricing_mode' => PlatformProductVariant::PRICING_PER_UNIT,
+            'unit_price' => 5,
+            'min_units' => 100,
+            'max_units' => 1000,
+            'is_active' => true,
+        ])->save();
+
+        $order = app(PlatformCheckoutService::class)->createManualBankTransferOrderForUser(
+            User::factory()->creator()->create(),
+            $product->fresh(),
+            [
+                'variant_id' => $variant->id,
+                'quantity' => 150,
+                'task_quantities' => [],
+                'target_url' => 'https://www.youtube.com/watch?v='.self::VIDEO,
+            ],
+            false,
+        );
+
+        $item = $order->items()->first();
+        $this->assertSame(750.0, (float) $item->line_total);
+        $this->assertArrayNotHasKey('task_quantities', $item->options);
+
+        app(CampaignFulfillmentService::class)->createFromPaidOrder($order->fresh('items'));
+        $campaign = Campaign::query()->where('order_item_id', $item->id)->firstOrFail();
+        $this->assertNull($campaign->task_targets);
+        $this->assertSame(150, (int) $campaign->quantity);
+        $this->assertFalse($campaign->usesTaskTargets());
+    }
+
+    public function test_admin_order_prices_companion_quantities_and_refuses_out_of_range(): void
+    {
+        $product = PlatformProduct::query()->where('slug', self::SLUG)->firstOrFail();
+        $product->forceFill([
+            'status' => PlatformProductStatus::Published,
+            'agent_reward_percent' => 40,
+            'estimated_minutes' => 2,
+            'completion_minutes' => 30,
+            'task_limits' => ['watch' => ['min' => 10, 'max' => 100], 'comment' => ['min' => 0, 'max' => 50]],
+        ])->save();
+        $product->pricingVariant()->forceFill([
+            'pricing_mode' => PlatformProductVariant::PRICING_PER_UNIT,
+            'unit_price' => 100,
+            'min_units' => 10,
+            'max_units' => 1000,
+            'is_active' => true,
+        ])->save();
+        $buyer = User::factory()->creator()->create();
+        $payload = [
+            'user_id' => $buyer->id,
+            'product_slug' => self::SLUG,
+            'quantity' => 20,
+            'target_url' => 'https://www.youtube.com/watch?v='.self::VIDEO,
+            'channel_url' => 'https://www.youtube.com/channel/'.self::CHANNEL,
+            'comment_instructions' => 'Say what you liked.',
+            'mark_paid' => '0',
+        ];
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->post(route('admin.orders.store'), $payload + ['qty' => ['watch' => 500]])
+            ->assertSessionHas('error');
+        $this->assertSame(0, Order::query()->where('user_id', $buyer->id)->count());
+
+        $this->actingAs($admin)
+            ->post(route('admin.orders.store'), $payload + ['qty' => ['watch' => 15, 'comment' => 5]])
+            ->assertSessionHasNoErrors();
+
+        $item = Order::query()->where('user_id', $buyer->id)->firstOrFail()->items()->first();
+        $this->assertSame(['subscribe' => 20, 'watch' => 15, 'comment' => 5], $item->options['task_quantities']);
+        $this->assertSame(3000.0, (float) $item->line_total);
+    }
+
     public function test_product_without_completion_time_reports_a_setup_issue(): void
     {
         $product = PlatformProduct::query()->where('slug', self::SLUG)->firstOrFail();
@@ -803,6 +930,7 @@ class CombinedYouTubeProductsTest extends TestCase
     {
         $platform = $this->fundPlatformWallet();
         $campaign = $this->bundledCampaign();
+        $creatorWallet = Wallet::factory()->create(['user_id' => $campaign->creator_id, 'balance' => 0, 'locked_balance' => 0]);
         app(CampaignBudgetService::class)->holdForCampaign($campaign);
         $participation = app(CampaignParticipationService::class)->start($this->agent(), $campaign);
         $admin = User::factory()->admin()->create();
@@ -825,8 +953,10 @@ class CombinedYouTubeProductsTest extends TestCase
             ->post(route('admin.campaigns.status', $campaign), ['status' => Campaign::STATUS_COMPLETED])
             ->assertSessionHas('status');
         $this->assertSame(Campaign::STATUS_COMPLETED, $campaign->fresh()->status);
-        $this->assertSame(CampaignBudget::STATUS_SETTLED, $campaign->budget()->value('status'));
+        // Nothing was delivered, so completing refunds every unit to the creator.
+        $this->assertSame(CampaignBudget::STATUS_REFUNDED, $campaign->budget()->value('status'));
         $this->assertEquals(0.0, (float) $platform->fresh()->locked_balance);
+        $this->assertSame(1, bccomp((string) $creatorWallet->fresh()->balance, '0', 4));
         $this->assertTrue(\App\Models\AuditLog::query()->where('action', 'campaign.status_changed')->exists());
     }
 
@@ -839,7 +969,7 @@ class CombinedYouTubeProductsTest extends TestCase
 
         $this->assertNull($budgets->holdForCampaign($campaign));
         $this->assertTrue(CampaignBudgetService::isUnfunded($campaign->fresh()));
-        $this->assertSame('800.00', $campaign->fresh()->meta['funding_shortfall']);
+        $this->assertSame(0, bccomp('800', (string) $campaign->fresh()->meta['funding_shortfall'], 4));
         $this->assertDatabaseHas('admin_notifications', ['type' => 'campaign.budget_unfunded']);
 
         $this->actingAs($admin)
@@ -1126,6 +1256,25 @@ class CombinedYouTubeProductsTest extends TestCase
 
         $this->assertSame($before, [(string) $platform->fresh()->balance, (string) $platform->fresh()->locked_balance, (string) $agent->wallet()->first()->balance]);
         $this->assertEquals(400.0, (float) $agent->wallet()->first()->balance);
+    }
+
+    public function test_sub_cent_rewards_are_held_and_paid_at_four_decimals(): void
+    {
+        $this->fundPlatformWallet('100.00');
+        $agent = $this->agent(self::AGENT_CHANNEL);
+        $campaign = $this->bundledCampaign(['quantity' => 4, 'locked_agent_reward' => '0.0025']);
+        $budgets = app(CampaignBudgetService::class);
+
+        $budget = $budgets->holdForCampaign($campaign);
+        $this->assertSame(0, bccomp('0.01', (string) $budget->funded_amount, 4));
+
+        $participation = app(CampaignParticipationService::class)->start($agent, $campaign);
+        $this->assertSame('0.0025', (string) $participation->reward_amount);
+
+        $budgets->payReward($participation, $campaign->fresh(), $agent, (string) $participation->reward_amount);
+
+        $this->assertSame('0.0025', (string) $agent->wallet()->first()->balance);
+        $this->assertSame('0.0025', (string) $budget->fresh()->paid_amount);
     }
 
     public function test_backfill_refuses_when_the_platform_wallet_cannot_cover_it(): void

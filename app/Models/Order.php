@@ -42,6 +42,7 @@ class Order extends Model
             'checkout_expires_at' => 'datetime',
             'payment_submitted_at' => 'datetime',
             'payment_confirmed_at' => 'datetime',
+            'last_checked_at' => 'datetime',
             'payment_metadata' => 'array',
         ];
     }

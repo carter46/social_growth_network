@@ -4,9 +4,12 @@ namespace App\Services\Reporting\Metrics;
 
 use App\Enums\TransactionType;
 use App\Enums\WalletType;
+use App\Models\SystemSetting;
 use App\Models\Transaction;
 use App\Models\Wallet;
+use App\Modules\Wallet\Services\WalletService;
 use App\Services\Reporting\ReportingRange;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 
 class PlatformRevenueMetric
@@ -113,11 +116,17 @@ class PlatformRevenueMetric
 
         return Transaction::query()
             ->where('status', 'completed')
-            ->where('currency', 'NGN')
+            ->where('currency', config('platform.currency'))
             ->whereBetween('created_at', [$range->from, $range->to])
             ->where(function (Builder $q) use ($platformWalletId) {
                 $q->where('type', TransactionType::PlatformFee->value);
                 if ($platformWalletId) {
+                    // Only the platform's own withdrawal fee is income; provider fees recovered and paid are pass-through.
+                    $q->orWhere(function (Builder $inner) use ($platformWalletId) {
+                        $inner->where('type', TransactionType::WithdrawalFee->value)
+                            ->where('wallet_id', $platformWalletId)
+                            ->where('created_at', '>=', $this->feeSplitStartedAt());
+                    });
                     $q->orWhere(function (Builder $inner) use ($platformWalletId) {
                         $inner->where('type', TransactionType::Purchase->value)
                             ->where('wallet_id', $platformWalletId)
@@ -125,5 +134,16 @@ class PlatformRevenueMetric
                     });
                 }
             });
+    }
+
+    /**
+     * Withdrawal fees before the split held provider pass-through as well, so they are left out of revenue.
+     * Before the first split entry exists, nothing is counted.
+     */
+    public function feeSplitStartedAt(): CarbonImmutable
+    {
+        $raw = SystemSetting::get(WalletService::FEE_SPLIT_STARTED_SETTING);
+
+        return $raw ? CarbonImmutable::parse((string) $raw) : CarbonImmutable::now()->addCentury();
     }
 }

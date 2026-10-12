@@ -3,16 +3,9 @@
 @section('title', 'Withdrawals')
 
 @section('content')
-@php
-    $monnifyEnv = null;
-    if ($monnifyEnabled ?? false) {
-        $provider = \App\Models\IntegrationProvider::forProvider(\App\Models\IntegrationProvider::MONNIFY);
-        $monnifyEnv = (string) ($provider->meta['environment'] ?? 'sandbox');
-    }
-@endphp
 <x-layout.page
     title="Withdrawals"
-    subtitle="Approve and send payouts to verified bank snapshots."
+    subtitle="Approve and send payouts to members' primary payout accounts."
     width="full"
     :breadcrumb="[
         ['Admin', route('admin')],
@@ -20,9 +13,7 @@
     ]"
 >
     @if ($errors->any())
-        <x-dashboard.alert type="danger">
-            {{ $errors->first() }}
-        </x-dashboard.alert>
+        <x-dashboard.alert type="danger">{{ $errors->first() }}</x-dashboard.alert>
     @endif
     @if (session('status'))
         <x-dashboard.alert type="success">{{ session('status') }}</x-dashboard.alert>
@@ -31,20 +22,22 @@
         <x-dashboard.alert type="danger">{{ session('error') }}</x-dashboard.alert>
     @endif
 
-    @if ($monnifyEnabled && $merchantBalance !== null)
+    @if (! $gatewaysConfigured)
+        <x-dashboard.alert type="warning" class="mb-4">No payout gateway is configured. Approving a withdrawal marks it paid without sending money; pay it manually first.</x-dashboard.alert>
+    @elseif ($balances !== [])
         <x-dashboard.alert type="info" class="mb-4">
-            Merchant disbursement balance: <strong>₦{{ number_format($merchantBalance, 2) }}</strong>
-            @if ($monnifyEnv === 'sandbox')
-                <span class="block mt-1 text-xs">Sandbox mode — payouts use Monnify test disbursements. Status should move to processing or completed after approve; errors appear above.</span>
-            @endif
+            Payout balances:
+            @foreach ($balances as $b)
+                <strong>{{ $b['name'] }}</strong> {{ $b['balance'] !== null ? money($b['balance'], 2) : 'not available' }}@if (! $loop->last) · @endif
+            @endforeach
         </x-dashboard.alert>
     @endif
 
-    <x-dashboard.table :empty="$withdrawals->isEmpty()" empty-title="No withdrawals" empty-description="Pending bank withdrawal requests will appear here." empty-icon="withdraw" striped :min-height="false">
+    <x-dashboard.table :empty="$withdrawals->isEmpty()" empty-title="No withdrawals" empty-description="Withdrawal requests will appear here." empty-icon="withdraw" striped :min-height="false">
         <x-slot:head>
             <x-dashboard.th>User</x-dashboard.th>
             <x-dashboard.th>Amount</x-dashboard.th>
-            <x-dashboard.th class="hidden sm:table-cell">Bank (snapshot)</x-dashboard.th>
+            <x-dashboard.th class="hidden sm:table-cell">Destination</x-dashboard.th>
             <x-dashboard.th>Status</x-dashboard.th>
             <x-dashboard.th>Actions</x-dashboard.th>
         </x-slot:head>
@@ -56,18 +49,26 @@
                         <a href="{{ route('admin.withdrawals.show', $w) }}" class="underline">{{ $w->reference }}</a>
                     </div>
                 </x-dashboard.td>
-                <x-dashboard.td class="whitespace-nowrap">₦{{ number_format($w->amount, 2) }}</x-dashboard.td>
+                <x-dashboard.td class="whitespace-nowrap">
+                    {{ money($w->amount, 2) }}
+                    @if (bccomp((string) $w->fee_amount, '0', 2) > 0)
+                        <div class="text-xs text-text-muted">net {{ money($w->netPayoutAmount(), 2) }}</div>
+                    @endif
+                </x-dashboard.td>
                 <x-dashboard.td class="hidden text-sm sm:table-cell">
-                    {{ $w->bank_name }} · {{ $w->maskedAccountNumber() }}<br>
-                    <span class="text-text-muted">{{ $w->account_name }}</span>
+                    {{ $w->destinationLabel() }}<br>
+                    <span class="text-text-muted">{{ $w->bank_name }} · {{ $w->maskedAccountNumber() }} · {{ $w->account_name }}</span>
+                    @if ($w->payoutAccount && ! $w->payoutAccount->isResolved())
+                        <div class="text-xs font-medium text-warning">Account not verified by gateway</div>
+                    @endif
                 </x-dashboard.td>
                 <x-dashboard.td>
                     <x-dashboard.badge :status="$w->status" />
-                    @if ($w->internal_status)
-                        <div class="text-xs text-text-muted mt-1">{{ $w->internal_status }}</div>
+                    @if ($w->internal_status && $w->internal_status !== $w->status)
+                        <div class="mt-1 text-xs text-text-muted">{{ str_replace('_', ' ', $w->internal_status) }}</div>
                     @endif
-                    @if ($w->needsProviderAuthorization())
-                        <div class="mt-1 text-xs font-medium text-amber-600">Needs Monnify OTP</div>
+                    @if ($w->latestAttempt)
+                        <div class="mt-1 text-xs text-text-muted">{{ $w->latestAttempt->gateway_key }}: {{ $w->latestAttempt->status }}</div>
                     @endif
                 </x-dashboard.td>
                 <x-dashboard.td>
@@ -83,15 +84,8 @@
                                 <x-dashboard.button type="submit" size="sm" variant="danger">Reject</x-dashboard.button>
                             </form>
                         </div>
-                    @elseif ($w->status === 'failed' || $w->internal_status === 'failed')
-                        <form method="POST" action="{{ route('admin.withdrawals.retry', $w) }}">
-                            @csrf
-                            <x-dashboard.button type="submit" size="sm" variant="secondary">Retry payout</x-dashboard.button>
-                        </form>
-                    @elseif ($w->needsProviderAuthorization())
-                        <a href="{{ route('admin.withdrawals.show', $w) }}" class="inline-block">
-                            <x-dashboard.button size="sm" variant="primary">Enter Monnify OTP</x-dashboard.button>
-                        </a>
+                    @elseif ($w->needsAdminDecision())
+                        <x-dashboard.button :href="route('admin.withdrawals.show', $w)" size="sm" variant="primary">Decide</x-dashboard.button>
                     @endif
                 </x-dashboard.td>
             </tr>

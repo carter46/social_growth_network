@@ -5,43 +5,46 @@ namespace App\Modules\Admin\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Withdrawal;
 use App\Modules\Admin\Services\FinancialAuditLog;
-use App\Modules\Wallet\Payments\Contracts\PaymentRailInterface;
+use App\Modules\Wallet\Services\PayoutAccountService;
 use App\Modules\Wallet\Services\WalletService;
 use App\Modules\Wallet\Services\WithdrawalPayoutService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\View\View;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class WithdrawalAdminController extends Controller
 {
     public function __construct(
         private WalletService $walletService,
         private WithdrawalPayoutService $payouts,
-        private PaymentRailInterface $rail,
+        private PayoutAccountService $payoutAccounts,
         private FinancialAuditLog $financialAudit,
     ) {}
 
     public function index(): View
     {
-        $withdrawals = Withdrawal::with(['user', 'approver'])
+        $withdrawals = Withdrawal::with(['user', 'approver', 'payoutAccount', 'latestAttempt'])
             ->orderByDesc('created_at')
             ->paginate(20);
 
-        $merchantBalance = null;
-        if ($this->rail->isConfigured()) {
-            try {
-                $merchantBalance = $this->payouts->merchantBalance();
-            } catch (\Throwable) {
-                $merchantBalance = null;
-            }
-        }
-
         return view('dashboard.admin.withdrawals', [
             'withdrawals' => $withdrawals,
-            'merchantBalance' => $merchantBalance,
-            'monnifyEnabled' => $this->rail->isConfigured(),
+            'balances' => $this->payouts->gatewayBalances(),
+            'gatewaysConfigured' => $this->payouts->gatewaysConfigured(),
+        ]);
+    }
+
+    public function show(Withdrawal $withdrawal): View
+    {
+        $withdrawal->load(['user', 'approver', 'timelineEvents', 'payoutAccount', 'attempts.authoriser', 'feeRule']);
+
+        return view('dashboard.admin.withdrawals.show', [
+            'withdrawal' => $withdrawal,
+            'balances' => $this->payouts->gatewayBalances(),
+            'gatewaysConfigured' => $this->payouts->gatewaysConfigured(),
+            'routeOptions' => $this->payouts->routeOptions($withdrawal),
         ]);
     }
 
@@ -59,6 +62,7 @@ class WithdrawalAdminController extends Controller
             $validated = $request->validate([
                 'approval_note' => ['nullable', 'string', 'max:500'],
                 'confirm_send' => ['required', 'accepted'],
+                'gateway' => ['nullable', 'string', 'max:40'],
             ]);
         } catch (ValidationException $e) {
             return back()->with('error', $e->validator->errors()->first() ?: __('Confirmation is required.'));
@@ -72,6 +76,7 @@ class WithdrawalAdminController extends Controller
                 (int) auth()->id(),
                 $request->ip(),
                 $validated['approval_note'] ?? null,
+                $validated['gateway'] ?? null,
             );
         } catch (\Throwable $e) {
             report($e);
@@ -90,99 +95,37 @@ class WithdrawalAdminController extends Controller
         }
 
         $withdrawal->refresh();
-        $walletAfter = $withdrawal->wallet;
 
         $this->financialAudit->logMoneyAction(
             auth()->id(),
             'withdrawal.approved_and_sent',
             $withdrawal,
             $walletBefore,
-            $walletAfter,
+            $withdrawal->wallet,
             $request->ip(),
             $request->userAgent(),
             $request->header('X-Request-Id'),
             FinancialAuditLog::sanitizeWithdrawal($withdrawal->only([
-                'id', 'reference', 'amount', 'status', 'internal_status', 'user_id', 'provider_payout_reference',
+                'id', 'reference', 'amount', 'fee_amount', 'net_amount', 'status', 'internal_status', 'user_id', 'provider', 'provider_payout_reference',
             ])),
         );
 
         $msg = match (true) {
             $withdrawal->internal_status === 'completed' => __('Withdrawal approved and completed.'),
-            $withdrawal->needsProviderAuthorization() => __('Withdrawal sent to Monnify. Enter the Monnify OTP on the withdrawal detail page to authorize the transfer.'),
-            default => __('Withdrawal approved and sent to payment provider. Waiting for payout confirmation.'),
+            $withdrawal->awaitingAgentConfirmation() => __('The provider fee went up beyond the tolerance. The agent has been asked to accept the new fee or cancel.'),
+            $withdrawal->needsAdminDecision() => __('The payout was not made. Review the attempt below and retry or refund.'),
+            default => __('Withdrawal approved and sent. Waiting for payout confirmation.'),
         };
-
-        Log::info('admin.withdrawal.approve.success', [
-            'withdrawal_id' => $withdrawal->id,
-            'reference' => $withdrawal->reference,
-            'status' => $withdrawal->status,
-            'internal_status' => $withdrawal->internal_status,
-        ]);
-
-        if ($withdrawal->needsProviderAuthorization()) {
-            return redirect()
-                ->route('admin.withdrawals.show', $withdrawal)
-                ->with('status', $msg);
-        }
 
         return back()->with('status', $msg);
     }
 
-    public function show(Withdrawal $withdrawal): View
-    {
-        if ($withdrawal->needsProviderAuthorization() && ! $withdrawal->isTerminal()) {
-            $withdrawal = $this->payouts->refreshProviderStatus($withdrawal);
-        }
-
-        $withdrawal->load(['user', 'approver', 'timelineEvents']);
-
-        $merchantBalance = null;
-        if ($this->rail->isConfigured()) {
-            try {
-                $merchantBalance = $this->payouts->merchantBalance();
-            } catch (\Throwable) {
-                $merchantBalance = null;
-            }
-        }
-
-        return view('dashboard.admin.withdrawals.show', [
-            'withdrawal' => $withdrawal,
-            'merchantBalance' => $merchantBalance,
-            'monnifyEnabled' => $this->rail->isConfigured(),
-            'maxAuthAttempts' => 5,
-        ]);
-    }
-
-    public function authorizeProvider(Withdrawal $withdrawal, Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'authorization_code' => ['required', 'string', 'min:4', 'max:12'],
-        ]);
-
-        try {
-            $this->payouts->authorizeProviderTransfer(
-                $withdrawal,
-                $validated['authorization_code'],
-                (int) auth()->id(),
-            );
-        } catch (\Throwable $e) {
-            return redirect()
-                ->route('admin.withdrawals.show', $withdrawal)
-                ->with('error', $e->getMessage());
-        }
-
-        $withdrawal->refresh();
-        $msg = $withdrawal->status === 'completed'
-            ? __('Monnify transfer authorized and withdrawal completed.')
-            : __('Monnify OTP accepted. Payout is processing — status will update when the provider confirms.');
-
-        return redirect()
-            ->route('admin.withdrawals.show', $withdrawal)
-            ->with('status', $msg);
-    }
-
     public function reject(Withdrawal $withdrawal, Request $request): RedirectResponse
     {
+        if ($withdrawal->latestAttempt?->isLive()) {
+            return back()->with('error', __('A payout attempt is still in progress. Wait for the provider to confirm the result.'));
+        }
+
         $walletBefore = $withdrawal->wallet?->replicate();
 
         try {
@@ -196,31 +139,110 @@ class WithdrawalAdminController extends Controller
         }
 
         $withdrawal->refresh();
-        $walletAfter = $withdrawal->wallet;
 
         $this->financialAudit->logMoneyAction(
             auth()->id(),
             'withdrawal.rejected',
             $withdrawal,
             $walletBefore,
-            $walletAfter,
+            $withdrawal->wallet,
             $request->ip(),
             $request->userAgent(),
             $request->header('X-Request-Id'),
             FinancialAuditLog::sanitizeWithdrawal($withdrawal->only(['id', 'reference', 'amount', 'status', 'user_id'])),
         );
 
-        return back()->with('status', __('Withdrawal rejected. Funds returned to available balance.'));
+        return back()->with('status', __('Withdrawal rejected. The full amount is back in the member\'s available balance.'));
     }
 
+    /** Admin-authorised retry on another gateway after a confirmed recoverable or unclassified failure. */
     public function retry(Withdrawal $withdrawal, Request $request): RedirectResponse
     {
+        $validated = $request->validate([
+            'gateway' => ['required', 'string', 'max:40'],
+            'confirm_retry' => ['required', 'accepted'],
+        ]);
+
         try {
-            $this->payouts->retryPayout($withdrawal, (int) auth()->id(), $request->ip());
+            $attempt = $this->payouts->adminRetryViaGateway($withdrawal, $validated['gateway'], (int) auth()->id());
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
         }
 
-        return back()->with('status', __('Payout retry submitted.'));
+        $this->financialAudit->logMoneyAction(
+            auth()->id(),
+            'withdrawal.retry_authorised',
+            $withdrawal->fresh(),
+            null,
+            null,
+            $request->ip(),
+            $request->userAgent(),
+            $request->header('X-Request-Id'),
+            ['attempt' => $attempt->reference, 'gateway' => $attempt->gateway_key, 'status' => $attempt->status],
+        );
+
+        return back()->with('status', __('Retry sent as :ref.', ['ref' => $attempt->reference]));
+    }
+
+    public function refund(Withdrawal $withdrawal, Request $request): RedirectResponse
+    {
+        $request->validate(['confirm_refund' => ['required', 'accepted'], 'notes' => ['nullable', 'string', 'max:500']]);
+        $walletBefore = $withdrawal->wallet?->replicate();
+
+        try {
+            $this->payouts->refundToWallet($withdrawal, (int) auth()->id(), $request->input('notes'));
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        $withdrawal->refresh();
+        $this->financialAudit->logMoneyAction(
+            auth()->id(),
+            'withdrawal.refunded',
+            $withdrawal,
+            $walletBefore,
+            $withdrawal->wallet,
+            $request->ip(),
+            $request->userAgent(),
+            $request->header('X-Request-Id'),
+            FinancialAuditLog::sanitizeWithdrawal($withdrawal->only(['id', 'reference', 'amount', 'status', 'user_id'])),
+        );
+
+        return back()->with('status', __('Refunded in full to the member\'s wallet.'));
+    }
+
+    public function waiveBounceFee(Withdrawal $withdrawal, Request $request): RedirectResponse
+    {
+        $txn = $this->walletService->waiveBounceFee($withdrawal, (int) auth()->id());
+        if (! $txn) {
+            return back()->with('error', __('There is no bounce fee to waive.'));
+        }
+
+        $this->financialAudit->logMoneyAction(
+            auth()->id(),
+            'withdrawal.bounce_fee_waived',
+            $withdrawal->fresh(),
+            null,
+            null,
+            $request->ip(),
+            $request->userAgent(),
+            $request->header('X-Request-Id'),
+            ['amount' => (string) $withdrawal->bounce_fee_amount],
+        );
+
+        return back()->with('status', __('Bounce fee waived and credited back.'));
+    }
+
+    public function rejectAccount(Withdrawal $withdrawal, Request $request): RedirectResponse
+    {
+        $validated = $request->validate(['reason' => ['required', 'string', 'max:255']]);
+        $account = $withdrawal->payoutAccount;
+        if (! $account) {
+            return back()->with('error', __('This withdrawal has no payout account.'));
+        }
+
+        $this->payoutAccounts->reject($account, $validated['reason'], (int) auth()->id());
+
+        return back()->with('status', __('Payout account rejected. Reject or refund this withdrawal next.'));
     }
 }

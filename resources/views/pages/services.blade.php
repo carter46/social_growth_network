@@ -110,11 +110,12 @@
                         <div>
                             <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Starting budget</h4>
                             <div class="flex flex-col gap-1.5">
+                                @php [$budgetLow, $budgetHigh] = \App\Modules\Catalog\Http\Controllers\ServiceController::budgetBands(); @endphp
                                 @foreach([
                                     '' => 'Any budget',
-                                    'under_10k' => 'Under ₦10,000',
-                                    '10k_25k' => '₦10,000 – ₦25,000',
-                                    '25k_plus' => '₦25,000+',
+                                    'low' => 'Under '.money($budgetLow),
+                                    'mid' => money($budgetLow).' to '.money($budgetHigh),
+                                    'high' => money($budgetHigh).'+',
                                 ] as $value => $label)
                                     <button
                                         type="button"

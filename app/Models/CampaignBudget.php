@@ -26,10 +26,10 @@ class CampaignBudget extends Model
     protected function casts(): array
     {
         return [
-            'funded_amount' => 'decimal:2',
-            'paid_amount' => 'decimal:2',
-            'refunded_amount' => 'decimal:2',
-            'released_amount' => 'decimal:2',
+            'funded_amount' => 'decimal:4',
+            'paid_amount' => 'decimal:4',
+            'refunded_amount' => 'decimal:4',
+            'released_amount' => 'decimal:4',
         ];
     }
 
@@ -41,10 +41,10 @@ class CampaignBudget extends Model
     /** Still held for future payouts. */
     public function remaining(): string
     {
-        $used = bcadd(bcadd((string) $this->paid_amount, (string) $this->refunded_amount, 2), (string) $this->released_amount, 2);
+        $used = bcadd(bcadd((string) $this->paid_amount, (string) $this->refunded_amount, 4), (string) $this->released_amount, 4);
 
-        return bccomp((string) $this->funded_amount, $used, 2) > 0
-            ? bcsub((string) $this->funded_amount, $used, 2)
-            : '0.00';
+        return bccomp((string) $this->funded_amount, $used, 4) > 0
+            ? bcsub((string) $this->funded_amount, $used, 4)
+            : '0.0000';
     }
 }

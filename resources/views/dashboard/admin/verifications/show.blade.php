@@ -39,7 +39,7 @@
             @endif
         </p>
         <p><span class="text-text-muted">Agent:</span> {{ $participation->agent?->email }}</p>
-        <p><span class="text-text-muted">Reward:</span> ₦{{ number_format((float) $participation->reward_amount, 2) }}</p>
+        <p><span class="text-text-muted">Reward:</span> {{ money($participation->reward_amount, 2, 4) }}</p>
         <p><span class="text-text-muted">Status:</span> <x-dashboard.badge :status="$participation->status" /></p>
         @if ($usesSteps)
             <p>

@@ -10,6 +10,7 @@ use App\Models\PlatformProduct;
 use App\Models\PlatformProductVariant;
 use App\Services\Engagement\EngagementProbeManager;
 use App\Services\Engagement\TargetUrlValidator;
+use App\Support\Money\Money;
 use App\Support\ProductTaskProfile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -46,10 +47,12 @@ class CampaignFulfillmentService
         }
 
         $options = $item->options ?? [];
-        $agentReward = $this->agentReward($product, $item, $options);
-
         $targetUrl = TargetUrlValidator::normalize($options['target_url'] ?? $options['campaign_url'] ?? null);
         $profile = ProductTaskProfile::forOrderOptions($product->slug, $options);
+        $taskTargets = $profile->isMultiTask() ? $this->taskTargets($profile, $options) : null;
+        $agentReward = $taskTargets !== null
+            ? PlatformProductVariant::agentRewardForUnitPrice((string) $options['unit_price'], (float) ($product->agent_reward_percent ?? 0))
+            : $this->agentReward($product, $item, $options);
         $metric = $profile->legacyMetric();
         $platform = EngagementMetric::platformFromProductSlug($product->slug);
 
@@ -88,7 +91,8 @@ class CampaignFulfillmentService
             'baseline_captured_at' => null,
             'last_verified_count' => null,
             'verification_mode' => $verificationMode,
-            'quantity' => $this->campaignQuantity($item, $options),
+            // With per-service targets the slot count is the largest target: every agent takes that step.
+            'quantity' => $taskTargets !== null ? max($taskTargets) : $this->campaignQuantity($item, $options),
             'completed_count' => 0,
             // Keep order line unit_price (package price for fixed; per-unit rate for per_unit).
             'locked_creator_price' => $item->unit_price,
@@ -96,6 +100,7 @@ class CampaignFulfillmentService
             'status' => Campaign::STATUS_ACTIVE,
             'estimated_minutes' => $estimatedMinutes,
             'required_tasks' => $profile->usesStepFlow() && $profile->isMultiTask() ? $profile->taskValues() : null,
+            'task_targets' => $taskTargets,
             'channel_url' => $channelUrl,
             'channel_id' => $channelId ? substr((string) $channelId, 0, 64) : null,
             'video_id' => $videoId ? substr((string) $videoId, 0, 32) : null,
@@ -145,6 +150,31 @@ class CampaignFulfillmentService
     }
 
     /**
+     * Agents needed per step, from the quantities picked at checkout. Lines bought before
+     * per-service quantities existed return null and keep "every agent does every step".
+     *
+     * @param  array<string, mixed>  $options
+     * @return array<string, int>|null
+     */
+    private function taskTargets(ProductTaskProfile $profile, array $options): ?array
+    {
+        $quantities = $options['task_quantities'] ?? null;
+        if (! is_array($quantities) || ! isset($options['unit_price']) || ! is_numeric($options['unit_price'])) {
+            return null;
+        }
+
+        $targets = [];
+        foreach ($profile->tasks() as $task) {
+            $qty = (int) ($quantities[$task->value] ?? 0);
+            if ($qty > 0) {
+                $targets[$task->value] = $qty;
+            }
+        }
+
+        return $targets !== [] ? $targets : null;
+    }
+
+    /**
      * @param  array<string, mixed>  $options
      */
     private function isPerUnitLine(array $options): bool
@@ -178,12 +208,15 @@ class CampaignFulfillmentService
         $percent = (float) ($product->agent_reward_percent ?? 0);
 
         if ($percent > 0) {
-            // order_items.unit_price is stored at 2 decimals; derive the exact paid unit price from the line total.
-            $unitPrice = bcdiv(
-                number_format((float) $item->line_total, 2, '.', ''),
-                (string) $this->campaignQuantity($item, $options),
-                4
-            );
+            // Per-unit lines carry the 6-decimal unit price checkout charged (the value admin validation checks).
+            // Otherwise derive it from the line total at the same precision.
+            $unitPrice = $this->isPerUnitLine($options) && isset($options['unit_price']) && is_numeric($options['unit_price'])
+                ? Money::round((string) $options['unit_price'], Money::unitPriceScale())
+                : bcdiv(
+                    Money::round((string) $item->line_total, 2),
+                    (string) $this->campaignQuantity($item, $options),
+                    Money::unitPriceScale()
+                );
 
             return PlatformProductVariant::agentRewardForUnitPrice($unitPrice, $percent);
         }

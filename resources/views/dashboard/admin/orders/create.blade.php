@@ -29,7 +29,7 @@
             method="POST"
             action="{{ route('admin.orders.store') }}"
             class="space-y-4"
-            x-data="{ slug: @js((string) old('product_slug', '')), briefs: @js($productBriefs), get brief() { return this.briefs[this.slug] || null } }"
+            x-data="{ slug: @js((string) old('product_slug', '')), briefs: @js($productBriefs), companions: @js($companions ?? []), oldQty: @js((array) old('qty', [])), get brief() { return this.briefs[this.slug] || null }, get rows() { return this.companions[this.slug] || [] } }"
         >
             @csrf
             <div>
@@ -54,6 +54,13 @@
                 </p>
             </div>
             <x-dashboard.input name="quantity" type="number" label="Quantity (between the product's minimum and maximum purchase)" :value="old('quantity')" min="1" max="1000000" required />
+            <template x-for="row in rows" :key="slug + row.task">
+                <div>
+                    <label class="block text-sm font-medium text-text-secondary mb-1" :for="'order-qty-' + row.task" x-text="row.label"></label>
+                    <input type="number" :id="'order-qty-' + row.task" :name="'qty[' + row.task + ']'" :min="row.min" :max="row.max" :value="oldQty[row.task] ?? row.min" required class="w-full rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm">
+                    <p class="mt-1 text-xs text-text-muted">Between <span x-text="Number(row.min).toLocaleString()"></span> and <span x-text="Number(row.max).toLocaleString()"></span>. Units above the minimum are billed at the unit price.</p>
+                </div>
+            </template>
             <x-dashboard.input name="target_url" type="url" label="Campaign link (video URL, or channel URL for channel-only products)" :value="old('target_url')" placeholder="https://" required />
             <div x-show="brief?.channel" x-cloak>
                 <label for="order-channel-url" class="block text-sm font-medium text-text-secondary mb-1">Channel URL</label>

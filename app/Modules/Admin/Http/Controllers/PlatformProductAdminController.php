@@ -185,6 +185,10 @@ class PlatformProductAdminController extends Controller
             ],
             'task_order' => ['nullable', 'array'],
             'task_order.*' => ['string', Rule::in($allowedTasks)],
+            'task_limits' => ['nullable', 'array'],
+            'task_limits.*' => ['array'],
+            'task_limits.*.min' => ['required', 'integer', 'min:0', 'max:1000000'],
+            'task_limits.*.max' => ['required', 'integer', 'min:1', 'max:1000000'],
         ], [
             'pricing.max_units.gte' => 'Maximum purchase must be greater than or equal to the minimum purchase.',
             'estimated_minutes.required' => 'Enter the watch time in minutes.',
@@ -213,13 +217,39 @@ class PlatformProductAdminController extends Controller
             $taskOrder = array_map(fn ($task) => $task->value, $normalized);
         }
 
+        $taskLimits = $platformProduct->task_limits;
+        $companions = $profile->companionTasks();
+        if ($companions !== [] && array_key_exists('task_limits', $data)) {
+            $taskLimits = [];
+            $limitErrors = [];
+            foreach ($companions as $task) {
+                $row = $data['task_limits'][$task->value] ?? null;
+                $label = strtolower($profile->quantityLabel($task));
+                if (! is_array($row)) {
+                    $limitErrors['task_limits.'.$task->value.'.min'] = "Enter the minimum and maximum {$label}.";
+
+                    continue;
+                }
+                if ((int) $row['max'] < (int) $row['min']) {
+                    $limitErrors['task_limits.'.$task->value.'.max'] = "Maximum {$label} must be greater than or equal to the minimum.";
+
+                    continue;
+                }
+                $taskLimits[$task->value] = ['min' => (int) $row['min'], 'max' => (int) $row['max']];
+            }
+            if ($limitErrors !== []) {
+                throw ValidationException::withMessages($limitErrors);
+            }
+        }
+
         $unitPrice = PlatformProductVariant::computeUnitPriceFromPackagePrice(
             $data['pricing']['price'],
             (int) $data['pricing']['pricing_units'],
         );
-        if (bccomp(PlatformProductVariant::agentRewardForUnitPrice($unitPrice, $data['agent_reward_percent']), '0.01', 2) < 0) {
+        if (bccomp(PlatformProductVariant::agentRewardForUnitPrice($unitPrice, $data['agent_reward_percent']), PlatformProductVariant::MIN_AGENT_REWARD, 4) < 0) {
             throw ValidationException::withMessages([
-                'agent_reward_percent' => "At ₦{$unitPrice} per unit, this percentage pays agents less than ₦0.01. Raise the price or the percentage.",
+                'agent_reward_percent' => 'At '.money($unitPrice, 2, 6).' per unit, this percentage pays agents less than '
+                    .money(PlatformProductVariant::MIN_AGENT_REWARD, 2, 4).'. Raise the price or the percentage.',
             ]);
         }
 
@@ -238,6 +268,7 @@ class PlatformProductAdminController extends Controller
             'estimated_minutes' => $data['estimated_minutes'] ?? null,
             'completion_minutes' => $completionMinutes > 0 ? $completionMinutes : null,
             'task_order' => $taskOrder,
+            'task_limits' => $taskLimits,
         ];
 
         DB::transaction(function () use ($platformProduct, $updatePayload, $data, $unitPrice, $heroMediaId) {

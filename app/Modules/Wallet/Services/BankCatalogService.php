@@ -2,32 +2,62 @@
 
 namespace App\Modules\Wallet\Services;
 
-use App\Modules\Wallet\Payments\Contracts\PaymentRailInterface;
+use App\Modules\Wallet\Payments\GatewayRegistry;
+use Illuminate\Support\Facades\Cache;
 
+/**
+ * Bank and mobile money network lists per country, from the first gateway on the payout route.
+ */
 class BankCatalogService
 {
     public function __construct(
-        private PaymentRailInterface $rail,
+        private GatewayRegistry $registry,
     ) {}
 
     /**
-     * Banks allowed for user selection (filtered from Monnify list).
-     *
      * @return list<array{name: string, code: string}>
      */
-    public function allowedBanks(): array
+    public function options(string $country, string $method = 'bank_account'): array
     {
-        if (! $this->rail->isConfigured()) {
+        $country = strtoupper($country);
+        $driver = array_values($this->registry->payoutRoute($country, $method))[0]
+            ?? $this->registry->resolverFor($country, $method);
+        if (! $driver) {
             return [];
         }
 
-        try {
-            $banks = $this->rail->listBanks();
-        } catch (\Throwable) {
+        $banks = Cache::remember(
+            'payout_banks:'.$driver->key().':'.$country.':'.$method,
+            now()->addHours(6),
+            function () use ($driver, $country, $method) {
+                try {
+                    return $driver->listBanks($country, $method);
+                } catch (\Throwable) {
+                    return null;
+                }
+            },
+        );
+        if ($banks === null) {
+            Cache::forget('payout_banks:'.$driver->key().':'.$country.':'.$method);
+
             return [];
         }
 
-        return $this->filterAllowed($banks);
+        return $country === 'NG' && $method === 'bank_account'
+            ? $this->filterAllowed($banks)
+            : $this->clean($banks);
+    }
+
+    /** @return array{name: string, code: string}|null */
+    public function find(string $country, string $method, string $code): ?array
+    {
+        foreach ($this->options($country, $method) as $bank) {
+            if ((string) $bank['code'] === $code) {
+                return $bank;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -48,28 +78,38 @@ class BankCatalogService
             ->values()
             ->all();
 
-        return collect($banks)
+        return collect($this->clean($banks))
             ->filter(function (array $bank) use ($allow, $deny) {
-                $name = mb_strtolower(trim($bank['name'] ?? ''));
-
-                if ($name === '' || ($bank['code'] ?? '') === '') {
-                    return false;
-                }
-
+                $name = mb_strtolower($bank['name']);
                 foreach ($deny as $pattern) {
-                    if ($pattern !== '' && str_contains($name, $pattern)) {
+                    if (str_contains($name, $pattern)) {
                         return false;
                     }
                 }
-
+                if ($allow === []) {
+                    return true;
+                }
                 foreach ($allow as $pattern) {
-                    if ($pattern !== '' && str_contains($name, $pattern)) {
+                    if (str_contains($name, $pattern)) {
                         return true;
                     }
                 }
 
                 return false;
             })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  list<array{name: string, code: string}>  $banks
+     * @return list<array{name: string, code: string}>
+     */
+    private function clean(array $banks): array
+    {
+        return collect($banks)
+            ->map(fn ($b) => ['name' => trim((string) ($b['name'] ?? '')), 'code' => trim((string) ($b['code'] ?? ''))])
+            ->filter(fn ($b) => $b['name'] !== '' && $b['code'] !== '')
             ->unique('code')
             ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
             ->values()

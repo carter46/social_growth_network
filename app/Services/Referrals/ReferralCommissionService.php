@@ -9,6 +9,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Modules\Wallet\Services\WalletService;
+use App\Support\Money\Money;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -46,10 +47,10 @@ class ReferralCommissionService
             return null;
         }
 
-        $base = number_format((float) $baseAmount, 2, '.', '');
-        $amount = bcdiv(bcmul($base, $rate, 6), '100', 2);
+        $base = Money::round((string) $baseAmount, 4);
+        $amount = bcdiv(bcmul($base, $rate, 8), '100', 4);
 
-        if (bccomp($amount, '0.01', 2) < 0) {
+        if (bccomp($amount, '0.0001', 4) < 0) {
             return null;
         }
 
@@ -108,10 +109,12 @@ class ReferralCommissionService
     }
 
     /**
-     * Reversal policy for a refunded, cancelled or revoked source. Pending rows are
-     * cancelled; credited rows get an offsetting ledger entry. No caller yet.
+     * Reverse the commissions earned on a refunded, cancelled or revoked source, once each.
+     * Pending rows are cancelled. Credited rows are clawed back through the wallet service
+     * (reference REF-REV-{id}); what the referrer cannot cover is owed and taken from later earnings.
+     * With $refundedAmount, only the refunded share of the source's base amount is reversed.
      */
-    public function reverseForSource(Model $source, string $reason): int
+    public function reverseForSource(Model $source, string $reason, ?string $refundedAmount = null): int
     {
         $ids = ReferralCommission::query()
             ->where('source_type', $source->getMorphClass())
@@ -122,33 +125,56 @@ class ReferralCommissionService
         $reversed = 0;
 
         foreach ($ids as $id) {
-            DB::transaction(function () use ($id, $reason, &$reversed) {
+            $pendingCancelled = DB::transaction(function () use ($id) {
                 $commission = ReferralCommission::query()->whereKey($id)->lockForUpdate()->first();
-
-                if (! $commission || $commission->status === ReferralCommission::STATUS_REVERSED) {
-                    return;
+                if (! $commission || $commission->status !== ReferralCommission::STATUS_PENDING) {
+                    return false;
                 }
-
-                $reversalId = null;
-
-                if ($commission->status === ReferralCommission::STATUS_CREDITED && $commission->transaction_id) {
-                    $original = Transaction::query()->find($commission->transaction_id);
-                    if ($original) {
-                        $reversalId = $this->wallets->reverseReferralCommission($original, $reason)->id;
-                    }
-                }
-
                 $commission->forceFill([
                     'status' => ReferralCommission::STATUS_REVERSED,
-                    'reversal_transaction_id' => $reversalId,
+                    'reversed_amount' => 0,
                     'reversed_at' => now(),
                 ])->save();
 
-                $reversed++;
+                return true;
             });
+            if ($pendingCancelled) {
+                $reversed++;
+
+                continue;
+            }
+
+            $commission = ReferralCommission::query()->find($id);
+            if (! $commission || $commission->status !== ReferralCommission::STATUS_CREDITED) {
+                continue;
+            }
+
+            $target = $this->reversalTarget($commission, $refundedAmount);
+            $result = $this->wallets->reverseReferralCommission((int) $id, $target, $reason);
+            if ($commission->fresh()?->status === ReferralCommission::STATUS_REVERSED) {
+                $reversed++;
+                if (bccomp($result['owed'], '0', 4) > 0) {
+                    Log::channel('financial')->info('Referral commission reversal partly owed', [
+                        'commission_id' => $id, 'taken' => $result['taken'], 'owed' => $result['owed'],
+                    ]);
+                }
+            }
         }
 
         return $reversed;
+    }
+
+    private function reversalTarget(ReferralCommission $commission, ?string $refundedAmount): string
+    {
+        $amount = Money::round((string) $commission->amount, 4);
+        $base = Money::round((string) $commission->base_amount, 4);
+        if ($refundedAmount === null || bccomp($base, '0', 4) <= 0) {
+            return $amount;
+        }
+
+        $share = bcdiv(bcmul($amount, Money::round($refundedAmount, 4), 8), $base, 4);
+
+        return bccomp($share, $amount, 4) > 0 ? $amount : $share;
     }
 
     private function creditPending(int $commissionId): bool
@@ -172,11 +198,13 @@ class ReferralCommissionService
                     ? 'Referral commission from @'.$referredName
                     : 'Referral commission';
 
-                $transaction = $this->wallets->creditReward(
+                $transaction = $this->wallets->creditFundedReward(
                     $referrer,
-                    (float) $commission->amount,
+                    (string) $commission->amount,
                     $label,
-                    TransactionType::ReferralCommission->value,
+                    TransactionType::ReferralCommission,
+                    TransactionType::ReferralCommissionExpense,
+                    'REF-COM-'.$commission->id,
                 );
 
                 $commission->forceFill([

@@ -1,6 +1,7 @@
 @php
     $preferAgent = (bool) ($registerAsAgent ?? false) || request()->query('as') === 'agent';
-    $initialType = old('account_type', $preferAgent ? 'agent' : '');
+    $hasPackageDraft = app(\App\Services\Catalog\PurchaseDraftService::class)->has();
+    $initialType = old('account_type', $preferAgent ? 'agent' : ($hasPackageDraft ? 'creator' : ''));
     $hasErrors = $errors->any();
     $initialStep = 1;
     if ($hasErrors || old('name') || old('email') || old('username')) {
@@ -57,6 +58,12 @@
             </div>
             <p class="mt-2 text-xs text-slate-500" x-text="progressLabel"></p>
         </div>
+
+        @if ($hasPackageDraft && ! $preferAgent)
+            <div class="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-slate-700">
+                Your package is saved. Create a Creator account to finish your order.
+            </div>
+        @endif
 
         @if ($errors->any())
             <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 space-y-1">

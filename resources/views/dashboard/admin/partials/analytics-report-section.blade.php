@@ -41,7 +41,7 @@
         $pulse = [
             [
                 'label' => 'Platform revenue',
-                'value' => '₦' . number_format($data['total_ngn'] ?? 0, 2),
+                'value' => money($data['total'] ?? 0, 2),
                 'accent' => 'emerald',
                 'delta' => $data['delta_percent'] ?? null,
                 'delta_label' => 'vs prior period',
@@ -57,7 +57,7 @@
             ],
             [
                 'label' => 'GMV',
-                'value' => '₦' . number_format($data['gmv'] ?? 0, 2),
+                'value' => money($data['gmv'] ?? 0, 2),
                 'accent' => 'blue',
                 'hint' => 'platform order volume',
             ],
@@ -90,12 +90,19 @@
         @endphp
         <x-dashboard.command.distribution-card
             title="Revenue by type"
-            :center-value="'₦' . number_format($data['total_ngn'] ?? 0, 0)"
+            :center-value="money($data['total'] ?? 0, 0)"
             center-label="Total"
             :slices="$revenueSlices"
             id="analytics-revenue-donut"
         />
     </div>
+    <p class="mt-3 text-xs text-text-secondary">
+        @if (! empty($data['fee_split_started_at']))
+            Withdrawal fee revenue counts only the platform's own fee, from {{ \Illuminate\Support\Carbon::parse($data['fee_split_started_at'])->format('M j, Y') }}. Provider fees are pass-through and are not revenue.
+        @else
+            Withdrawal fee revenue starts with the first withdrawal completed after the fee split. Provider fees are pass-through and are not revenue.
+        @endif
+    </p>
 
 @elseif ($section === 'services')
     <x-dashboard.command.section-label title="Business — Services" accent="primary" />

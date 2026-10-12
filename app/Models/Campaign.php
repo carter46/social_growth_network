@@ -62,6 +62,7 @@ class Campaign extends Model
         'estimated_minutes',
         'meta',
         'required_tasks',
+        'task_targets',
         'channel_url',
         'channel_id',
         'video_id',
@@ -73,14 +74,15 @@ class Campaign extends Model
     {
         return [
             'required_tasks' => 'array',
+            'task_targets' => 'array',
             'completion_minutes' => 'integer',
             'quantity' => 'integer',
             'completed_count' => 'integer',
             'baseline_count' => 'integer',
             'last_verified_count' => 'integer',
             'baseline_captured_at' => 'datetime',
-            'locked_creator_price' => 'decimal:2',
-            'locked_agent_reward' => 'decimal:2',
+            'locked_creator_price' => 'decimal:6',
+            'locked_agent_reward' => 'decimal:4',
             'estimated_minutes' => 'integer',
             'meta' => 'array',
         ];
@@ -142,6 +144,129 @@ class Campaign extends Model
     public function usesStepFlow(): bool
     {
         return $this->taskProfile()->usesStepFlow();
+    }
+
+    /** Participation statuses that hold a slot (and the steps it was given). */
+    public const SLOT_STATUSES = [
+        CampaignParticipation::STATUS_STARTED,
+        CampaignParticipation::STATUS_SUBMITTED,
+        CampaignParticipation::STATUS_UNDER_REVIEW,
+        CampaignParticipation::STATUS_VERIFYING,
+        CampaignParticipation::STATUS_APPROVED,
+        CampaignParticipation::STATUS_PAID,
+    ];
+
+    /**
+     * Campaign bought with a target per service. Campaigns without targets (older orders and
+     * single-service products) give every agent every step.
+     */
+    public function usesTaskTargets(): bool
+    {
+        return $this->usesStepFlow() && $this->taskTargets() !== [];
+    }
+
+    /** @return array<string, int> task value => agents needed for that step */
+    public function taskTargets(): array
+    {
+        $targets = [];
+        foreach ((array) ($this->task_targets ?? []) as $task => $target) {
+            if (\App\Enums\CampaignTask::tryFrom((string) $task) !== null && (int) $target > 0) {
+                $targets[(string) $task] = (int) $target;
+            }
+        }
+
+        return $targets;
+    }
+
+    /**
+     * Steps held by agents per task: given to a participation that is in progress, waiting or paid.
+     *
+     * @return array<string, int>
+     */
+    public function reservedStepCounts(): array
+    {
+        return $this->stepCounts(self::SLOT_STATUSES);
+    }
+
+    /** @return array<string, int> steps delivered (participation paid) per task */
+    public function deliveredStepCounts(): array
+    {
+        return $this->stepCounts([CampaignParticipation::STATUS_PAID]);
+    }
+
+    /**
+     * Steps a new agent would be given now, in campaign order. Campaigns without targets give every step.
+     *
+     * @return list<\App\Enums\CampaignTask>
+     */
+    public function openTasks(): array
+    {
+        $tasks = $this->taskProfile()->tasks();
+        if (! $this->usesTaskTargets()) {
+            return $tasks;
+        }
+
+        $targets = $this->taskTargets();
+        $reserved = $this->reservedStepCounts();
+
+        return array_values(array_filter(
+            $tasks,
+            fn (\App\Enums\CampaignTask $task) => ($reserved[$task->value] ?? 0) < ($targets[$task->value] ?? 0),
+        ));
+    }
+
+    /**
+     * Per-step progress for creator and admin views.
+     *
+     * @return list<array{task: \App\Enums\CampaignTask, label: string, target: int, delivered: int, in_progress: int}>
+     */
+    public function stepProgress(): array
+    {
+        if (! $this->usesTaskTargets()) {
+            return [];
+        }
+
+        $profile = $this->taskProfile();
+        $targets = $this->taskTargets();
+        $reserved = $this->reservedStepCounts();
+        $delivered = $this->deliveredStepCounts();
+        $rows = [];
+        foreach ($profile->tasks() as $task) {
+            if (! isset($targets[$task->value])) {
+                continue;
+            }
+            $done = min($targets[$task->value], $delivered[$task->value] ?? 0);
+            $rows[] = [
+                'task' => $task,
+                'label' => $profile->quantityLabel($task),
+                'target' => $targets[$task->value],
+                'delivered' => $done,
+                'in_progress' => max(0, ($reserved[$task->value] ?? 0) - ($delivered[$task->value] ?? 0)),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param  list<string>  $participationStatuses
+     * @return array<string, int>
+     */
+    private function stepCounts(array $participationStatuses): array
+    {
+        if (! $this->exists) {
+            return [];
+        }
+
+        return CampaignParticipationTask::query()
+            ->join('campaign_participations as p', 'p.id', '=', 'campaign_participation_tasks.participation_id')
+            ->where('campaign_participation_tasks.campaign_id', $this->id)
+            ->whereIn('p.status', $participationStatuses)
+            ->groupBy('campaign_participation_tasks.task')
+            ->selectRaw('campaign_participation_tasks.task as task, COUNT(*) as aggregate')
+            ->pluck('aggregate', 'task')
+            ->map(fn ($count) => (int) $count)
+            ->all();
     }
 
     public const STATUS_LABELS = [
@@ -235,7 +360,8 @@ class Campaign extends Model
         return $this->status === self::STATUS_ACTIVE
             && $this->remainingSlots() > 0
             && $this->availableStartSlots() > 0
-            && ($this->platform_product_id === null || (bool) $this->product?->isOffered());
+            && ($this->platform_product_id === null || (bool) $this->product?->isOffered())
+            && (! $this->usesTaskTargets() || $this->openTasks() !== []);
     }
 
     public function scopeOpenForAgents($query)

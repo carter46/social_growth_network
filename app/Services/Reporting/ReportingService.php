@@ -45,7 +45,7 @@ class ReportingService
             'pulse' => [
                 'revenue' => [
                     'value' => $revenue,
-                    'formatted' => '₦'.number_format((float) $revenue, 2, '.', ','),
+                    'formatted' => money((float) $revenue, 2),
                     'delta' => $revenueDelta,
                     'delta_label' => 'vs prior period',
                     'sparkline' => $revenueSeries['values'],
@@ -96,12 +96,13 @@ class ReportingService
     public function revenueSection(ReportingRange $range): array
     {
         return [
-            'total_ngn' => $this->revenue->sum($range),
+            'total' => $this->revenue->sum($range),
             'count' => $this->revenue->count($range),
             'by_type' => $this->revenue->byType($range),
             'delta_percent' => $this->revenue->deltaPercent($range),
             'series' => $this->revenue->dailySeries($range),
             'gmv' => $this->ops->gmv($range),
+            'fee_split_started_at' => \App\Models\SystemSetting::get(\App\Modules\Wallet\Services\WalletService::FEE_SPLIT_STARTED_SETTING),
         ];
     }
 
@@ -127,7 +128,7 @@ class ReportingService
         return [
             [
                 'key' => 'revenue.daily',
-                'label' => 'Revenue (NGN)',
+                'label' => 'Revenue ('.site_currency()->code.')',
                 'labels' => $revenue['labels'],
                 'values' => $revenue['values'],
             ],

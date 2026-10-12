@@ -22,6 +22,7 @@ class WalletFunding extends Model
             'approved_at' => 'datetime',
             'reversed_at' => 'datetime',
             'checkout_expires_at' => 'datetime',
+            'last_checked_at' => 'datetime',
         ];
     }
 

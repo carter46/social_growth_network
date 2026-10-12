@@ -35,7 +35,7 @@ class AnalyticsRollupKpis extends Command
             $this->upsertSnapshot('support.waiting', $period, $ops->supportWaiting(), $now);
             $this->upsertSnapshot('tickets.open', $period, $ops->supportWaiting(), $now);
             $this->upsertSnapshot('tickets.total', $period, \App\Models\SupportTicket::count(), $now);
-            $this->upsertSnapshot('sales.total_ngn', $period, $revenue->sum($range), $now);
+            $this->upsertSnapshot('sales.total', $period, $revenue->sum($range), $now);
             $this->upsertSnapshot('transactions.total', $period, Transaction::query()
                 ->whereBetween('created_at', [$range->from, $range->to])
                 ->count(), $now);

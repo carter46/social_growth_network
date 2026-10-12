@@ -66,7 +66,7 @@
                     @endif
                     <div class="mt-0.5 font-mono text-[11px] leading-snug text-text-muted break-all">{{ $order->reference }}</div>
                 </x-dashboard.td>
-                <x-dashboard.td>₦{{ number_format($order->total_amount ?? $order->amount, 2) }}</x-dashboard.td>
+                <x-dashboard.td>{{ money($order->total_amount ?? $order->amount, 2) }}</x-dashboard.td>
                 <x-dashboard.td>
                     <x-dashboard.badge :status="$order->status === 'cancelled' ? 'danger' : $order->status">
                         @if ($order->status === 'cancelled' && $order->payment_method === \App\Models\Order::PAYMENT_MANUAL_BANK_TRANSFER)

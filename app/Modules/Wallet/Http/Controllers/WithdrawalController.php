@@ -3,11 +3,16 @@
 namespace App\Modules\Wallet\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\Withdrawal;
+use App\Modules\Wallet\Payments\PayoutGate;
+use App\Modules\Wallet\Services\PayoutAccountService;
 use App\Modules\Wallet\Services\WithdrawalConfirmationService;
+use App\Modules\Wallet\Services\WithdrawalFeeService;
+use App\Modules\Wallet\Services\WithdrawalPayoutService;
 use App\Support\MemberShell;
+use App\Support\Money\Money;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -18,6 +23,8 @@ class WithdrawalController extends Controller
 {
     public function __construct(
         private WithdrawalConfirmationService $confirmation,
+        private WithdrawalFeeService $fees,
+        private WithdrawalPayoutService $payouts,
     ) {}
 
     public function index(): View
@@ -46,15 +53,20 @@ class WithdrawalController extends Controller
     {
         $user = auth()->user();
         $prefix = MemberShell::prefix();
-        $withdrawalMin = (float) SystemSetting::get('withdrawal_min_amount', 100);
+        $account = $user->primaryPayoutAccount;
+        $limits = $account
+            ? $this->fees->limits($account->country, $account->method, null)
+            : ['min' => WithdrawalFeeService::globalMin(), 'max' => WithdrawalFeeService::globalMax()];
 
         return view('dashboard.user.withdrawal.create', [
             'wallet' => $user->wallet,
-            'bank' => $user->activeBankAccount,
+            'account' => $account,
             'step' => session('withdrawal_step', 'confirm'),
-            'blocker' => $this->withdrawalBlocker($user, $prefix, $withdrawalMin),
-            'withdrawalMin' => $withdrawalMin,
-            'withdrawalMax' => (float) SystemSetting::get('withdrawal_max_amount', 1000000),
+            'blocker' => $this->withdrawalBlocker($user, $prefix, (string) $limits['min']),
+            'withdrawalMin' => (float) $limits['min'],
+            'withdrawalMax' => (float) $limits['max'],
+            'bounceFee' => PayoutAccountService::bounceFee(),
+            'breakdown' => session('withdrawal_breakdown'),
             'layout' => MemberShell::layout(),
             'prefix' => $prefix,
         ]);
@@ -65,7 +77,7 @@ class WithdrawalController extends Controller
      *
      * @return array{title: string, message: string, action: ?array{label: string, href: string}}|null
      */
-    private function withdrawalBlocker(User $user, string $prefix, float $withdrawalMin): ?array
+    private function withdrawalBlocker(User $user, string $prefix, string $withdrawalMin): ?array
     {
         $link = fn (string $route, string $label) => Route::has($route)
             ? ['label' => $label, 'href' => route($route)]
@@ -79,20 +91,21 @@ class WithdrawalController extends Controller
 
             return match (array_key_first($errors)) {
                 'password' => ['title' => __('Set a password first'), 'message' => $message, 'action' => $link($prefix.'.account.security', __('Go to security'))],
-                'bank' => ['title' => __('Add a bank account'), 'message' => $message, 'action' => $link($prefix.'.banks.index', __('Add bank account'))],
+                'bank', 'terms' => ['title' => __('Check your payout account'), 'message' => $message, 'action' => $link($prefix.'.banks.index', __('Payout accounts'))],
                 default => str_contains($message, 'KYC')
                     ? ['title' => __('Verify your identity'), 'message' => $message, 'action' => $link($prefix.'.account.kyc', __('Complete KYC'))]
                     : ['title' => __('Withdrawal in progress'), 'message' => $message, 'action' => $link($prefix.'.withdrawal.index', __('View withdrawals'))],
             };
         }
 
-        $available = (float) ($user->wallet?->availableBalance() ?? 0);
-        if ($available < $withdrawalMin) {
+        $available = $user->wallet?->availableBalance() ?? '0';
+        $withdrawable = $user->wallet?->withdrawableBalance() ?? '0.00';
+        if (bccomp($withdrawable, Money::normalize($withdrawalMin), 4) < 0) {
             return [
                 'title' => __('Insufficient balance'),
-                'message' => __('Your available balance is ₦:available. The minimum withdrawal is ₦:min. Complete more tasks to earn rewards, then come back to withdraw.', [
-                    'available' => number_format($available, 2),
-                    'min' => number_format($withdrawalMin, 2),
+                'message' => __('Your available balance is :available. The minimum withdrawal to your primary account is :min. Complete more tasks to earn rewards, then come back to withdraw.', [
+                    'available' => money($available),
+                    'min' => money($withdrawalMin, 2, 2),
                 ]),
                 'action' => $link($prefix.'.marketplace', __('Find tasks')),
             ];
@@ -101,27 +114,56 @@ class WithdrawalController extends Controller
         return null;
     }
 
+    /** Live fee breakdown as the agent types (JSON). */
+    public function quote(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0.01', 'decimal:0,2'],
+        ]);
+
+        try {
+            $breakdown = $this->confirmation->quoteFor($request->user(), (string) $validated['amount']);
+        } catch (ValidationException $e) {
+            return response()->json(['message' => collect($e->errors())->flatten()->first()], 422);
+        }
+
+        $quote = (array) $breakdown['quote'];
+
+        return response()->json([
+            'amount' => money($breakdown['amount'], 2),
+            'provider_fee' => money($breakdown['provider_fee'], 2),
+            'platform_fee' => bccomp($breakdown['platform_fee'], '0', 2) > 0 ? money($breakdown['platform_fee'], 2) : null,
+            'net' => money($breakdown['net'], 2),
+            'fx_rate' => $quote['fx_rate'] ?? null,
+            'destination_amount' => isset($quote['destination_amount']) ? number_format((float) $quote['destination_amount'], 2) : null,
+            'destination_currency' => $quote['destination_currency'] ?? null,
+            'quoted_at' => isset($quote['quoted_at']) ? \Carbon\Carbon::parse($quote['quoted_at'])->format('H:i') : null,
+            'high_fee' => $breakdown['high_fee'],
+        ]);
+    }
+
     public function sendOtp(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'password' => ['required', 'string'],
-            'amount' => ['required', 'numeric', 'min:1'],
-            'user_bank_account_id' => ['required', 'integer'],
+            'amount' => ['required', 'numeric', 'min:0.01', 'decimal:0,2'],
+            'payout_account_id' => ['required', 'integer'],
         ]);
 
         $this->confirmation->sendOtp(
             $request->user(),
             $validated['password'],
-            (float) $validated['amount'],
-            (int) $validated['user_bank_account_id'],
+            (string) $validated['amount'],
+            (int) $validated['payout_account_id'],
         );
 
-        $prefix = MemberShell::prefix();
+        $breakdown = $this->confirmation->quoteFor($request->user(), (string) $validated['amount']);
 
         return redirect()
-            ->route($prefix.'.withdrawal.create')
+            ->route(MemberShell::prefix().'.withdrawal.create')
             ->with('withdrawal_step', 'otp')
             ->with('withdrawal_amount', $validated['amount'])
+            ->with('withdrawal_breakdown', $breakdown)
             ->with('status', __('A verification code was sent to your email.'));
     }
 
@@ -136,7 +178,9 @@ class WithdrawalController extends Controller
 
         return redirect()
             ->route($prefix.'.withdrawal.show', $withdrawal)
-            ->with('status', __('Withdrawal request submitted.'));
+            ->with('status', PayoutGate::isOpen()
+                ? __('Withdrawal request submitted.')
+                : __('Withdrawal request submitted. Payouts are paused for maintenance, so it will be sent once they resume. Your funds stay reserved.'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -160,5 +204,31 @@ class WithdrawalController extends Controller
             'layout' => MemberShell::layout(),
             'prefix' => MemberShell::prefix(),
         ]);
+    }
+
+    public function acceptFee(Withdrawal $withdrawal): RedirectResponse
+    {
+        abort_unless((int) $withdrawal->user_id === (int) auth()->id(), 403);
+
+        try {
+            $this->payouts->agentAcceptFee($withdrawal);
+        } catch (\InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('status', __('New fee accepted. Your withdrawal is back in the queue.'));
+    }
+
+    public function cancel(Withdrawal $withdrawal): RedirectResponse
+    {
+        abort_unless((int) $withdrawal->user_id === (int) auth()->id(), 403);
+
+        try {
+            $this->payouts->agentCancel($withdrawal);
+        } catch (\InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('status', __('Withdrawal cancelled. The full amount is back in your balance.'));
     }
 }

@@ -55,7 +55,7 @@ class WalletProvisioningService
                 'type' => \App\Enums\WalletType::User->value,
                 'balance' => 0,
                 'locked_balance' => 0,
-                'currency' => 'NGN',
+                'currency' => config('platform.currency'),
                 'gateway_subaccount_id' => $subaccountId,
                 'status' => 'active',
             ]);

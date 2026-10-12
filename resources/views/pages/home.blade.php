@@ -104,7 +104,7 @@
                         <div class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-4">
                             @if(! empty($watchHours['from_price']))
                                 <span class="text-sm font-semibold text-slate-700 sm:mr-1">
-                                    From ₦{{ number_format((float) $watchHours['from_price'], 0) }}
+                                    From {{ money((float) $watchHours['from_price'], 2) }}
                                 </span>
                             @endif
                             <a
@@ -168,7 +168,7 @@
                         <div class="px-5 pb-5 pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
                             <span class="text-xs font-medium text-slate-500">
                                 @if(! empty($product['from_price']))
-                                    From ₦{{ number_format((float) $product['from_price'], 0) }}
+                                    From {{ money((float) $product['from_price'], 2) }}
                                 @else
                                     See packages
                                 @endif

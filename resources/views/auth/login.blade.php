@@ -20,6 +20,10 @@
         <div class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
             {{ session('status') }}
         </div>
+    @elseif (app(\App\Services\Catalog\PurchaseDraftService::class)->has())
+        <div class="mb-5 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-slate-700">
+            Your package is saved. Log in with your Creator account, or <a href="{{ route('register') }}" class="font-semibold text-primary hover:underline">sign up as a Creator</a>, to finish your order.
+        </div>
     @endif
     @if ($errors->any())
         <div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

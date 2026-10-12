@@ -392,7 +392,7 @@ class CatalogBrowseService
     {
         $meta = $count.' '.\Illuminate\Support\Str::plural('product', $count);
         if ($fromPrice) {
-            $meta .= ' · from ₦'.number_format((float) $fromPrice, 0);
+            $meta .= ' · from '.money((float) $fromPrice, 2);
         }
 
         return $meta;
@@ -566,7 +566,7 @@ class CatalogBrowseService
                 'badge' => 'Open',
                 'badgeClass' => 'text-emerald-700 bg-emerald-50',
                 'title' => $campaign->title ?: $label,
-                'reward' => '₦'.number_format((float) $campaign->locked_agent_reward, 2),
+                'reward' => money($campaign->locked_agent_reward, 2, 4),
                 'time' => $time,
                 'href' => route('agent.marketplace.show', $campaign),
             ];

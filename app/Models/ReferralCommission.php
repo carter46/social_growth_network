@@ -26,6 +26,8 @@ class ReferralCommission extends Model
         'base_amount',
         'rate',
         'amount',
+        'reversed_amount',
+        'owed_amount',
         'status',
         'transaction_id',
         'reversal_transaction_id',
@@ -36,9 +38,11 @@ class ReferralCommission extends Model
     protected function casts(): array
     {
         return [
-            'base_amount' => 'decimal:2',
+            'base_amount' => 'decimal:4',
             'rate' => 'decimal:2',
-            'amount' => 'decimal:2',
+            'amount' => 'decimal:4',
+            'reversed_amount' => 'decimal:4',
+            'owed_amount' => 'decimal:4',
             'credited_at' => 'datetime',
             'reversed_at' => 'datetime',
         ];

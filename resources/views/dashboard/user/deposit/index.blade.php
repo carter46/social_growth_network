@@ -18,7 +18,7 @@
     <x-dashboard.table
         :empty="$fundings->isEmpty()"
         empty-title="No deposits yet"
-        empty-description="Fund your wallet with online payment or your reserved account."
+        empty-description="Fund your wallet with an online payment."
         empty-icon="deposit"
         :empty-action="['href' => route('dashboard.deposit.create-checkout'), 'label' => 'Fund wallet']"
         striped
@@ -35,7 +35,7 @@
                     <a href="{{ route('dashboard.deposit.show', $f) }}" class="underline">{{ $f->reference }}</a>
                 </x-dashboard.td>
                 <x-dashboard.td>{{ $f->method }}</x-dashboard.td>
-                <x-dashboard.td>₦{{ number_format($f->amount, 2) }}</x-dashboard.td>
+                <x-dashboard.td>{{ money($f->amount, 2) }}</x-dashboard.td>
                 <x-dashboard.td><x-dashboard.badge :status="$f->status" /></x-dashboard.td>
             </tr>
         @endforeach

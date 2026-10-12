@@ -79,8 +79,8 @@
         <section class="space-y-4">
             <h2 class="text-xl font-semibold">Cards & stats</h2>
             <x-ui.stat-grid>
-                <x-ui.stat-card label="Available" value="₦120,000" icon="wallet" hint="NGN wallet" />
-                <x-ui.stat-card label="Locked" value="₦8,500" icon="lock" />
+                <x-ui.stat-card label="Available" value="$1,200.00" icon="wallet" hint="USD wallet" />
+                <x-ui.stat-card label="Locked" value="$85.00" icon="lock" />
                 <x-ui.stat-card label="Orders" value="12" icon="orders" />
                 <x-ui.stat-card label="Pending" value="3" icon="deposit" />
             </x-ui.stat-grid>
@@ -104,13 +104,13 @@
                 <tr class="hover:bg-muted/50">
                     <x-ui.td>DEP-001</x-ui.td>
                     <x-ui.td>demo@example.com</x-ui.td>
-                    <x-ui.td>₦50,000</x-ui.td>
+                    <x-ui.td>$500.00</x-ui.td>
                     <x-ui.td><x-ui.badge status="pending" /></x-ui.td>
                 </tr>
                 <tr class="hover:bg-muted/50">
                     <x-ui.td>DEP-002</x-ui.td>
                     <x-ui.td>buyer@example.com</x-ui.td>
-                    <x-ui.td>₦12,000</x-ui.td>
+                    <x-ui.td>$120.00</x-ui.td>
                     <x-ui.td><x-ui.badge status="approved" /></x-ui.td>
                 </tr>
             </x-ui.table>
@@ -184,7 +184,7 @@
         <section class="space-y-4">
             <h2 class="text-xl font-semibold">Breadcrumb & page header</h2>
             <x-ui.breadcrumb :items="[['Dashboard', '#'], ['Wallet', null]]" />
-            <x-ui.page-header title="Wallet" subtitle="Manage your NGN balance">
+            <x-ui.page-header title="Wallet" subtitle="Manage your USD balance">
                 <x-slot:actions>
                     <x-ui.button href="#" icon="deposit">Deposit</x-ui.button>
                 </x-slot:actions>

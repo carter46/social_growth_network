@@ -1,3 +1,5 @@
+import { formatMoney } from './money';
+
 /**
  * Shared Chart.js defaults for command-center charts.
  */
@@ -87,7 +89,7 @@ export function mountCommandCharts(root = document) {
                 const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
                 options.plugins.annotation = undefined;
                 options.plugins.tooltip.callbacks = {
-                    afterBody: () => [`AVG ₦${avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}`],
+                    afterBody: () => [`AVG ${formatMoney(avg, { precision: 2 })}`],
                 };
             }
         }

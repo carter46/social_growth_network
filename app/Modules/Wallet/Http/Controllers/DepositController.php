@@ -48,12 +48,15 @@ class DepositController extends Controller
             return redirect()->route('dashboard.deposit.index')->with('error', $e->getMessage());
         }
 
+        $gateways = $this->checkout->availableGateways();
+
         return view('dashboard.user.deposit.checkout', [
             'wallet' => auth()->user()->wallet,
-            'depositMin' => (float) SystemSetting::get('deposit_min_amount', 100),
-            'depositMax' => (float) SystemSetting::get('deposit_max_amount', 1000000),
-            'reservedAllowed' => $this->checkout->reservedAccountsAllowed(auth()->user()),
-            'gatewayEnabled' => $this->checkout->gatewayEnabled(),
+            'depositMin' => (float) SystemSetting::get('deposit_min_amount', 1),
+            'depositMax' => (float) SystemSetting::get('deposit_max_amount', 5000),
+            'gatewayEnabled' => $gateways !== [],
+            'gateways' => $gateways,
+            'defaultGateway' => $this->checkout->defaultGatewayKey(),
         ]);
     }
 
@@ -61,20 +64,22 @@ class DepositController extends Controller
     {
         $this->rejectAgents();
 
-        $depositMin = (float) SystemSetting::get('deposit_min_amount', 100);
-        $depositMax = (float) SystemSetting::get('deposit_max_amount', 1000000);
+        $depositMin = (float) SystemSetting::get('deposit_min_amount', 1);
+        $depositMax = (float) SystemSetting::get('deposit_max_amount', 5000);
         $validated = $request->validate([
-            'amount' => ['required', 'numeric', 'min:'.$depositMin, 'max:'.$depositMax],
+            'amount' => ['required', 'numeric', 'min:'.$depositMin, 'max:'.$depositMax, 'decimal:0,2'],
+            'gateway' => ['nullable', 'string', 'max:40'],
         ], [
-            'amount.min' => __('The minimum deposit is ₦:amount.', ['amount' => number_format($depositMin, 2)]),
-            'amount.max' => __('The maximum deposit is ₦:amount per payment.', ['amount' => number_format($depositMax, 2)]),
+            'amount.min' => __('The minimum deposit is :amount.', ['amount' => money($depositMin)]),
+            'amount.max' => __('The maximum deposit is :amount per payment.', ['amount' => money($depositMax)]),
         ]);
 
         try {
             $funding = $this->checkout->startCheckout(
                 $request->user(),
-                (float) $validated['amount'],
+                (string) $validated['amount'],
                 route('dashboard.deposit.callback'),
+                $validated['gateway'] ?? null,
             );
         } catch (\Throwable $e) {
             return back()->withInput()->with('error', $e->getMessage());
@@ -87,10 +92,7 @@ class DepositController extends Controller
     {
         $this->rejectAgents();
 
-        $paymentReference = (string) $request->query('paymentReference', $request->query('paymentReference', ''));
-        if ($paymentReference === '') {
-            $paymentReference = (string) $request->query('payment_reference', '');
-        }
+        $paymentReference = (string) ($request->query('reference') ?: $request->query('tx_ref') ?: '');
 
         if ($paymentReference === '') {
             return redirect()->route('dashboard.deposit.index')
@@ -111,7 +113,7 @@ class DepositController extends Controller
 
         $providerStatus = strtoupper((string) $funding->provider_status);
 
-        if (in_array($providerStatus, ['FAILED', 'CANCELLED', 'ABANDONED', 'EXPIRED', 'REVERSED'], true)) {
+        if ($funding->status === 'failed' || in_array($providerStatus, ['FAILED', 'REVERSED'], true)) {
             return redirect()->route('dashboard.deposit.show', $funding)
                 ->with('error', __('Payment was not completed. Your wallet has not been credited.'));
         }
@@ -133,23 +135,6 @@ class DepositController extends Controller
         return view('dashboard.user.deposit.show', [
             'funding' => $funding,
             'wallet' => auth()->user()->wallet,
-        ]);
-    }
-
-    public function reservedAccount(Request $request): RedirectResponse|View
-    {
-        $this->rejectAgents();
-
-        try {
-            $account = $this->checkout->ensureReservedAccount($request->user());
-        } catch (\Throwable $e) {
-            return redirect()->route('dashboard.deposit.create-checkout')
-                ->with('error', $e->getMessage());
-        }
-
-        return view('dashboard.user.deposit.reserved', [
-            'account' => $account,
-            'wallet' => $request->user()->wallet,
         ]);
     }
 }

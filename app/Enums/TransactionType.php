@@ -17,6 +17,15 @@ enum TransactionType: string
     case ReferralCommission = 'referral_commission';
     case CampaignBudgetHold = 'campaign_budget_hold';
     case CampaignBudgetRelease = 'campaign_budget_release';
+    case WithdrawalFee = 'withdrawal_fee';
+    case PayoutFeeAbsorbed = 'payout_fee_absorbed';
+    case BounceFee = 'bounce_fee';
+    case BounceFeeWaiver = 'bounce_fee_waiver';
+    case CurrencyConversionRounding = 'currency_conversion_rounding';
+    case PayoutProviderFeeRecovered = 'payout_provider_fee_recovered';
+    case PayoutProviderFeeCost = 'payout_provider_fee_cost';
+    case ReferralCommissionExpense = 'referral_commission_expense';
+    case UnfundedCampaignRewardExpense = 'unfunded_campaign_reward_expense';
 
     public function label(): string
     {
@@ -34,6 +43,15 @@ enum TransactionType: string
             self::ReferralCommission => 'Referral commission',
             self::CampaignBudgetHold => 'Campaign budget held',
             self::CampaignBudgetRelease => 'Campaign budget settled',
+            self::WithdrawalFee => 'Withdrawal fee',
+            self::PayoutFeeAbsorbed => 'Payout fee absorbed',
+            self::BounceFee => 'Bounce fee',
+            self::BounceFeeWaiver => 'Bounce fee waived',
+            self::CurrencyConversionRounding => 'Currency conversion rounding',
+            self::PayoutProviderFeeRecovered => 'Provider fee recovered',
+            self::PayoutProviderFeeCost => 'Provider fee paid',
+            self::ReferralCommissionExpense => 'Referral commission expense',
+            self::UnfundedCampaignRewardExpense => 'Unfunded campaign reward expense',
         };
     }
 

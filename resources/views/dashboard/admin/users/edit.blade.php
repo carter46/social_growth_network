@@ -20,6 +20,9 @@
             @method('PUT')
 
             <x-dashboard.input name="name" label="Name" :value="old('name', $user->name)" required />
+            @if ($user->nameLockedByPayoutAccount())
+                <x-dashboard.input name="name_change_note" label="Reason for name change" :value="old('name_change_note')" hint="Required when changing the name: this member's payout accounts are in their current name. Recorded in the audit log." />
+            @endif
             <x-dashboard.input name="username" label="Username" :value="old('username', $user->username)" required />
             <x-dashboard.input name="email" type="email" label="Email" :value="old('email', $user->email)" required />
             <x-dashboard.input name="phone" label="Phone" :value="old('phone', $user->phone)" />

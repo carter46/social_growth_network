@@ -74,7 +74,7 @@ return [
     'faqs' => [
         [
             'q' => 'How do I fund my wallet?',
-            'a' => 'Open your dashboard Wallet, then use Monnify payment or your dedicated bank account number when available. Automated bank transfers usually reflect within a few minutes. Offline bank deposits are checked by our team and added to your wallet.',
+            'a' => 'Open your dashboard Wallet, enter an amount in US dollars (USD) and choose one of the payment options shown. Gateway payments usually reflect within a few minutes. Manual bank transfers are checked by our team and added to your wallet.',
             'article' => 'billing-wallets-payments',
             'section' => 'funding',
             'icon' => 'account_balance_wallet',

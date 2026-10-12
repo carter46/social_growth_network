@@ -1,3 +1,5 @@
+import { formatMoney } from './money';
+
 export function sanitizeDomainLabel(raw, allowedTlds = new Set()) {
     let value = String(raw ?? '').toLowerCase();
     let error = null;
@@ -57,8 +59,8 @@ export function extractQuoteError(data) {
     return 'Unable to check domain.';
 }
 
-export function formatDomainNgn(amount) {
-    return new Intl.NumberFormat('en-NG', { maximumFractionDigits: 0 }).format(Number(amount) || 0);
+export function formatDomainPrice(amount) {
+    return formatMoney(amount, { precision: 2 });
 }
 
 /**
@@ -107,7 +109,7 @@ export function createDomainSearchHelpers() {
             return (this.domainSuggestions ?? []).filter((row) => row.tld !== selected);
         },
         formatSuggestionPrice(amount) {
-            return formatDomainNgn(amount);
+            return formatDomainPrice(amount);
         },
         applyQuoteResponse(data, label) {
             this.domainFqdn = data.fqdn || '';

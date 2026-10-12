@@ -6,10 +6,13 @@ use App\Enums\TransactionType;
 use App\Models\Campaign;
 use App\Models\CampaignBudget;
 use App\Models\CampaignParticipation;
+use App\Models\Order;
+use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Modules\Admin\Services\AuditLogService;
 use App\Modules\Wallet\Services\WalletService;
+use App\Services\Referrals\ReferralCommissionService;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Notifications\NotificationMessage;
 use Illuminate\Support\Facades\DB;
@@ -48,7 +51,7 @@ class CampaignBudgetService
     {
         $units ??= (int) $campaign->quantity;
 
-        return bcmul((string) $campaign->locked_agent_reward, (string) max(0, $units), 2);
+        return bcmul((string) $campaign->locked_agent_reward, (string) max(0, $units), 4);
     }
 
     /**
@@ -67,7 +70,7 @@ class CampaignBudgetService
         }
 
         $amount = $this->fundedAmountFor($campaign, $units);
-        if (bccomp($amount, '0', 2) <= 0) {
+        if (bccomp($amount, '0', 4) <= 0) {
             return null;
         }
 
@@ -119,7 +122,7 @@ class CampaignBudgetService
                 app(NotificationDispatcher::class)->notifyAdmins(new NotificationMessage(
                     type: 'campaign.budget_unfunded',
                     title: 'Campaign budget not held',
-                    body: 'Campaign #'.$campaignId.' ('.$title.') went live without its agent budget of ₦'.number_format((float) $amount, 2)
+                    body: 'Campaign #'.$campaignId.' ('.$title.') went live without its agent budget of '.money((float) $amount, 2)
                         .' held, because the platform wallet could not cover it. Top up the platform wallet, then run campaigns:backfill-budgets.',
                     actionUrl: Route::has('admin.campaigns.show') ? route('admin.campaigns.show', $campaignId) : null,
                     meta: ['campaign_id' => $campaignId, 'amount' => $amount],
@@ -144,7 +147,14 @@ class CampaignBudgetService
             : null;
 
         if (! $budget) {
-            $this->wallets->creditReward($agent, (float) $amount, $label, TransactionType::CampaignReward->value);
+            $this->wallets->creditFundedReward(
+                $agent,
+                $amount,
+                $label,
+                TransactionType::CampaignReward,
+                TransactionType::UnfundedCampaignRewardExpense,
+                'CMP-UNF-'.$participation->id,
+            );
 
             return;
         }
@@ -153,8 +163,8 @@ class CampaignBudgetService
             throw new InvalidArgumentException('This campaign budget is no longer held, so the reward cannot be paid.');
         }
 
-        $newPaid = bcadd((string) $budget->paid_amount, $amount, 2);
-        if (bccomp($newPaid, (string) $budget->funded_amount, 2) > 0) {
+        $newPaid = bcadd((string) $budget->paid_amount, $amount, 4);
+        if (bccomp($newPaid, (string) $budget->funded_amount, 4) > 0) {
             throw new InvalidArgumentException('The campaign budget has no room left for this reward.');
         }
 
@@ -164,7 +174,7 @@ class CampaignBudgetService
         $budget->save();
     }
 
-    /** Completed campaign: release leftover kobo-rounding to revenue. */
+    /** Completed campaign: release leftover rounding to revenue. */
     public function settle(Campaign $campaign): void
     {
         if (! self::enabled()) {
@@ -180,7 +190,7 @@ class CampaignBudgetService
             $leftover = $budget->remaining();
             $this->wallets->releaseCampaignBudget($campaign->id, $leftover);
 
-            $budget->released_amount = bcadd((string) $budget->released_amount, $leftover, 2);
+            $budget->released_amount = bcadd((string) $budget->released_amount, $leftover, 4);
             $budget->status = CampaignBudget::STATUS_SETTLED;
             $budget->save();
 
@@ -199,7 +209,7 @@ class CampaignBudgetService
 
     /**
      * What the creator paid for the units never completed: the order line total pro rata,
-     * rounded down to the kobo. locked_creator_price is a package price on legacy fixed
+     * rounded down to the cent. locked_creator_price is a package price on legacy fixed
      * packages, so it must not be multiplied by units.
      */
     public function refundableAmount(Campaign $campaign): string
@@ -221,51 +231,95 @@ class CampaignBudgetService
             ->count();
     }
 
+    /** Campaign end states that refund the creator for units never delivered. Suspended keeps its hold. */
+    public const REFUNDING_STATUSES = [Campaign::STATUS_CANCELLED, Campaign::STATUS_REJECTED, Campaign::STATUS_COMPLETED];
+
+    /** Cancelled campaign: see refundUndelivered(). Kept for the expiry sweep. */
+    public function refundIfCancelled(Campaign $campaign): ?string
+    {
+        return $campaign->status === Campaign::STATUS_CANCELLED ? $this->refundUndelivered($campaign) : null;
+    }
+
     /**
-     * Cancelled campaign: once nothing is in flight, refund the creator the full price of
-     * every unit never completed. Only campaigns with a held budget are refunded here.
+     * One locked path for every end state that refunds (Cancelled, Rejected, admin Completed).
+     * Once nothing is in flight, the creator gets the price of every unit never delivered;
+     * the held budget is released at the same time. Campaigns with no held budget (unfunded or
+     * legacy) are refunded from the platform wallet with a linked entry. CMP-REFUND-{id} is
+     * unique, so a campaign is refunded at most once. The creator-spend referral commission on
+     * the order is reversed for the refunded share.
      *
      * @return string|null refunded total, or null when not (yet) refundable
      */
-    public function refundIfCancelled(Campaign $campaign): ?string
+    public function refundUndelivered(Campaign $campaign): ?string
     {
-        if (! self::enabled() || $campaign->status !== Campaign::STATUS_CANCELLED) {
+        if (! in_array($campaign->status, self::REFUNDING_STATUSES, true)) {
             return null;
         }
 
-        return DB::transaction(function () use ($campaign) {
+        $result = DB::transaction(function () use ($campaign) {
             $campaign = Campaign::query()->whereKey($campaign->id)->lockForUpdate()->firstOrFail();
-            $budget = CampaignBudget::query()->where('campaign_id', $campaign->id)->lockForUpdate()->first();
-            if (! $budget || $budget->status !== CampaignBudget::STATUS_HELD) {
+            if (! in_array($campaign->status, self::REFUNDING_STATUSES, true)) {
+                return null;
+            }
+            $budget = self::enabled()
+                ? CampaignBudget::query()->where('campaign_id', $campaign->id)->lockForUpdate()->first()
+                : null;
+            if ($budget && $budget->status !== CampaignBudget::STATUS_HELD) {
                 return null;
             }
             if ($this->inFlightCount($campaign) > 0) {
                 return null;
             }
-
-            $creatorWallet = Wallet::query()->where('user_id', $campaign->creator_id)->first();
-            if (! $creatorWallet) {
+            if (Transaction::query()->where('reference', 'CMP-REFUND-'.$campaign->id)->exists()) {
                 return null;
             }
 
             $total = $this->refundableAmount($campaign);
-            $held = $budget->remaining();
+            $held = $budget ? $budget->remaining() : '0';
+            $refunding = bccomp($total, '0', 2) > 0;
 
-            if (bccomp($total, '0', 2) > 0) {
+            if ($refunding) {
+                $creatorWallet = Wallet::query()->where('user_id', $campaign->creator_id)->first();
+                if (! $creatorWallet) {
+                    return null;
+                }
                 $this->wallets->refundCampaign($creatorWallet, $campaign->id, $total, $held);
-            } else {
+            } elseif ($budget) {
                 $this->wallets->releaseCampaignBudget($campaign->id, $held);
+            } else {
+                return null;
             }
 
-            $budget->refunded_amount = $total;
-            $budget->released_amount = bcadd((string) $budget->released_amount, bccomp($total, '0', 2) > 0 ? '0' : $held, 2);
-            $budget->status = CampaignBudget::STATUS_REFUNDED;
-            $budget->save();
+            if ($budget) {
+                $budget->refunded_amount = $total;
+                $budget->released_amount = bcadd((string) $budget->released_amount, $refunding ? '0' : $held, 4);
+                $budget->status = $refunding ? CampaignBudget::STATUS_REFUNDED : CampaignBudget::STATUS_SETTLED;
+                $budget->save();
+            }
 
-            $this->audit('campaign.refunded', $campaign, ['refunded' => $total, 'unlocked' => $held]);
+            $this->audit($refunding ? 'campaign.refunded' : 'campaign.budget_settled', $campaign, [
+                'status' => $campaign->status, 'refunded' => $total, 'unlocked' => $held, 'funded' => $budget !== null,
+            ]);
 
-            return $total;
+            return ['total' => $total, 'refunded' => $refunding, 'order_id' => $campaign->order_id];
         });
+
+        if ($result === null) {
+            return null;
+        }
+
+        if ($result['refunded'] && $result['order_id']) {
+            $order = Order::query()->find($result['order_id']);
+            if ($order) {
+                try {
+                    app(ReferralCommissionService::class)->reverseForSource($order, 'Campaign #'.$campaign->id.' refunded for undelivered units', $result['total']);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            }
+        }
+
+        return $result['refunded'] ? $result['total'] : '0.00';
     }
 
     /**

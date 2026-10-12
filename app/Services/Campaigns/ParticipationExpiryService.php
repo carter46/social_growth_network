@@ -121,6 +121,30 @@ class ParticipationExpiryService
                         Log::channel('financial')->error('Campaign refund failed', ['campaign_id' => $campaign->id, 'error' => $e->getMessage()]);
                     }
                 });
+
+            // Cancelled campaigns that never had a held budget (unfunded or legacy) are refunded from the platform wallet.
+            $refunded = \App\Models\Transaction::query()
+                ->where('reference', 'like', 'CMP-REFUND-%')
+                ->where('reference', 'not like', '%-P')
+                ->pluck('reference')
+                ->map(fn (string $ref) => (int) substr($ref, strlen('CMP-REFUND-')))
+                ->all();
+            Campaign::query()
+                ->where('status', Campaign::STATUS_CANCELLED)
+                ->whereDoesntHave('budget')
+                ->whereColumn('completed_count', '<', 'quantity')
+                ->whereDoesntHave('participations', fn ($q) => $q->whereIn('status', CampaignBudgetService::IN_FLIGHT_STATUSES))
+                ->when($refunded !== [], fn ($q) => $q->whereNotIn('id', $refunded))
+                ->orderBy('id')
+                ->limit(50)
+                ->get()
+                ->each(function (Campaign $campaign) use ($budgets) {
+                    try {
+                        $budgets->refundIfCancelled($campaign);
+                    } catch (\Throwable $e) {
+                        Log::channel('financial')->error('Campaign refund failed', ['campaign_id' => $campaign->id, 'error' => $e->getMessage()]);
+                    }
+                });
         }
 
         return $n;

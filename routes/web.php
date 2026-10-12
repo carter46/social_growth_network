@@ -46,7 +46,12 @@ Route::get('/', function (\App\Modules\Catalog\Services\CatalogBrowseService $br
     ]);
 })->name('home');
 
+// Monnify is retired: kept log-only for a short grace period after the USD cutover, then deleted.
 Route::post('/webhooks/monnify', MonnifyWebhookController::class)->name('webhooks.monnify');
+Route::post('/webhooks/payments/{provider}', \App\Http\Controllers\Webhooks\PaymentWebhookController::class)
+    ->where('provider', '[a-z0-9_-]+')
+    ->middleware('throttle:240,1')
+    ->name('webhooks.payments');
 Route::post('/webhooks/site-integrations/{integrationId}', \App\Http\Controllers\Webhooks\SiteIntegrationWebhookController::class)
     ->middleware('throttle:60,1')
     ->name('webhooks.site-integrations');
@@ -152,6 +157,21 @@ Route::get('/services/{type}/{productSlug}', [\App\Modules\Catalog\Http\Controll
 // One segment: category slug (product listing), type key (legacy), or product slug (301)
 Route::get('/services/{segment}', [\App\Modules\Catalog\Http\Controllers\ServiceController::class, 'segment'])
     ->name('services.segment');
+Route::post('/services/package/{slug}', [\App\Modules\Catalog\Http\Controllers\PackageConfiguratorController::class, 'configure'])
+    ->where('slug', '[A-Za-z0-9\-_]+')
+    ->middleware('throttle:20,1')
+    ->name('services.configure');
+Route::post('/services-lookup/youtube/video', [\App\Modules\Catalog\Http\Controllers\PackageConfiguratorController::class, 'videoPreview'])
+    ->middleware('throttle:20,1')
+    ->name('services.youtube.video-preview');
+Route::post('/services-lookup/youtube/channel', [\App\Modules\Catalog\Http\Controllers\PackageConfiguratorController::class, 'channelPreview'])
+    ->middleware('throttle:20,1')
+    ->name('services.youtube.channel-preview');
+// Outside the creator-only group so agents and admins get a clear message instead of a 403.
+Route::get('/dashboard/services/resume/{slug}', [\App\Modules\Catalog\Http\Controllers\PackageConfiguratorController::class, 'resume'])
+    ->where('slug', '[A-Za-z0-9\-_]+')
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard.services.resume');
 Route::get('/checkout/platform/{slug}', [\App\Modules\Catalog\Http\Controllers\PlatformCheckoutController::class, 'show'])
     ->middleware(['auth', 'verified', 'role:user'])
     ->name('checkout.platform.show');
@@ -192,7 +212,6 @@ Route::middleware(['auth', 'verified', 'role:user'])->prefix('dashboard')->name(
             ->middleware('throttle:10,1')
             ->name('.deposit.store-checkout');
         Route::get('/deposit/callback', [DepositController::class, 'callback'])->name('.deposit.callback');
-        Route::get('/deposit/reserved', [DepositController::class, 'reservedAccount'])->name('.deposit.reserved');
         Route::get('/deposit/{funding}', [DepositController::class, 'show'])->name('.deposit.show');
         Route::get('/history', [HistoryController::class, 'index'])->name('.history');
     });
@@ -320,13 +339,23 @@ Route::middleware(['auth', 'verified', 'role:agent'])->prefix('agent')->name('ag
         Route::post('/banks/replace/verify-otp', [BankAccountController::class, 'verifyOtp'])->middleware('throttle:10,10')->name('.banks.replace.verify-otp');
         Route::post('/banks/replace/resolve', [BankAccountController::class, 'resolve'])->middleware('throttle:10,1')->name('.banks.replace.resolve');
         Route::post('/banks/replace/confirm', [BankAccountController::class, 'confirm'])->middleware('throttle:5,1')->name('.banks.replace.confirm');
+        Route::get('/banks/options', [BankAccountController::class, 'options'])->middleware('throttle:30,1')->name('.banks.options');
+        Route::post('/banks/{account}/primary', [BankAccountController::class, 'makePrimary'])->middleware('throttle:5,1')->name('.banks.primary');
+        Route::delete('/banks/{account}', [BankAccountController::class, 'destroy'])->middleware('throttle:5,1')->name('.banks.remove');
         Route::get('/withdrawal', [WithdrawalController::class, 'index'])->name('.withdrawal.index');
         Route::get('/withdrawal/create', [WithdrawalController::class, 'create'])->name('.withdrawal.create');
+        Route::get('/withdrawal/quote', [WithdrawalController::class, 'quote'])->middleware('throttle:30,1')->name('.withdrawal.quote');
+        Route::post('/withdrawal/{withdrawal}/accept-fee', [WithdrawalController::class, 'acceptFee'])->middleware('throttle:5,1')->name('.withdrawal.accept-fee');
+        Route::post('/withdrawal/{withdrawal}/cancel', [WithdrawalController::class, 'cancel'])->middleware('throttle:5,1')->name('.withdrawal.cancel');
         Route::post('/withdrawal/otp', [WithdrawalController::class, 'sendOtp'])->middleware('throttle:5,10')->name('.withdrawal.otp');
         Route::post('/withdrawal/verify-otp', [WithdrawalController::class, 'verifyOtp'])->middleware('throttle:10,10')->name('.withdrawal.verify-otp');
         Route::post('/withdrawal', [WithdrawalController::class, 'store'])->name('.withdrawal.store');
         Route::get('/withdrawal/{withdrawal}', [WithdrawalController::class, 'show'])->name('.withdrawal.show');
         Route::get('/history', [HistoryController::class, 'index'])->name('.history');
+
+        Route::post('/wallet/payouts/connect', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'start'])->middleware('throttle:5,1')->name('.payouts.connect');
+        Route::get('/wallet/payouts/connect/return', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'return'])->middleware('throttle:10,1')->name('.payouts.connect.return');
+        Route::get('/wallet/payouts/connect/refresh', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'refresh'])->middleware('throttle:5,1')->name('.payouts.connect.refresh');
 
         Route::post('/marketplace/{campaign}/start', [\App\Http\Controllers\Agent\MarketplaceController::class, 'start'])
             ->middleware('throttle:20,1')
@@ -500,9 +529,16 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::get('/withdrawals', [WithdrawalAdminController::class, 'index'])->name('.withdrawals');
         Route::get('/withdrawals/{withdrawal}', [WithdrawalAdminController::class, 'show'])->name('.withdrawals.show');
         Route::post('/withdrawals/{withdrawal}/approve', [WithdrawalAdminController::class, 'approve'])->name('.withdrawals.approve');
-        Route::post('/withdrawals/{withdrawal}/authorize-provider', [WithdrawalAdminController::class, 'authorizeProvider'])->name('.withdrawals.authorize-provider');
         Route::post('/withdrawals/{withdrawal}/reject', [WithdrawalAdminController::class, 'reject'])->name('.withdrawals.reject');
         Route::post('/withdrawals/{withdrawal}/retry', [WithdrawalAdminController::class, 'retry'])->name('.withdrawals.retry');
+        Route::post('/withdrawals/{withdrawal}/refund', [WithdrawalAdminController::class, 'refund'])->name('.withdrawals.refund');
+        Route::post('/withdrawals/{withdrawal}/waive-bounce-fee', [WithdrawalAdminController::class, 'waiveBounceFee'])->name('.withdrawals.waive-bounce-fee');
+        Route::post('/withdrawals/{withdrawal}/reject-account', [WithdrawalAdminController::class, 'rejectAccount'])->name('.withdrawals.reject-account');
+        Route::get('/payout-coverage', [\App\Modules\Admin\Http\Controllers\PayoutCoverageController::class, 'index'])->name('.payout-coverage');
+        Route::post('/payout-coverage/sync', [\App\Modules\Admin\Http\Controllers\PayoutCoverageController::class, 'sync'])->name('.payout-coverage.sync');
+        Route::post('/payout-coverage/disable', [\App\Modules\Admin\Http\Controllers\PayoutCoverageController::class, 'disable'])->name('.payout-coverage.disable');
+        Route::post('/payout-coverage/enable', [\App\Modules\Admin\Http\Controllers\PayoutCoverageController::class, 'enable'])->name('.payout-coverage.enable');
+        Route::post('/payout-coverage/reset', [\App\Modules\Admin\Http\Controllers\PayoutCoverageController::class, 'reset'])->name('.payout-coverage.reset');
         Route::get('/reconciliation', [ReconciliationController::class, 'index'])->name('.reconciliation');
         Route::post('/reconciliation/fundings/{funding}/fix', [ReconciliationController::class, 'fixFunding'])->name('.reconciliation.fix-funding');
         Route::post('/reconciliation/withdrawals/{withdrawal}/sync', [ReconciliationController::class, 'syncWithdrawal'])->name('.reconciliation.sync-withdrawal');
@@ -589,8 +625,10 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::delete('/tracking/scripts/{script}', [TrackingSettingsController::class, 'destroyScript'])->name('.tracking.scripts.destroy');
         Route::post('/settings/google-identity', [AdminSettingsController::class, 'updateGoogleIdentity'])->name('.settings.google-identity');
         Route::post('/settings/google-identity/test', [AdminSettingsController::class, 'testGoogleIdentity'])->name('.settings.google-identity.test');
-        Route::post('/settings/monnify', [AdminSettingsController::class, 'updateMonnify'])->name('.settings.monnify');
-        Route::post('/settings/monnify/test', [AdminSettingsController::class, 'testMonnify'])->name('.settings.monnify.test');
+        Route::post('/settings/payment-gateways/order', [\App\Modules\Admin\Http\Controllers\PaymentGatewaySettingsController::class, 'updateOrder'])->name('.settings.payment-gateways.order');
+        Route::post('/settings/payout-gate', [\App\Modules\Admin\Http\Controllers\PaymentGatewaySettingsController::class, 'updatePayoutGate'])->name('.settings.payout-gate');
+        Route::post('/settings/payment-gateways/{gateway}', [\App\Modules\Admin\Http\Controllers\PaymentGatewaySettingsController::class, 'update'])->name('.settings.payment-gateways.update');
+        Route::post('/settings/payment-gateways/{gateway}/test', [\App\Modules\Admin\Http\Controllers\PaymentGatewaySettingsController::class, 'test'])->name('.settings.payment-gateways.test');
         Route::post('/settings/manual-bank-transfer', [AdminSettingsController::class, 'updateManualBankTransfer'])->name('.settings.manual-bank-transfer');
         Route::post('/settings/referrals', [AdminSettingsController::class, 'updateReferrals'])->name('.settings.referrals');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('.audit-logs');
@@ -601,6 +639,9 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
     Route::middleware('permission:fees.manage')->group(function () {
         Route::get('/fees-limits', [\App\Modules\Admin\Http\Controllers\FeesLimitsController::class, 'index'])->name('.fees-limits');
         Route::post('/fees-limits', [\App\Modules\Admin\Http\Controllers\FeesLimitsController::class, 'update'])->name('.fees-limits.update');
+        Route::post('/fees-limits/rules', [\App\Modules\Admin\Http\Controllers\FeesLimitsController::class, 'storeRule'])->name('.fees-limits.rules.store');
+        Route::put('/fees-limits/rules/{rule}', [\App\Modules\Admin\Http\Controllers\FeesLimitsController::class, 'updateRule'])->name('.fees-limits.rules.update');
+        Route::delete('/fees-limits/rules/{rule}', [\App\Modules\Admin\Http\Controllers\FeesLimitsController::class, 'destroyRule'])->name('.fees-limits.rules.destroy');
     });
 
     Route::middleware('permission:analytics.view|system.manage|finance.manage|support.manage|compliance.manage|catalog.manage')->group(function () {

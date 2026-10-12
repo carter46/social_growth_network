@@ -12,7 +12,9 @@ class PlatformDomainPricingPolicy
     private const RETAIL_SCALE = 2;
 
     /**
-     * @return array{retail_price: string, retail_currency: string, markup_percent: float, usd_ngn_rate: float|null}
+     * Provider cost plus markup, in the site currency, rounded up to the cent.
+     *
+     * @return array{retail_price: string, retail_currency: string, markup_percent: float, fx_rate: float|null}
      */
     public function retailFromProviderCost(float|string $providerCost, string $providerCurrency, PlatformProduct $product): array
     {
@@ -33,26 +35,33 @@ class PlatformDomainPricingPolicy
             throw new DomainBusinessException('Invalid domain markup configuration.');
         }
 
-        $fx = $meta['domain_fx_policy'] ?? [];
-        $usdNgn = isset($fx['usd_ngn_rate']) ? (string) $fx['usd_ngn_rate'] : '0';
+        $siteCurrency = strtoupper((string) config('platform.currency', 'USD'));
+        $providerCurrency = strtoupper($providerCurrency);
+        $fxRate = null;
 
-        $ngnCost = match (strtoupper($providerCurrency)) {
-            'NGN' => $cost,
-            'USD' => bccomp($usdNgn, '0', self::FX_SCALE) > 0
-                ? bcmul($cost, $usdNgn, self::FX_SCALE)
-                : throw new DomainBusinessException('USD to NGN rate is not configured.'),
-            default => throw new DomainBusinessException('Unsupported provider currency.'),
-        };
+        if ($providerCurrency === $siteCurrency) {
+            $siteCost = $cost;
+        } elseif ($providerCurrency === 'USD' && $siteCurrency === 'NGN') {
+            // Only used before the currency cutover, while the site still shows NGN.
+            $fx = $meta['domain_fx_policy'] ?? [];
+            $rate = isset($fx['usd_ngn_rate']) ? (string) $fx['usd_ngn_rate'] : '0';
+            if (bccomp($rate, '0', self::FX_SCALE) <= 0) {
+                throw new DomainBusinessException('USD to NGN rate is not configured.');
+            }
+            $siteCost = bcmul($cost, $rate, self::FX_SCALE);
+            $fxRate = (float) $rate;
+        } else {
+            throw new DomainBusinessException('Unsupported provider currency.');
+        }
 
         $markupFactor = bcadd('1', bcdiv($markup, '100', self::FX_SCALE), self::FX_SCALE);
-        $retailExact = bcmul($ngnCost, $markupFactor, self::FX_SCALE);
-        $retail = $this->ceilToWholeNgn($retailExact);
+        $retailExact = bcmul($siteCost, $markupFactor, self::FX_SCALE);
 
         return [
-            'retail_price' => number_format((float) $retail, self::RETAIL_SCALE, '.', ''),
-            'retail_currency' => 'NGN',
+            'retail_price' => $this->ceilToCent($retailExact),
+            'retail_currency' => $siteCurrency,
             'markup_percent' => (float) $markup,
-            'usd_ngn_rate' => bccomp($usdNgn, '0', self::FX_SCALE) > 0 ? (float) $usdNgn : null,
+            'fx_rate' => $fxRate,
         ];
     }
 
@@ -86,19 +95,14 @@ class PlatformDomainPricingPolicy
         return number_format((float) $providerCost, self::FX_SCALE, '.', '');
     }
 
-    private function ceilToWholeNgn(string $amount): string
+    private function ceilToCent(string $amount): string
     {
-        if (preg_match('/^(\d+)\.(\d*)$/', $amount, $matches)) {
-            $whole = $matches[1];
-            $fraction = rtrim($matches[2], '0');
-
-            if ($fraction === '' || $fraction === '0') {
-                return $whole.'.00';
-            }
-
-            return bcadd($whole, '1', 0).'.00';
+        $cents = bcmul($amount, '100', self::FX_SCALE);
+        [$whole, $fraction] = array_pad(explode('.', $cents, 2), 2, '');
+        if (rtrim($fraction, '0') !== '') {
+            $whole = bcadd($whole, '1', 0);
         }
 
-        return number_format(ceil((float) $amount), self::RETAIL_SCALE, '.', '');
+        return bcdiv($whole, '100', self::RETAIL_SCALE);
     }
 }

@@ -44,6 +44,7 @@ class PlatformProduct extends Model
         'estimated_minutes',
         'completion_minutes',
         'task_order',
+        'task_limits',
         'meta',
     ];
 
@@ -75,7 +76,35 @@ class PlatformProduct extends Model
             'estimated_minutes' => 'integer',
             'completion_minutes' => 'integer',
             'task_order' => 'array',
+            'task_limits' => 'array',
         ];
+    }
+
+    /**
+     * Admin-set min/max for each companion task, keyed by task value.
+     * Tasks without a valid saved range are left out.
+     *
+     * @return array<string, array{min: int, max: int}>
+     */
+    public function companionLimits(): array
+    {
+        $saved = is_array($this->task_limits) ? $this->task_limits : [];
+        $limits = [];
+
+        foreach ($this->taskProfile()->companionTasks() as $task) {
+            $row = $saved[$task->value] ?? null;
+            if (! is_array($row) || ! isset($row['min'], $row['max'])) {
+                continue;
+            }
+            $min = (int) $row['min'];
+            $max = (int) $row['max'];
+            if ($min < 0 || $max < 1 || $max < $min) {
+                continue;
+            }
+            $limits[$task->value] = ['min' => $min, 'max' => $max];
+        }
+
+        return $limits;
     }
 
     public function taskProfile(): \App\Support\ProductTaskProfile
@@ -102,6 +131,20 @@ class PlatformProduct extends Model
             $issues[] = 'Needs completion time';
         } elseif ($complete > 0 && $profile->needsWatchMinutes() && $watch > 0 && $complete <= $watch) {
             $issues[] = 'Completion time must be longer than watch time';
+        }
+
+        $limits = $this->companionLimits();
+        foreach ($profile->companionTasks() as $task) {
+            if (! isset($limits[$task->value])) {
+                $issues[] = 'Needs '.strtolower($profile->quantityLabel($task)).' limits';
+            }
+        }
+
+        if ((float) ($this->agent_reward_percent ?? 0) > 0) {
+            $variant = $this->pricingVariant();
+            if ($variant?->isPerUnit() && bccomp($variant->agentRewardPerUnit($this->agent_reward_percent), '0.0001', 4) < 0) {
+                $issues[] = 'Agent reward is below '.money('0.0001', 4);
+            }
         }
 
         return $issues;

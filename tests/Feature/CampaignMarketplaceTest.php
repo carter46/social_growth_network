@@ -9,10 +9,12 @@ use App\Services\Campaigns\CampaignParticipationService;
 use App\Services\Campaigns\EngagementVerificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Tests\Support\BuildsPayouts;
 use Tests\TestCase;
 
 class CampaignMarketplaceTest extends TestCase
 {
+    use BuildsPayouts;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -332,7 +334,7 @@ class CampaignMarketplaceTest extends TestCase
         $this->actingAs($agent)->get(route('agent.marketplace'))
             ->assertOk()
             ->assertSee('Card campaign')
-            ->assertSee('₦120.00', false)
+            ->assertSee('$120.00', false)
             ->assertSee('View task')
             ->assertDontSee('<table', false);
 
@@ -385,16 +387,9 @@ class CampaignMarketplaceTest extends TestCase
         $agent = User::factory()->agent()->kycApproved()->create();
         $this->linkVerifiedYoutubeChannel($agent);
         \App\Models\Wallet::factory()->create(['user_id' => $agent->id, 'balance' => 0, 'locked_balance' => 0]);
-        \App\Models\UserBankAccount::create([
-            'user_id' => $agent->id,
-            'bank_name' => 'GTBank',
-            'bank_code' => '058',
-            'account_number' => '0123456789',
-            'verified_name' => 'Agent Name',
-            'verified_at' => now(),
-            'verified_by' => 'monnify',
-            'active' => true,
-        ]);
+        $this->installPayoutGateways();
+        $this->coverRoute();
+        $this->payoutAccount($agent);
 
         $this->actingAs($agent)->get(route('agent.withdrawal.create'))
             ->assertOk()

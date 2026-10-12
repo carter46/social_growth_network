@@ -163,7 +163,7 @@ class YoutubeChannelApi
     }
 
     /** @return array<string, mixed>|null */
-    private function get(string $endpoint, array $params): ?array
+    public function get(string $endpoint, array $params): ?array
     {
         $key = $this->key();
         if ($key === '') {

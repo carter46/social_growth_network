@@ -23,22 +23,17 @@
                 <x-dashboard.input
                     type="number"
                     name="amount"
-                    label="Amount (NGN)"
+                    :label="'Amount ('.site_currency()->code.')'"
                     :min="$depositMin"
                     :max="$depositMax"
                     step="0.01"
-                    :hint="'Min ₦'.number_format($depositMin, 2).' · Max ₦'.number_format($depositMax, 2).' per payment'"
+                    :hint="'Min '.money($depositMin, 2).' · Max '.money($depositMax, 2).' per payment'"
                     required
                 />
+                @include('partials.payments.gateway-choice', ['gateways' => $gateways, 'selected' => old('gateway', $defaultGateway)])
                 <x-dashboard.button type="submit" icon="deposit" x-bind:disabled="submitting">Continue to payment</x-dashboard.button>
             </form>
         </x-dashboard.card>
-        @if ($reservedAllowed)
-            <x-dashboard.card>
-                <p class="text-sm text-text-secondary mb-3">Or transfer to your dedicated reserved account.</p>
-                <x-dashboard.button :href="route('dashboard.deposit.reserved')" variant="secondary">Show reserved account</x-dashboard.button>
-            </x-dashboard.card>
-        @endif
     @endif
 </x-layout.page>
 @endsection

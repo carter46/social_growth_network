@@ -17,7 +17,17 @@ class ProfileUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    $user = $this->user();
+                    if ($user && trim((string) $value) !== trim((string) $user->name) && $user->nameLockedByPayoutAccount()) {
+                        $fail(__('Your name is locked because payout accounts must be in your name. Contact support to change it.'));
+                    }
+                },
+            ],
             'username' => [
                 'sometimes',
                 'required',

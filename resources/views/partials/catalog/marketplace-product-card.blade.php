@@ -57,7 +57,7 @@
             <div class="min-w-0">
                 <span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">From</span>
                 <span class="font-display text-xl font-bold text-slate-900 tracking-tight">
-                    ₦{{ number_format((float) $fromPrice, 0) }}
+                    {{ money((float) $fromPrice, 2) }}
                 </span>
             </div>
             <a

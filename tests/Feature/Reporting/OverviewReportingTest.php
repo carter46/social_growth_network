@@ -28,7 +28,7 @@ class OverviewReportingTest extends TestCase
             'type' => TransactionType::PlatformFee->value,
             'label' => 'Fee',
             'amount' => 2500,
-            'currency' => 'NGN',
+            'currency' => 'USD',
             'status' => 'completed',
         ]);
 
@@ -36,7 +36,7 @@ class OverviewReportingTest extends TestCase
         $overview = app(ReportingService::class)->overview($range);
         $section = app(ReportingService::class)->revenueSection($range);
 
-        $this->assertEqualsWithDelta($section['total_ngn'], $overview['pulse']['revenue']['value'], 0.01);
+        $this->assertEqualsWithDelta($section['total'], $overview['pulse']['revenue']['value'], 0.01);
 
         $this->actingAs($admin)
             ->get(route('admin', ['range' => '24h']))

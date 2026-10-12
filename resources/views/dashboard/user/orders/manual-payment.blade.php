@@ -5,7 +5,7 @@
 @section('content')
 @php
     $proofSubmitted = filled($order->payment_submitted_at);
-    $bankConfigured = filled($bankDetails['bank_name'] ?? null) && filled($bankDetails['account_number'] ?? null);
+    $bankConfigured = filled($bankDetails['bank_name'] ?? null) && (filled($bankDetails['account_number'] ?? null) || filled($bankDetails['iban'] ?? null));
     $showActivePayment = ! $proofSubmitted && ! $paymentExpired;
     $showFailedPayment = ! $proofSubmitted && $paymentExpired;
 @endphp
@@ -23,7 +23,7 @@
             <div>
                 <p class="text-xs font-semibold uppercase tracking-wider text-primary mb-1">Pending payment</p>
                 <h2 class="text-xl font-semibold text-text-primary">Order {{ $order->reference }}</h2>
-                <p class="text-3xl font-bold text-primary mt-2">₦{{ number_format((float) $order->total_amount, 2) }}</p>
+                <p class="text-3xl font-bold text-primary mt-2">{{ money((float) $order->total_amount, 2) }}</p>
             </div>
 
             @if ($proofSubmitted)
@@ -93,8 +93,24 @@
                                         <p class="mt-1 text-xl font-bold text-primary">{{ $bankDetails['account_name'] }}</p>
                                     </div>
 
+                                    @foreach ([
+                                        'swift' => 'SWIFT/BIC',
+                                        'routing_number' => 'Routing number (US)',
+                                        'iban' => 'IBAN',
+                                        'bank_address' => 'Bank address',
+                                    ] as $field => $label)
+                                        @if (filled($bankDetails[$field] ?? null))
+                                            <div>
+                                                <p class="text-xs font-semibold uppercase tracking-wide text-primary/80">{{ $label }}</p>
+                                                <p class="mt-1 text-lg font-bold text-primary {{ $field === 'bank_address' ? '' : 'font-mono' }}">{{ $bankDetails[$field] }}</p>
+                                            </div>
+                                        @endif
+                                    @endforeach
+
+                                    <p class="text-sm text-primary/90">Send the payment in {{ $bankDetails['currency'] ?? site_currency()->code }}. Your bank or the receiving bank may charge transfer fees; the full order amount must arrive.</p>
+
                                     <p class="text-base font-bold text-primary">
-                                        Transfer exactly <span class="text-2xl">₦{{ number_format((float) $order->total_amount, 2) }}</span>
+                                        Transfer exactly <span class="text-2xl">{{ money((float) $order->total_amount, 2) }}</span>
                                     </p>
                                     <p class="text-sm font-semibold text-primary/90">
                                         Use order reference <span class="font-mono">{{ $order->reference }}</span> as your transfer narration where possible.

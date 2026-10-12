@@ -56,8 +56,8 @@ return [
             'nav' => 'Wallet setup',
             'title' => 'Wallet setup',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'Your Naira wallet is where Creators fund campaign purchases and where Agents receive approved rewards. Open Wallet from your dashboard after email verification to view balance, funding options, and withdrawal status.'],
-                ['type' => 'tip', 'title' => 'Next step', 'content' => 'See Billing, wallets & payments for Monnify payment, dedicated bank account numbers, and withdrawal basics.'],
+                ['type' => 'paragraph', 'content' => 'Your US dollar (USD) wallet is where Creators fund campaign purchases and where Agents receive approved rewards. Open Wallet from your dashboard after email verification to view balance, funding options, and withdrawal status.'],
+                ['type' => 'tip', 'title' => 'Next step', 'content' => 'See Billing, wallets & payments for funding your USD wallet, payout accounts, and withdrawal basics.'],
             ],
         ],
         [

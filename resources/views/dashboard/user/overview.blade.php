@@ -14,7 +14,7 @@
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <x-dashboard.stats-card
             label="Total Balance"
-            :value="'₦' . number_format($balanceNgn ?? 0, 2)"
+            :value="money($availableBalance ?? 0, 2)"
             icon="wallet"
         >
             <div class="mt-4 flex flex-wrap gap-2">

@@ -60,7 +60,7 @@ class NotificationEmailRenderer
             'buyer_name' => $order->user?->name,
             'buyer_email' => $order->user?->email,
             'total_amount' => (float) ($order->total_amount ?? $order->amount),
-            'currency' => 'NGN',
+            'currency' => $order->currency ?: config('platform.currency'),
             'lines' => $lines,
             'completed_at' => now()->toDateTimeString(),
         ];

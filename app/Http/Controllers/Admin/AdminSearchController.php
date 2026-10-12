@@ -139,7 +139,7 @@ class AdminSearchController extends Controller
                     return [
                         'id' => 'wallet-'.$row->id,
                         'label' => \App\Models\User::nameFor($owner),
-                        'subtitle' => 'Balance ₦'.number_format((float) $row->balance, 2),
+                        'subtitle' => 'Balance '.money((float) $row->balance, 2),
                         'url' => $canOpen ? route('admin.users.show', $owner) : route('admin.transactions'),
                         'group' => 'Wallets',
                     ];

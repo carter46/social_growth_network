@@ -55,6 +55,17 @@ return [
     ],
 
     /**
+     * Link checks on the product page and checkout. When YouTube can't be reached,
+     * videos fall back to the public oEmbed lookup; anything still unresolved blocks checkout.
+     */
+    'youtube_lookup' => [
+        'oembed_fallback' => (bool) env('YOUTUBE_OEMBED_FALLBACK', true),
+        'block_when_unavailable' => (bool) env('YOUTUBE_BLOCK_WHEN_UNAVAILABLE', true),
+        'cache_minutes' => 15,
+        'recent_videos' => 4,
+    ],
+
+    /**
      * Old Views product slugs → new slugs (bookmarks / shared links).
      *
      * @var array<string, string>

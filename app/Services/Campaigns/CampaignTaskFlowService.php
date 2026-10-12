@@ -24,9 +24,12 @@ class CampaignTaskFlowService
         private ParticipationExpiryService $expiry,
     ) {}
 
-    public function createSteps(CampaignParticipation $participation, Campaign $campaign): void
+    /**
+     * @param  list<\App\Enums\CampaignTask>|null  $tasks  steps this agent was given (default: every step)
+     */
+    public function createSteps(CampaignParticipation $participation, Campaign $campaign, ?array $tasks = null): void
     {
-        foreach ($campaign->taskProfile()->tasks() as $index => $task) {
+        foreach (array_values($tasks ?? $campaign->taskProfile()->tasks()) as $index => $task) {
             CampaignParticipationTask::query()->firstOrCreate(
                 ['participation_id' => $participation->id, 'task' => $task->value],
                 [

@@ -58,7 +58,7 @@ class SystemSetting extends Model
         $details = static::manualBankTransferDetails();
 
         return filled($details['bank_name'])
-            && filled($details['account_number'])
+            && (filled($details['account_number']) || filled($details['iban']))
             && filled($details['account_name']);
     }
 
@@ -75,7 +75,9 @@ class SystemSetting extends Model
     }
 
     /**
-     * @return array{bank_name: string, account_number: string, account_name: string, instructions: string}
+     * USD receiving account (domiciliary or wire account) shown for manual order payments.
+     *
+     * @return array{bank_name: string, account_number: string, account_name: string, swift: string, routing_number: string, iban: string, bank_address: string, instructions: string, currency: string}
      */
     public static function manualBankTransferDetails(): array
     {
@@ -83,7 +85,12 @@ class SystemSetting extends Model
             'bank_name' => (string) static::get('manual_bank_transfer_bank_name', ''),
             'account_number' => (string) static::get('manual_bank_transfer_account_number', ''),
             'account_name' => (string) static::get('manual_bank_transfer_account_name', ''),
+            'swift' => (string) static::get('manual_bank_transfer_swift', ''),
+            'routing_number' => (string) static::get('manual_bank_transfer_routing_number', ''),
+            'iban' => (string) static::get('manual_bank_transfer_iban', ''),
+            'bank_address' => (string) static::get('manual_bank_transfer_bank_address', ''),
             'instructions' => (string) static::get('manual_bank_transfer_instructions', ''),
+            'currency' => (string) config('platform.currency', 'USD'),
         ];
     }
 }

@@ -75,6 +75,19 @@ class ServiceController extends Controller
      *
      * @return \Illuminate\Database\Eloquent\Builder<PlatformProduct>
      */
+    /**
+     * Starting-price bands for the Services budget filter, in the site currency.
+     *
+     * @return array{0: float, 1: float}
+     */
+    public static function budgetBands(): array
+    {
+        $low = max(0.01, (float) \App\Models\SystemSetting::get('services_budget_low', 10));
+        $high = max($low, (float) \App\Models\SystemSetting::get('services_budget_high', 25));
+
+        return [$low, $high];
+    }
+
     private function listingQuery(string $q, string $budget, string $sort)
     {
         $productsQuery = PlatformProduct::query()
@@ -94,12 +107,19 @@ class ServiceController extends Controller
         }
 
         // Budget presets use catalog starting price (base_price mirrors package floor).
-        if ($budget === 'under_10k') {
-            $productsQuery->where('base_price', '<', 10000);
-        } elseif ($budget === '10k_25k') {
-            $productsQuery->whereBetween('base_price', [10000, 25000]);
-        } elseif ($budget === '25k_plus') {
-            $productsQuery->where('base_price', '>', 25000);
+        [$low, $high] = self::budgetBands();
+        $budget = match ($budget) {
+            'under_10k' => 'low',
+            '10k_25k' => 'mid',
+            '25k_plus' => 'high',
+            default => $budget,
+        };
+        if ($budget === 'low') {
+            $productsQuery->where('base_price', '<', $low);
+        } elseif ($budget === 'mid') {
+            $productsQuery->whereBetween('base_price', [$low, $high]);
+        } elseif ($budget === 'high') {
+            $productsQuery->where('base_price', '>', $high);
         }
 
         match ($sort) {

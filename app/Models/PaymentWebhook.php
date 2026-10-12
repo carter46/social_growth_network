@@ -16,6 +16,7 @@ class PaymentWebhook extends Model
             'signature_valid' => 'boolean',
             'received_at' => 'datetime',
             'processed_at' => 'datetime',
+            'next_retry_at' => 'datetime',
         ];
     }
 }
