@@ -298,6 +298,26 @@ class BachsDriverContractTest extends TestCase
         $this->assertSame(3, $rejected);
     }
 
+    public function test_connected_account_endpoint_secret_is_accepted_alongside_the_account_secret(): void
+    {
+        $provider = IntegrationProvider::forProvider('bachs');
+        $provider->mergeCredentials(['connect_webhook_secret' => 'whsec_connect_example']);
+        $provider->save();
+        $this->driver->refreshProvider();
+
+        $raw = json_encode(['id' => 'evt_2', 'type' => 'account.updated', 'data' => ['object' => ['id' => 'acct_1']]]);
+        $ts = (string) time();
+
+        $event = $this->driver->parseWebhook($this->webhook($raw, 't='.$ts.',v1='.hash_hmac('sha256', $ts.'.'.$raw, 'whsec_connect_example')));
+        $this->assertSame('evt_2', $event->eventId);
+
+        $event = $this->driver->parseWebhook($this->webhook($raw, 't='.$ts.',v1='.hash_hmac('sha256', $ts.'.'.$raw, self::SECRET)));
+        $this->assertSame('evt_2', $event->eventId);
+
+        $this->expectException(InvalidWebhookSignature::class);
+        $this->driver->parseWebhook($this->webhook($raw, 't='.$ts.',v1='.hash_hmac('sha256', $ts.'.'.$raw, 'whsec_unknown_example')));
+    }
+
     public function test_status_lookup_distinguishes_absent_from_unreachable(): void
     {
         $this->on('GET /v1/payouts', ['data' => [['id' => 'po_other', 'reference' => 'WPO-9-9', 'status' => 'completed']]]);

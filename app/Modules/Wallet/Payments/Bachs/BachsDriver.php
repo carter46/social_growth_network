@@ -102,8 +102,10 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
             $this->environmentField(),
             ['name' => 'secret_key', 'label' => 'Secret API key', 'type' => 'secret', 'required' => true, 'store' => 'credentials',
                 'hint' => 'Starts with sk_sandbox_ or sk_live_. Needs checkout, payouts, transfers and connected accounts scopes.'],
-            ['name' => 'webhook_secret', 'label' => 'Webhook signing secret', 'type' => 'secret', 'required' => true, 'store' => 'credentials',
-                'hint' => 'Set the endpoint event source to "all" so payout events from recipient accounts arrive.'],
+            ['name' => 'webhook_secret', 'label' => 'Webhook signing secret (Account events)', 'type' => 'secret', 'required' => true, 'store' => 'credentials',
+                'hint' => 'From the endpoint with event source "Account events": Checkout Completed, Checkout Expired, Collection Succeeded, Collection Failed, Transfer Created.'],
+            ['name' => 'connect_webhook_secret', 'label' => 'Webhook signing secret (Connected account events)', 'type' => 'secret', 'required' => false, 'store' => 'credentials',
+                'hint' => 'From a second endpoint with the same URL and event source "Connected account events": Account Updated, Capability Updated, Payout Created, Payout Paid, Payout Failed.'],
             ['name' => 'payout_fee_buffer', 'label' => 'Payout fee buffer (USD)', 'type' => 'text', 'required' => false, 'store' => 'meta',
                 'hint' => 'Extra sent to the recipient account to cover the payout fee. Unused funds are swept back. Default 1.00.'],
         ];
@@ -182,8 +184,11 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
 
     public function parseWebhook(Request $request): PaymentEvent
     {
-        $secret = $this->credential('webhook_secret');
-        if (! $secret) {
+        $secrets = array_values(array_filter([
+            $this->credential('webhook_secret'),
+            $this->credential('connect_webhook_secret'),
+        ]));
+        if ($secrets === []) {
             throw new InvalidWebhookSignature('Bachs webhook secret is not set.');
         }
 
@@ -216,10 +221,12 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
             throw new InvalidWebhookSignature('Bachs webhook timestamp is outside the allowed window.');
         }
 
-        $expected = hash_hmac('sha256', $timestamp.'.'.$raw, $secret);
-        foreach ($signatures as $signature) {
-            if (hash_equals($expected, strtolower($signature))) {
-                return $this->normalizeWebhookPayload(json_decode($raw, true) ?: []);
+        foreach ($secrets as $secret) {
+            $expected = hash_hmac('sha256', $timestamp.'.'.$raw, $secret);
+            foreach ($signatures as $signature) {
+                if (hash_equals($expected, strtolower($signature))) {
+                    return $this->normalizeWebhookPayload(json_decode($raw, true) ?: []);
+                }
             }
         }
 
