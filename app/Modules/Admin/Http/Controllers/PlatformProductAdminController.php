@@ -16,6 +16,7 @@ use App\Support\SortOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -281,6 +282,11 @@ class PlatformProductAdminController extends Controller
             'task_limits' => $taskLimits,
         ];
 
+        $mainTaskPending = ! Schema::hasColumn('platform_products', 'main_task');
+        if ($mainTaskPending) {
+            unset($updatePayload['main_task']);
+        }
+
         DB::transaction(function () use ($platformProduct, $updatePayload, $data, $unitPrice, $heroMediaId) {
             $platformProduct->update($updatePayload);
 
@@ -296,9 +302,15 @@ class PlatformProductAdminController extends Controller
             }
         });
 
-        return redirect()
+        $redirect = redirect()
             ->route('admin.platform-products.edit', $platformProduct)
             ->with('status', 'Product updated.');
+
+        if ($mainTaskPending && $mainTask !== null) {
+            $redirect->with('error', 'The main service choice was not saved because the database is out of date. Run php artisan migrate on the server, then save again.');
+        }
+
+        return $redirect;
     }
 
     public function toggle(PlatformProduct $platformProduct): RedirectResponse

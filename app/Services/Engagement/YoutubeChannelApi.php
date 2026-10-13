@@ -173,7 +173,12 @@ class YoutubeChannelApi
         try {
             $response = Http::timeout(8)->get(self::BASE.$endpoint, $params + ['key' => $key]);
             if (! $response->successful()) {
-                Log::info('YouTube Data API request not successful', ['endpoint' => $endpoint, 'status' => $response->status()]);
+                Log::warning('YouTube Data API request not successful', [
+                    'endpoint' => $endpoint,
+                    'status' => $response->status(),
+                    'reason' => $response->json('error.errors.0.reason'),
+                    'message' => self::redactKey((string) $response->json('error.message')),
+                ]);
 
                 return null;
             }
