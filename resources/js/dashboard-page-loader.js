@@ -293,6 +293,9 @@ function shouldShowLoaderForForm(form) {
 
 export function initDashboardPageLoader() {
     if (document.body?.dataset?.dashboardShell !== 'user') {
+        if (document.body && (loaderSessionActive() || document.body.classList.contains('dashboard-page-loading'))) {
+            hideDashboardPageLoader();
+        }
         return;
     }
 
