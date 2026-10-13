@@ -118,6 +118,21 @@ class UserAdminLifecycleTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'user.impersonation.stopped']);
     }
 
+    public function test_admin_can_impersonate_an_agent(): void
+    {
+        $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
+        $agent = User::factory()->agent()->create(['email_verified_at' => now(), 'name' => 'Impersonated Agent']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.users.impersonate', $agent))
+            ->assertRedirect(route('agent'));
+
+        $this->assertAuthenticatedAs($agent);
+        $this->get(route('agent'))
+            ->assertOk()
+            ->assertSee('You are impersonating', false);
+    }
+
     public function test_cannot_impersonate_admin_or_self_or_suspended(): void
     {
         $admin = User::factory()->admin()->create(['email_verified_at' => now()]);

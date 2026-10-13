@@ -27,8 +27,8 @@ class ImpersonationController extends Controller
             return back()->with('error', __('Cannot impersonate an administrator.'));
         }
 
-        if (! $user->hasRole('user')) {
-            return back()->with('error', __('Only member accounts can be impersonated.'));
+        if (! $user->isCreator() && ! $user->isAgent()) {
+            return back()->with('error', __('Only creator and agent accounts can be impersonated.'));
         }
 
         if ($user->is_suspended) {
@@ -57,7 +57,7 @@ class ImpersonationController extends Controller
         ], $request->ip());
 
         return redirect()
-            ->route('dashboard')
+            ->to($user->homeRoute())
             ->with('status', __('You are now impersonating :name.', ['name' => $user->name]));
     }
 

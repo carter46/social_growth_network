@@ -44,6 +44,7 @@ class PlatformProduct extends Model
         'estimated_minutes',
         'completion_minutes',
         'task_order',
+        'main_task',
         'task_limits',
         'meta',
     ];

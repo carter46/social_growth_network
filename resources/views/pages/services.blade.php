@@ -68,46 +68,6 @@
                         </div>
 
                         <div>
-                            <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Categories</h4>
-                            <div class="flex flex-col gap-0.5">
-                                <label class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg cursor-pointer">
-                                    <span class="flex items-center gap-2 text-sm text-slate-800">
-                                        <input
-                                            type="radio"
-                                            name="category"
-                                            value=""
-                                            class="accent-primary"
-                                            :checked="category === ''"
-                                            @change="setCategory('')"
-                                        >
-                                        All categories
-                                    </span>
-                                    <span class="text-xs text-slate-400">{{ $totalVisible }}</span>
-                                </label>
-                                @foreach($groups as $card)
-                                    @php
-                                        $slug = $card['slug'] ?? '';
-                                        $count = (int) ($card['count'] ?? 0);
-                                    @endphp
-                                    <label class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg cursor-pointer">
-                                        <span class="flex items-center gap-2 text-sm text-slate-800">
-                                            <input
-                                                type="radio"
-                                                name="category"
-                                                value="{{ $slug }}"
-                                                class="accent-primary"
-                                                :checked="category === @js($slug)"
-                                                @change="setCategory(@js($slug))"
-                                            >
-                                            {{ $card['label'] ?? $slug }}
-                                        </span>
-                                        <span class="text-xs text-slate-400">{{ $count }}</span>
-                                    </label>
-                                @endforeach
-                            </div>
-                        </div>
-
-                        <div>
                             <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Starting budget</h4>
                             <div class="flex flex-col gap-1.5">
                                 @php [$budgetLow, $budgetHigh] = \App\Modules\Catalog\Http\Controllers\ServiceController::budgetBands(); @endphp

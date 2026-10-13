@@ -37,6 +37,7 @@
         'needsChannel' => $needsChannel,
         'needsComment' => $needsComment,
         'commentMax' => \App\Services\Campaigns\CampaignBriefService::COMMENT_INSTRUCTIONS_MAX,
+        'revealed' => $errors->any(),
     ];
 
     $c = $dash ? [
@@ -76,47 +77,6 @@
     @submit="submit($event)"
 >
     @csrf
-
-    {{-- Quantities --}}
-    <div class="{{ $c['card'] }}">
-        <div>
-            <p class="text-lg font-semibold {{ $c['strong'] }}">{{ $variant->pricingLabel($metric) }}</p>
-            @if($profile->isMultiTask())
-                <p class="mt-1 {{ $c['muted'] }}">Package from {{ money((float) $layout['package_price'], 2) }}, which includes the minimum of every service below.</p>
-            @endif
-        </div>
-
-        <template x-for="row in rows" :key="row.task">
-            <div class="space-y-1.5">
-                <label class="{{ $c['label'] }}" :for="'pkg-qty-' + row.task">
-                    <span x-text="row.label"></span>
-                    <span class="{{ $c['muted'] }}" x-show="row.primary && companionRows.length" x-cloak>(main service)</span>
-                </label>
-                <input
-                    :id="'pkg-qty-' + row.task"
-                    type="number"
-                    step="1"
-                    inputmode="numeric"
-                    class="{{ $c['input'] }} max-w-xs"
-                    :name="row.primary ? 'units' : 'qty[' + row.task + ']'"
-                    :min="row.min"
-                    :max="row.max"
-                    x-model.number="quantities[row.task]"
-                >
-                <p class="{{ $c['muted'] }}">
-                    <span x-text="'Minimum ' + count(row.min) + ' · Maximum ' + count(row.max)"></span>
-                    <span x-show="!row.primary && extraFor(row) > 0" x-cloak x-text="' · ' + count(extraFor(row)) + ' extra at ' + money(unitPrice, 4) + ' each'"></span>
-                </p>
-                <p class="{{ $c['muted'] }}" x-show="row.hint" x-text="row.hint"></p>
-                <p class="{{ $c['error'] }}" x-show="!rowValid(row)" x-cloak x-text="'Enter a whole number from ' + count(row.min) + ' to ' + count(row.max) + '.'"></p>
-            </div>
-        </template>
-        @error('units')<p class="{{ $c['error'] }}">{{ $message }}</p>@enderror
-        @foreach($layout['rows'] as $row)
-            @error('qty.'.$row['task'])<p class="{{ $c['error'] }}">{{ $message }}</p>@enderror
-        @endforeach
-        @error('qty')<p class="{{ $c['error'] }}">{{ $message }}</p>@enderror
-    </div>
 
     @if($needsTargetUrl)
         <div class="{{ $c['card'] }}">
@@ -173,7 +133,7 @@
                 <p x-show="channelMismatch" x-cloak class="{{ $c['error'] }}">That video is not on the channel above. Pick a video from the same channel.</p>
 
                 @if($needsComment)
-                    <div class="space-y-1.5">
+                    <div class="space-y-1.5" x-show="showDetails" x-cloak>
                         <label for="pkg-comment" class="{{ $c['label'] }}">What should agents comment about?</label>
                         <textarea id="pkg-comment" name="comment_instructions" rows="3" maxlength="{{ $config['commentMax'] }}" class="{{ $c['input'] }}" x-model="commentInstructions" placeholder="For example: say what you liked about the video."></textarea>
                         <p class="{{ $c['muted'] }}">Each agent writes their own comment. <span x-text="count(commentInstructions.length) + ' / ' + count(commentMax)"></span></p>
@@ -182,10 +142,53 @@
                 @endif
             @endif
         </div>
+
+        <p class="{{ $c['body'] }}" x-show="!showDetails" x-cloak>Paste your YouTube link above to choose quantities and see your total.</p>
     @endif
 
+    {{-- Quantities --}}
+    <div class="{{ $c['card'] }}" @if($needsTargetUrl) x-show="showDetails" x-cloak @endif>
+        <div>
+            <p class="text-lg font-semibold {{ $c['strong'] }}">{{ $variant->pricingLabel($metric) }}</p>
+            @if($profile->isMultiTask())
+                <p class="mt-1 {{ $c['muted'] }}">Package from {{ money((float) $layout['package_price'], 2) }}, which includes the minimum of every service below.</p>
+            @endif
+        </div>
+
+        <template x-for="row in rows" :key="row.task">
+            <div class="space-y-1.5">
+                <label class="{{ $c['label'] }}" :for="'pkg-qty-' + row.task">
+                    <span x-text="row.label"></span>
+                    <span class="{{ $c['muted'] }}" x-show="row.primary && companionRows.length" x-cloak>(main service)</span>
+                </label>
+                <input
+                    :id="'pkg-qty-' + row.task"
+                    type="number"
+                    step="1"
+                    inputmode="numeric"
+                    class="{{ $c['input'] }} max-w-xs"
+                    :name="row.primary ? 'units' : 'qty[' + row.task + ']'"
+                    :min="row.min"
+                    :max="row.max"
+                    x-model.number="quantities[row.task]"
+                >
+                <p class="{{ $c['muted'] }}">
+                    <span x-text="'Minimum ' + count(row.min) + ' · Maximum ' + count(row.max)"></span>
+                    <span x-show="!row.primary && extraFor(row) > 0" x-cloak x-text="' · ' + count(extraFor(row)) + ' extra at ' + money(unitPrice, 4) + ' each'"></span>
+                </p>
+                <p class="{{ $c['muted'] }}" x-show="row.hint" x-text="row.hint"></p>
+                <p class="{{ $c['error'] }}" x-show="!rowValid(row)" x-cloak x-text="'Enter a whole number from ' + count(row.min) + ' to ' + count(row.max) + '.'"></p>
+            </div>
+        </template>
+        @error('units')<p class="{{ $c['error'] }}">{{ $message }}</p>@enderror
+        @foreach($layout['rows'] as $row)
+            @error('qty.'.$row['task'])<p class="{{ $c['error'] }}">{{ $message }}</p>@enderror
+        @endforeach
+        @error('qty')<p class="{{ $c['error'] }}">{{ $message }}</p>@enderror
+    </div>
+
     {{-- Total and action --}}
-    <div class="{{ $c['card'] }}">
+    <div class="{{ $c['card'] }}" @if($needsTargetUrl) x-show="showDetails" x-cloak @endif>
         <div>
             <span class="text-[11px] font-medium uppercase tracking-widest {{ $dash ? 'text-text-muted' : 'text-slate-500' }} block">Total</span>
             <p class="mt-1 {{ $c['price'] }}" x-text="money(quantitiesValid ? total : 0)"></p>

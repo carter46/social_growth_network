@@ -27,7 +27,7 @@
         @endif
 
         <div class="grid gap-6 lg:grid-cols-2 lg:items-start">
-            <x-dashboard.card class="space-y-4 overflow-hidden !p-0">
+            <x-dashboard.card class="space-y-4 overflow-hidden !p-0 lg:sticky lg:top-0 lg:self-start">
                 @if($heroUrl)
                     <div class="w-full bg-muted">
                         <img

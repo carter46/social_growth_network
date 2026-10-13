@@ -166,7 +166,6 @@ class PlatformProductAdminController extends Controller
             'pricing' => ['required', 'array'],
             'pricing.min_units' => ['required', 'integer', 'min:1'],
             'pricing.max_units' => ['required', 'integer', 'gte:pricing.min_units'],
-            'pricing.pricing_units' => ['required', 'integer', 'min:1'],
             'pricing.price' => ['required', 'numeric', 'min:0.01'],
             'agent_reward_percent' => ['required', 'numeric', 'min:0.01', 'max:100'],
             'estimated_minutes' => [
@@ -185,6 +184,7 @@ class PlatformProductAdminController extends Controller
             ],
             'task_order' => ['nullable', 'array'],
             'task_order.*' => ['string', Rule::in($allowedTasks)],
+            'main_task' => ['nullable', 'string', Rule::in($allowedTasks)],
             'task_limits' => ['nullable', 'array'],
             'task_limits.*' => ['array'],
             'task_limits.*.min' => ['required', 'integer', 'min:0', 'max:1000000'],
@@ -217,15 +217,24 @@ class PlatformProductAdminController extends Controller
             $taskOrder = array_map(fn ($task) => $task->value, $normalized);
         }
 
+        $mainTask = count($allowedTasks) > 1
+            ? ($data['main_task'] ?? $platformProduct->main_task)
+            : null;
+        $profile = ProductTaskProfile::forSlug($platformProduct->slug, $taskOrder, $mainTask);
+
         $taskLimits = $platformProduct->task_limits;
         $companions = $profile->companionTasks();
-        if ($companions !== [] && array_key_exists('task_limits', $data)) {
-            $taskLimits = [];
+        if ($companions !== []) {
+            // Saved ranges for other tasks are kept, so switching the main service back restores them.
+            $taskLimits = is_array($taskLimits) ? $taskLimits : [];
             $limitErrors = [];
             foreach ($companions as $task) {
-                $row = $data['task_limits'][$task->value] ?? null;
+                $row = $data['task_limits'][$task->value] ?? $taskLimits[$task->value] ?? null;
                 $label = strtolower($profile->quantityLabel($task));
-                if (! is_array($row)) {
+                if ($row === null && ! array_key_exists('task_limits', $data)) {
+                    continue;
+                }
+                if (! is_array($row) || ! isset($row['min'], $row['max'])) {
                     $limitErrors['task_limits.'.$task->value.'.min'] = "Enter the minimum and maximum {$label}.";
 
                     continue;
@@ -244,7 +253,7 @@ class PlatformProductAdminController extends Controller
 
         $unitPrice = PlatformProductVariant::computeUnitPriceFromPackagePrice(
             $data['pricing']['price'],
-            (int) $data['pricing']['pricing_units'],
+            (int) $data['pricing']['min_units'],
         );
         if (bccomp(PlatformProductVariant::agentRewardForUnitPrice($unitPrice, $data['agent_reward_percent']), PlatformProductVariant::MIN_AGENT_REWARD, 4) < 0) {
             throw ValidationException::withMessages([
@@ -268,6 +277,7 @@ class PlatformProductAdminController extends Controller
             'estimated_minutes' => $data['estimated_minutes'] ?? null,
             'completion_minutes' => $completionMinutes > 0 ? $completionMinutes : null,
             'task_order' => $taskOrder,
+            'main_task' => $mainTask !== null ? $profile->primaryTask()?->value : null,
             'task_limits' => $taskLimits,
         ];
 
@@ -338,7 +348,9 @@ class PlatformProductAdminController extends Controller
     /**
      * Upsert the product's single pricing row. Other rows are deactivated, not deleted, because past orders reference them.
      *
-     * @param  array{min_units: int|string, max_units: int|string, pricing_units: int|string, price: float|string}  $pricing
+     * The price is for the minimum purchase, so the minimum is also the pricing unit.
+     *
+     * @param  array{min_units: int|string, max_units: int|string, price: float|string}  $pricing
      */
     private function syncPricing(PlatformProduct $product, array $pricing, string $unitPrice): void
     {
@@ -348,7 +360,7 @@ class PlatformProductAdminController extends Controller
             $payload = [
                 'price' => number_format((float) $pricing['price'], 2, '.', ''),
                 'pricing_mode' => PlatformProductVariant::PRICING_PER_UNIT,
-                'pricing_units' => (int) $pricing['pricing_units'],
+                'pricing_units' => $minUnits,
                 'unit_price' => $unitPrice,
                 'min_units' => $minUnits,
                 'max_units' => (int) $pricing['max_units'],

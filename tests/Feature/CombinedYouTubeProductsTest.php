@@ -298,6 +298,46 @@ class CombinedYouTubeProductsTest extends TestCase
         $this->assertSame(20, $product->fresh()->companionLimits()['watch']['min']);
     }
 
+    public function test_admin_picks_the_main_service_and_the_others_become_companions(): void
+    {
+        $product = PlatformProduct::query()->where('slug', self::SLUG)->firstOrFail();
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->get(route('admin.platform-products.edit', $product))
+            ->assertOk()
+            ->assertSee('name="main_task"', false)
+            ->assertSee('\u0022main\u0022:\u0022subscribe\u0022', false);
+
+        $this->actingAs($admin)
+            ->put(route('admin.platform-products.update', $product), $this->adminProductPayload([
+                'main_task' => 'comment',
+                'task_limits' => [
+                    'watch' => ['min' => 10, 'max' => 400],
+                    'subscribe' => ['min' => 0, 'max' => 50],
+                ],
+            ]))
+            ->assertSessionHasNoErrors();
+
+        $product->refresh();
+        $this->assertSame('comment', $product->main_task);
+        $this->assertSame(CampaignTask::Comment, $product->taskProfile()->primaryTask());
+        $this->assertSame(['watch', 'subscribe'], array_map(fn ($t) => $t->value, $product->taskProfile()->companionTasks()));
+        $this->assertSame(
+            ['watch' => ['min' => 10, 'max' => 400], 'subscribe' => ['min' => 0, 'max' => 50]],
+            $product->companionLimits(),
+        );
+
+        $layout = app(\App\Services\Catalog\PackageQuoteService::class)->layout($product);
+        $this->assertSame(['comment', 'watch', 'subscribe'], array_column($layout['rows'], 'task'));
+        $this->assertSame('Comments', $layout['rows'][0]['label']);
+
+        $this->actingAs($admin)
+            ->put(route('admin.platform-products.update', $product), $this->adminProductPayload(['main_task' => 'like']))
+            ->assertSessionHasErrors('main_task');
+        $this->assertSame('comment', $product->fresh()->main_task);
+    }
+
     public function test_combined_product_without_companion_limits_reports_a_setup_issue(): void
     {
         $product = PlatformProduct::query()->where('slug', self::SLUG)->firstOrFail();

@@ -23,23 +23,26 @@ final class ProductTaskProfile
         private readonly array $tasks,
         private readonly ?EngagementMetric $metric,
         private readonly bool $fromSnapshot = false,
+        private readonly ?CampaignTask $main = null,
     ) {}
 
-    public static function forSlug(?string $slug, mixed $order = null): self
+    public static function forSlug(?string $slug, mixed $order = null, mixed $main = null): self
     {
         $slug = filled($slug) ? strtolower(trim((string) $slug)) : null;
         $allowed = self::allowedTasks($slug);
+        $main = $main instanceof CampaignTask ? $main : CampaignTask::tryFrom((string) $main);
 
         return new self(
             $slug,
             self::normalizeOrder($allowed, $order) ?? $allowed,
             EngagementMetric::fromProductSlug($slug),
+            main: $main !== null && in_array($main, $allowed, true) ? $main : null,
         );
     }
 
     public static function forProduct(?PlatformProduct $product): self
     {
-        return self::forSlug($product?->slug, $product?->task_order);
+        return self::forSlug($product?->slug, $product?->task_order, $product?->main_task);
     }
 
     /**
@@ -183,9 +186,13 @@ final class ProductTaskProfile
         return in_array($task, $this->tasks, true);
     }
 
-    /** The service the product is priced on (its main quantity). */
+    /** The service the product is priced on (its main quantity): the admin's choice, else the product's metric. */
     public function primaryTask(): ?CampaignTask
     {
+        if ($this->main !== null && $this->has($this->main)) {
+            return $this->main;
+        }
+
         $fromMetric = CampaignTask::fromMetric($this->metric);
         if ($fromMetric !== null && $this->has($fromMetric)) {
             return $fromMetric;
@@ -209,7 +216,7 @@ final class ProductTaskProfile
     /** Customer-facing name for the quantity of one task. */
     public function quantityLabel(CampaignTask $task): string
     {
-        if ($task === $this->primaryTask()) {
+        if ($task === CampaignTask::fromMetric($this->metric)) {
             $fromMetric = match ($this->metric) {
                 EngagementMetric::Likes => 'Likes',
                 EngagementMetric::Comments => 'Comments',

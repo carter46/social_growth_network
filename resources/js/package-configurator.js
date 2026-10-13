@@ -30,6 +30,7 @@ export function registerPackageConfigurator(Alpine) {
         videoTimer: null,
         channelTimer: null,
         submitting: false,
+        revealed: Boolean(config.revealed),
 
         init() {
             const initialQty = config.initial?.qty || {};
@@ -51,6 +52,9 @@ export function registerPackageConfigurator(Alpine) {
             }
         },
 
+        get showDetails() {
+            return ! this.needsTargetUrl || this.revealed;
+        },
         get primaryRow() {
             return this.rows.find((row) => row.primary) || null;
         },
@@ -176,6 +180,7 @@ export function registerPackageConfigurator(Alpine) {
                 const data = await this.post(config.videoPreviewUrl, { url, product_slug: config.productSlug });
                 if (requestId !== this.videoRequestId) return;
                 this.video = data;
+                if (data.allowed !== false) this.revealed = true;
                 if (this.needsChannel && ! String(this.channelUrl || '').trim() && data.video?.channel_url) {
                     this.channelUrl = data.video.channel_url;
                     this.lookupChannel();
@@ -183,6 +188,7 @@ export function registerPackageConfigurator(Alpine) {
             } catch {
                 if (requestId !== this.videoRequestId) return;
                 this.video = { status: 'unverified', allowed: true, message: 'We could not check this link right now. We will check it again at checkout.' };
+                this.revealed = true;
             } finally {
                 if (requestId === this.videoRequestId) this.videoLoading = false;
             }
@@ -204,6 +210,7 @@ export function registerPackageConfigurator(Alpine) {
                 if (requestId !== this.channelRequestId) return;
                 this.channel = data;
                 this.channelVideos = Array.isArray(data.videos) ? data.videos : [];
+                if (this.targetIsChannel && data.allowed !== false) this.revealed = true;
                 if (! this.targetIsChannel && this.channelVideos.length === 0) {
                     this.customVideo = true;
                 }
@@ -212,6 +219,7 @@ export function registerPackageConfigurator(Alpine) {
                 this.channel = { status: 'unverified', allowed: true, message: 'We could not check this channel right now. We will check it again at checkout.' };
                 this.channelVideos = [];
                 this.customVideo = true;
+                if (this.targetIsChannel) this.revealed = true;
             } finally {
                 if (requestId === this.channelRequestId) this.channelLoading = false;
             }
@@ -226,6 +234,7 @@ export function registerPackageConfigurator(Alpine) {
             this.videoRequestId += 1;
             this.videoLoading = false;
             this.video = { status: 'ok', allowed: true, message: null, video: item };
+            this.revealed = true;
         },
         useDifferentVideo() {
             this.customVideo = true;

@@ -73,7 +73,7 @@
 <section class="bg-white text-slate-900">
     <div class="max-w-marketing mx-auto px-5 sm:px-6 py-10 sm:py-14">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
-            <div class="space-y-3">
+            <div class="space-y-3 lg:sticky lg:top-24 lg:self-start">
                 <div class="aspect-[4/3] sm:aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
                     @if($heroUrl)
                         <img

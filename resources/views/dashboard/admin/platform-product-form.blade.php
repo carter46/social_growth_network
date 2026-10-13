@@ -12,23 +12,29 @@
     $taskOrderPayload = array_map(fn ($task) => ['value' => $task->value, 'label' => $task->label()], $savedOrder);
     $pricingVariant = $product->pricingVariant();
     $defaultUnits = \App\Models\PlatformProductVariant::REFERENCE_UNITS;
+    $minUnits = (int) ($pricingVariant?->min_units ?? $defaultUnits);
+    // Older rows priced per a separate unit count: show the equivalent price for the minimum purchase.
+    $priceForMin = $pricingVariant && $pricingVariant->isPerUnit() && $pricingVariant->effectivePricingUnits() !== max(1, $minUnits)
+        ? number_format(round((float) $pricingVariant->billingUnitPrice() * max(1, $minUnits), 2), 2, '.', '')
+        : ($pricingVariant?->price ?? '');
     $pricing = [
-        'min_units' => old('pricing.min_units', $pricingVariant?->min_units ?? $defaultUnits),
+        'min_units' => old('pricing.min_units', $minUnits),
         'max_units' => old('pricing.max_units', $pricingVariant?->max_units ?? \App\Models\PlatformProductVariant::DEFAULT_MAX_UNITS),
-        'pricing_units' => old('pricing.pricing_units', $pricingVariant?->pricing_units ?? $defaultUnits),
-        'price' => old('pricing.price', $pricingVariant?->price ?? ''),
+        'price' => old('pricing.price', $priceForMin),
         'reward_percent' => old('agent_reward_percent', $product->agent_reward_percent),
     ];
     $primaryTask = $taskProfile->primaryTask();
+    $isMultiTask = count($taskOrderPayload) > 1;
     $savedLimits = is_array($product->task_limits) ? $product->task_limits : [];
-    $companionRows = array_map(fn ($task) => [
+    $taskRows = array_map(fn ($task) => [
         'task' => $task->value,
         'label' => $taskProfile->quantityLabel($task),
         'min' => (string) old('task_limits.'.$task->value.'.min', $savedLimits[$task->value]['min'] ?? ''),
         'max' => (string) old('task_limits.'.$task->value.'.max', $savedLimits[$task->value]['max'] ?? ''),
-    ], $taskProfile->companionTasks());
-    $pricing['companions'] = $companionRows;
-    $pricing['main_label'] = $primaryTask ? strtolower($taskProfile->quantityLabel($primaryTask)) : 'units';
+    ], $isMultiTask ? $taskProfile->tasks() : []);
+    $pricing['tasks'] = $taskRows;
+    $pricing['main'] = (string) old('main_task', $primaryTask?->value ?? '');
+    $pricing['default_label'] = $primaryTask ? strtolower($taskProfile->quantityLabel($primaryTask)) : 'units';
     $heroId = old('hero_media_id', $product->hero_media_id);
     $heroPreview = $heroId
         ? \App\Models\MediaAsset::query()->with('variants')->find((int) $heroId)?->thumbnailUrl()
@@ -65,17 +71,24 @@
             x-data="{
                 submitting: false,
                 pricing: @js($pricing),
+                mainLabel() {
+                    const row = this.pricing.tasks.find((r) => r.task === this.pricing.main);
+                    return row ? row.label.toLowerCase() : this.pricing.default_label;
+                },
+                companions() {
+                    return this.pricing.tasks.filter((r) => r.task !== this.pricing.main);
+                },
                 unitPrice() {
                     const price = Number(this.pricing.price);
-                    const units = Number(this.pricing.pricing_units);
+                    const units = Number(this.pricing.min_units);
                     if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(units) || units < 1) return null;
-                    return Math.floor((price / units) * 10000) / 10000;
+                    return Math.floor((price / units) * 1000000) / 1000000;
                 },
                 agentReward() {
                     const unit = this.unitPrice();
                     const pct = Number(this.pricing.reward_percent);
                     if (unit === null || !Number.isFinite(pct) || pct <= 0) return null;
-                    return Math.floor(unit * Math.min(100, pct)) / 100;
+                    return Math.floor(unit * Math.min(100, pct) * 100) / 10000;
                 },
                 exampleUnits() {
                     return Math.max(1, Math.round(Number(this.pricing.min_units) || 1));
@@ -124,9 +137,9 @@
                 <div>
                     <p class="text-sm font-medium text-text-primary">Pricing</p>
                     <p class="text-xs text-text-muted">
-                        Creators enter any quantity between the minimum and maximum purchase and pay the unit price for each unit.
-                        @if($companionRows !== [])
-                            The minimum and maximum here are for the main service ({{ $pricing['main_label'] }}).
+                        Set the price for the minimum purchase. Creators can buy any quantity up to the maximum, and each unit costs the same.
+                        @if($isMultiTask)
+                            The minimum and maximum here are for the main service (<span x-text="mainLabel()"></span>). Choose the main service under Tasks and timing.
                         @else
                             One unit is one agent completing the task.
                         @endif
@@ -149,13 +162,8 @@
                         @error('pricing.max_units')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
                     </div>
                     <div>
-                        <label class="mb-1 block text-xs text-text-muted">Pricing units (the price below is for this many units)</label>
-                        <input type="number" min="1" step="1" name="pricing[pricing_units]" x-model="pricing.pricing_units" class="{{ $inputClass }}" required>
-                        @error('pricing.pricing_units')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
-                    </div>
-                    <div>
                         <label class="mb-1 block text-xs text-text-muted">
-                            Price per <span x-text="Number(pricing.pricing_units || 0).toLocaleString()"></span> ({{ site_currency()->code }})
+                            Price for the minimum purchase (<span x-text="Number(pricing.min_units || 0).toLocaleString() + ' ' + mainLabel()"></span>, {{ site_currency()->code }})
                         </label>
                         <input type="number" min="0.01" step="0.01" name="pricing[price]" x-model="pricing.price" class="{{ $inputClass }}" required>
                         @error('pricing.price')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
@@ -174,21 +182,21 @@
                         · Agent earns <span class="font-semibold text-text-primary" x-text="formatMoney(agentReward())"></span> per completed unit
                     </p>
                     <p class="mt-1">
-                        Example: <span x-text="exampleUnits().toLocaleString()"></span> units =
-                        <span class="font-semibold text-text-primary" x-text="formatMoney(Math.round(exampleUnits() * unitPrice() * 100) / 100)"></span>
+                        Maximum purchase: <span x-text="Math.max(1, Math.round(Number(pricing.max_units) || 1)).toLocaleString() + ' ' + mainLabel()"></span> =
+                        <span class="font-semibold text-text-primary" x-text="formatMoney(Math.round(Math.max(1, Math.round(Number(pricing.max_units) || 1)) * unitPrice() * 100) / 100)"></span>
                     </p>
                 </div>
 
-                @if($companionRows !== [])
+                @if($isMultiTask)
                     <div class="space-y-3 border-t border-border-subtle pt-4">
                         <div>
                             <p class="text-sm font-medium text-text-primary">Companion services</p>
                             <p class="text-xs text-text-muted">
-                                The price above is for the main service ({{ $pricing['main_label'] }}). Each companion's minimum is included in the package price.
+                                The price above is for the main service (<span x-text="mainLabel()"></span>). Each companion's minimum is included in the package price.
                                 Creators can add more up to the maximum; each extra unit costs the same unit price. A minimum of 0 makes the service optional.
                             </p>
                         </div>
-                        <template x-for="row in pricing.companions" :key="row.task">
+                        <template x-for="row in companions()" :key="row.task">
                             <div class="grid grid-cols-1 gap-3 md:grid-cols-3 md:items-end">
                                 <p class="text-sm font-medium text-text-primary" x-text="row.label"></p>
                                 <div>
@@ -202,7 +210,7 @@
                                 <p class="text-xs text-danger md:col-span-3" x-show="!companionValid(row)" x-cloak>Enter whole numbers. Maximum must be at least 1 and not below the minimum.</p>
                             </div>
                         </template>
-                        @foreach($companionRows as $row)
+                        @foreach($taskRows as $row)
                             @error('task_limits.'.$row['task'].'.min')<p class="text-xs text-danger">{{ $message }}</p>@enderror
                             @error('task_limits.'.$row['task'].'.max')<p class="text-xs text-danger">{{ $message }}</p>@enderror
                         @endforeach
@@ -211,7 +219,7 @@
                         <div class="rounded-lg border border-border-default bg-elevated/60 px-3 py-2 text-xs text-text-secondary" x-show="unitPrice() !== null" x-cloak>
                             <p>
                                 Package price: <span class="font-semibold text-text-primary" x-text="formatMoney(Math.round(exampleUnits() * unitPrice() * 100) / 100)"></span>
-                                for <span x-text="exampleUnits().toLocaleString() + ' {{ $pricing['main_label'] }}'"></span><template x-for="row in pricing.companions" :key="'s-' + row.task"><span x-show="Number(row.min) > 0" x-text="', ' + Number(row.min).toLocaleString() + ' ' + row.label.toLowerCase()"></span></template>.
+                                for <span x-text="exampleUnits().toLocaleString() + ' ' + mainLabel()"></span><template x-for="row in companions()" :key="'s-' + row.task"><span x-show="Number(row.min) > 0" x-text="', ' + Number(row.min).toLocaleString() + ' ' + row.label.toLowerCase()"></span></template>.
                             </p>
                             <p class="mt-1">Agents earn one reward of <span class="font-semibold text-text-primary" x-text="formatMoney(agentReward())"></span> each, paid after they finish every step they were given.</p>
                         </div>
@@ -247,7 +255,7 @@
 
                 <div>
                     <p class="text-xs text-text-muted">
-                        Tasks for this product are fixed{{ count($taskOrderPayload) > 1 ? '. Drag them, or use the arrows, to set the order agents follow.' : '.' }}
+                        Tasks for this product are fixed{{ $isMultiTask ? '. Drag them, or use the arrows, to set the order agents follow. Tick Main for the service the price is based on; the others become companions.' : '.' }}
                         New orders use the saved order. Existing campaigns keep the order they were bought with.
                     </p>
                     <ol class="mt-2 space-y-2">
@@ -268,9 +276,17 @@
                                         <span class="cursor-grab select-none text-text-muted" aria-hidden="true">⋮⋮</span>
                                     @endif
                                     <span class="font-medium text-text-primary" x-text="(index + 1) + '. ' + task.label"></span>
+                                    @if($isMultiTask)
+                                        <span x-show="pricing.main === task.value"><x-dashboard.badge status="success">Main</x-dashboard.badge></span>
+                                        <span x-show="pricing.main !== task.value"><x-dashboard.badge>Companion</x-dashboard.badge></span>
+                                    @endif
                                 </span>
                                 @if(count($taskOrderPayload) > 1)
                                     <span class="flex items-center gap-1">
+                                        <label class="mr-2 flex cursor-pointer items-center gap-1 text-xs text-text-secondary">
+                                            <input type="radio" name="main_task" :value="task.value" x-model="pricing.main">
+                                            Main
+                                        </label>
                                         <button type="button" class="rounded border border-border-default px-2 py-0.5 text-xs disabled:opacity-40" :disabled="index === 0" @click="move(index, index - 1)" aria-label="Move up">↑</button>
                                         <button type="button" class="rounded border border-border-default px-2 py-0.5 text-xs disabled:opacity-40" :disabled="index === order.length - 1" @click="move(index, index + 1)" aria-label="Move down">↓</button>
                                     </span>

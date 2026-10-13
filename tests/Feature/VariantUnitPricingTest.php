@@ -119,6 +119,35 @@ class VariantUnitPricingTest extends TestCase
         $this->assertSame(1, $product->activeVariants()->count());
     }
 
+    public function test_price_is_for_the_minimum_purchase(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $product = $this->seedProduct();
+        $product->pricingVariant()->update(['min_units' => 500]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.platform-products.edit', $product))
+            ->assertOk()
+            ->assertDontSee('Pricing units')
+            ->assertSee('Price for the minimum purchase')
+            ->assertSee('\u0022price\u0022:\u00224000.00\u0022', false);
+
+        $this->actingAs($admin)
+            ->put(route('admin.platform-products.update', $product), [
+                'title' => $product->title,
+                'status' => 'published',
+                'estimated_minutes' => 3,
+                'agent_reward_percent' => 50,
+                'pricing' => ['min_units' => 4000, 'max_units' => 10000, 'price' => '6.20'],
+            ])
+            ->assertSessionHasNoErrors();
+
+        $variant = $product->fresh()->pricingVariant();
+        $this->assertSame(4000, (int) $variant->pricing_units);
+        $this->assertSame('0.001550', $variant->billingUnitPrice());
+        $this->assertSame('$6.20 per 4,000 views', $variant->pricingLabel());
+    }
+
     public function test_admin_rejects_max_below_min(): void
     {
         $admin = User::factory()->admin()->create();
