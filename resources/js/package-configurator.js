@@ -211,7 +211,7 @@ export function registerPackageConfigurator(Alpine) {
                 this.channel = data;
                 this.channelVideos = Array.isArray(data.videos) ? data.videos : [];
                 if (this.targetIsChannel && data.allowed !== false) this.revealed = true;
-                if (! this.targetIsChannel && this.channelVideos.length === 0) {
+                if (! this.targetIsChannel && this.channelVideos.length === 0 && data.allowed !== false) {
                     this.customVideo = true;
                 }
             } catch {
@@ -241,6 +241,14 @@ export function registerPackageConfigurator(Alpine) {
             this.targetUrl = '';
             this.video = null;
             this.$nextTick(() => this.$refs.videoInput?.focus());
+        },
+        backToChannelVideos() {
+            clearTimeout(this.videoTimer);
+            this.videoRequestId += 1;
+            this.videoLoading = false;
+            this.customVideo = false;
+            this.targetUrl = '';
+            this.video = null;
         },
 
         submit(event) {

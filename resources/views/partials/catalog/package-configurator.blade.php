@@ -92,30 +92,42 @@
                     <div class="space-y-1.5">
                         <label for="pkg-channel" class="{{ $c['label'] }}">Your YouTube channel link</label>
                         <input id="pkg-channel" type="url" name="channel_url" class="{{ $c['input'] }}" placeholder="https://www.youtube.com/@yourchannel" x-model="channelUrl" @input="onChannelInput()" autocomplete="off">
-                        <p class="{{ $c['muted'] }}">Agents subscribe to this channel. Paste it to see your latest videos.</p>
+                        <p class="{{ $c['muted'] }}">Agents subscribe to this channel. Paste it to see your latest videos, then pick one for the rest of the campaign.</p>
                         @error('channel_url')<p class="{{ $c['error'] }}">{{ $message }}</p>@enderror
                     </div>
                     @include('partials.catalog._package-channel-card', ['c' => $c])
 
-                    <div class="space-y-2" x-show="channelVideos.length && !customVideo" x-cloak>
-                        <p class="{{ $c['title'] }}">Pick a video</p>
+                    <fieldset class="space-y-2" x-show="channelVideos.length && !customVideo" x-cloak>
+                        <legend class="{{ $c['title'] }}">Pick the video for this campaign</legend>
                         <div class="grid grid-cols-2 gap-3">
                             <template x-for="item in channelVideos" :key="item.id">
-                                <button type="button" @click="pickVideo(item)" class="text-left {{ $c['tile'] }} overflow-hidden transition" :class="isPicked(item) ? 'ring-2 ring-primary' : 'hover:ring-1 hover:ring-primary/40'">
+                                <label class="cursor-pointer {{ $c['tile'] }} overflow-hidden transition" :class="isPicked(item) ? 'ring-2 ring-primary' : 'hover:ring-1 hover:ring-primary/40'">
                                     <img x-show="item.thumbnail" :src="item.thumbnail" alt="" class="block w-full aspect-video object-cover" loading="lazy" referrerpolicy="no-referrer">
-                                    <span class="block p-2 text-xs font-medium {{ $c['strong'] }} line-clamp-2" x-text="item.title"></span>
-                                    <span class="block px-2 pb-2 {{ $c['muted'] }}" x-show="item.duration" x-text="item.duration"></span>
-                                </button>
+                                    <span class="flex items-start gap-2 p-2">
+                                        <input type="radio" name="video_pick" class="mt-0.5 shrink-0 text-primary focus:ring-primary" :value="item.id" :checked="isPicked(item)" @change="pickVideo(item)">
+                                        <span class="min-w-0">
+                                            <span class="block text-xs font-medium {{ $c['strong'] }} line-clamp-2" x-text="item.title"></span>
+                                            <span class="block {{ $c['muted'] }}" x-show="item.duration" x-text="item.duration"></span>
+                                        </span>
+                                    </span>
+                                </label>
                             </template>
                         </div>
-                        <button type="button" class="text-sm font-medium text-primary hover:underline" @click="useDifferentVideo()">Use a different video</button>
-                    </div>
+                        <label class="flex cursor-pointer items-center gap-2 {{ $c['tile'] }} p-3">
+                            <input type="radio" name="video_pick" value="other" class="shrink-0 text-primary focus:ring-primary" :checked="customVideo" @change="useDifferentVideo()">
+                            <span class="text-sm font-medium {{ $c['strong'] }}">Other video</span>
+                            <span class="{{ $c['muted'] }}">Paste a link to a different video</span>
+                        </label>
+                    </fieldset>
                 @endif
 
-                <div class="space-y-1.5" x-show="{{ $needsChannel ? 'customVideo || !channelVideos.length' : 'true' }}" @if($needsChannel) x-cloak @endif>
+                <div class="space-y-1.5" @if($needsChannel) x-show="customVideo" x-cloak @endif>
                     <label for="pkg-video" class="{{ $c['label'] }}">YouTube video link</label>
                     <input id="pkg-video" x-ref="videoInput" type="url" class="{{ $c['input'] }}" placeholder="https://www.youtube.com/watch?v=..." x-model="targetUrl" @input="onVideoInput()" autocomplete="off">
                     <p class="{{ $c['muted'] }}">Public and unlisted videos work. Live streams and premieres that have not started do not.</p>
+                    @if($needsChannel)
+                        <button type="button" class="text-sm font-medium text-primary hover:underline" x-show="channelVideos.length" x-cloak @click="backToChannelVideos()">Choose from your latest videos instead</button>
+                    @endif
                 </div>
                 <input type="hidden" name="target_url" :value="targetUrl">
                 @error('target_url')<p class="{{ $c['error'] }}">{{ $message }}</p>@enderror

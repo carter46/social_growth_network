@@ -187,7 +187,7 @@ class YoutubeLookupService
 
         $usable = [];
         foreach ((array) ($items['videos'] ?? []) as $video) {
-            if ($this->videoProblem($video, $tasks) === null) {
+            if (($video['privacy'] ?? 'public') === 'public' && $this->videoProblem($video, $tasks) === null) {
                 $usable[] = $video;
             }
             if (count($usable) >= $limit) {
