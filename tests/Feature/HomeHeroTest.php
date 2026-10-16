@@ -93,38 +93,54 @@ class HomeHeroTest extends TestCase
         $this->assertStringNotContainsString('<img', $youtubeChunk);
     }
 
-    public function test_creator_pages_use_visibility_wording_only(): void
+    public function test_home_uses_visibility_wording_only(): void
     {
-        foreach (['home', 'creators'] as $routeName) {
-            $html = $this->get(route($routeName))->assertOk()->getContent();
-            $main = $this->mainContent($html);
+        $main = $this->mainContent($this->get(route('home'))->assertOk()->getContent());
 
-            $this->assertStringContainsString(self::NO_BOTS_LINE, $main, $routeName);
-            foreach ([
-                '/pay people/i',
-                '/get paid/i',
-                '/\bearn(s|ing|er|ers)?\b/i',
-                '/\bagents?\b/i',
-                '/organic/i',
-                '/buy (likes|views|subscribers|watch hours)/i',
-                '/real people/i',
-                '/\bfarm/i',
-            ] as $pattern) {
-                $this->assertDoesNotMatchRegularExpression($pattern, strip_tags($main), $routeName.' '.$pattern);
-            }
+        $this->assertStringContainsString(self::NO_BOTS_LINE, $main);
+        foreach ([
+            '/pay people/i',
+            '/get paid/i',
+            '/\bearn(s|ing|er|ers)?\b/i',
+            '/\bagents?\b/i',
+            '/organic/i',
+            '/buy (likes|views|subscribers|watch hours)/i',
+            '/real people/i',
+            '/\bfarm/i',
+        ] as $pattern) {
+            $this->assertDoesNotMatchRegularExpression($pattern, strip_tags($main), $pattern);
         }
     }
 
-    public function test_header_has_no_agents_link_but_footer_does(): void
+    public function test_home_carries_the_former_creators_page_sections(): void
+    {
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Stay in control', false)
+            ->assertSee('Ready to get your <span class="text-white">YouTube</span> videos seen?', false)
+            ->assertSee('href="'.route('dashboard.services').'"', false);
+    }
+
+    public function test_creators_page_is_gone_and_redirects_home(): void
+    {
+        $this->get('/creators')->assertStatus(301)->assertRedirect('/');
+    }
+
+    public function test_header_shows_only_about_us_and_footer_links_agents(): void
     {
         $html = $this->get(route('home'))->assertOk()->getContent();
 
         $header = substr($html, 0, (int) strpos($html, '<main'));
         $footer = substr($html, (int) strpos($html, '<footer'));
 
-        $this->assertStringNotContainsString('For Agents', $header);
-        $this->assertStringNotContainsString('href="'.route('agents').'"', $header);
+        $this->assertStringContainsString('About Us', $header);
+        foreach (['>Services<', 'For Creators', 'For Agents', 'Help Center'] as $hidden) {
+            $this->assertStringNotContainsString($hidden, $header);
+        }
+        $this->assertStringContainsString('href="'.route('login').'"', $header);
+        $this->assertStringContainsString('href="'.route('register').'"', $header);
         $this->assertStringContainsString('href="'.route('agents').'"', $footer);
+        $this->assertStringNotContainsString('For Creators', $footer);
         $this->assertStringNotContainsString('Join as an Agent', $footer);
     }
 
@@ -136,6 +152,35 @@ class HomeHeroTest extends TestCase
             ->assertSee('invite (referral) code', false)
             ->assertSee('href="'.route('agent-onboarding').'"', false)
             ->assertDontSee('/register/agent', false);
+    }
+
+    public function test_agents_page_header_has_only_agent_login_and_agent_signup(): void
+    {
+        $html = $this->get(route('agents'))->assertOk()->getContent();
+        $header = substr($html, 0, (int) strpos($html, '<main'));
+        $main = $this->mainContent($html);
+
+        $this->assertStringNotContainsString('About Us', $header);
+        $this->assertStringNotContainsString('aria-label="Open menu"', $header);
+        $this->assertStringContainsString('href="'.route('agent-login').'"', $header);
+        $this->assertStringContainsString('href="'.route('agent-onboarding').'"', $header);
+        $this->assertStringNotContainsString('href="'.route('login').'"', $header);
+        $this->assertStringNotContainsString('href="'.route('register').'"', $header);
+
+        preg_match_all('/href="([^"#]+)"/', $main, $links);
+        foreach (array_unique($links[1]) as $href) {
+            $this->assertContains($href, [route('agent-login'), route('agent-onboarding')], $href);
+        }
+    }
+
+    public function test_agent_login_page_links_to_agent_signup(): void
+    {
+        $this->get(route('agent-login'))
+            ->assertOk()
+            ->assertSee('Agent Login', false)
+            ->assertSee('action="'.route('login').'"', false)
+            ->assertSee('href="'.route('agent-onboarding').'"', false)
+            ->assertDontSee('href="'.route('register').'"', false);
     }
 
     private function mainContent(string $html): string

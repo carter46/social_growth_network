@@ -170,7 +170,7 @@
                                         <p class="text-xs sm:text-sm font-semibold text-slate-900 leading-tight">{{ $task['time'] }}</p>
                                     </div>
                                 </div>
-                                <a href="{{ $task['href'] ?? route('agent-onboarding') }}" class="inline-flex items-center gap-1 font-semibold text-xs text-red-600 hover:text-red-700 px-2.5 py-1.5 bg-white rounded-lg shadow-sm border border-slate-100">
+                                <a href="{{ route('agent-login') }}" class="inline-flex items-center gap-1 font-semibold text-xs text-red-600 hover:text-red-700 px-2.5 py-1.5 bg-white rounded-lg shadow-sm border border-slate-100">
                                     <span>View Task</span>
                                     <span class="material-symbols-outlined text-[14px]" aria-hidden="true">arrow_forward</span>
                                 </a>
@@ -198,8 +198,8 @@
             <span>Become an Agent</span>
             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
         </a>
-        <a href="{{ route('help') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-white/10 text-white hover:bg-white/20 border border-white/30 px-6 py-3 rounded-lg transition-colors">
-            Visit Help Center
+        <a href="{{ route('agent-login') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-white/10 text-white hover:bg-white/20 border border-white/30 px-6 py-3 rounded-lg transition-colors">
+            Agent login
         </a>
     </x-slot:actions>
     <x-slot:note>Free registration with an invite code · Rewards after approval · No guaranteed earnings or task availability</x-slot:note>

@@ -11,6 +11,11 @@
     $watchHoursHref = is_array($watchHours) && filled($watchHours['href'] ?? null)
         ? $watchHours['href']
         : '#youtube-services';
+    $campaignHref = route('dashboard.services');
+    $promoteHref = is_array($watchHours) && filled($watchHours['href'] ?? null)
+        ? $watchHours['href']
+        : $campaignHref;
+    $imgCreator = asset('assets/images/undraw_social-expert_wfam.png');
     $youtubeFeatureImage = (is_array($watchHours) && filled($watchHours['hero_url'] ?? null))
         ? $watchHours['hero_url']
         : null;
@@ -58,7 +63,7 @@
             <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
                 <a
                     class="inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm sm:text-base px-5 py-3 sm:px-6 sm:py-3.5 rounded-lg shadow-sm hover:shadow transition-all"
-                    href="{{ route('services') }}"
+                    href="{{ $campaignHref }}"
                 >
                     <span>Start a campaign</span>
                     <span class="material-symbols-outlined text-base sm:text-lg" aria-hidden="true">arrow_forward</span>
@@ -225,6 +230,64 @@
         </div>
     </div>
 </section>
+
+{{-- 4. Stay in control --}}
+<section class="py-20 lg:py-24 bg-white">
+    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+            <div class="lg:col-span-6 relative">
+                <div class="rounded-2xl overflow-hidden shadow-lg bg-white border border-slate-100 p-6 sm:p-8">
+                    <img src="{{ $imgCreator }}" alt="Creator managing a YouTube channel" width="1757" height="1362" class="w-full h-auto object-contain aspect-[16/10]" loading="lazy">
+                </div>
+            </div>
+            <div class="lg:col-span-6 flex flex-col items-start lg:pl-4">
+                <span class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-2 block">Stay in control</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-display mb-4">
+                    {!! $ytWord('From campaign setup to results you can follow.') !!}
+                </h2>
+                <p class="text-base sm:text-lg text-slate-600 mb-6 leading-relaxed">
+                    You choose the package and provide the video URL. {{ $brandName }} runs the promotion, and you can review progress in your account.
+                </p>
+                <div class="flex flex-col gap-3.5 w-full mb-8">
+                    @foreach([
+                        'Upfront campaign packages with clear pricing',
+                        'Public video URL at checkout',
+                        'Secure payment, with progress checked before it counts',
+                        'Live progress tracking in your account',
+                    ] as $item)
+                        <div class="flex items-start gap-2.5">
+                            <div class="w-6 h-6 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0 mt-0.5">
+                                <span class="material-symbols-outlined text-[16px]" aria-hidden="true">check</span>
+                            </div>
+                            <span class="text-sm text-slate-800">{{ $item }}</span>
+                        </div>
+                    @endforeach
+                </div>
+                <a href="{{ $campaignHref }}" class="inline-flex items-center justify-center font-semibold text-sm bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-sm transition-colors">
+                    Start a campaign
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- 5. Final CTA --}}
+<x-marketing.cta-card eyebrow="Launch in minutes" class="pt-0 sm:pt-0">
+    <x-slot:title>{!! $ytWord('Ready to get your YouTube videos seen?', 'white') !!}</x-slot:title>
+    <x-slot:description>Create an account, choose a campaign package, add your video URL, and track progress in your account.</x-slot:description>
+    <x-slot:actions>
+        <a href="{{ $promoteHref }}" class="inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-white text-red-700 hover:bg-red-50 px-6 py-3 rounded-lg shadow-md transition-colors">
+            <span>Promote your video</span>
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
+        </a>
+        @guest
+            <a href="{{ route('register') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-white/10 text-white hover:bg-white/20 border border-white/30 px-6 py-3 rounded-lg transition-colors">
+                Create an account
+            </a>
+        @endguest
+    </x-slot:actions>
+    <x-slot:note>Fixed-price packages · Pay securely · Track progress in your account</x-slot:note>
+</x-marketing.cta-card>
 
 {{-- Newsletter + FAQ strip --}}
 <section class="py-14 sm:py-16 bg-white scroll-mt-24" id="faq">

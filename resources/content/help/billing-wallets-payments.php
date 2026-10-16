@@ -11,7 +11,7 @@ return [
     'related' => ['getting-started', 'browsing-purchasing-services', 'keeping-account-secure'],
     'platform_actions' => [
         ['label' => 'Open wallet', 'route' => 'dashboard.wallet', 'auth' => true],
-        ['label' => 'Browse services', 'route' => 'services'],
+        ['label' => 'Browse services', 'route' => 'dashboard.services'],
     ],
     'sections' => [
         [

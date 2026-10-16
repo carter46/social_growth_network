@@ -20,6 +20,14 @@ class AuthenticatedSessionController extends Controller
     }
 
     /**
+     * Same sign-in form, worded for Agents, with sign-up pointing to agent onboarding.
+     */
+    public function createAgent(): View
+    {
+        return view('auth.login', ['forAgents' => true]);
+    }
+
+    /**
      * Handle an incoming authentication request.
      */
     public function store(LoginRequest $request): RedirectResponse

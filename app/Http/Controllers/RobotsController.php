@@ -18,6 +18,7 @@ class RobotsController extends Controller
             'Disallow: /admin',
             'Disallow: /api',
             'Disallow: /login',
+            'Disallow: /agent-login',
             'Disallow: /register',
             'Disallow: /agent-onboarding',
             'Disallow: /checkout',

@@ -4,7 +4,6 @@ namespace App\Modules\Catalog\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\PlatformProduct;
-use App\Modules\Catalog\Services\CatalogBrowseService;
 use App\Services\Campaigns\CampaignBriefException;
 use App\Services\Catalog\PackageLinkValidator;
 use App\Services\Catalog\PackageQuoteException;
@@ -29,7 +28,6 @@ class PackageConfiguratorController extends Controller
         private PackageLinkValidator $links,
         private PurchaseDraftService $drafts,
         private YoutubeLookupService $lookup,
-        private CatalogBrowseService $browse,
     ) {}
 
     public function configure(Request $request, string $slug): RedirectResponse
@@ -94,9 +92,7 @@ class PackageConfiguratorController extends Controller
         $product = PlatformProduct::query()->visibleToPublic()->where('slug', $slug)->first();
 
         if (! $request->user()->isCreator()) {
-            $target = $product ? $this->browse->productUrl($product) : route('services');
-
-            return redirect()->to($target)->with('error', self::CREATOR_ONLY_MESSAGE);
+            return redirect()->to($request->user()->homeRoute())->with('error', self::CREATOR_ONLY_MESSAGE);
         }
 
         if (! $product) {

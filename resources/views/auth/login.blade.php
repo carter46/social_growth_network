@@ -1,18 +1,23 @@
+@php
+    $forAgents = (bool) ($forAgents ?? false);
+@endphp
 <x-layouts.auth
-    title="Login | {{ $siteName ?? config('app.name') }}"
-    :panel-image="asset('assets/images/creators-hero.jpg')"
-    panel-headline="Welcome back."
-    panel-copy="Sign in to manage campaigns, track growth, and keep your account secure."
+    :title="($forAgents ? 'Agent login' : 'Login').' | '.($siteName ?? config('app.name'))"
+    :panel-image="$forAgents ? asset('assets/images/about-agents.jpg') : asset('assets/images/creators-hero.jpg')"
+    :panel-headline="$forAgents ? 'Welcome back, Agent.' : 'Welcome back.'"
+    :panel-copy="$forAgents
+        ? 'Sign in to find open YouTube tasks, submit your work and track your rewards.'
+        : 'Sign in to manage campaigns, track growth, and keep your account secure.'"
 >
     <div class="mb-6 hidden lg:block">
-        <a href="{{ route('home') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-primary transition-colors">
+        <a href="{{ $forAgents ? route('agents') : route('home') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-primary transition-colors">
             <span aria-hidden="true">←</span>
-            Back to Home
+            {{ $forAgents ? 'Back to For Agents' : 'Back to Home' }}
         </a>
     </div>
 
     <header class="mb-7">
-        <h2 class="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Welcome Back</h2>
+        <h2 class="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">{{ $forAgents ? 'Agent Login' : 'Welcome Back' }}</h2>
         <p class="mt-2 text-sm sm:text-base text-slate-500">Enter your details to sign in.</p>
     </header>
 
@@ -20,7 +25,7 @@
         <div class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
             {{ session('status') }}
         </div>
-    @elseif (app(\App\Services\Catalog\PurchaseDraftService::class)->has())
+    @elseif (! $forAgents && app(\App\Services\Catalog\PurchaseDraftService::class)->has())
         <div class="mb-5 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-slate-700">
             Your package is saved. Log in with your Creator account, or <a href="{{ route('register') }}" class="font-semibold text-primary hover:underline">sign up as a Creator</a>, to finish your order.
         </div>
@@ -79,12 +84,24 @@
         </x-ui.button>
     </form>
 
-    @include('partials.auth.google-gis', ['mode' => 'button', 'surface' => 'login', 'buttonText' => 'continue_with'])
+    @if ($forAgents)
+        {{-- New Google accounts here are treated as Agent signups, so they still need an invite code. --}}
+        <div data-account-type="agent">
+            @include('partials.auth.google-gis', ['mode' => 'button', 'surface' => 'login', 'buttonText' => 'continue_with'])
+        </div>
 
-    <p class="mt-8 text-center text-sm text-slate-600">
-        Don’t have an account?
-        <a href="{{ route('register') }}" class="font-bold text-primary hover:underline">Create account</a>
-    </p>
+        <p class="mt-8 text-center text-sm text-slate-600">
+            New Agent?
+            <a href="{{ route('agent-onboarding') }}" class="font-bold text-primary hover:underline">Join as an Agent</a>
+        </p>
+    @else
+        @include('partials.auth.google-gis', ['mode' => 'button', 'surface' => 'login', 'buttonText' => 'continue_with'])
 
-    @include('partials.auth.google-gis', ['mode' => 'one_tap', 'surface' => 'login'])
+        <p class="mt-8 text-center text-sm text-slate-600">
+            Don’t have an account?
+            <a href="{{ route('register') }}" class="font-bold text-primary hover:underline">Create account</a>
+        </p>
+
+        @include('partials.auth.google-gis', ['mode' => 'one_tap', 'surface' => 'login'])
+    @endif
 </x-layouts.auth>

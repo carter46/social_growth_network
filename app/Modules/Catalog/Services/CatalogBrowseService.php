@@ -140,42 +140,16 @@ class CatalogBrowseService
         return $this->groupForType($type) === $group;
     }
 
-    /** Canonical public URL for a service (product type) listing. */
+    /** Member catalog listing for a service (product type). */
     public function serviceListingUrl(string $serviceSlug, ?string $categorySlug = null): string
     {
-        $categorySlug ??= $this->groupForType($serviceSlug);
-        if ($categorySlug) {
-            return route('services.type', [
-                'category' => $categorySlug,
-                'service' => $serviceSlug,
-            ]);
-        }
-
-        return route('services.segment', $serviceSlug);
+        return route('dashboard.services.browse', $serviceSlug);
     }
 
-    /**
-     * Canonical public URL for a product detail page.
-     * Path prefix /services/… is presentation only — ownership is ServiceCategory → Product.
-     */
+    /** Member catalog page for a product; guests are asked to log in first. */
     public function productUrl(PlatformProduct $product): string
     {
-        $categorySlug = $product->categorySlug();
-
-        if ($categorySlug) {
-            // Two-segment URL: /services/{category}/{productSlug} (pair() resolves Category→Product).
-            return route('services.show', [
-                'type' => $categorySlug,
-                'productSlug' => $product->slug,
-            ]);
-        }
-
-        $typeSlug = $product->typeSlug() ?? 'social_service';
-
-        return route('services.show', [
-            'type' => $typeSlug,
-            'productSlug' => $product->slug,
-        ]);
+        return route('dashboard.services.product', $product->slug);
     }
 
     public function findServiceCategory(string $slug): ?ServiceCategory
@@ -283,13 +257,12 @@ class CatalogBrowseService
         return collect(config('catalog.groups', []))->map(function (array $group, string $slug) use ($content) {
             $resolved = $content->forGroup($slug);
             $stats = $this->statsForTypes($group['types'] ?? []);
-            $routeName = $group['route'] ?? null;
 
             return array_merge($resolved, [
                 'slug' => $slug,
                 'count' => $stats['count'],
                 'from_price' => $stats['from_price'],
-                'href' => $routeName ? route($routeName) : route('services.segment', $slug),
+                'href' => route('dashboard.services.browse', $slug),
                 'cta' => $group['cta'] ?? 'Explore',
             ]);
         })->values();
@@ -309,7 +282,7 @@ class CatalogBrowseService
             'slug' => $category->slug,
             'count' => $stats['count'],
             'from_price' => $stats['from_price'],
-            'href' => route('services.segment', $category->slug),
+            'href' => route('dashboard.services.browse', $category->slug),
             'cta' => $category->cta_label ?: 'Explore',
             'mode' => $category->mode,
         ]);
@@ -336,7 +309,7 @@ class CatalogBrowseService
                         'slug' => $service->slug,
                         'count' => $stats['count'],
                         'from_price' => $stats['from_price'],
-                        'href' => route('services.segment', $service->slug),
+                        'href' => route('dashboard.services.browse', $service->slug),
                     ]);
                 })
                 ->values();

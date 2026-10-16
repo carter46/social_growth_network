@@ -10,8 +10,8 @@ return [
     'printable' => true,
     'related' => ['getting-started', 'billing-wallets-payments', 'keeping-account-secure'],
     'platform_actions' => [
-        ['label' => 'Browse services', 'route' => 'services'],
-        ['label' => 'For Creators', 'route' => 'creators'],
+        ['label' => 'Browse services', 'route' => 'dashboard.services'],
+        ['label' => 'Create account', 'route' => 'register'],
     ],
     'sections' => [
         [

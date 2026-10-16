@@ -92,12 +92,12 @@ class GuestPackageJourneyTest extends TestCase
         $agent = User::factory()->agent()->create();
 
         $this->actingAs($agent)
-            ->from(route('services'))
+            ->from(route('home'))
             ->post(route('services.configure', $product->slug), [
                 'units' => '100',
                 'target_url' => self::VIDEO_URL,
             ])
-            ->assertRedirect(route('services'))
+            ->assertRedirect(route('home'))
             ->assertSessionHas('error', PackageConfiguratorController::CREATOR_ONLY_MESSAGE)
             ->assertSessionMissing('purchase_draft');
     }
@@ -106,12 +106,12 @@ class GuestPackageJourneyTest extends TestCase
     {
         $product = $this->product();
 
-        $this->from(route('services'))
+        $this->from(route('home'))
             ->post(route('services.configure', $product->slug), [
                 'units' => '5',
                 'target_url' => self::VIDEO_URL,
             ])
-            ->assertRedirect(route('services'))
+            ->assertRedirect(route('home'))
             ->assertSessionHasErrors('units')
             ->assertSessionHasInput('units', '5')
             ->assertSessionMissing('purchase_draft');
@@ -121,7 +121,7 @@ class GuestPackageJourneyTest extends TestCase
     {
         $product = $this->product();
 
-        $this->from(route('services'))
+        $this->from(route('home'))
             ->post(route('services.configure', $product->slug), ['units' => '100'])
             ->assertSessionHasErrors('target_url')
             ->assertSessionMissing('purchase_draft');

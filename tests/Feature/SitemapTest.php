@@ -33,14 +33,16 @@ class SitemapTest extends TestCase
 
     public function test_sitemap_returns_xml_with_static_urls(): void
     {
-        Cache::forget('sitemap.xml.v2');
+        Cache::forget('sitemap.xml.v3');
 
         $response = $this->get(route('sitemap'));
 
         $response->assertOk();
         $this->assertStringContainsString('application/xml', (string) $response->headers->get('Content-Type'));
         $response->assertSee(route('home'), false);
-        $response->assertSee(route('services'), false);
+        $response->assertSee(route('agents'), false);
+        $response->assertDontSee('/services', false);
+        $response->assertDontSee('/creators', false);
         $response->assertSee('<?xml version="1.0"', false);
     }
 }

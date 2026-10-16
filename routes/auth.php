@@ -37,6 +37,9 @@ Route::middleware('guest')->group(function () {
     Route::post('login', [AuthenticatedSessionController::class, 'store'])
         ->middleware('throttle:5,1');
 
+    Route::get('agent-login', [AuthenticatedSessionController::class, 'createAgent'])
+        ->name('agent-login');
+
     Route::post('auth/google', [GoogleAuthController::class, 'store'])
         ->middleware('throttle:5,1')
         ->name('auth.google');

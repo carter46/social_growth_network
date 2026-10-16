@@ -12,7 +12,7 @@ return [
     'related' => ['browsing-purchasing-services', 'billing-wallets-payments', 'keeping-account-secure'],
     'platform_actions' => [
         ['label' => 'Create an account', 'route' => 'register'],
-        ['label' => 'Browse campaigns', 'route' => 'services'],
+        ['label' => 'Browse campaigns', 'route' => 'dashboard.services'],
     ],
     'sections' => [
         [

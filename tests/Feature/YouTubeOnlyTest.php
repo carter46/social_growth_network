@@ -182,13 +182,13 @@ class YouTubeOnlyTest extends TestCase
 
     public function test_retired_public_service_urls_redirect_instead_of_404(): void
     {
-        $this->get('/services/instagram')->assertRedirect(route('services'))->assertStatus(301);
-        $this->get('/services/tiktok/tiktok-views')->assertRedirect(route('services'))->assertStatus(301);
-        $this->get('/services/facebook/facebook-likes/facebook-page-likes')->assertRedirect(route('services'))->assertStatus(301);
+        $this->get('/services/instagram')->assertRedirect(route('dashboard.services'))->assertStatus(301);
+        $this->get('/services/tiktok/tiktok-views')->assertRedirect(route('dashboard.services'))->assertStatus(301);
+        $this->get('/services/facebook/facebook-likes/facebook-page-likes')->assertRedirect(route('dashboard.services'))->assertStatus(301);
 
         $response = $this->get('/services/facebook/youtube-views');
         $response->assertStatus(301);
-        $this->assertStringContainsString('youtube', (string) $response->headers->get('Location'));
+        $this->assertStringContainsString('/dashboard/services', (string) $response->headers->get('Location'));
     }
 
     public function test_retired_dashboard_service_urls_redirect_with_message(): void

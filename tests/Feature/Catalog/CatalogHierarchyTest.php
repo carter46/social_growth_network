@@ -89,22 +89,15 @@ class CatalogHierarchyTest extends TestCase
         $this->assertFalse($product->auto_renew);
     }
 
-    public function test_services_index_uses_platform_categories(): void
+    public function test_member_catalog_lists_products_by_category(): void
     {
         $this->seedYoutubeProduct();
+        \Spatie\Permission\Models\Role::findOrCreate('user', 'web');
+        $creator = \App\Models\User::factory()->create();
+        $creator->assignRole('user');
 
-        $this->get(route('services'))
-            ->assertOk()
-            ->assertSee('YouTube')
-            ->assertSee('Other YouTube services')
-            ->assertSee('YouTube Views');
-    }
-
-    public function test_group_page_lists_products_by_category(): void
-    {
-        $this->seedYoutubeProduct();
-
-        $this->get(route('services.segment', 'youtube'))
+        $this->actingAs($creator)
+            ->get(route('dashboard.services.browse', 'youtube'))
             ->assertOk()
             ->assertSee('YouTube')
             ->assertSee('YouTube Views');

@@ -375,18 +375,14 @@ class FixedPlatformCatalogLockTest extends TestCase
         $category = ServiceCategory::query()->where('key', 'youtube')->firstOrFail();
         $product = PlatformProduct::query()->where('slug', 'youtube-views')->firstOrFail();
 
-        $this->get(route('services.show', [
-            'type' => 'youtube',
-            'productSlug' => $product->slug,
-        ]))->assertOk();
+        $this->get('/services/youtube/'.$product->slug)
+            ->assertRedirect(route('dashboard.services.product', $product->slug));
 
         $category->update(['is_active' => false]);
 
-        $this->get(route('services.segment', 'youtube'))->assertNotFound();
-        $this->get(route('services.show', [
-            'type' => 'youtube',
-            'productSlug' => $product->slug,
-        ]))->assertNotFound();
+        $this->assertFalse($product->fresh()->isVisibleToPublic());
+        $this->get('/services/youtube/'.$product->slug)
+            ->assertRedirect(route('dashboard.services'));
     }
 
     public function test_inactive_product_type_does_not_hide_category_owned_product(): void
@@ -397,11 +393,9 @@ class FixedPlatformCatalogLockTest extends TestCase
 
         $service->update(['is_active' => false]);
 
-        $this->get(route('services.segment', 'youtube'))->assertOk();
-        $this->get(route('services.show', [
-            'type' => 'youtube',
-            'productSlug' => $product->slug,
-        ]))->assertOk();
+        $this->assertTrue($product->fresh()->isVisibleToPublic());
+        $this->get('/services/youtube/'.$product->slug)
+            ->assertRedirect(route('dashboard.services.product', $product->slug));
     }
 
     public function test_draft_product_hidden_from_public_but_listed_in_admin(): void
@@ -412,10 +406,9 @@ class FixedPlatformCatalogLockTest extends TestCase
 
         $product->update(['status' => PlatformProductStatus::Draft]);
 
-        $this->get(route('services.show', [
-            'type' => 'youtube',
-            'productSlug' => $product->slug,
-        ]))->assertNotFound();
+        $this->assertFalse($product->fresh()->isVisibleToPublic());
+        $this->get('/services/youtube/'.$product->slug)
+            ->assertRedirect(route('dashboard.services'));
 
         $this->actingAs($admin)
             ->get(route('admin.platform-products', ['status' => 'draft']))
@@ -541,6 +534,5 @@ class FixedPlatformCatalogLockTest extends TestCase
         $this->assertSame('social', end($ordered));
         $this->assertSame('youtube', $ordered[0]);
 
-        $this->get(route('services'))->assertOk()->assertSee('YouTube', false);
     }
 }
