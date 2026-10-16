@@ -4,8 +4,8 @@ return [
     'slug' => 'billing-wallets-payments',
     'category_key' => 'billing',
     'title' => 'Billing, wallets & payments',
-    'intro' => 'Fund your US dollar (USD) wallet, pay for campaign packages, receive Agent rewards, and withdraw to your own payout account after verification.',
-    'summary' => 'Creators fund campaigns with card or bank payments through our payment partners. Agent rewards unlock after approved proof. Withdrawals are paid in USD and converted by the payout provider where needed.',
+    'intro' => 'Fund your US dollar (USD) wallet, pay for campaign packages, and withdraw available balance to your own payout account after verification.',
+    'summary' => 'Fund campaigns with card or bank payments through our payment partners. Withdrawals are paid in USD and converted by the payout provider where needed.',
     'updated_at' => '2026-10-13',
     'printable' => true,
     'related' => ['getting-started', 'browsing-purchasing-services', 'keeping-account-secure'],
@@ -33,7 +33,7 @@ return [
             'title' => 'Paying for campaign packages',
             'blocks' => [
                 ['type' => 'paragraph', 'content' => 'When you pay, Creators fund the selected package using wallet balance and/or other enabled payment methods. Review the order summary carefully before confirming.'],
-                ['type' => 'important', 'title' => 'Secure payment protection', 'content' => 'Funds for a campaign stay protected until tasks are completed and proof is verified. You are not expected to pay Agents directly outside the platform.'],
+                ['type' => 'important', 'title' => 'Secure payment protection', 'content' => 'Campaign progress is checked against your package rules before it counts toward your order. All payments go through the platform.'],
                 ['type' => 'checklist', 'items' => [
                     'Confirm package tier, quantity, and target requirements.',
                     'Ensure your wallet has enough balance (or complete gateway payment).',

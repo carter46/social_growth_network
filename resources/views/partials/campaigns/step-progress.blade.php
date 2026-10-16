@@ -18,11 +18,11 @@
                         {{ number_format($row['in_progress']) }} in progress.
                     @endif
                     @if ($row['task'] === \App\Enums\CampaignTask::Watch && (int) $campaign->estimated_minutes > 0)
-                        Each is one agent watching for {{ (int) $campaign->estimated_minutes }} {{ (int) $campaign->estimated_minutes === 1 ? 'minute' : 'minutes' }}, not YouTube Analytics watch hours.
+                        Each is one {{ (int) $campaign->estimated_minutes }}-minute view session, not YouTube Analytics watch hours.
                     @endif
                 </p>
             </div>
         @endforeach
-        <p class="text-xs text-text-muted">Each new agent takes every step that still needs agents. A step closes once its target is reached.</p>
+        <p class="text-xs text-text-muted">Steps run in order. A step closes once its target is reached.</p>
     </div>
 @endif

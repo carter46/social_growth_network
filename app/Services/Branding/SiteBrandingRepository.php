@@ -27,11 +27,11 @@ class SiteBrandingRepository
             return [
                 'site_name' => (string) SystemSetting::get('site_name', config('app.name', 'Social Growth Network')),
                 'site_short_name' => (string) SystemSetting::get('site_short_name', 'Social Growth'),
-                'heading' => (string) SystemSetting::get('site_heading', 'Grow your social presence'),
-                'tagline' => (string) SystemSetting::get('site_tagline', 'YouTube growth packages with clear prices and secure checkout.'),
+                'heading' => (string) SystemSetting::get('site_heading', 'Boost your YouTube visibility'),
+                'tagline' => (string) SystemSetting::get('site_tagline', 'YouTube promotion campaigns that help creators get seen by more viewers.'),
                 'meta_description' => (string) SystemSetting::get(
                     'site_meta_description',
-                    'Buy YouTube growth and engagement services. Secure checkout with wallet or card.'
+                    'Social Growth Network helps creators boost YouTube visibility, reach and engagement with clear, fixed-price promotion campaigns. No bots, fake views or fake subscribers.'
                 ),
                 'favicon_media_id' => $this->nullableInt(SystemSetting::get('favicon_media_id')),
                 'logo_light_media_id' => $this->nullableInt(SystemSetting::get('logo_light_media_id')),

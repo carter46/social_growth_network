@@ -14,7 +14,7 @@
     $watchHoursHref = is_array($watchHours) && filled($watchHours['href'] ?? null)
         ? $watchHours['href']
         : route('services.segment', 'youtube');
-    $buyWatchHoursHref = is_array($watchHours) && filled($watchHours['href'] ?? null)
+    $promoteHref = is_array($watchHours) && filled($watchHours['href'] ?? null)
         ? $watchHours['href']
         : route('services.show', ['type' => 'youtube', 'productSlug' => 'youtube-watch-hours']);
     $ytWord = static function (string $text, string $tone = 'red'): string {
@@ -44,7 +44,7 @@
                             <span class="material-symbols-outlined text-[18px] leading-none" aria-hidden="true">smart_display</span>
                         </div>
                         <div class="min-w-0">
-                            <div class="text-sm font-semibold text-slate-900 leading-snug truncate">Watch Hours packages</div>
+                            <div class="text-sm font-semibold text-slate-900 leading-snug truncate">YouTube promotion campaigns</div>
                             <div class="text-xs text-emerald-700 flex items-center gap-1.5 mt-0.5 leading-snug">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0"></span>
                                 <span class="truncate">Clear prices · Track from your account</span>
@@ -57,14 +57,18 @@
             <div class="lg:col-span-7 flex flex-col items-start order-2 lg:order-1">
                 <p class="text-primary font-bold text-xs sm:text-sm tracking-wider uppercase mb-3">{{ $brandName }}</p>
                 <h1 class="font-display text-2xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight mb-4">
-                    {!! $ytWord('Increase engagement on your YouTube channel') !!}
+                    {!! $ytWord('Boost the visibility of your YouTube channel') !!}
                 </h1>
-                <p class="text-base sm:text-lg text-slate-600 max-w-2xl mb-8 leading-relaxed">
-                    Buy YouTube Watch Hours, views, likes, comments, and subscribers. Pay securely and track your campaign from your account.
+                <p class="text-base sm:text-lg text-slate-600 max-w-2xl mb-4 leading-relaxed">
+                    Promotion campaigns that help your videos reach more viewers and grow watch time and engagement. Pay securely and track every campaign from your account.
+                </p>
+                <p class="inline-flex items-center gap-1.5 text-sm text-slate-500 mb-8">
+                    <span class="material-symbols-outlined text-base text-emerald-600" aria-hidden="true">verified</span>
+                    We don't use bots, fake views or fake subscribers.
                 </p>
                 <div class="flex flex-wrap items-center gap-3 mb-8 w-full sm:w-auto">
-                    <a href="{{ $buyWatchHoursHref }}" class="inline-flex items-center justify-center font-semibold text-sm bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-sm transition-colors">
-                        Buy Watch Hours
+                    <a href="{{ $promoteHref }}" class="inline-flex items-center justify-center font-semibold text-sm bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-sm transition-colors">
+                        Promote your video
                         <span class="material-symbols-outlined ml-1.5 text-[18px]" aria-hidden="true">arrow_forward</span>
                     </a>
                     <a href="{{ route('services') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-white text-slate-900 hover:bg-slate-50 px-6 py-3 rounded-lg border border-slate-200 shadow-sm transition-colors">
@@ -74,11 +78,11 @@
                 <div class="pt-2 flex flex-wrap items-center gap-x-6 gap-y-2 text-slate-500 text-sm">
                     <div class="flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-[16px] text-emerald-600" aria-hidden="true">check_circle</span>
-                        <span>YouTube Watch Hours</span>
+                        <span>More watch time</span>
                     </div>
                     <div class="flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-[16px] text-emerald-600" aria-hidden="true">check_circle</span>
-                        <span>Views, Likes &amp; Comments available</span>
+                        <span>Wider reach and engagement</span>
                     </div>
                     <div class="flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-[16px] text-emerald-600" aria-hidden="true">check_circle</span>
@@ -98,7 +102,7 @@
             <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
                 {!! $ytWord('Grow your YouTube channel.') !!}
             </h2>
-            <p class="text-slate-600 text-base sm:text-lg mt-2">Watch hours, views, likes, comments, and subscribers for your YouTube channel.</p>
+            <p class="text-slate-600 text-base sm:text-lg mt-2">Campaigns that help your videos and channel get seen, watched and engaged with.</p>
         </div>
 
         @if(is_array($watchHours))
@@ -114,8 +118,8 @@
                             <p class="text-sm font-semibold text-slate-700 mb-4">From {{ money((float) $watchHours['from_price'], 2) }}</p>
                         @endif
                         <div class="flex flex-wrap gap-3">
-                            <a href="{{ $buyWatchHoursHref }}" class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm px-5 py-3 rounded-lg transition-colors">
-                                Buy Watch Hours
+                            <a href="{{ $promoteHref }}" class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm px-5 py-3 rounded-lg transition-colors">
+                                Promote your video
                                 <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
                             </a>
                             <a href="{{ $watchHoursHref }}" class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline">
@@ -169,12 +173,12 @@
                 Launch your campaign in three steps.
             </h2>
             <p class="text-base sm:text-lg text-slate-600">
-                The same flow works for Views, Likes, Comments, and Subscribers.
+                The same flow works for every YouTube campaign.
             </p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             @foreach([
-                ['n' => '01', 'icon' => 'category', 'title' => 'Choose a service', 'body' => 'Pick YouTube Watch Hours or another YouTube service, then choose a package. You’ll see the price before you pay.'],
+                ['n' => '01', 'icon' => 'category', 'title' => 'Choose a campaign', 'body' => 'Pick a YouTube campaign, then choose a package. You’ll see the price before you pay.'],
                 ['n' => '02', 'icon' => 'link', 'title' => 'Provide campaign details', 'body' => 'Add your YouTube video or channel link and any campaign instructions at checkout.'],
                 ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Pay and track', 'body' => 'Pay securely, then follow your campaign’s progress from your account.'],
             ] as $step)
@@ -205,16 +209,16 @@
             <div class="lg:col-span-6 flex flex-col items-start lg:pl-4">
                 <span class="text-[11px] font-bold uppercase tracking-widest text-primary mb-2">Stay in control</span>
                 <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-4">
-                    {!! $ytWord('From Watch Hours setup to completed work.') !!}
+                    {!! $ytWord('From campaign setup to results you can follow.') !!}
                 </h2>
                 <p class="text-base sm:text-lg text-slate-600 mb-6 leading-relaxed">
-                    You choose the package and provide the video URL. {{ $brandName }} handles the tasks, and you can review progress in your account.
+                    You choose the package and provide the video URL. {{ $brandName }} runs the promotion, and you can review progress in your account.
                 </p>
                 <div class="flex flex-col gap-3.5 w-full mb-8">
                     @foreach([
-                        'Upfront Watch Hours packages with clear pricing',
+                        'Upfront campaign packages with clear pricing',
                         'Public video URL at checkout',
-                        'Secure payment, with work checked before it counts',
+                        'Secure payment, with progress checked before it counts',
                         'Live progress tracking in your account',
                     ] as $item)
                         <div class="flex items-start gap-2.5">
@@ -225,8 +229,8 @@
                         </div>
                     @endforeach
                 </div>
-                <a href="{{ $buyWatchHoursHref }}" class="inline-flex items-center justify-center font-semibold text-sm bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-sm transition-colors">
-                    Buy Watch Hours
+                <a href="{{ $promoteHref }}" class="inline-flex items-center justify-center font-semibold text-sm bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 shadow-sm transition-colors">
+                    Start a campaign
                 </a>
             </div>
         </div>
@@ -235,11 +239,11 @@
 
 {{-- Final CTA --}}
 <x-marketing.cta-card eyebrow="Launch in minutes" class="pt-0 sm:pt-0">
-    <x-slot:title>{!! $ytWord('Ready to grow YouTube Watch Hours?', 'white') !!}</x-slot:title>
-    <x-slot:description>Create an account, choose a Watch Hours package, add your video URL, and track progress in your account.</x-slot:description>
+    <x-slot:title>{!! $ytWord('Ready to get your YouTube videos seen?', 'white') !!}</x-slot:title>
+    <x-slot:description>Create an account, choose a campaign package, add your video URL, and track progress in your account.</x-slot:description>
     <x-slot:actions>
-        <a href="{{ $buyWatchHoursHref }}" class="inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-white text-red-700 hover:bg-red-50 px-6 py-3 rounded-lg shadow-md transition-colors">
-            <span>Buy Watch Hours</span>
+        <a href="{{ $promoteHref }}" class="inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-white text-red-700 hover:bg-red-50 px-6 py-3 rounded-lg shadow-md transition-colors">
+            <span>Start a campaign</span>
             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
         </a>
         <a href="{{ route('services') }}" class="inline-flex items-center justify-center font-semibold text-sm bg-white/10 text-white hover:bg-white/20 border border-white/30 px-6 py-3 rounded-lg transition-colors">

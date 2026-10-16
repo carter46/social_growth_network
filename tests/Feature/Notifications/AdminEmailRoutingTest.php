@@ -57,13 +57,11 @@ class AdminEmailRoutingTest extends TestCase
         );
     }
 
-    public function test_order_completed_derives_website_and_domain_types(): void
+    public function test_historical_domain_order_resolves_to_order_completed(): void
     {
-        $resolver = app(OrderNotificationTypeResolver::class);
-
-        $websiteProduct = $this->forceCreatePlatformProduct([
-            'title' => 'Online Banking',
-            'slug' => 'online-banking-'.Str::lower(Str::random(4)),
+        $product = $this->forceCreatePlatformProduct([
+            'title' => 'YouTube Views',
+            'slug' => 'youtube-views-'.Str::lower(Str::random(4)),
             'product_type' => PlatformProductType::SocialService,
             'product_type_id' => 1,
             'status' => PlatformProductStatus::Published,
@@ -73,31 +71,18 @@ class AdminEmailRoutingTest extends TestCase
             'fulfillment_mode' => 'manual',
         ]);
 
-        $websiteOrder = Order::factory()->platform()->create(['status' => 'paid']);
-        OrderItem::query()->create([
-            'order_id' => $websiteOrder->id,
-            'item_type' => 'platform_product',
-            'item_id' => $websiteProduct->id,
-            'quantity' => 1,
-            'unit_price' => 27000,
-            'line_total' => 27000,
-            'options' => ['product_title' => 'Online Banking'],
-        ]);
-
-        $this->assertSame('order.website_purchased', $resolver->resolve($websiteOrder->fresh('items')));
-
         $domainOrder = Order::factory()->platform()->create(['status' => 'paid']);
         OrderItem::query()->create([
             'order_id' => $domainOrder->id,
             'item_type' => 'platform_product',
-            'item_id' => $websiteProduct->id,
+            'item_id' => $product->id,
             'quantity' => 1,
             'unit_price' => 5000,
             'line_total' => 5000,
             'options' => ['domain_mode' => 'buy', 'domain_fqdn' => 'example.test'],
         ]);
 
-        $this->assertSame('order.domain_purchased', $resolver->resolve($domainOrder->fresh('items')));
+        $this->assertSame('order.completed', app(OrderNotificationTypeResolver::class)->resolve($domainOrder->fresh('items')));
     }
 
     public function test_notify_admins_creates_distinct_types_for_deposit_lifecycle(): void
@@ -194,7 +179,7 @@ class AdminEmailRoutingTest extends TestCase
 
     public function test_order_completed_notification_uses_sales_profile_in_delivery_log(): void
     {
-        $this->financeAdmin();
+        $this->financeAdmin()->givePermissionTo('catalog.manage');
         $this->mockSuccessfulMail();
 
         $product = $this->forceCreatePlatformProduct([
@@ -223,11 +208,11 @@ class AdminEmailRoutingTest extends TestCase
         OrderCompleted::dispatch($order->id);
 
         $this->assertDatabaseHas('admin_notifications', [
-            'type' => 'order.website_purchased',
+            'type' => 'order.completed',
         ]);
 
         $this->assertDatabaseHas('notification_delivery_logs', [
-            'notification_type' => 'order.website_purchased',
+            'notification_type' => 'order.completed',
             'profile' => EmailProfile::Sales->value,
             'channel' => 'mail',
             'status' => 'sent',

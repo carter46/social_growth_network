@@ -4,16 +4,13 @@ namespace App\Modules\Admin\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
-use App\Models\PlatformProduct;
 use App\Models\SystemSetting;
-use App\Models\User;
 use App\Modules\Admin\Services\FinancialAuditLog;
 use App\Modules\Catalog\Services\PlatformCheckoutService;
 use App\Modules\Wallet\Services\WalletService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -57,99 +54,6 @@ class OrderAdminController extends Controller
             'order' => $order,
             'bankDetails' => SystemSetting::manualBankTransferDetails(),
         ]);
-    }
-
-    public function create(): View
-    {
-        $products = PlatformProduct::query()
-            ->visibleToPublic()
-            ->orderBy('title')
-            ->get();
-
-        $quotes = app(\App\Services\Catalog\PackageQuoteService::class);
-        $companions = $products->mapWithKeys(fn (PlatformProduct $p) => [
-            $p->slug => collect($quotes->layout($p)['rows'] ?? [])->where('primary', false)->values()->all(),
-        ]);
-
-        $users = User::query()
-            ->orderBy('name')
-            ->limit(200)
-            ->get(['id', 'name', 'email']);
-
-        return view('dashboard.admin.orders.create', [
-            'products' => $products,
-            'companions' => $companions,
-            'users' => $users,
-        ]);
-    }
-
-    public function store(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'user_id' => ['required', 'integer', 'exists:users,id'],
-            'product_slug' => ['required', 'string', 'max:255'],
-            'quantity' => ['required', 'integer', 'min:1', 'max:1000000'],
-            'qty' => ['nullable', 'array'],
-            'qty.*' => ['nullable', 'integer', 'min:0', 'max:1000000'],
-            'target_url' => ['required', 'string', 'url', 'max:2048'],
-            'channel_url' => ['nullable', 'string', 'url', 'max:500'],
-            'comment_instructions' => ['nullable', 'string', 'max:'.\App\Services\Campaigns\CampaignBriefService::COMMENT_INSTRUCTIONS_MAX],
-            'mark_paid' => ['nullable', 'boolean'],
-        ]);
-
-        $product = PlatformProduct::query()
-            ->visibleToPublic()
-            ->where('slug', $validated['product_slug'])
-            ->firstOrFail();
-
-        $variant = $product->pricingVariant();
-        if (! $variant || ! $variant->isPerUnit()) {
-            return back()->withInput()->with('error', 'This product has no pricing yet. Set it in the product editor first.');
-        }
-
-        $quantity = (int) $validated['quantity'];
-        $taskQuantities = array_map('intval', array_filter((array) ($validated['qty'] ?? []), fn ($v) => $v !== null && $v !== ''));
-        try {
-            app(\App\Services\Catalog\PackageQuoteService::class)->quote($product, $quantity, $taskQuantities, $variant);
-        } catch (\App\Services\Catalog\PackageQuoteException $e) {
-            return back()->withInput()->with('error', $e->getMessage());
-        }
-
-        $user = User::query()->findOrFail((int) $validated['user_id']);
-
-        $data = [
-            'variant_id' => $variant->id,
-            'quantity' => $quantity,
-            'task_quantities' => $taskQuantities,
-            'target_url' => $validated['target_url'],
-            'channel_url' => $validated['channel_url'] ?? null,
-            'comment_instructions' => $validated['comment_instructions'] ?? null,
-            'domain_mode' => 'none',
-            'idempotency_key' => (string) Str::uuid(),
-            'payment_method' => Order::PAYMENT_MANUAL_BANK_TRANSFER,
-        ];
-
-        try {
-            $order = $this->checkout->createManualBankTransferOrderForUser(
-                $user,
-                $product,
-                $data,
-                $request->boolean('mark_paid'),
-                (int) auth()->id(),
-            );
-        } catch (\InvalidArgumentException $e) {
-            return back()->withInput()->with('error', $e->getMessage());
-        }
-
-        if ($request->boolean('mark_paid')) {
-            return redirect()
-                ->route('admin.orders.show', $order)
-                ->with('status', __('Order created and marked paid. Reference: :ref', ['ref' => $order->reference]));
-        }
-
-        return redirect()
-            ->route('admin.orders.show', $order)
-            ->with('status', __('Pending order created. Reference: :ref', ['ref' => $order->reference]));
     }
 
     public function confirmManualPayment(Order $order, Request $request): RedirectResponse

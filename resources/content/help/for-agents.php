@@ -11,7 +11,7 @@ return [
     'printable' => true,
     'related' => ['getting-started', 'browsing-purchasing-services', 'keeping-account-secure'],
     'platform_actions' => [
-        ['label' => 'Apply as Agent', 'route' => 'register.agent'],
+        ['label' => 'Apply as Agent', 'route' => 'agent-onboarding'],
         ['label' => 'For Agents page', 'route' => 'agents'],
         ['label' => 'Help Center', 'route' => 'help'],
     ],

@@ -62,12 +62,12 @@ class ReferralAttribution
     }
 
     /**
-     * Link a brand-new account to its referrer. The link is permanent: an account
-     * that already has a referrer is never re-attributed.
+     * Link a brand-new agent to the agent who invited them. The link is permanent: an
+     * account that already has a referrer is never re-attributed. Creators are never linked.
      */
     public function attach(User $newUser, ?string $code): ?User
     {
-        $referrer = $this->findReferrer($code);
+        $referrer = $newUser->isAgent() ? $this->findReferrer($code) : null;
 
         if (! $referrer || $referrer->is($newUser) || $newUser->referred_by_id !== null) {
             $this->forget();

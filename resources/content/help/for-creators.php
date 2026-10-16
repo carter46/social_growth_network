@@ -4,9 +4,9 @@ return [
     'slug' => 'for-creators',
     'category_key' => 'creators',
     'title' => 'For Creators',
-    'intro' => 'Launch campaign packages, set clear requirements, pay securely, and track verified progress from your dashboard.',
-    'summary' => 'Creators buy campaign packages, provide a target URL and instructions, complete secure payment, and monitor task completion without managing Agents one by one.',
-    'updated_at' => '2026-09-09',
+    'intro' => 'Launch YouTube promotion campaigns, pay securely, and track progress from your dashboard.',
+    'summary' => 'Creators choose a campaign package, provide a video or channel link and any instructions, complete secure payment, and follow progress from the dashboard.',
+    'updated_at' => '2026-10-15',
     'hero_image' => 'assets/images/homeslider1.jpg',
     'printable' => true,
     'related' => ['getting-started', 'browsing-purchasing-services', 'billing-wallets-payments'],
@@ -21,10 +21,10 @@ return [
             'nav' => 'Overview',
             'title' => 'What Creators do',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'As a Creator you choose a campaign service, pick a package tier, describe what Agents must complete, and pay through the platform.'],
+                ['type' => 'paragraph', 'content' => 'As a Creator you choose a YouTube campaign, pick a package tier, add your video or channel link, and pay through the platform. Campaigns are designed to boost the visibility, reach and engagement of your content.'],
                 ['type' => 'bullets', 'items' => [
-                    'You do not pay Agents directly outside the platform.',
-                    'Clear instructions and realistic proof requirements speed up verification.',
+                    'We don\'t use bots, fake views or fake subscribers.',
+                    'Clear instructions help your campaign run smoothly.',
                     'Progress and order status live in your dashboard after payment.',
                 ]],
             ],
@@ -36,19 +36,19 @@ return [
             'blocks' => [
                 ['type' => 'checklist', 'items' => [
                     'Open Services and select the package that matches your goal.',
-                    'Enter your target URL and completion guidelines.',
+                    'Enter your video or channel URL and any campaign instructions.',
                     'Confirm the order summary and complete secure payment.',
-                    'Track completions and proof outcomes from your dashboard.',
+                    'Track progress from your dashboard.',
                 ]],
             ],
         ],
         [
             'id' => 'requirements',
-            'nav' => 'Good requirements',
-            'title' => 'Writing good campaign requirements',
+            'nav' => 'Good instructions',
+            'title' => 'Writing good campaign instructions',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'Agents succeed when your instructions are specific: which page to visit, what action to take, what proof to capture, and any geo or account rules that matter.'],
-                ['type' => 'tip', 'title' => 'Tip', 'content' => 'Avoid vague instructions like “engage with my content.” Say exactly what counts as done and what screenshot or link you need.'],
+                ['type' => 'paragraph', 'content' => 'Campaigns run best when your instructions are specific, for example what comments should focus on.'],
+                ['type' => 'tip', 'title' => 'Tip', 'content' => 'Avoid vague instructions like “engage with my content.” Say exactly what you would like the campaign to highlight.'],
             ],
         ],
         [
@@ -56,7 +56,7 @@ return [
             'nav' => 'After payment',
             'title' => 'After you pay',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'Funds stay protected until verified task completion. Invalid proof can be rejected so you are not charged for work that misses your package rules. Use support tickets for payment or proof disputes with your order references attached.'],
+                ['type' => 'paragraph', 'content' => 'Campaign progress is checked against your package rules before it counts toward your order. Use support tickets for payment or campaign questions, with your order references attached.'],
             ],
         ],
     ],

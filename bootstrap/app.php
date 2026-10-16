@@ -27,7 +27,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'webhooks/monnify',
             'webhooks/payments/*',
-            'webhooks/site-integrations/*',
         ]);
         $middleware->alias([
             'not_suspended' => EnsureNotSuspended::class,

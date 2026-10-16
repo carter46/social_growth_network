@@ -45,7 +45,7 @@ return [
                 ['type' => 'paragraph', 'content' => 'Proof must match the campaign instructions. Blurry, cropped, edited, reused, or unrelated evidence can be rejected.'],
                 ['type' => 'bullets', 'items' => [
                     'Capture the full required screen or URL evidence when screenshots are requested.',
-                    'Do not use bots, farms, or fake engagement to simulate completion.',
+                    'Do not use bots or fake engagement to simulate completion.',
                     'If proof is rejected, read the reason carefully before resubmitting.',
                 ]],
                 ['type' => 'tip', 'title' => 'Creators', 'content' => 'Clear instructions and realistic proof requirements make verification faster and reduce disputes.'],

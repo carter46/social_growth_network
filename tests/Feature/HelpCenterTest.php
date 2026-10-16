@@ -16,7 +16,7 @@ class HelpCenterTest extends TestCase
             ->assertOk()
             ->assertSee('Help Center')
             ->assertSee('Getting Started')
-            ->assertSee('Campaigns & Tasks')
+            ->assertSee('Campaigns & Packages')
             ->assertSee('For Creators')
             ->assertSee('For Agents')
             ->assertSee('Contact Support')
@@ -28,7 +28,7 @@ class HelpCenterTest extends TestCase
         $this->get(route('help.article', 'getting-started'))
             ->assertOk()
             ->assertSee('Getting Started')
-            ->assertSee('Creators and Agents')
+            ->assertSee('What Social Growth Network does')
             ->assertSee('Creating your account')
             ->assertSee('assets/images/ai-powered-device-concept copy.jpg', false);
     }

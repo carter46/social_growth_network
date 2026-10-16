@@ -114,10 +114,6 @@
                 @endif
 
                 @include('partials.catalog.package-configurator', ['product' => $product, 'theme' => 'marketing'])
-
-                <div class="flex flex-col sm:flex-row gap-3">
-                    @include('partials.catalog.view-demo-modal', ['product' => $product])
-                </div>
             </div>
         </div>
     </div>

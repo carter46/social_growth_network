@@ -26,7 +26,7 @@ class SocialAuthService
      *
      * @return array{user: User, action: string}
      */
-    public function authenticateWithGoogle(string $credential, ?string $accountType = null): array
+    public function authenticateWithGoogle(string $credential, ?string $accountType = null, ?string $inviteCode = null): array
     {
         $started = microtime(true);
 
@@ -36,8 +36,8 @@ class SocialAuthService
                 throw new InvalidArgumentException('Google email address is not verified.');
             }
 
-            $result = DB::transaction(function () use ($identity, $accountType) {
-                $resolved = $this->resolveOrCreate($identity, $accountType);
+            $result = DB::transaction(function () use ($identity, $accountType, $inviteCode) {
+                $resolved = $this->resolveOrCreate($identity, $accountType, $inviteCode);
                 $this->assertNotSuspended($resolved['user']);
                 $this->auditAuthSuccess($resolved['user'], $resolved['action'], $identity);
 
@@ -146,7 +146,7 @@ class SocialAuthService
     /**
      * @return array{user: User, action: string}
      */
-    private function resolveOrCreate(VerifiedIdentity $identity, ?string $accountType = null): array
+    private function resolveOrCreate(VerifiedIdentity $identity, ?string $accountType = null, ?string $inviteCode = null): array
     {
         $byProvider = UserAuthProvider::query()
             ->where('provider', $identity->provider)
@@ -174,7 +174,7 @@ class SocialAuthService
             return ['user' => $user, 'action' => 'linked_login'];
         }
 
-        $user = $this->createUser($identity, $accountType);
+        $user = $this->createUser($identity, $accountType, $inviteCode);
         $this->linkProvider($user, $identity);
 
         return ['user' => $user, 'action' => 'signup'];
@@ -202,8 +202,15 @@ class SocialAuthService
         $this->audit->log(null, 'user.google.login', $user, null, $payload, null, $context);
     }
 
-    private function createUser(VerifiedIdentity $identity, ?string $accountType = null): User
+    private function createUser(VerifiedIdentity $identity, ?string $accountType = null, ?string $inviteCode = null): User
     {
+        $role = $accountType === 'agent' ? 'agent' : 'user';
+        $referrals = app(ReferralAttribution::class);
+
+        if ($role === 'agent' && ! $referrals->findReferrer($inviteCode)) {
+            throw new InvalidArgumentException(__('A valid invite code from an active Agent is required to join as an Agent.'));
+        }
+
         $name = trim((string) ($identity->name ?: Str::before($identity->email, '@')));
         if ($name === '') {
             $name = 'Member';
@@ -222,13 +229,10 @@ class SocialAuthService
             'email_verified_at' => now(),
         ])->save();
 
-        $role = $accountType === 'agent' ? 'agent' : 'user';
         $user->assignRole($role);
 
-        $referrals = app(ReferralAttribution::class);
-        $referrals->attach($user, $referrals->rememberedCode());
-
         if ($role === 'agent') {
+            $referrals->attach($user, $inviteCode);
             $user->ensureReferralCode();
         }
 

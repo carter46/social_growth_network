@@ -22,9 +22,9 @@ class SystemSettingSeeder extends Seeder
             'contact_email_alt' => '',
             'site_name' => config('app.name', 'Social Growth Network'),
             'site_short_name' => 'Social Growth',
-            'site_heading' => 'Grow your social presence',
-            'site_tagline' => 'Creators launch digital campaigns. Agents complete verified tasks. Secure payment and payouts in one place.',
-            'site_meta_description' => 'Social Growth Network connects Creators and Agents for campaign packages, proof verification, wallet funding, and secure payouts.',
+            'site_heading' => 'Boost your YouTube visibility',
+            'site_tagline' => 'YouTube promotion campaigns that help creators get seen by more viewers.',
+            'site_meta_description' => 'Social Growth Network helps creators boost YouTube visibility, reach and engagement with clear, fixed-price promotion campaigns. No bots, fake views or fake subscribers.',
             'contact_timezone' => 'Africa/Lagos',
         ];
 

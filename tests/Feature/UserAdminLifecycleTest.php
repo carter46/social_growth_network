@@ -36,6 +36,20 @@ class UserAdminLifecycleTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'user.created']);
     }
 
+    public function test_admin_pages_no_longer_offer_manual_purchase(): void
+    {
+        $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
+        $member = User::factory()->create(['email_verified_at' => now()]);
+        $member->assignRole('user');
+
+        $this->actingAs($admin)->get(route('admin.users'))->assertOk()->assertDontSee('Manual purchase');
+        $this->actingAs($admin)->get(route('admin.users.show', $member))->assertOk()->assertDontSee('Manual purchase');
+        $this->actingAs($admin)->get(route('admin.orders'))->assertOk()->assertDontSee('Create order');
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('admin.users.manual-purchase'));
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('admin.orders.create'));
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('admin.orders.store'));
+    }
+
     public function test_admin_can_send_password_reset_link(): void
     {
         Notification::fake();

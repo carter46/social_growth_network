@@ -43,7 +43,7 @@ class ReferralController extends Controller
 
         return view('dashboard.agent.referrals.index', [
             'code' => $code,
-            'link' => $code ? route('register', ['ref' => $code]) : null,
+            'link' => $code ? route('agent-onboarding', ['ref' => $code]) : null,
             'settings' => SystemSetting::referralSettings(),
             'stats' => $stats,
             'referrals' => $referrals,

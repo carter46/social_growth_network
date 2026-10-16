@@ -42,17 +42,23 @@ class PlatformCatalogSeeder extends Seeder
         ['slug' => 'youtube-subscribers-watch-comments', 'title' => 'YouTube Subscribers + Watch Hours + Comments', 'base_price' => 8, 'sort_order' => 5, 'status' => PlatformProductStatus::Draft],
     ];
 
+    public const SUBSCRIBERS_DESCRIPTION = 'Promote your channel and video to grow your subscriber base and watch time. Add your video and channel links at checkout, and track your campaign from your account.';
+
+    public const COMMENTS_DESCRIPTION = 'Promote your video to increase watch time and conversation in the comments, guided by your instructions. Add your video link and comment instructions at checkout, and track your campaign from your account.';
+
+    public const SUBSCRIBERS_WATCH_COMMENTS_DESCRIPTION = 'Promote your channel and video to grow subscribers, watch time and comments, guided by your instructions. Add your video and channel links at checkout, and track your campaign from your account.';
+
     public static function descriptionFor(string $slug, string $title): string
     {
         $metric = str_starts_with($slug, 'youtube-') ? substr($slug, strlen('youtube-')) : '';
 
         return match ($metric) {
             'watch-hours' => 'Add watch time to a public YouTube video. Choose a package, add your video link at checkout, and track your campaign from your account.',
-            'subscribers' => 'Each unit is one new agent who subscribes to your channel and watches your video. Add your video and channel links at checkout, and track your campaign from your account.',
-            'comments' => 'Each unit is one new agent who watches your video and leaves a comment that follows your instructions. Add your video link and comment instructions at checkout, and track your campaign from your account.',
-            'subscribers-watch-comments' => 'Each unit is one new agent who subscribes to your channel, watches your video and leaves a comment that follows your instructions. Add your video and channel links at checkout, and track your campaign from your account.',
-            'views' => 'Order views for a public YouTube video. Choose a package, add your video link at checkout, and track your campaign from your account.',
-            'likes' => "Order {$metric} for a public YouTube video. Choose a package, add the link at checkout, and track progress from your account.",
+            'subscribers' => self::SUBSCRIBERS_DESCRIPTION,
+            'comments' => self::COMMENTS_DESCRIPTION,
+            'subscribers-watch-comments' => self::SUBSCRIBERS_WATCH_COMMENTS_DESCRIPTION,
+            'views' => 'Promote a public YouTube video to reach more viewers. Choose a package, add your video link at checkout, and track your campaign from your account.',
+            'likes' => 'Boost engagement on a public YouTube video. Choose a package, add the link at checkout, and track progress from your account.',
             default => "Choose a {$title} package, add your link at checkout, and track progress from your account.",
         };
     }

@@ -42,7 +42,6 @@ if (app()->environment('local')) {
 Route::get('/', function (\App\Modules\Catalog\Services\CatalogBrowseService $browse) {
     return view('pages.home', [
         'youtubeCatalog' => $browse->homeYouTubeCatalog(),
-        'agentTaskPreview' => $browse->agentsMarketplacePreviewCards(1)->first(),
     ]);
 })->name('home');
 
@@ -52,9 +51,6 @@ Route::post('/webhooks/payments/{provider}', \App\Http\Controllers\Webhooks\Paym
     ->where('provider', '[a-z0-9_-]+')
     ->middleware('throttle:240,1')
     ->name('webhooks.payments');
-Route::post('/webhooks/site-integrations/{integrationId}', \App\Http\Controllers\Webhooks\SiteIntegrationWebhookController::class)
-    ->middleware('throttle:60,1')
-    ->name('webhooks.site-integrations');
 
 Route::view('/about', 'pages.about')->name('about');
 Route::redirect('/how-it-works', '/help', 301)->name('how-it-works');
@@ -220,18 +216,9 @@ Route::middleware(['auth', 'verified', 'role:user'])->prefix('dashboard')->name(
 
     // Services (primary section; discover paths redirect)
     Route::get('/services', [\App\Http\Controllers\Dashboard\DiscoverServicesController::class, 'index'])->name('.services');
-    Route::post('/services/domain-quote', [\App\Http\Controllers\Dashboard\DiscoverServicesController::class, 'domainQuote'])
-        ->middleware(['verified', 'throttle:30,1'])
-        ->name('.services.domain-quote');
-    Route::post('/services/domain-connect-scan', [\App\Http\Controllers\Dashboard\DiscoverServicesController::class, 'domainConnectScan'])
-        ->middleware(['verified', 'throttle:30,1'])
-        ->name('.services.domain-connect-scan');
     Route::post('/services/url-preview', [\App\Http\Controllers\Dashboard\DiscoverServicesController::class, 'urlPreview'])
         ->middleware(['verified', 'throttle:30,1'])
         ->name('.services.url-preview');
-    Route::get('/services/domain-tlds', [\App\Http\Controllers\Dashboard\DiscoverServicesController::class, 'domainTlds'])
-        ->middleware(['verified'])
-        ->name('.services.domain-tlds');
     Route::get('/services/product/{slug}/checkout', [\App\Http\Controllers\Dashboard\DiscoverServicesController::class, 'checkout'])->name('.services.checkout');
     Route::post('/services/product/{slug}/checkout', [\App\Http\Controllers\Dashboard\DiscoverServicesController::class, 'purchase'])
         ->middleware(['verified', 'throttle:10,1'])
@@ -256,39 +243,10 @@ Route::middleware(['auth', 'verified', 'role:user'])->prefix('dashboard')->name(
         ->middleware('throttle:10,1')
         ->name('.orders.manual-payment.submit');
 
-    Route::get('/my-tools', [\App\Http\Controllers\Dashboard\MyToolsController::class, 'index'])->name('.my-tools');
-    Route::get('/my-tools/domains', [\App\Http\Controllers\Dashboard\MyToolsController::class, 'domains'])->name('.my-tools.domains');
-    Route::get('/my-tools/{tool}', [\App\Http\Controllers\Dashboard\MyToolsController::class, 'show'])->name('.my-tools.show');
-    Route::post('/my-tools/{tool}/launch/admin', [\App\Http\Controllers\Dashboard\MyToolsController::class, 'launchAdmin'])
-        ->middleware('throttle:10,1')
-        ->name('.my-tools.launch-admin');
-    Route::post('/my-tools/{tool}/credentials/password', [\App\Http\Controllers\Dashboard\MyToolsController::class, 'copyPassword'])
-        ->middleware('throttle:10,1')
-        ->name('.my-tools.password');
-    Route::post('/my-tools/{tool}/credentials/livechat-password', [\App\Http\Controllers\Dashboard\MyToolsController::class, 'copyLivechatPassword'])
-        ->middleware('throttle:10,1')
-        ->name('.my-tools.livechat-password');
-
-    Route::get('/my-domains', [\App\Http\Controllers\Dashboard\MyDomainsController::class, 'index'])->name('.my-domains');
-    Route::get('/my-domains/connections/{connection}', [\App\Http\Controllers\Dashboard\MyDomainsController::class, 'showConnection'])->name('.my-domains.connections.show');
-    Route::post('/my-domains/connections/{connection}/check', [\App\Http\Controllers\Dashboard\MyDomainsController::class, 'checkConnection'])
-        ->middleware('throttle:10,1')
-        ->name('.my-domains.connections.check');
-    Route::get('/my-domains/{registration}', [\App\Http\Controllers\Dashboard\MyDomainsController::class, 'show'])->name('.my-domains.show');
-    Route::put('/my-domains/{registration}/nameservers', [\App\Http\Controllers\Dashboard\MyDomainsController::class, 'updateNameservers'])
-        ->middleware('throttle:10,1')
-        ->name('.my-domains.nameservers.update');
-    Route::post('/my-domains/{registration}/nameservers/defaults', [\App\Http\Controllers\Dashboard\MyDomainsController::class, 'applyDefaults'])
-        ->middleware('throttle:10,1')
-        ->name('.my-domains.nameservers.defaults');
-    Route::post('/my-domains/{registration}/nameservers/sync', [\App\Http\Controllers\Dashboard\MyDomainsController::class, 'syncFromRegistrar'])
-        ->middleware('throttle:10,1')
-        ->name('.my-domains.nameservers.sync');
-
-    Route::post('/services/product/{product:slug}/demo/{role}', \App\Http\Controllers\Dashboard\DemoLaunchController::class)
-        ->whereIn('role', ['user', 'admin'])
-        ->middleware('throttle:10,1')
-        ->name('.services.demo-launch');
+    Route::redirect('/my-tools', '/dashboard/service-orders', 301);
+    Route::redirect('/my-tools/{path}', '/dashboard/service-orders', 301)->where('path', '.+');
+    Route::redirect('/my-domains', '/dashboard/service-orders', 301);
+    Route::redirect('/my-domains/{path}', '/dashboard/service-orders', 301)->where('path', '.+');
 
     Route::redirect('/marketplace', '/dashboard/services', 301);
     Route::redirect('/marketplace/{path}', '/dashboard/services', 301)->where('path', '.+');
@@ -317,6 +275,7 @@ Route::middleware(['auth', 'verified', 'role:user'])->prefix('dashboard')->name(
 
 Route::middleware(['auth', 'verified', 'role:agent'])->prefix('agent')->name('agent')->group(function () {
     Route::get('/', [\App\Http\Controllers\Agent\DashboardController::class, 'index'])->name('');
+    Route::get('/onboarding', [\App\Http\Controllers\Agent\OnboardingController::class, 'show'])->name('.onboarding');
     Route::prefix('account')->name('.account')->controller(AccountController::class)->group(function () {
         Route::get('/profile', 'profile')->name('.profile');
         Route::patch('/profile', 'updateProfile')->name('.profile.update');
@@ -452,29 +411,12 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::post('/youtube-identities/{identity}/approve', [\App\Http\Controllers\Admin\YoutubeIdentityAdminController::class, 'approve'])->name('.youtube-identities.approve');
         Route::post('/youtube-identities/{identity}/reject', [\App\Http\Controllers\Admin\YoutubeIdentityAdminController::class, 'reject'])->name('.youtube-identities.reject');
         Route::post('/youtube-identities/{identity}/approve-change', [\App\Http\Controllers\Admin\YoutubeIdentityAdminController::class, 'approveChange'])->name('.youtube-identities.approve-change');
-        Route::get('/users/manual-purchase/catalog', [UserManagementController::class, 'manualPurchaseCatalog'])->name('.users.manual-purchase.catalog');
         Route::get('/users/{user}', [UserManagementController::class, 'show'])->name('.users.show');
         Route::get('/users/{user}/edit', [UserManagementController::class, 'edit'])->name('.users.edit');
         Route::put('/users/{user}', [UserManagementController::class, 'update'])->name('.users.update');
         Route::get('/users/{user}/wallet', [UserManagementController::class, 'wallet'])->name('.users.wallet');
         Route::get('/users/{user}/transactions', [UserManagementController::class, 'transactions'])->name('.users.transactions');
         Route::get('/users/{user}/orders', [UserManagementController::class, 'orders'])->name('.users.orders');
-        Route::get('/users/{user}/tools', [UserManagementController::class, 'tools'])->name('.users.tools');
-        Route::post('/users/{user}/manual-purchase', [UserManagementController::class, 'manualPurchase'])->name('.users.manual-purchase');
-        Route::get('/users/{user}/tools/{tool}', [UserManagementController::class, 'manageTool'])->name('.users.tools.show');
-        Route::post('/users/{user}/tools/{tool}/setup', [UserManagementController::class, 'setupTool'])->name('.users.tools.setup');
-        Route::post('/users/{user}/tools/{tool}/reconfigure', [UserManagementController::class, 'reconfigureTool'])->name('.users.tools.reconfigure');
-        Route::post('/users/{user}/tools/{tool}/livechat', [UserManagementController::class, 'updateToolLivechat'])->name('.users.tools.livechat');
-        // Must be named: inside ->name('admin') an unnamed route inherits "admin" and breaks route:cache.
-        Route::get('/users/{user}/tools/{tool}/livechat', function (\App\Models\User $user, \App\Models\UserTool $tool) {
-            return redirect()->route('admin.users.tools.show', [$user, $tool]);
-        })->name('.users.tools.livechat.redirect');
-        Route::post('/users/{user}/tools/{tool}/rotate', [UserManagementController::class, 'rotateToolCredentials'])->name('.users.tools.rotate');
-        Route::post('/users/{user}/tools/{tool}/check', [UserManagementController::class, 'checkTool'])->name('.users.tools.check');
-        Route::post('/users/{user}/tools/{tool}/expiry', [UserManagementController::class, 'adjustToolExpiry'])->name('.users.tools.expiry');
-        Route::post('/users/{user}/tools/{tool}/shutdown', [UserManagementController::class, 'shutdownTool'])->name('.users.tools.shutdown');
-        Route::post('/users/{user}/tools/{tool}/enable', [UserManagementController::class, 'enableTool'])->name('.users.tools.enable');
-        Route::post('/users/{user}/domain-connections/{connection}/approve', [UserManagementController::class, 'approveDomainConnection'])->name('.users.domain-connections.approve');
         Route::get('/users/{user}/tickets', [UserManagementController::class, 'tickets'])->name('.users.tickets');
         Route::get('/users/{user}/activity', [UserManagementController::class, 'activity'])->name('.users.activity');
         Route::get('/users/{user}/security', [UserManagementController::class, 'security'])->name('.users.security');
@@ -516,8 +458,6 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
     Route::middleware('permission:finance.manage')->group(function () {
         Route::get('/fundings', [AdminWalletFundingController::class, 'index'])->name('.fundings');
         Route::get('/orders', [OrderAdminController::class, 'index'])->name('.orders');
-        Route::get('/orders/create', [OrderAdminController::class, 'create'])->name('.orders.create');
-        Route::post('/orders', [OrderAdminController::class, 'store'])->name('.orders.store');
         Route::get('/orders/{order}/proof', [OrderAdminController::class, 'downloadPaymentProof'])->name('.orders.proof');
         Route::get('/orders/{order}', [OrderAdminController::class, 'show'])->name('.orders.show');
         Route::post('/orders/{order}/confirm', [OrderAdminController::class, 'confirmManualPayment'])->name('.orders.confirm');
@@ -550,19 +490,6 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::get('/platform-products/{platformProduct}/edit', [\App\Modules\Admin\Http\Controllers\PlatformProductAdminController::class, 'edit'])->name('.platform-products.edit');
         Route::put('/platform-products/{platformProduct}', [\App\Modules\Admin\Http\Controllers\PlatformProductAdminController::class, 'update'])->name('.platform-products.update');
         Route::post('/platform-products/{platformProduct}/toggle', [\App\Modules\Admin\Http\Controllers\PlatformProductAdminController::class, 'toggle'])->name('.platform-products.toggle');
-
-        Route::get('/site-integrations', [\App\Http\Controllers\Admin\SiteIntegrationAdminController::class, 'index'])->name('.site-integrations');
-        Route::get('/site-integrations/create', [\App\Http\Controllers\Admin\SiteIntegrationAdminController::class, 'create'])->name('.site-integrations.create');
-        Route::post('/site-integrations', [\App\Http\Controllers\Admin\SiteIntegrationAdminController::class, 'store'])->name('.site-integrations.store');
-        Route::get('/site-integrations/{siteIntegration}', [\App\Http\Controllers\Admin\SiteIntegrationAdminController::class, 'show'])->name('.site-integrations.show');
-        Route::put('/site-integrations/{siteIntegration}', [\App\Http\Controllers\Admin\SiteIntegrationAdminController::class, 'update'])->name('.site-integrations.update');
-        Route::post('/site-integrations/{siteIntegration}/rotate', [\App\Http\Controllers\Admin\SiteIntegrationAdminController::class, 'rotate'])->name('.site-integrations.rotate');
-        Route::post('/site-integrations/{siteIntegration}/check', [\App\Http\Controllers\Admin\SiteIntegrationAdminController::class, 'check'])->name('.site-integrations.check');
-
-        Route::get('/domain-providers', [\App\Http\Controllers\Admin\DomainProviderAdminController::class, 'index'])->name('.domain-providers');
-        Route::get('/domain-providers/{domainProvider}/edit', [\App\Http\Controllers\Admin\DomainProviderAdminController::class, 'edit'])->name('.domain-providers.edit');
-        Route::put('/domain-providers/{domainProvider}', [\App\Http\Controllers\Admin\DomainProviderAdminController::class, 'update'])->name('.domain-providers.update');
-        Route::post('/domain-providers/{domainProvider}/test', [\App\Http\Controllers\Admin\DomainProviderAdminController::class, 'test'])->name('.domain-providers.test');
 
         Route::get('/service-categories', [\App\Modules\Admin\Http\Controllers\ServiceCategoryAdminController::class, 'index'])->name('.service-categories');
         Route::get('/service-categories/{serviceCategory}/edit', [\App\Modules\Admin\Http\Controllers\ServiceCategoryAdminController::class, 'edit'])->name('.service-categories.edit');

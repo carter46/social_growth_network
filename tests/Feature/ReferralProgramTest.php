@@ -83,7 +83,6 @@ class ReferralProgramTest extends TestCase
     private function registrationPayload(array $overrides = []): array
     {
         return array_merge([
-            'account_type' => 'creator',
             'name' => 'New Person',
             'username' => 'newperson',
             'email' => 'newperson@example.com',
@@ -93,52 +92,77 @@ class ReferralProgramTest extends TestCase
         ], $overrides);
     }
 
-    public function test_referral_link_prefills_code_and_signup_links_referrer(): void
+    public function test_referral_link_prefills_code_and_agent_signup_links_referrer(): void
     {
         $referrer = $this->referrer();
 
-        $this->get(route('register', ['ref' => strtolower($referrer->referral_code)]))
+        $this->get(route('agent-onboarding', ['ref' => strtolower($referrer->referral_code)]))
             ->assertOk()
-            ->assertSee($referrer->referral_code, false);
+            ->assertSee('value="'.$referrer->referral_code.'"', false);
 
-        $this->post('/register', $this->registrationPayload(['referral_code' => $referrer->referral_code]))
+        $this->post(route('agent-onboarding.store'), $this->registrationPayload(['referral_code' => $referrer->referral_code]))
             ->assertRedirect(route('verification.notice', absolute: false));
 
-        $creator = User::query()->where('email', 'newperson@example.com')->firstOrFail();
-        $this->assertSame($referrer->id, $creator->referred_by_id);
-        $this->assertNull($creator->referral_code);
-    }
-
-    public function test_remembered_link_code_is_used_when_form_field_is_absent(): void
-    {
-        $referrer = $this->referrer();
-
-        $this->get(route('register', ['ref' => $referrer->referral_code]))->assertOk();
-
-        $this->post('/register', $this->registrationPayload([
-            'account_type' => 'agent',
-            'username' => 'newagent',
-            'email' => 'newagent@example.com',
-        ]));
-
-        $agent = User::query()->where('email', 'newagent@example.com')->firstOrFail();
+        $agent = User::query()->where('email', 'newperson@example.com')->firstOrFail();
+        $this->assertTrue($agent->hasRole('agent'));
         $this->assertSame($referrer->id, $agent->referred_by_id);
         $this->assertNotNull($agent->referral_code);
         $this->assertNotSame($referrer->referral_code, $agent->referral_code);
     }
 
-    public function test_invalid_or_creator_code_is_rejected(): void
+    public function test_creator_signup_never_links_a_referrer(): void
     {
-        $this->post('/register', $this->registrationPayload(['referral_code' => 'NOPE1234']))
+        $referrer = $this->referrer();
+
+        $this->post('/register', $this->registrationPayload(['referral_code' => $referrer->referral_code]))
+            ->assertRedirect(route('verification.notice', absolute: false));
+
+        $creator = User::query()->where('email', 'newperson@example.com')->firstOrFail();
+        $this->assertTrue($creator->hasRole('user'));
+        $this->assertNull($creator->referred_by_id);
+        $this->assertNull($creator->referral_code);
+    }
+
+    public function test_agent_signup_requires_a_valid_agent_code(): void
+    {
+        $this->post(route('agent-onboarding.store'), $this->registrationPayload())
+            ->assertSessionHasErrors('referral_code');
+
+        $this->post(route('agent-onboarding.store'), $this->registrationPayload(['referral_code' => 'NOPE1234']))
             ->assertSessionHasErrors('referral_code');
 
         $creator = User::factory()->creator()->create();
         $creator->forceFill(['referral_code' => 'CREATOR2'])->save();
 
-        $this->post('/register', $this->registrationPayload(['referral_code' => 'CREATOR2']))
+        $this->post(route('agent-onboarding.store'), $this->registrationPayload(['referral_code' => 'CREATOR2']))
             ->assertSessionHasErrors('referral_code');
 
         $this->assertGuest();
+        $this->assertFalse(User::query()->where('email', 'newperson@example.com')->exists());
+    }
+
+    public function test_old_referral_and_agent_signup_links_redirect_to_agent_onboarding(): void
+    {
+        $this->get('/register?ref=ABCD1234')
+            ->assertStatus(301)
+            ->assertRedirect(route('agent-onboarding', ['ref' => 'ABCD1234']));
+
+        $this->get('/register/agent?ref=ABCD1234')
+            ->assertStatus(301)
+            ->assertRedirect(route('agent-onboarding', ['ref' => 'ABCD1234']));
+
+        $this->get('/register?as=agent')
+            ->assertStatus(301)
+            ->assertRedirect(route('agent-onboarding'));
+    }
+
+    public function test_attach_only_links_agents(): void
+    {
+        $referrer = $this->referrer();
+        $creator = User::factory()->creator()->create();
+
+        $this->assertNull(app(\App\Services\Referrals\ReferralAttribution::class)->attach($creator, $referrer->referral_code));
+        $this->assertNull($creator->fresh()->referred_by_id);
     }
 
     public function test_creators_never_get_a_referral_code(): void
@@ -276,7 +300,8 @@ class ReferralProgramTest extends TestCase
             ->get(route('agent.referrals'))
             ->assertOk()
             ->assertSee($referrer->referral_code, false)
-            ->assertSee('ref='.$referrer->referral_code, false)
+            ->assertSee(route('agent-onboarding', ['ref' => $referrer->referral_code]), false)
+            ->assertDontSee('When you refer a creator')
             ->assertSee('Agents referred')
             ->assertSee('Referral history');
 
@@ -309,7 +334,7 @@ class ReferralProgramTest extends TestCase
         $this->app->forgetInstance(\App\Services\Auth\Identity\SocialAuthService::class);
     }
 
-    public function test_google_signup_uses_typed_referral_code_and_rejects_invalid_one(): void
+    public function test_google_agent_signup_needs_a_valid_invite_code(): void
     {
         $referrer = $this->referrer();
         $this->mockGoogleSignup('google.person@example.com');
@@ -317,19 +342,41 @@ class ReferralProgramTest extends TestCase
         $this->postJson(route('auth.google'), [
             'credential' => 'valid-credential',
             'account_type' => 'agent',
+        ])->assertStatus(422);
+
+        $this->postJson(route('auth.google'), [
+            'credential' => 'valid-credential',
+            'account_type' => 'agent',
             'referral_code' => 'BADCODE9',
-        ])->assertStatus(422)->assertJson(['message' => 'This referral code is not valid.']);
+        ])->assertStatus(422);
         $this->assertGuest();
+        $this->assertFalse(User::query()->where('email', 'google.person@example.com')->exists());
 
         $this->postJson(route('auth.google'), [
             'credential' => 'valid-credential',
             'account_type' => 'agent',
             'referral_code' => strtolower($referrer->referral_code),
-        ])->assertOk();
+        ])->assertOk()->assertJson(['redirect' => route('agent.onboarding')]);
 
         $user = User::query()->where('email', 'google.person@example.com')->firstOrFail();
+        $this->assertTrue($user->hasRole('agent'));
         $this->assertSame($referrer->id, $user->referred_by_id);
         $this->assertNotNull($user->referral_code);
+    }
+
+    public function test_google_signup_without_agent_type_creates_a_creator_without_referrer(): void
+    {
+        $referrer = $this->referrer();
+        $this->mockGoogleSignup('google.creator@example.com');
+
+        $this->postJson(route('auth.google'), [
+            'credential' => 'valid-credential',
+            'referral_code' => $referrer->referral_code,
+        ])->assertOk();
+
+        $user = User::query()->where('email', 'google.creator@example.com')->firstOrFail();
+        $this->assertTrue($user->hasRole('user'));
+        $this->assertNull($user->referred_by_id);
     }
 
     public function test_link_with_invalid_code_is_not_remembered_or_prefilled(): void
@@ -337,7 +384,7 @@ class ReferralProgramTest extends TestCase
         $creator = User::factory()->creator()->create();
         $creator->forceFill(['referral_code' => 'CREATOR3'])->save();
 
-        $this->get(route('register', ['ref' => 'CREATOR3']))
+        $this->get(route('agent-onboarding', ['ref' => 'CREATOR3']))
             ->assertOk()
             ->assertSessionMissing('referral_code')
             ->assertDontSee('value="CREATOR3"', false);
@@ -384,6 +431,14 @@ class ReferralProgramTest extends TestCase
         $this->assertTrue($settings['enabled']);
         $this->assertSame(40.0, $settings['agent_percent']);
         $this->assertSame(25.5, $settings['creator_percent']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.settings.referrals'), [
+                'referral_enabled' => '1',
+                'referral_agent_percent' => '45',
+            ])
+            ->assertSessionHasNoErrors();
+        $this->assertSame(25.5, SystemSetting::referralSettings()['creator_percent']);
 
         $this->actingAs($admin)
             ->post(route('admin.settings.referrals'), [

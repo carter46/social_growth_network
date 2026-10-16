@@ -7,8 +7,8 @@
         default => 'Video URL',
     };
     $destinationHelp = match (true) {
-        $linkProfile->isMultiTask() && $linkProfile->needsChannelUrl() => 'Public YouTube video agents will watch'.($linkProfile->has(\App\Enums\CampaignTask::Comment) ? ' and comment on' : '').'. It must be a video on the channel you enter below.',
-        $linkProfile->isMultiTask() => 'Public YouTube video agents will watch and comment on. Comments must be turned on for this video. Channel links are not accepted.',
+        $linkProfile->isMultiTask() && $linkProfile->needsChannelUrl() => 'Public YouTube video you want to promote. It must be a video on the channel you enter below.',
+        $linkProfile->isMultiTask() => 'Public YouTube video you want to promote. Comments must be turned on for this video. Channel links are not accepted.',
         default => null,
     } ?? match ($engagementMetric) {
         \App\Enums\EngagementMetric::Likes, \App\Enums\EngagementMetric::Comments => 'Public YouTube video URL where you want likes or comments. Channel links are not accepted.',

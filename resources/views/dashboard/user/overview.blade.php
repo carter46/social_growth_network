@@ -45,7 +45,7 @@
         <div class="flex flex-wrap items-end justify-between gap-3">
             <div>
                 <h2 class="text-lg font-semibold text-text-primary">Campaign packages</h2>
-                <p class="mt-1 text-sm text-text-secondary">Buy packages from the catalog and launch campaigns for agents.</p>
+                <p class="mt-1 text-sm text-text-secondary">Pick a package from the catalog and launch a campaign to promote your videos.</p>
             </div>
             <x-dashboard.button :href="route('dashboard.services')" variant="secondary" size="sm">Browse packages</x-dashboard.button>
         </div>

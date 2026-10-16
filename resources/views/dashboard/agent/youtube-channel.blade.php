@@ -27,7 +27,7 @@
                 'returnTo' => $returnTo,
             ])
             @if ($returnTo && $identity?->isVerified())
-                <x-dashboard.button :href="$returnTo" class="mt-4">Back to the task</x-dashboard.button>
+                <x-dashboard.button :href="$returnTo" class="mt-4">Continue</x-dashboard.button>
             @endif
         </x-dashboard.card>
 

@@ -18,8 +18,6 @@ use App\Events\WalletWithdrawalCompleted;
 use App\Events\WithdrawalAwaitingProviderAuthorization;
 use App\Events\WithdrawalPayoutFailed;
 use App\Events\WithdrawalRequested;
-use App\Listeners\CreateUserToolsFromOrder;
-use App\Listeners\FulfillDomainRegistrations;
 use App\Listeners\DispatchMarketingAnalytics;
 use App\Listeners\NotifyAdmins;
 use App\Listeners\NotifyUsersFromEvent;
@@ -69,21 +67,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(WalletService::class);
         $this->app->singleton(\App\Modules\Wallet\Payments\GatewayHealth::class);
         $this->app->singleton(GatewayRegistry::class);
-        $this->app->singleton(\App\Services\Domains\Providers\NameCom\NameComClient::class);
-        $this->app->singleton(\App\Services\Domains\Providers\NameCom\NameComProvider::class);
-        $this->app->singleton(\App\Services\Domains\Providers\DomainNameApi\DomainNameApiClient::class);
-        $this->app->singleton(\App\Services\Domains\Providers\DomainNameApi\DomainNameApiProvider::class);
-        $this->app->singleton(\App\Services\Domains\DomainProviderManager::class);
-        $this->app->singleton(\App\Services\Domains\PlatformDomainPricingPolicy::class);
-        $this->app->singleton(\App\Services\Domains\DomainQuoteService::class);
-        $this->app->singleton(\App\Services\Domains\DomainDnsLookupService::class);
-        $this->app->singleton(\App\Services\Domains\DomainConnectionService::class);
-        $this->app->singleton(\App\Services\Domains\DomainCheckoutValidator::class);
-        $this->app->singleton(\App\Services\Domains\DomainRegistrationFulfillmentService::class);
-        $this->app->singleton(\App\Services\Domains\DomainNameserverService::class);
-        $this->app->singleton(\App\Services\Domains\DomainAuditLogger::class);
-        $this->app->singleton(\App\Services\Domains\DomainCacheInvalidator::class);
-        $this->app->singleton(\App\Services\Domains\DomainProviderConfigValidator::class);
         $this->app->singleton(AuditLogService::class);
         $this->app->singleton(\App\Services\Notifications\NotificationDispatcher::class);
         $this->app->singleton(ThemeManager::class);
@@ -113,8 +96,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerAnalyticsListeners();
-        Event::listen(OrderCompleted::class, CreateUserToolsFromOrder::class);
-        Event::listen(OrderCompleted::class, FulfillDomainRegistrations::class);
         $this->applySiteBrandingConfig();
         $this->configureProductionUrls();
 

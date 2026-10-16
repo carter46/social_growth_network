@@ -67,18 +67,6 @@
                     <x-dashboard.menu-item :href="route('admin.users.show', $u)">View</x-dashboard.menu-item>
                     <x-dashboard.menu-item :href="route('admin.users.edit', $u)">Edit</x-dashboard.menu-item>
                     @if (! $u->is_suspended)
-                        <button
-                            type="button"
-                            role="menuitem"
-                            class="block w-full rounded-lg px-3 py-2 text-left text-sm text-text-secondary hover:bg-muted hover:text-text-primary focus-ring"
-                            @click.stop="close(); $dispatch('admin-manual-purchase', {
-                                id: {{ (int) $u->id }},
-                                label: {{ \Illuminate\Support\Js::from($u->name.' ('.$u->email.')') }},
-                                action: {{ \Illuminate\Support\Js::from(route('admin.users.manual-purchase', $u)) }},
-                            })"
-                        >
-                            Manual purchase
-                        </button>
                         <form method="POST" action="{{ route('admin.users.impersonate', $u) }}">
                             @csrf
                             <x-dashboard.menu-item type="submit">Login as user</x-dashboard.menu-item>

@@ -184,30 +184,6 @@ class ManualBankTransferOrderTest extends TestCase
         $this->assertDatabaseMissing('orders', ['user_id' => $user->id]);
     }
 
-    public function test_admin_can_create_mark_paid_order_when_user_toggle_off(): void
-    {
-        SystemSetting::set('manual_bank_transfer_enabled', false);
-
-        $admin = $this->financeAdmin();
-        $product = $this->seedSimpleProduct();
-        $user = User::factory()->create(['email_verified_at' => now()]);
-        $user->assignRole('user');
-
-        $this->actingAs($admin)
-            ->post(route('admin.orders.store'), [
-                'user_id' => $user->id,
-                'product_slug' => $product->slug,
-                'quantity' => 1,
-                'target_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-                'mark_paid' => '1',
-            ])
-            ->assertRedirect();
-
-        $order = Order::query()->where('user_id', $user->id)->first();
-        $this->assertNotNull($order);
-        $this->assertSame('paid', $order->status);
-    }
-
     public function test_wallet_bank_deposit_route_is_gone(): void
     {
         $user = User::factory()->kycApproved()->create(['email_verified_at' => now()]);

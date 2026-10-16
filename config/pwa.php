@@ -23,7 +23,7 @@ return [
         'short_name' => 'Social Growth',
         'background_color' => '#F8F9FF',
         'display' => 'standalone',
-        'description' => 'YouTube growth and engagement services with secure payment.',
+        'description' => 'YouTube promotion campaigns that boost visibility, reach and engagement.',
         'theme_color' => '#004AC6',
         'start_url' => '/',
         'scope' => '/',

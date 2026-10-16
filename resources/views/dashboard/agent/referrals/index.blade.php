@@ -26,7 +26,7 @@
             <div>
                 <h2 class="text-lg font-semibold text-text-primary">Invite people and earn</h2>
                 <p class="mt-1 text-sm text-text-secondary">
-                    Share your link or code. Anyone can sign up with it as an agent or a creator, and you keep earning from them for as long as their account is active.
+                    Share your link or code with people who want to join as agents. New agents need an invite code to sign up, and you keep earning from them for as long as their account is active.
                 </p>
             </div>
 
@@ -89,16 +89,6 @@
                         <span class="font-semibold">{{ $formatPercent($settings['agent_percent']) }}</span> of every task reward they earn.
                     @else
                         A share of every task reward they earn.
-                    @endif
-                </p>
-            </div>
-            <div class="{{ $tile }}">
-                <p class="text-xs text-text-muted">When you refer a creator</p>
-                <p class="mt-1 text-sm text-text-primary">
-                    @if ($settings['enabled'])
-                        <span class="font-semibold">{{ $formatPercent($settings['creator_percent']) }}</span> of every order they pay for.
-                    @else
-                        A share of every order they pay for.
                     @endif
                 </p>
             </div>

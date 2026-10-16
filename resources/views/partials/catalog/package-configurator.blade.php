@@ -92,7 +92,7 @@
                     <div class="space-y-1.5">
                         <label for="pkg-channel" class="{{ $c['label'] }}">Your YouTube channel link</label>
                         <input id="pkg-channel" type="url" name="channel_url" class="{{ $c['input'] }}" placeholder="https://www.youtube.com/@yourchannel" x-model="channelUrl" @input="onChannelInput()" autocomplete="off">
-                        <p class="{{ $c['muted'] }}">Agents subscribe to this channel. Paste it to see your latest videos, then pick one for the rest of the campaign.</p>
+                        <p class="{{ $c['muted'] }}">The channel you want to promote. Paste it to see your latest videos, then pick one for the rest of the campaign.</p>
                         @error('channel_url')<p class="{{ $c['error'] }}">{{ $message }}</p>@enderror
                     </div>
                     @include('partials.catalog._package-channel-card', ['c' => $c])
@@ -146,9 +146,9 @@
 
                 @if($needsComment)
                     <div class="space-y-1.5" x-show="showDetails" x-cloak>
-                        <label for="pkg-comment" class="{{ $c['label'] }}">What should agents comment about?</label>
+                        <label for="pkg-comment" class="{{ $c['label'] }}">What should comments focus on?</label>
                         <textarea id="pkg-comment" name="comment_instructions" rows="3" maxlength="{{ $config['commentMax'] }}" class="{{ $c['input'] }}" x-model="commentInstructions" placeholder="For example: say what you liked about the video."></textarea>
-                        <p class="{{ $c['muted'] }}">Each agent writes their own comment. <span x-text="count(commentInstructions.length) + ' / ' + count(commentMax)"></span></p>
+                        <p class="{{ $c['muted'] }}">Each comment is written in its own words. <span x-text="count(commentInstructions.length) + ' / ' + count(commentMax)"></span></p>
                         @error('comment_instructions')<p class="{{ $c['error'] }}">{{ $message }}</p>@enderror
                     </div>
                 @endif

@@ -105,20 +105,4 @@ abstract class TestCase extends BaseTestCase
 
         return $identity->fresh();
     }
-
-    /** @return array<string, string> */
-    protected function sampleDomainRegistrant(): array
-    {
-        return [
-            'first_name' => 'Jane',
-            'last_name' => 'Buyer',
-            'email' => 'jane.buyer@example.com',
-            'phone' => '+234.8012345678',
-            'address' => '12 Test Street',
-            'city' => 'Lagos',
-            'state' => 'LA',
-            'zip' => '100001',
-            'country' => 'NG',
-        ];
-    }
 }

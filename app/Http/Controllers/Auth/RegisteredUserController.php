@@ -2,50 +2,32 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Events\UserRegistered;
-use App\Http\Controllers\Auth\OtpVerificationController;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Services\Referrals\ReferralAttribution;
-use Illuminate\Auth\Events\Registered;
+use App\Services\Auth\AccountRegistration;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rules;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
 {
     public function __construct(
-        private ReferralAttribution $referrals,
+        private readonly AccountRegistration $registration,
     ) {}
 
     /**
-     * Display the registration view.
+     * Display the creator registration view.
      */
-    public function create(Request $request): View
+    public function create(Request $request): View|RedirectResponse
     {
-        return view('auth.register', [
-            'referralCode' => $this->rememberReferral($request),
-        ]);
-    }
+        if ($request->filled('ref') || $request->query('as') === 'agent') {
+            return $this->redirectToAgentOnboarding($request);
+        }
 
-    /**
-     * Display agent registration (pre-selects Agent on step 1).
-     */
-    public function createAgent(Request $request): View
-    {
-        return view('auth.register', [
-            'registerAsAgent' => true,
-            'referralCode' => $this->rememberReferral($request),
-        ]);
-    }
-
-    private function rememberReferral(Request $request): ?string
-    {
-        return $this->referrals->remember($request);
+        return view('auth.register');
     }
 
     /**
@@ -97,79 +79,22 @@ class RegisteredUserController extends Controller
     }
 
     /**
-     * Handle an incoming registration request.
+     * Handle an incoming creator registration request.
      *
      * @throws ValidationException
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'account_type' => ['required', 'in:creator,agent'],
-            'name' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'max:255', 'unique:users,username', 'alpha_dash'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'terms' => ['accepted'],
-            'referral_code' => [
-                'nullable',
-                'string',
-                'max:32',
-                function (string $attribute, mixed $value, \Closure $fail) {
-                    if (! $this->referrals->findReferrer((string) $value)) {
-                        $fail(__('This referral code is not valid.'));
-                    }
-                },
-            ],
-        ]);
+        $request->validate($this->registration->rules());
 
-        $role = $request->string('account_type')->toString() === 'agent' ? 'agent' : 'user';
-
-        return $this->registerWithRole($request, $role);
+        return $this->registration->register($request, 'user');
     }
 
     /**
-     * Handle an incoming agent registration request (legacy endpoint).
-     *
-     * @throws ValidationException
+     * Old agent signup and referral links now live on the agent onboarding page.
      */
-    public function storeAgent(Request $request): RedirectResponse
+    public function redirectToAgentOnboarding(Request $request): RedirectResponse
     {
-        $request->merge(['account_type' => 'agent']);
-
-        return $this->store($request);
-    }
-
-    /**
-     * @throws ValidationException
-     */
-    private function registerWithRole(Request $request, string $role): RedirectResponse
-    {
-        $user = User::create([
-            'name' => $request->name,
-            'username' => $request->username,
-            'email' => $request->email,
-            'password' => $request->password,
-            'password_set_at' => now(),
-            'terms_accepted_at' => now(),
-        ]);
-
-        $user->assignRole($role);
-
-        $this->referrals->attach($user, $request->has('referral_code')
-            ? (string) $request->input('referral_code')
-            : $this->referrals->rememberedCode($request));
-
-        if ($role === 'agent') {
-            $user->ensureReferralCode();
-        }
-
-        event(new Registered($user));
-        UserRegistered::dispatch($user->id);
-
-        Auth::login($user);
-
-        OtpVerificationController::createAndSendOtp($user);
-
-        return redirect()->route('verification.notice');
+        return redirect()->to(route('agent-onboarding', Arr::except($request->query(), ['as'])), 301);
     }
 }

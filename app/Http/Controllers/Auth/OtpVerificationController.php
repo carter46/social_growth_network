@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Mail\OtpVerificationMail;
+use App\Services\Campaigns\YoutubeIdentityService;
 use App\Services\Communications\Email\EmailProfile;
 use App\Services\Communications\Email\EmailService;
 use Illuminate\Http\RedirectResponse;
@@ -94,6 +95,10 @@ class OtpVerificationController extends Controller
 
         $user->forceFill(['email_verified_at' => now()])->save();
         DB::table('email_verification_codes')->where('user_id', $user->id)->delete();
+
+        if ($user->isAgent() && YoutubeIdentityService::enabled()) {
+            return redirect()->route('agent.onboarding')->with('status', __('Your email has been verified.'));
+        }
 
         return redirect()->intended($user->homeRoute())->with('status', __('Your email has been verified.'));
     }

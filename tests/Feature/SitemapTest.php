@@ -22,6 +22,15 @@ class SitemapTest extends TestCase
         $this->assertStringNotContainsString('Sitemap: /sitemap.xml', $body);
     }
 
+    public function test_static_robots_file_has_the_same_disallow_rules(): void
+    {
+        preg_match_all('/^Disallow: .+$/m', $this->get(route('robots'))->getContent(), $routeRules);
+        preg_match_all('/^Disallow: .+$/m', (string) file_get_contents(public_path('robots.txt')), $fileRules);
+
+        $this->assertContains('Disallow: /agent-onboarding', $routeRules[0]);
+        $this->assertSame($routeRules[0], array_map('rtrim', $fileRules[0]));
+    }
+
     public function test_sitemap_returns_xml_with_static_urls(): void
     {
         Cache::forget('sitemap.xml.v2');

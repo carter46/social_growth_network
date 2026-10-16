@@ -34,11 +34,14 @@
                     Rewards depend on task requirements and approval. Completing a session does not guarantee official platform metrics, and open tasks are not always available.
                 </p>
                 <div class="flex flex-wrap items-center gap-3 pt-2 w-full sm:w-auto">
-                    <a href="{{ route('register.agent') }}" class="inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-red-600 text-white px-6 py-3 rounded-xl hover:bg-red-700 transition-colors shadow-sm">
+                    <a href="{{ route('agent-onboarding') }}" class="inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-red-600 text-white px-6 py-3 rounded-xl hover:bg-red-700 transition-colors shadow-sm">
                         <span>Become an Agent</span>
                         <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
                     </a>
                 </div>
+                <p class="text-xs text-slate-500 max-w-xl">
+                    Joining as an Agent needs an invite (referral) code from an existing Agent.
+                </p>
                 <div class="mt-4 pt-1 bg-slate-50/80 rounded-xl px-3.5 py-2.5 w-full border border-slate-100">
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-slate-500 text-xs">
                         @foreach(['Free to join', 'Clear criteria', 'Rewards after approval', 'Step-by-step instructions'] as $badge)
@@ -167,7 +170,7 @@
                                         <p class="text-xs sm:text-sm font-semibold text-slate-900 leading-tight">{{ $task['time'] }}</p>
                                     </div>
                                 </div>
-                                <a href="{{ $task['href'] ?? route('register.agent') }}" class="inline-flex items-center gap-1 font-semibold text-xs text-red-600 hover:text-red-700 px-2.5 py-1.5 bg-white rounded-lg shadow-sm border border-slate-100">
+                                <a href="{{ $task['href'] ?? route('agent-onboarding') }}" class="inline-flex items-center gap-1 font-semibold text-xs text-red-600 hover:text-red-700 px-2.5 py-1.5 bg-white rounded-lg shadow-sm border border-slate-100">
                                     <span>View Task</span>
                                     <span class="material-symbols-outlined text-[14px]" aria-hidden="true">arrow_forward</span>
                                 </a>
@@ -191,7 +194,7 @@
     <x-slot:title>Ready to join {{ $brandName }} as an Agent?</x-slot:title>
     <x-slot:description>Register to see available tasks. Rewards are paid when your work meets the instructions and is approved, not for simply opening or autoplaying content.</x-slot:description>
     <x-slot:actions>
-        <a href="{{ route('register.agent') }}" class="inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-white text-red-700 hover:bg-red-50 px-6 py-3 rounded-lg shadow-md transition-colors">
+        <a href="{{ route('agent-onboarding') }}" class="inline-flex items-center justify-center gap-1.5 font-semibold text-sm bg-white text-red-700 hover:bg-red-50 px-6 py-3 rounded-lg shadow-md transition-colors">
             <span>Become an Agent</span>
             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
         </a>
@@ -199,6 +202,6 @@
             Visit Help Center
         </a>
     </x-slot:actions>
-    <x-slot:note>Free registration · Rewards after approval · No guaranteed earnings or task availability</x-slot:note>
+    <x-slot:note>Free registration with an invite code · Rewards after approval · No guaranteed earnings or task availability</x-slot:note>
 </x-marketing.cta-card>
 @endsection

@@ -155,11 +155,11 @@ final class PackageQuoteService
     {
         return match ($task) {
             CampaignTask::Watch => $watchMinutes > 0
-                ? 'Each unit is one agent watching your video for '.$watchMinutes.' '.($watchMinutes === 1 ? 'minute' : 'minutes').'. This counts agent watch sessions, not YouTube Analytics watch hours.'
-                : 'Each unit is one agent watching your video for the set time.',
-            CampaignTask::Subscribe => 'Each unit is one agent subscribing to your channel.',
-            CampaignTask::Comment => 'Each unit is one agent writing their own comment.',
-            CampaignTask::Like => 'Each unit is one agent liking your video.',
+                ? 'Each unit is one '.$watchMinutes.'-minute view session of your video. This counts campaign view sessions, not YouTube Analytics watch hours.'
+                : 'Each unit is one view session of your video for the set time.',
+            CampaignTask::Subscribe => 'Each unit is one new subscriber from your campaign.',
+            CampaignTask::Comment => 'Each unit is one original comment on your video.',
+            CampaignTask::Like => 'Each unit is one like on your video from your campaign.',
         };
     }
 }

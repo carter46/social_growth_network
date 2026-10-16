@@ -9,8 +9,8 @@
         @php
             $siteName = $siteName ?? config('app.name', 'Social Growth Network');
             $defaultDescription = ($siteBranding['meta_description'] ?? null)
-                ?: ($siteName.': digital campaigns and growth packages with secure payment.');
-            $defaultOgDescription = 'Browse campaign packages, pick a plan, and launch in minutes.';
+                ?: ($siteName.': YouTube promotion campaigns that help creators boost visibility, reach and engagement.');
+            $defaultOgDescription = 'Promote your YouTube videos with clear, fixed-price campaigns and track every step.';
             $pageTitle = trim($__env->yieldContent('title') ?: '');
             $resolvedTitle = $pageTitle !== '' ? ($pageTitle.' | '.$siteName) : $siteName;
             $resolvedOgTitle = $__env->hasSection('og_title')
@@ -26,7 +26,6 @@
             $navHome = route('home');
             $navServices = route('services');
             $navCreators = route('creators');
-            $navAgents = route('agents');
             $navAbout = route('about');
             $navHelp = route('help');
         @endphp
@@ -62,7 +61,6 @@
                         <a class="px-2.5 xl:px-3 py-1.5 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('home') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navHome }}">Home</a>
                         <a class="px-2.5 xl:px-3 py-1.5 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('services*') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navServices }}">Services</a>
                         <a class="px-2.5 xl:px-3 py-1.5 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('creators') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navCreators }}">For Creators</a>
-                        <a class="px-2.5 xl:px-3 py-1.5 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('agents') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navAgents }}">For Agents</a>
                         <a class="px-2.5 xl:px-3 py-1.5 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('about') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navAbout }}">About Us</a>
                         <a class="px-2.5 xl:px-3 py-1.5 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('help*') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navHelp }}">Help Center</a>
                     </nav>
@@ -145,7 +143,6 @@
                         <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navHome }}" @click="close()">Home</a>
                         <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navServices }}" @click="close()">Services</a>
                         <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navCreators }}" @click="close()">For Creators</a>
-                        <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navAgents }}" @click="close()">For Agents</a>
                         <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navAbout }}" @click="close()">About Us</a>
                         <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navHelp }}" @click="close()">Help Center</a>
                         <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ route('contact') }}" @click="close()">Contact</a>
@@ -173,7 +170,7 @@
                             <img src="{{ $logoUrl }}" alt="{{ $siteName }}" class="h-10 w-auto max-w-[200px] object-contain">
                         </a>
                         <p class="text-slate-500 text-sm leading-relaxed mb-4">
-                            {{ $footer->tagline ?? ($siteBranding['tagline'] ?? 'The marketplace for social media campaigns and the people who complete them.') }}
+                            {{ $footer->tagline ?? ($siteBranding['tagline'] ?? 'YouTube promotion campaigns that help creators get seen by more viewers.') }}
                         </p>
                         <p class="text-xs text-slate-400">
                             © {{ now()->year }} {{ $siteName }}. All rights reserved.
@@ -208,14 +205,13 @@
                                 <li><a class="hover:text-primary transition-colors" href="{{ route('login') }}">Log In</a></li>
                                 <li><a class="hover:text-primary transition-colors" href="{{ route('register') }}">Register</a></li>
                                 <li><a class="hover:text-primary transition-colors" href="{{ route('register') }}">Join as a Creator</a></li>
-                        <li><a class="hover:text-primary transition-colors" href="{{ route('register.agent') }}">Join as an Agent</a></li>
                             @endauth
                         </ul>
                     </div>
                 </div>
 
                 <div class="pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-                    <p>Fixed-price campaign packages, completed by real people.</p>
+                    <p>Fixed-price YouTube promotion campaigns with clear progress tracking.</p>
                     <div class="flex items-center space-x-4">
                         <a class="hover:text-slate-600 transition-colors" href="{{ route('legal', ['doc' => 'privacy']) }}">Security</a>
                         <a class="hover:text-slate-600 transition-colors" href="{{ route('help') }}">Help Center</a>

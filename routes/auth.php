@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\AgentOnboardingController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\GoogleAuthController;
@@ -21,12 +22,14 @@ Route::middleware('guest')->group(function () {
         ->middleware('throttle:60,1')
         ->name('register.username-check');
 
-    Route::get('register/agent', [RegisteredUserController::class, 'createAgent'])
-        ->name('register.agent');
+    Route::match(['get', 'post'], 'register/agent', [RegisteredUserController::class, 'redirectToAgentOnboarding']);
 
-    Route::post('register/agent', [RegisteredUserController::class, 'storeAgent'])
+    Route::get('agent-onboarding', [AgentOnboardingController::class, 'create'])
+        ->name('agent-onboarding');
+
+    Route::post('agent-onboarding', [AgentOnboardingController::class, 'store'])
         ->middleware('throttle:5,1')
-        ->name('register.agent.store');
+        ->name('agent-onboarding.store');
 
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');

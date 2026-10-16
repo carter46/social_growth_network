@@ -17,9 +17,9 @@
     $selectedUnits = (int) ($selectedUnits ?? 1);
     $engagementMetric = $engagementMetric ?? $taskProfile->legacyMetric();
     $destinationLabel = match (true) {
-        $taskProfile->targetIsChannel() => 'Channel URL',
+        $taskProfile->targetIsChannel() => 'Channel',
         $engagementMetric === null => 'Campaign link',
-        default => 'Video URL',
+        default => 'Video',
     };
     $packageQuote = $packageQuote ?? null;
     $companionQty = $packageQuote
@@ -44,38 +44,11 @@
         'basePrice' => $basePrice,
         'paymentMethod' => $defaultMethod,
         'showPlanSummary' => (bool) ($showPlanSummary ?? false),
-        'requireDomainChoice' => (bool) ($requireDomainChoice ?? false),
-        'isWebsitePackage' => (bool) ($isWebsitePackage ?? false),
-        'isDomainProduct' => (bool) ($isDomainProduct ?? false),
         'productSlug' => $product->slug,
-        'domainMode' => old('domain_mode', ($requireDomainChoice ?? false) ? 'buy' : 'none'),
-        'connectFqdn' => old('domain_fqdn', ''),
-        'connectAcknowledged' => (bool) old('domain_connect_acknowledged', false),
-        'quoteUrl' => route('dashboard.services.domain-quote'),
-        'connectScanUrl' => route('dashboard.services.domain-connect-scan'),
         'urlPreviewUrl' => route('dashboard.services.url-preview'),
         'isCampaign' => $product->isCampaignProduct(),
         'initialTargetUrl' => '',
-        'domainTlds' => $domainTlds ?? [],
-        'domainTldsAdvanced' => $domainTldsAdvanced ?? [],
-        'quoteToken' => $quoteToken ?? null,
-        'quotedFqdn' => $quotedFqdn ?? null,
-        'quotedPrice' => $quotedPrice ?? null,
         'csrfToken' => csrf_token(),
-        'oldDomainLabel' => old('domain_label', ''),
-        'oldDomainTld' => old('domain_tld', ''),
-        'registrantDefaults' => [
-            'first_name' => old('registrant.first_name', ''),
-            'last_name' => old('registrant.last_name', ''),
-            'company' => old('registrant.company', ''),
-            'email' => old('registrant.email', auth()->user()->email),
-            'phone' => old('registrant.phone', ''),
-            'address' => old('registrant.address', ''),
-            'city' => old('registrant.city', ''),
-            'state' => old('registrant.state', ''),
-            'zip' => old('registrant.zip', ''),
-            'country' => old('registrant.country', 'NG'),
-        ],
         'walletBalance' => $hasWallet ? (float) $wallet->balance : 0,
         'hasWallet' => $hasWallet,
         'gatewayEnabled' => $gatewayOn,
@@ -126,29 +99,7 @@
             >
                 @csrf
                 <input type="hidden" name="idempotency_key" value="{{ $idempotencyKey }}">
-                @if ($renewTool ?? null)
-                    <input type="hidden" name="renew_user_tool_id" value="{{ $renewTool->id }}">
-                    <x-dashboard.alert type="info">
-                        Renewing <strong>{{ $renewTool->resolvedDisplayName() }}</strong>. This extends the same tool. It will not create a second one.
-                    </x-dashboard.alert>
-                @endif
 
-                @if($isDomainProduct ?? false)
-                    <input type="hidden" name="domain_quote_token" x-bind:value="domainQuoteToken">
-                    <input type="hidden" name="domain_fqdn" x-bind:value="domainFqdn">
-                    <input type="hidden" name="quantity" value="1">
-
-                    <div class="rounded-xl border border-border-default bg-muted/20 px-4 py-3 space-y-1">
-                        <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Domain</p>
-                        <p class="text-lg font-semibold text-text-primary" x-text="domainFqdn || '-'"></p>
-                        <p class="text-sm text-text-secondary">
-                            Registration · <span x-text="retailFormatted"></span>
-                            <span x-show="domainPremium" x-cloak class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Premium</span>
-                        </p>
-                    </div>
-
-                    @include('dashboard.user.discover._domain-registrant-fields')
-                @else
                     @if(($showPlanSummary ?? false) && $selectedVariant)
                         <input type="hidden" name="variant_id" value="{{ $selectedVariant->id }}">
                         <input type="hidden" name="quantity" value="{{ (int) $selectedUnits }}">
@@ -187,9 +138,13 @@
 
                     @if(filled($targetUrl ?? null))
                         <input type="hidden" name="target_url" value="{{ $targetUrl }}">
-                        <div class="rounded-xl border border-border-default bg-muted/20 px-4 py-3 space-y-1">
+                        <div class="rounded-xl border border-border-default bg-muted/20 px-4 py-3 space-y-2">
                             <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">{{ $destinationLabel }}</p>
-                            <a href="{{ $targetUrl }}" target="_blank" rel="noopener noreferrer" class="block text-sm font-medium text-text-primary break-all hover:text-primary">{{ $targetUrl }}</a>
+                            @include('dashboard.user.discover._link-preview-card', [
+                                'url' => $targetUrl,
+                                'video' => $linkPreview['video'] ?? null,
+                                'channel' => $linkPreview['target_channel'] ?? null,
+                            ])
                             @error('target_url')
                                 <p class="text-xs text-danger">{{ $message }}</p>
                             @enderror
@@ -202,15 +157,18 @@
                     @if($taskProfile->isMultiTask() && filled($targetUrl ?? null))
                         <div class="rounded-xl border border-border-default bg-muted/20 px-4 py-3 space-y-3">
                             <div>
-                                <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">What each agent does</p>
+                                <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Campaign steps</p>
                                 <p class="text-sm text-text-primary">{{ $taskProfile->sequenceLabel() }}</p>
-                                <p class="text-xs text-text-muted">Each new agent completes every step that still needs agents, in this order. A step closes for new agents once its target is reached.</p>
+                                <p class="text-xs text-text-muted">Steps run in this order. Each step stops once its target is reached.</p>
                             </div>
                             @if(filled($campaignBrief['channel_url'] ?? null))
                                 <input type="hidden" name="channel_url" value="{{ $campaignBrief['channel_url'] }}">
                                 <div>
-                                    <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Channel URL</p>
-                                    <a href="{{ $campaignBrief['channel_url'] }}" target="_blank" rel="noopener noreferrer" class="block text-sm font-medium text-text-primary break-all hover:text-primary">{{ $campaignBrief['channel_url'] }}</a>
+                                    <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-text-muted">Channel</p>
+                                    @include('dashboard.user.discover._link-preview-card', [
+                                        'url' => $campaignBrief['channel_url'],
+                                        'channel' => $linkPreview['channel'] ?? null,
+                                    ])
                                     @error('channel_url')
                                         <p class="text-xs text-danger">{{ $message }}</p>
                                     @enderror
@@ -231,132 +189,6 @@
                             @endif
                         </div>
                     @endif
-
-                    @if($requireDomainChoice ?? false)
-                        <div class="space-y-3">
-                            <div>
-                                <label class="block text-sm font-medium text-text-secondary mb-2">Domain <span class="text-danger">*</span></label>
-                                <div class="flex flex-wrap gap-4">
-                                    <label class="flex items-center gap-2 text-sm">
-                                        <input type="radio" name="domain_mode" value="buy" x-model="domainMode" @change="onDomainModeChange()" class="accent-primary">
-                                        Buy a new domain
-                                    </label>
-                                    <label class="flex items-center gap-2 text-sm">
-                                        <input type="radio" name="domain_mode" value="connect" x-model="domainMode" @change="onDomainModeChange()" class="accent-primary">
-                                        Connect existing domain
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div x-show="domainMode === 'buy'" x-cloak class="space-y-3">
-                                    <div class="grid gap-3 sm:grid-cols-[1fr_minmax(9rem,14rem)]">
-                                        <div>
-                                            <label class="mb-1 block text-xs text-text-muted">Domain name</label>
-                                            <input
-                                                type="text"
-                                                name="domain_label"
-                                                x-model="domainLabel"
-                                                @input="onDomainLabelInput($event)"
-                                                placeholder="mysite"
-                                                autocomplete="off"
-                                                autocapitalize="off"
-                                                spellcheck="false"
-                                                :class="domainLabelError ? 'border-danger' : 'border-border-default'"
-                                                class="w-full rounded-lg bg-elevated text-text-primary text-sm"
-                                            >
-                                            <p x-show="domainLabelError" x-cloak class="mt-1 text-xs text-danger" x-text="domainLabelError"></p>
-                                        </div>
-                                        <div>
-                                            <input type="hidden" name="domain_tld" x-bind:value="domainTld">
-                                            @include('dashboard.user.discover._domain-extension-picker')
-                                        </div>
-                                    </div>
-
-                                    <div class="space-y-2">
-                                        <input type="hidden" name="domain_quote_token" x-bind:value="domainQuoteToken">
-                                        <x-dashboard.button
-                                            type="button"
-                                            variant="primary"
-                                            size="sm"
-                                            x-on:click="checkDomain()"
-                                            x-bind:disabled="domainChecking || !canCheckDomain"
-                                        >
-                                            <span x-text="domainChecking ? 'Checking…' : 'Check availability'">Check availability</span>
-                                        </x-dashboard.button>
-                                        @include('dashboard.user.discover._domain-search-results')
-                                    </div>
-
-                                    <div x-show="domainAvailable" x-cloak>
-                                        @include('dashboard.user.discover._domain-registrant-fields')
-                                    </div>
-                                </div>
-
-                            <div x-show="domainMode === 'connect'" x-cloak class="space-y-3">
-                                    <input type="hidden" name="domain_fqdn" x-bind:value="connectFqdn">
-                                    <input type="hidden" name="domain_connect_acknowledged" :value="connectAcknowledged ? '1' : '0'">
-
-                                    <div>
-                                        <label class="mb-1 block text-xs text-text-muted">Existing domain</label>
-                                        <input
-                                            type="text"
-                                            x-model="connectFqdnInput"
-                                            @input="onConnectFqdnInput()"
-                                            placeholder="example.com"
-                                            autocomplete="off"
-                                            autocapitalize="off"
-                                            spellcheck="false"
-                                            x-bind:disabled="connectScanning"
-                                            :class="connectError && !connectScanned ? 'border-danger' : 'border-border-default'"
-                                            class="w-full rounded-lg bg-elevated text-text-primary text-sm"
-                                        >
-                                    </div>
-
-                                    <x-dashboard.button
-                                        type="button"
-                                        variant="primary"
-                                        size="sm"
-                                        x-on:click="scanConnectDomain()"
-                                        x-bind:disabled="connectScanning || !(connectFqdnInput || '').trim()"
-                                    >
-                                        <span x-text="connectScanning ? 'Checking domain…' : 'Check Domain'">Check Domain</span>
-                                    </x-dashboard.button>
-
-                                    <p x-show="connectError" x-cloak class="text-sm text-danger" x-text="connectError"></p>
-
-                                    <div x-show="connectScanned" x-cloak class="space-y-3 rounded-xl border border-border-default bg-muted/20 px-4 py-3">
-                                        <div>
-                                            <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Domain found</p>
-                                            <p class="mt-1 text-lg font-semibold text-text-primary" x-text="connectFqdn"></p>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-medium text-text-secondary">Current nameservers</p>
-                                            <ul class="mt-1 space-y-1 text-sm text-text-primary">
-                                                <template x-for="(ns, index) in connectNameservers" :key="'scan-'+index+'-'+ns">
-                                                    <li x-text="ns"></li>
-                                                </template>
-                                            </ul>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-medium text-text-secondary">Required nameservers</p>
-                                            <ul class="mt-1 space-y-1 text-sm text-primary">
-                                                <template x-for="(ns, index) in connectRequiredNameservers" :key="'req-'+index+'-'+ns">
-                                                    <li x-text="ns"></li>
-                                                </template>
-                                            </ul>
-                                        </div>
-                                        <p class="text-sm text-text-secondary">
-                                            To use this domain with your website, change its nameservers at your current registrar to the required values above.
-                                            Verification happens after purchase in My Domains. You can continue to payment now.
-                                        </p>
-                                        <label class="flex items-start gap-2 text-sm text-text-primary">
-                                            <input type="checkbox" class="mt-1 accent-primary" x-model="connectAcknowledged">
-                                            <span>I understand I must point this domain’s nameservers to the required values above.</span>
-                                        </label>
-                                    </div>
-                                </div>
-                        </div>
-                    @endif
-                @endif
 
                 <div>
                     <label class="block text-sm font-medium text-text-secondary mb-2">Payment method</label>

@@ -39,12 +39,12 @@ return [
             'hero_title' => 'Social Media',
             'hero_subtitle' => 'Browse social services, then filter by Growth or Engagement.',
             'benefits' => [
-                'YouTube Watch Hours, views, likes, comments, and subscribers',
+                'YouTube campaigns that boost views, watch time and engagement',
                 'See what you get before you pay',
                 'Pay securely with your wallet or card',
             ],
             'faq' => [
-                ['q' => 'What platforms do you support?', 'a' => 'We focus on YouTube: Watch Hours, views, likes, comments, and subscribers.'],
+                ['q' => 'What platforms do you support?', 'a' => 'We focus on YouTube promotion campaigns that help your videos and channel reach more viewers.'],
             ],
             'types' => ['social_service'],
         ],

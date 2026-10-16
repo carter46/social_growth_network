@@ -7,8 +7,7 @@ import { registerPullToRefresh } from './dashboard-pull-refresh';
 import { mountCommandCharts, bindCommandRange } from './command-charts';
 import { initGoogleIdentity } from './google-identity';
 import { initDashboardPageLoader } from './dashboard-page-loader';
-import { assignAlpineHelpers, createDomainSearchHelpers, extractQuoteError } from './domain-search-shared';
-import { createCheckoutValidationHelpers } from './checkout-validation';
+import { assignAlpineHelpers, createCheckoutValidationHelpers } from './checkout-validation';
 import { registerAdminConnectionTest } from './admin-connection-test';
 import { registerManualBankPayment } from './manual-bank-payment';
 import { registerServicesMarketplace } from './services-marketplace';
@@ -553,7 +552,6 @@ document.addEventListener('alpine:init', () => {
 
     Alpine.data('platformCheckout', (variants = [], options = {}) => assignAlpineHelpers(
         {},
-        createDomainSearchHelpers(),
         createCheckoutValidationHelpers(),
         {
         variants,
@@ -564,55 +562,14 @@ document.addEventListener('alpine:init', () => {
         qty: Number(options.selectedUnits || 1),
         packageTotal: options.packageTotal != null ? Number(options.packageTotal) : null,
         productPageUrl: options.productPageUrl || '',
-        domainMode: options.domainMode
-            ?? (options.requireDomainChoice ? 'buy' : 'none'),
-        domainLabel: options.oldDomainLabel ?? '',
-        domainTld: options.oldDomainTld || (options.domainTlds?.[0]?.tld) || 'com',
-        domainTlds: options.domainTlds ?? [],
-        domainTldsAdvanced: options.domainTldsAdvanced ?? [],
-        showAdvancedTlds: false,
-        advancedQuery: '',
-        domainQuoteToken: options.quoteToken ?? '',
-        domainFqdn: options.quotedFqdn ?? '',
-        domainRetailPrice: Number(options.quotedPrice ?? 0),
-        domainPremium: false,
-        domainChecking: false,
-        domainMessage: '',
-        domainAvailable: Boolean(options.quoteToken),
         productSlug: options.productSlug ?? '',
-        quoteUrl: options.quoteUrl ?? '',
-        connectScanUrl: options.connectScanUrl ?? '',
         csrfToken: options.csrfToken ?? '',
         showPlanSummary: Boolean(options.showPlanSummary),
-        requireDomainChoice: Boolean(options.requireDomainChoice),
-        isDomainProduct: Boolean(options.isDomainProduct),
-        isWebsitePackage: Boolean(options.isWebsitePackage),
         paymentMethod: options.paymentMethod || 'wallet',
         basePrice: Number(options.basePrice || 0),
         walletBalance: Number(options.walletBalance ?? 0),
         hasWallet: Boolean(options.hasWallet),
         gatewayEnabled: Boolean(options.gatewayEnabled),
-        connectFqdnInput: options.connectFqdn ?? '',
-        connectFqdn: options.connectFqdn ?? '',
-        connectNameservers: [],
-        connectRequiredNameservers: [],
-        connectScanned: false,
-        connectScanning: false,
-        connectScanRequestId: 0,
-        connectAcknowledged: Boolean(options.connectAcknowledged),
-        connectError: '',
-        registrant: {
-            first_name: options.registrantDefaults?.first_name ?? '',
-            last_name: options.registrantDefaults?.last_name ?? '',
-            company: options.registrantDefaults?.company ?? '',
-            email: options.registrantDefaults?.email ?? '',
-            phone: options.registrantDefaults?.phone ?? '',
-            address: options.registrantDefaults?.address ?? '',
-            city: options.registrantDefaults?.city ?? '',
-            state: options.registrantDefaults?.state ?? '',
-            zip: options.registrantDefaults?.zip ?? '',
-            country: options.registrantDefaults?.country ?? 'NG',
-        },
         isCampaign: Boolean(options.isCampaign),
         urlPreviewUrl: options.urlPreviewUrl ?? '',
         targetUrl: options.initialTargetUrl ?? '',
@@ -704,15 +661,7 @@ document.addEventListener('alpine:init', () => {
             if (row.per_unit) return Number(row.unit_price || 0);
             return Number(row.price);
         },
-        get domainAddon() {
-            if (this.isDomainProduct) return this.domainRetailPrice;
-            if (this.requireDomainChoice && this.domainMode === 'buy' && this.domainAvailable) {
-                return this.domainRetailPrice;
-            }
-            return 0;
-        },
         get total() {
-            if (this.isDomainProduct) return this.domainAddon;
             const row = this.selectedVariant;
             let sum;
             if (row?.per_unit && this.packageTotal !== null) {
@@ -722,7 +671,6 @@ document.addEventListener('alpine:init', () => {
             } else {
                 sum = this.planUnit; // fixed: no package multiplier
             }
-            sum += this.domainAddon;
             return sum;
         },
         onCheckoutVariantChange() {
@@ -736,265 +684,8 @@ document.addEventListener('alpine:init', () => {
         get totalFormatted() {
             return formatMoney(this.total, { precision: 2 });
         },
-        get retailFormatted() {
-            return formatMoney(this.domainRetailPrice || 0, { precision: 2 });
-        },
-        get isAdvancedTldSelected() {
-            return (this.domainTldsAdvanced || []).some((row) => row.tld === this.domainTld);
-        },
-        get filteredAdvancedTlds() {
-            const q = (this.advancedQuery || '').trim().toLowerCase();
-            if (!q) return this.domainTldsAdvanced || [];
-            return (this.domainTldsAdvanced || []).filter((row) =>
-                row.tld.includes(q) || row.label.toLowerCase().includes(q),
-            );
-        },
-        pickAdvancedTld(tld) {
-            this.domainTld = tld;
-            this.invalidateQuote();
-        },
-        resetToFeaturedTld() {
-            this.domainTld = this.domainTlds[0]?.tld ?? 'com';
-            this.invalidateQuote();
-        },
-        get needsRegistrant() {
-            if (this.isDomainProduct) {
-                return true;
-            }
-
-            return this.requireDomainChoice && this.domainMode === 'buy' && this.domainAvailable;
-        },
-        get registrantComplete() {
-            const r = this.registrant;
-
-            return Boolean(
-                r.first_name?.trim()
-                && r.last_name?.trim()
-                && r.email?.trim()
-                && r.phone?.trim()
-                && r.address?.trim()
-                && r.city?.trim()
-                && r.state?.trim()
-                && r.zip?.trim()
-                && (r.country?.trim()?.length === 2),
-            );
-        },
         get canSubmit() {
-            if (this.paymentMethod === 'wallet' && this.walletShortfall > 0) {
-                return false;
-            }
-
-            if (this.isDomainProduct) {
-                return Boolean(this.domainQuoteToken && this.domainFqdn && this.registrantComplete);
-            }
-            if (this.requireDomainChoice) {
-                if (this.domainMode === 'buy') {
-                    if (!(this.domainLabel || '').trim() || !this.domainTld || this.domainLabelError) return false;
-                    return Boolean(this.domainQuoteToken && this.domainAvailable && this.registrantComplete);
-                }
-                if (this.domainMode === 'connect') {
-                    return Boolean(this.connectScanned && this.connectFqdn && this.connectAcknowledged && !this.connectError);
-                }
-                return false;
-            }
-            return true;
-        },
-        onDomainModeChange() {
-            this.invalidateQuote();
-            this.resetConnectState();
-            this.domainLabelError = '';
-            this.submitError = '';
-        },
-        resetConnectState() {
-            this.connectFqdn = '';
-            this.connectNameservers = [];
-            this.connectRequiredNameservers = [];
-            this.connectScanned = false;
-            this.connectAcknowledged = false;
-            this.connectError = '';
-        },
-        onConnectFqdnInput() {
-            this.connectScanRequestId += 1;
-            this.resetConnectState();
-            this.connectError = '';
-            this.connectScanning = false;
-        },
-        async scanConnectDomain() {
-            const fqdn = (this.connectFqdnInput || '').trim().toLowerCase();
-            if (!fqdn || !this.connectScanUrl) return;
-            const requestId = ++this.connectScanRequestId;
-            this.connectScanning = true;
-            this.connectError = '';
-            this.connectScanned = false;
-            this.connectAcknowledged = false;
-            try {
-                const res = await fetch(this.connectScanUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Accept: 'application/json',
-                        'X-CSRF-TOKEN': this.csrfToken,
-                    },
-                    body: JSON.stringify({ domain_fqdn: fqdn }),
-                });
-                const data = await res.json();
-                if (requestId !== this.connectScanRequestId) {
-                    return;
-                }
-                if (data.message && (!data.registered || data.already_connected || data.status === 'invalid')) {
-                    this.resetConnectState();
-                    this.connectError = data.message || 'Unable to check this domain.';
-                    return;
-                }
-                if (!data.registered || !data.fqdn) {
-                    this.resetConnectState();
-                    this.connectError = data.message || 'Unable to check this domain.';
-                    return;
-                }
-                this.connectFqdn = data.fqdn;
-                this.connectFqdnInput = data.fqdn;
-                this.connectNameservers = data.nameservers || [];
-                this.connectRequiredNameservers = data.required_nameservers || [];
-                this.connectScanned = true;
-                this.connectError = '';
-            } catch {
-                if (requestId !== this.connectScanRequestId) {
-                    return;
-                }
-                this.resetConnectState();
-                this.connectError = 'Domain check is temporarily unavailable.';
-            } finally {
-                if (requestId === this.connectScanRequestId) {
-                    this.connectScanning = false;
-                }
-            }
-        },
-        async checkDomain() {
-            const label = (this.domainLabel || '').trim();
-            if (!label || !this.quoteUrl || this.domainLabelError) return;
-            this.domainChecking = true;
-            this.domainMessage = '';
-            try {
-                const res = await fetch(this.quoteUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Accept: 'application/json',
-                        'X-CSRF-TOKEN': this.csrfToken,
-                    },
-                    body: JSON.stringify({
-                        product_slug: this.productSlug,
-                        domain_label: label,
-                        domain_tld: this.domainTld,
-                    }),
-                });
-                const data = await res.json();
-                if (!res.ok) {
-                    this.invalidateQuote();
-                    this.domainMessage = extractQuoteError(data);
-                    return;
-                }
-                this.applyQuoteResponse(data, label);
-            } catch {
-                this.invalidateQuote();
-                this.domainMessage = 'Domain search is temporarily unavailable.';
-            } finally {
-                this.domainChecking = false;
-            }
-        },
-        },
-    ));
-
-    Alpine.data('domainProductSearch', (options = {}) => assignAlpineHelpers(
-        {},
-        createDomainSearchHelpers(),
-        {
-        productSlug: options.productSlug ?? '',
-        quoteUrl: options.quoteUrl ?? '',
-        checkoutBase: options.checkoutBase ?? '',
-        domainTlds: options.domainTlds ?? [],
-        domainTldsAdvanced: options.domainTldsAdvanced ?? [],
-        csrfToken: options.csrfToken ?? '',
-        domainLabel: '',
-        domainTld: (options.domainTlds?.[0]?.tld) ?? 'com',
-        showAdvancedTlds: false,
-        advancedQuery: '',
-        domainQuoteToken: '',
-        domainFqdn: '',
-        domainRetailPrice: 0,
-        domainPremium: false,
-        domainChecking: false,
-        domainMessage: '',
-        domainAvailable: false,
-        get retailFormatted() {
-            return formatMoney(this.domainRetailPrice || 0, { precision: 2 });
-        },
-        get canCheckout() {
-            return Boolean(this.domainQuoteToken && this.domainFqdn && this.domainAvailable);
-        },
-        get isAdvancedTldSelected() {
-            return (this.domainTldsAdvanced || []).some((row) => row.tld === this.domainTld);
-        },
-        get filteredAdvancedTlds() {
-            const q = (this.advancedQuery || '').trim().toLowerCase();
-            if (!q) return this.domainTldsAdvanced || [];
-            return (this.domainTldsAdvanced || []).filter((row) =>
-                row.tld.includes(q) || row.label.toLowerCase().includes(q),
-            );
-        },
-        pickAdvancedTld(tld) {
-            this.domainTld = tld;
-            this.invalidateQuote();
-        },
-        resetToFeaturedTld() {
-            this.domainTld = this.domainTlds[0]?.tld ?? 'com';
-            this.invalidateQuote();
-        },
-        async checkDomain() {
-            const label = (this.domainLabel || '').trim();
-            if (!label || !this.quoteUrl || this.domainLabelError) return;
-            this.domainChecking = true;
-            this.domainMessage = '';
-            try {
-                const res = await fetch(this.quoteUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Accept: 'application/json',
-                        'X-CSRF-TOKEN': this.csrfToken,
-                    },
-                    body: JSON.stringify({
-                        product_slug: this.productSlug,
-                        domain_label: label,
-                        domain_tld: this.domainTld,
-                    }),
-                });
-                const data = await res.json();
-                if (!res.ok) {
-                    this.invalidateQuote();
-                    this.domainMessage = extractQuoteError(data);
-                    return;
-                }
-                this.applyQuoteResponse(data, label);
-            } catch {
-                this.invalidateQuote();
-                this.domainMessage = 'Domain search is temporarily unavailable.';
-            } finally {
-                this.domainChecking = false;
-            }
-        },
-        goCheckout() {
-            if (!this.canCheckout) return;
-            const params = new URLSearchParams({
-                quote_token: this.domainQuoteToken,
-                domain_fqdn: this.domainFqdn,
-                quoted_price: String(this.domainRetailPrice),
-            });
-            const sep = this.checkoutBase.includes('?') ? '&' : '?';
-            if (typeof window.showDashboardPageLoader === 'function') {
-                window.showDashboardPageLoader('domain-checkout');
-            }
-            window.location.href = `${this.checkoutBase}${sep}${params.toString()}`;
+            return ! (this.paymentMethod === 'wallet' && this.walletShortfall > 0);
         },
         },
     ));
@@ -1523,7 +1214,6 @@ document.addEventListener('alpine:init', () => {
 
     Alpine.data('registerWizard', (opts = {}) => ({
         step: Number(opts.initialStep || 1),
-        accountType: opts.accountType || '',
         name: opts.name || '',
         email: opts.email || '',
         username: opts.username || '',
@@ -1602,9 +1292,8 @@ document.addEventListener('alpine:init', () => {
         },
         get progressLabel() {
             const labels = {
-                1: 'Step 1 of 3: Choose your path',
-                2: 'Step 2 of 3: Your details',
-                3: 'Step 3 of 3: Password & terms',
+                1: 'Step 1 of 2: Your details',
+                2: 'Step 2 of 2: Password & terms',
             };
             return labels[this.step] || '';
         },
@@ -1629,15 +1318,8 @@ document.addEventListener('alpine:init', () => {
                 this.queueUsernameCheck();
             }
         },
-        selectRole(type) {
-            this.accountType = type;
-            this.step = 2;
-            this.$nextTick(() => {
-                document.getElementById('signup-name')?.focus();
-            });
-        },
         async goNext() {
-            if (this.step !== 2) {
+            if (this.step !== 1) {
                 return;
             }
             this.syncUsernameFromName();
@@ -1666,7 +1348,11 @@ document.addEventListener('alpine:init', () => {
             if (userEl && ! userEl.reportValidity()) {
                 return;
             }
-            this.step = 3;
+            const referralEl = document.getElementById('signup-referral-code');
+            if (referralEl && ! referralEl.reportValidity()) {
+                return;
+            }
+            this.step = 2;
             this.$nextTick(() => {
                 document.getElementById('signup-password')?.focus();
             });
@@ -1675,20 +1361,16 @@ document.addEventListener('alpine:init', () => {
             // Enter key on earlier steps should advance, not POST incomplete data.
             if (this.step === 1) {
                 event.preventDefault();
-                return;
-            }
-            if (this.step === 2) {
-                event.preventDefault();
                 this.goNext();
                 return;
             }
-            if (this.step !== 3 || ! this.accountType) {
+            if (this.step !== 2) {
                 event.preventDefault();
                 return;
             }
             if (! this.name?.trim() || ! this.email?.trim() || ! this.username?.trim()) {
                 event.preventDefault();
-                this.step = 2;
+                this.step = 1;
                 this.$nextTick(() => {
                     const el = ! this.name?.trim()
                         ? document.getElementById('signup-name')
@@ -1705,7 +1387,7 @@ document.addEventListener('alpine:init', () => {
                 userEl.setCustomValidity('');
                 if (! /^[A-Za-z0-9_-]+$/.test(this.username)) {
                     event.preventDefault();
-                    this.step = 2;
+                    this.step = 1;
                     this.$nextTick(() => {
                         userEl.setCustomValidity('Use letters, numbers, dashes, or underscores only.');
                         userEl.reportValidity();

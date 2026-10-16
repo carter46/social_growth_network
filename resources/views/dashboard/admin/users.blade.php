@@ -226,8 +226,6 @@
             </x-slot:footer>
         </x-dashboard.modal>
     </div>
-
-    @include('dashboard.admin.users._manual-purchase-modal')
 </x-layout.page>
 </div>
 @endsection

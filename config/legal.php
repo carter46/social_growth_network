@@ -124,7 +124,7 @@ return [
                     ],
                     'blocks' => [
                         'Fraud, phishing, or payment abuse',
-                        'Fake proof, bots, or engagement farms',
+                        'Fake proof, bots, or fake engagement',
                         'Money laundering or illegal payments',
                         'Chargeback fraud or false claims',
                         'Scraping, attacks, or account takeover',

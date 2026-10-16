@@ -4,29 +4,29 @@ return [
     'slug' => 'getting-started',
     'category_key' => 'getting-started',
     'title' => 'Getting Started',
-    'intro' => 'Create your account as a Creator or Agent, verify your email, set up your wallet, and take your first step on Social Growth Network.',
-    'summary' => 'Social Growth Network is a two-sided campaign marketplace: Creators launch digital campaigns by buying packages; Agents complete tasks, submit proof, and earn after verification.',
-    'updated_at' => '2026-09-09',
+    'intro' => 'Create your account, verify your email, set up your wallet, and launch your first YouTube promotion campaign on Social Growth Network.',
+    'summary' => 'Social Growth Network helps creators boost the visibility and reach of their YouTube videos and channels with clear, fixed-price promotion campaigns.',
+    'updated_at' => '2026-10-15',
     'hero_image' => 'assets/images/ai-powered-device-concept copy.jpg',
     'printable' => true,
     'related' => ['browsing-purchasing-services', 'billing-wallets-payments', 'keeping-account-secure'],
     'platform_actions' => [
-        ['label' => 'Create Creator account', 'route' => 'register'],
-        ['label' => 'Apply as Agent', 'route' => 'register.agent'],
-        ['label' => 'Browse campaign services', 'route' => 'services'],
+        ['label' => 'Create an account', 'route' => 'register'],
+        ['label' => 'Browse campaigns', 'route' => 'services'],
     ],
     'sections' => [
         [
-            'id' => 'choose-role',
-            'nav' => 'Choose your role',
-            'title' => 'Creators and Agents',
+            'id' => 'what-we-do',
+            'nav' => 'What we do',
+            'title' => 'What Social Growth Network does',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'Social Growth Network connects two sides of every campaign:'],
+                ['type' => 'paragraph', 'content' => 'We run YouTube promotion campaigns that help creators, brands and businesses get their videos seen by more viewers:'],
                 ['type' => 'bullets', 'items' => [
-                    'Creators (businesses, brands, organizations, and individuals) choose a campaign service, pick a package, set requirements, pay securely, and track progress.',
-                    'Agents discover eligible campaign tasks, complete the required activity, submit verifiable proof, and earn rewards when work is approved.',
+                    'Choose a campaign, pick a package, add your video or channel link, pay securely and track progress.',
+                    'Campaigns are designed to grow visibility, reach, watch time and engagement.',
+                    'We don\'t use bots, fake views or fake subscribers.',
                 ]],
-                ['type' => 'tip', 'title' => 'Quick tip', 'content' => 'You can explore the Services catalog before registering. Payment and task claiming require an account.'],
+                ['type' => 'tip', 'title' => 'Quick tip', 'content' => 'You can explore the Services catalog before registering. Payment requires an account.'],
             ],
         ],
         [
@@ -34,9 +34,8 @@ return [
             'nav' => 'Create an account',
             'title' => 'Creating your account',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'Use Register to create a Creator account for launching campaigns, or Apply as Agent if you want to complete tasks and earn. Enter accurate details and agree to the Terms of Service and Privacy Policy.'],
+                ['type' => 'paragraph', 'content' => 'Use Register to create your account. Enter accurate details and agree to the Terms of Service and Privacy Policy.'],
                 ['type' => 'checklist', 'items' => [
-                    'Choose the registration path that matches how you will use the platform.',
                     'Use an email address you can access. Verification is required before many dashboard features.',
                     'Keep your password private and unique to this account.',
                 ]],
@@ -47,8 +46,8 @@ return [
             'nav' => 'Email verification',
             'title' => 'Email verification',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'Confirm your email using the link we send after registration. If you do not see the message, check spam or request a new verification email from the login or dashboard prompts.'],
-                ['type' => 'important', 'title' => 'Why it matters', 'content' => 'Verified email protects your wallet, campaign purchases, and agent payouts from unauthorized access.'],
+                ['type' => 'paragraph', 'content' => 'Confirm your email using the code we send after registration. If you do not see the message, check spam or request a new code from the verification screen.'],
+                ['type' => 'important', 'title' => 'Why it matters', 'content' => 'Verified email protects your wallet and campaign purchases from unauthorized access.'],
             ],
         ],
         [
@@ -56,18 +55,17 @@ return [
             'nav' => 'Wallet setup',
             'title' => 'Wallet setup',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'Your US dollar (USD) wallet is where Creators fund campaign purchases and where Agents receive approved rewards. Open Wallet from your dashboard after email verification to view balance, funding options, and withdrawal status.'],
-                ['type' => 'tip', 'title' => 'Next step', 'content' => 'See Billing, wallets & payments for funding your USD wallet, payout accounts, and withdrawal basics.'],
+                ['type' => 'paragraph', 'content' => 'Your US dollar (USD) wallet is where you fund campaign purchases. Open Wallet from your dashboard after email verification to view your balance and funding options.'],
+                ['type' => 'tip', 'title' => 'Next step', 'content' => 'See Billing, wallets & payments for funding your USD wallet and payment basics.'],
             ],
         ],
         [
             'id' => 'first-steps',
-            'nav' => 'First campaign or task',
-            'title' => 'Your first campaign or task',
+            'nav' => 'First campaign',
+            'title' => 'Your first campaign',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'Creators: open Services, choose a YouTube package (for example Watch Hours, views, likes, comments, or subscribers), enter your video or channel URL and instructions, then complete secure payment with your funded wallet or enabled payment method.'],
-                ['type' => 'paragraph', 'content' => 'Agents: browse available tasks from your dashboard marketplace, claim work you can complete correctly, follow the Creator’s instructions, and submit proof for review.'],
-                ['type' => 'success', 'title' => 'After you start', 'content' => 'Creators track campaign progress from the dashboard. Agents monitor claimed tasks, proof status, and earnings until payouts become withdrawable.'],
+                ['type' => 'paragraph', 'content' => 'Open Services, choose a YouTube campaign, enter your video or channel URL and any instructions, then complete secure payment with your funded wallet or another enabled payment method.'],
+                ['type' => 'success', 'title' => 'After you start', 'content' => 'Track campaign progress from your dashboard.'],
             ],
         ],
         [
@@ -75,7 +73,7 @@ return [
             'nav' => 'Get help',
             'title' => 'Get help',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'Use this Help Center for guides and FAQs. For account-specific issues (payments, proof disputes, KYC), open a support ticket from your dashboard or visit the Contact page.'],
+                ['type' => 'paragraph', 'content' => 'Use this Help Center for guides and FAQs. For account-specific issues (payments, campaigns, verification), open a support ticket from your dashboard or visit the Contact page.'],
             ],
         ],
     ],

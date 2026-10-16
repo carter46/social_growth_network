@@ -9,7 +9,6 @@
         ['id' => 'wallet', 'label' => 'Wallet', 'href' => route('admin.users.wallet', $user)],
         ['id' => 'transactions', 'label' => 'Transactions', 'href' => route('admin.users.transactions', $user)],
         ['id' => 'orders', 'label' => 'Orders', 'href' => route('admin.users.orders', $user)],
-        ['id' => 'tools', 'label' => 'Tools', 'href' => route('admin.users.tools', $user)],
         ['id' => 'tickets', 'label' => 'Support', 'href' => route('admin.users.tickets', $user)],
         ['id' => 'activity', 'label' => 'Activity', 'href' => route('admin.users.activity', $user)],
         ['id' => 'security', 'label' => 'Security', 'href' => route('admin.users.security', $user)],
@@ -36,18 +35,6 @@
         @if (! $user->anonymized_at)
             <x-dashboard.button :href="route('admin.users.edit', $user)" variant="secondary" size="sm">Edit</x-dashboard.button>
             @if (! $user->is_suspended)
-                <x-dashboard.button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    x-on:click="$dispatch('admin-manual-purchase', {
-                        id: {{ (int) $user->id }},
-                        label: {{ \Illuminate\Support\Js::from($user->name.' ('.$user->email.')') }},
-                        action: {{ \Illuminate\Support\Js::from(route('admin.users.manual-purchase', $user)) }},
-                    })"
-                >
-                    Manual purchase
-                </x-dashboard.button>
                 <form method="POST" action="{{ route('admin.users.impersonate', $user) }}">
                     @csrf
                     <x-dashboard.button type="submit" variant="secondary" size="sm">Login as user</x-dashboard.button>
@@ -126,7 +113,5 @@
     <div id="dashboard-tab-panel" class="mt-6">
         @include('dashboard.admin.users.show-panel')
     </div>
-
-    @include('dashboard.admin.users._manual-purchase-modal')
 </x-layout.page>
 @endsection

@@ -139,6 +139,25 @@ class CombinedYouTubeProductsTest extends TestCase
         return $wallet->fresh();
     }
 
+    /** @param  array<string, mixed>  $data */
+    private function placeBankTransferOrder(User $buyer, PlatformProduct $product, array $data, bool $paid = false): Order
+    {
+        SystemSetting::set('manual_bank_transfer_enabled', true);
+        SystemSetting::set('manual_bank_transfer_bank_name', 'Test Bank');
+        SystemSetting::set('manual_bank_transfer_account_number', '0123456789');
+        SystemSetting::set('manual_bank_transfer_account_name', 'Test Account');
+
+        $checkout = app(PlatformCheckoutService::class);
+        $order = $checkout->purchase($buyer, $product, $data + [
+            'variant_id' => $product->pricingVariant()?->id,
+            'payment_method' => Order::PAYMENT_MANUAL_BANK_TRANSFER,
+        ]);
+
+        return $paid
+            ? $checkout->fulfillPaidCatalogOrder($order, [Order::PAYMENT_MANUAL_BANK_TRANSFER])
+            : $order;
+    }
+
     private function agent(?string $channelId = null): User
     {
         $agent = User::factory()->agent()->kycApproved()->create();
@@ -367,17 +386,12 @@ class CombinedYouTubeProductsTest extends TestCase
             'is_active' => true,
         ])->save();
 
-        $order = app(PlatformCheckoutService::class)->createManualBankTransferOrderForUser(
-            User::factory()->creator()->create(),
-            $product->fresh(),
-            [
-                'variant_id' => $variant->id,
-                'quantity' => 150,
-                'task_quantities' => [],
-                'target_url' => 'https://www.youtube.com/watch?v='.self::VIDEO,
-            ],
-            false,
-        );
+        $order = $this->placeBankTransferOrder(User::factory()->creator()->create(), $product->fresh(), [
+            'variant_id' => $variant->id,
+            'quantity' => 150,
+            'task_quantities' => [],
+            'target_url' => 'https://www.youtube.com/watch?v='.self::VIDEO,
+        ]);
 
         $item = $order->items()->first();
         $this->assertSame(750.0, (float) $item->line_total);
@@ -390,7 +404,71 @@ class CombinedYouTubeProductsTest extends TestCase
         $this->assertFalse($campaign->usesTaskTargets());
     }
 
-    public function test_admin_order_prices_companion_quantities_and_refuses_out_of_range(): void
+    public function test_checkout_shows_the_video_preview_and_payment_return_opens_the_campaign(): void
+    {
+        $product = PlatformProduct::query()->where('slug', 'youtube-likes')->firstOrFail();
+        $product->forceFill([
+            'status' => PlatformProductStatus::Published,
+            'agent_reward_percent' => 40,
+            'estimated_minutes' => 1,
+            'completion_minutes' => 30,
+        ])->save();
+        $variant = $product->pricingVariant();
+        $variant->forceFill([
+            'pricing_mode' => PlatformProductVariant::PRICING_PER_UNIT,
+            'unit_price' => 5,
+            'min_units' => 100,
+            'max_units' => 1000,
+            'is_active' => true,
+        ])->save();
+
+        SystemSetting::set('api_youtube_data_key', 'test-key');
+        Http::fake([
+            '*youtube/v3/videos*' => Http::response(['items' => [[
+                'id' => self::VIDEO,
+                'snippet' => [
+                    'title' => 'My launch video',
+                    'channelId' => self::CHANNEL,
+                    'channelTitle' => 'Creator channel',
+                    'thumbnails' => ['medium' => ['url' => 'https://i.ytimg.com/vi/'.self::VIDEO.'/mqdefault.jpg']],
+                ],
+                'status' => ['privacyStatus' => 'public', 'embeddable' => true],
+                'contentDetails' => ['duration' => 'PT3M20S'],
+                'statistics' => ['viewCount' => '10', 'commentCount' => '1'],
+            ]]]),
+            '*' => Http::response([], 404),
+        ]);
+
+        $creator = User::factory()->creator()->create();
+        Wallet::factory()->create(['user_id' => $creator->id, 'balance' => 0, 'locked_balance' => 0]);
+        $this->actingAs($creator)
+            ->get(route('dashboard.services.checkout', [
+                'slug' => 'youtube-likes',
+                'units' => 150,
+                'target_url' => 'https://www.youtube.com/watch?v='.self::VIDEO,
+            ]))
+            ->assertOk()
+            ->assertSee('My launch video')
+            ->assertSee('Creator channel')
+            ->assertSee('3:20')
+            ->assertSee('https://i.ytimg.com/vi/'.self::VIDEO.'/mqdefault.jpg', false);
+
+        $this->fundPlatformWallet();
+        $order = $this->placeBankTransferOrder($creator, $product->fresh(), [
+            'variant_id' => $variant->id,
+            'quantity' => 150,
+            'task_quantities' => [],
+            'target_url' => 'https://www.youtube.com/watch?v='.self::VIDEO,
+        ], paid: true);
+        $order->forceFill(['payment_method' => 'gateway', 'provider_payment_reference' => 'bachs-ref-1'])->save();
+        $campaign = Campaign::query()->where('order_item_id', $order->items()->first()->id)->firstOrFail();
+
+        $this->actingAs($creator)
+            ->get(route('dashboard.services.payment-callback', ['slug' => 'youtube-likes', 'reference' => 'bachs-ref-1']))
+            ->assertRedirect(route('dashboard.campaigns.show', $campaign));
+    }
+
+    public function test_order_prices_companion_quantities_and_refuses_out_of_range(): void
     {
         $product = PlatformProduct::query()->where('slug', self::SLUG)->firstOrFail();
         $product->forceFill([
@@ -409,26 +487,22 @@ class CombinedYouTubeProductsTest extends TestCase
         ])->save();
         $buyer = User::factory()->creator()->create();
         $payload = [
-            'user_id' => $buyer->id,
-            'product_slug' => self::SLUG,
             'quantity' => 20,
             'target_url' => 'https://www.youtube.com/watch?v='.self::VIDEO,
             'channel_url' => 'https://www.youtube.com/channel/'.self::CHANNEL,
             'comment_instructions' => 'Say what you liked.',
-            'mark_paid' => '0',
         ];
-        $admin = User::factory()->admin()->create();
 
-        $this->actingAs($admin)
-            ->post(route('admin.orders.store'), $payload + ['qty' => ['watch' => 500]])
-            ->assertSessionHas('error');
+        try {
+            $this->placeBankTransferOrder($buyer, $product->fresh(), $payload + ['task_quantities' => ['watch' => 500]]);
+            $this->fail('An out-of-range companion quantity should be refused.');
+        } catch (InvalidArgumentException) {
+        }
         $this->assertSame(0, Order::query()->where('user_id', $buyer->id)->count());
 
-        $this->actingAs($admin)
-            ->post(route('admin.orders.store'), $payload + ['qty' => ['watch' => 15, 'comment' => 5]])
-            ->assertSessionHasNoErrors();
+        $order = $this->placeBankTransferOrder($buyer, $product->fresh(), $payload + ['task_quantities' => ['watch' => 15, 'comment' => 5]]);
 
-        $item = Order::query()->where('user_id', $buyer->id)->firstOrFail()->items()->first();
+        $item = $order->items()->first();
         $this->assertSame(['subscribe' => 20, 'watch' => 15, 'comment' => 5], $item->options['task_quantities']);
         $this->assertSame(3000.0, (float) $item->line_total);
     }
@@ -934,7 +1008,7 @@ class CombinedYouTubeProductsTest extends TestCase
         $this->assertSame('Say what you liked.', $campaign->comment_instructions);
     }
 
-    public function test_admin_manual_purchase_of_a_product_without_task_setup_is_refused(): void
+    public function test_purchase_of_a_product_without_task_setup_is_refused(): void
     {
         $product = PlatformProduct::query()->where('slug', 'youtube-watch-hours')->firstOrFail();
         $product->forceFill([
@@ -951,10 +1025,9 @@ class CombinedYouTubeProductsTest extends TestCase
             'quantity' => $variant->effectiveMinUnits(),
             'target_url' => 'https://www.youtube.com/watch?v='.self::VIDEO,
         ];
-        $checkout = app(PlatformCheckoutService::class);
 
         try {
-            $checkout->createManualBankTransferOrderForUser($buyer, $product->fresh(), $data, false);
+            $this->placeBankTransferOrder($buyer, $product->fresh(), $data);
             $this->fail('A product without a completion time should not be sold.');
         } catch (InvalidArgumentException $e) {
             $this->assertStringContainsString('not available to buy yet', $e->getMessage());
@@ -962,7 +1035,7 @@ class CombinedYouTubeProductsTest extends TestCase
         $this->assertSame(0, Order::query()->where('user_id', $buyer->id)->count());
 
         $product->forceFill(['completion_minutes' => 30])->save();
-        $order = $checkout->createManualBankTransferOrderForUser($buyer, $product->fresh(), $data, false);
+        $order = $this->placeBankTransferOrder($buyer, $product->fresh(), $data);
         $this->assertSame(30, (int) $order->items()->first()->options['completion_minutes']);
     }
 

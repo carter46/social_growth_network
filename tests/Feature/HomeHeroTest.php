@@ -12,18 +12,20 @@ class HomeHeroTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_home_hero_uses_white_youtube_watch_hours_treatment(): void
+    private const NO_BOTS_LINE = "We don't use bots, fake views or fake subscribers.";
+
+    public function test_home_hero_uses_white_youtube_visibility_treatment(): void
     {
         $this->get(route('home'))
             ->assertOk()
             ->assertSee('assets/images/home_whitepng.png', false)
-            ->assertSee('Pay People to Subscribe, Watch, Like and Comment on Your <span class="text-red-600">YouTube</span> Videos.', false)
+            ->assertSee('Get your <span class="text-red-600">YouTube</span> videos seen by more viewers.', false)
             ->assertSee('id="youtube-services"', false)
-            ->assertSee('Buy Watch Hours', false)
-            ->assertDontSee('Pay For Watch Hours', false)
-            ->assertSee('Watch &amp; Earn', false)
+            ->assertSee('Start a campaign', false)
+            ->assertSee(self::NO_BOTS_LINE, false)
+            ->assertDontSee('Buy Watch Hours', false)
+            ->assertDontSee('Watch &amp; Earn', false)
             ->assertSee(route('register'), false)
-            ->assertSee(route('agents'), false)
             ->assertSee('bg-red-600', false)
             ->assertDontSee('· YouTube Watch Hours', false)
             ->assertDontSee('Browse YouTube services', false)
@@ -40,19 +42,18 @@ class HomeHeroTest extends TestCase
         $this->get(route('home'))
             ->assertOk()
             ->assertSee('YouTube services', false)
-            ->assertSee('YouTube Watch Hours', false)
+            ->assertSee('<span class="text-red-600">YouTube</span> Watch Hours', false)
             ->assertSee('home-yt-featured', false)
-            ->assertSee('Earn by completing available digital tasks', false)
-            ->assertSee('Learn more', false)
-            ->assertSee('Start earning', false)
-            ->assertSee(route('register.agent'), false)
+            ->assertSee('Promote your video', false)
+            ->assertDontSee('Earn by completing available digital tasks', false)
+            ->assertDontSee('Start earning', false)
             ->assertDontSee('Other platforms', false)
             ->assertDontSee('Need other social media services?', false)
             ->assertDontSee('TikTok', false)
             ->assertDontSee('Instagram', false)
             ->assertDontSee('id="services"', false)
             ->assertDontSee('id="creators"', false)
-            ->assertDontSee('Ready to grow YouTube Watch Hours?', false)
+            ->assertDontSee('id="agents"', false)
             ->assertDontSee('Guaranteed verified human activity', false)
             ->assertDontSee('Crypto Cash Exchange', false);
 
@@ -80,7 +81,7 @@ class HomeHeroTest extends TestCase
         $html = $this->get(route('home'))->assertOk()->getContent();
 
         $start = strpos($html, 'id="youtube-services"');
-        $end = strpos($html, 'id="agents"');
+        $end = strpos($html, 'id="how-it-works"');
         $this->assertNotFalse($start);
         $this->assertNotFalse($end);
         $youtubeChunk = substr($html, $start, $end - $start);
@@ -90,5 +91,60 @@ class HomeHeroTest extends TestCase
         $this->assertStringContainsString('YouTube Comments', $youtubeChunk);
         $this->assertStringNotContainsString('Social_Media.jpg', $youtubeChunk);
         $this->assertStringNotContainsString('<img', $youtubeChunk);
+    }
+
+    public function test_creator_pages_use_visibility_wording_only(): void
+    {
+        foreach (['home', 'creators'] as $routeName) {
+            $html = $this->get(route($routeName))->assertOk()->getContent();
+            $main = $this->mainContent($html);
+
+            $this->assertStringContainsString(self::NO_BOTS_LINE, $main, $routeName);
+            foreach ([
+                '/pay people/i',
+                '/get paid/i',
+                '/\bearn(s|ing|er|ers)?\b/i',
+                '/\bagents?\b/i',
+                '/organic/i',
+                '/buy (likes|views|subscribers|watch hours)/i',
+                '/real people/i',
+                '/\bfarm/i',
+            ] as $pattern) {
+                $this->assertDoesNotMatchRegularExpression($pattern, strip_tags($main), $routeName.' '.$pattern);
+            }
+        }
+    }
+
+    public function test_header_has_no_agents_link_but_footer_does(): void
+    {
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $header = substr($html, 0, (int) strpos($html, '<main'));
+        $footer = substr($html, (int) strpos($html, '<footer'));
+
+        $this->assertStringNotContainsString('For Agents', $header);
+        $this->assertStringNotContainsString('href="'.route('agents').'"', $header);
+        $this->assertStringContainsString('href="'.route('agents').'"', $footer);
+        $this->assertStringNotContainsString('Join as an Agent', $footer);
+    }
+
+    public function test_agents_page_keeps_earning_wording_and_links_to_agent_onboarding(): void
+    {
+        $this->get(route('agents'))
+            ->assertOk()
+            ->assertSee('earn', false)
+            ->assertSee('invite (referral) code', false)
+            ->assertSee('href="'.route('agent-onboarding').'"', false)
+            ->assertDontSee('/register/agent', false);
+    }
+
+    private function mainContent(string $html): string
+    {
+        $start = strpos($html, '<main');
+        $end = strpos($html, '</main>');
+        $this->assertNotFalse($start);
+        $this->assertNotFalse($end);
+
+        return substr($html, $start, $end - $start);
     }
 }

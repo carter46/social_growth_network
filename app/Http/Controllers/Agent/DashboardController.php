@@ -5,12 +5,13 @@ namespace App\Http\Controllers\Agent;
 use App\Http\Controllers\Controller;
 use App\Models\CampaignParticipation;
 use App\Modules\Wallet\Payments\Bachs\BachsConnectService;
+use App\Services\Campaigns\YoutubeIdentityService;
 use App\Support\MemberShell;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index(): View
+    public function index(YoutubeIdentityService $identities): View
     {
         $user = auth()->user();
         $wallet = $user->wallet;
@@ -32,6 +33,7 @@ class DashboardController extends Controller
             'activeTasks' => $activeTasks,
             'completedTasks' => $completedTasks,
             'kycLevel' => $user->kyc_level,
+            'showChannelBanner' => YoutubeIdentityService::enabled() && ! $identities->verified($user),
         ]);
     }
 

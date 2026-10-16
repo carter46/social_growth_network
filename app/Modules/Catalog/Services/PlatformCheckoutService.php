@@ -11,7 +11,6 @@ use App\Models\PlatformProduct;
 use App\Models\PlatformProductVariant;
 use App\Models\SystemSetting;
 use App\Models\User;
-use App\Models\UserTool;
 use App\Modules\Wallet\Payments\Data\CheckoutRequest;
 use App\Modules\Wallet\Payments\Exceptions\GatewayException;
 use App\Modules\Wallet\Payments\Exceptions\GatewayUnavailable;
@@ -19,10 +18,6 @@ use App\Modules\Wallet\Payments\GatewayRegistry;
 use App\Modules\Wallet\Services\WalletService;
 use App\Services\Notifications\AdminPaymentAlertNotifier;
 use App\Support\Money\Money;
-use App\Services\Domains\DomainCheckoutValidator;
-use App\Services\Domains\DomainConnectionService;
-use App\Services\Domains\DomainQuoteService;
-use App\Services\SiteIntegrations\UserToolProvisioningService;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -36,11 +31,7 @@ class PlatformCheckoutService
     public const MANUAL_PAYMENT_MAX_SESSIONS = 3;
     public function __construct(
         private WalletService $walletService,
-        private UserToolProvisioningService $userTools,
         private GatewayRegistry $gateways,
-        private DomainCheckoutValidator $domainCheckout,
-        private DomainQuoteService $domainQuotes,
-        private DomainConnectionService $domainConnections,
     ) {}
 
     public function gatewayEnabled(): bool
@@ -116,9 +107,9 @@ class PlatformCheckoutService
     }
 
     /**
-     * @param  array{variant_id?: int|null, quantity: int, domain_mode?: string|null, domain_name?: string|null, idempotency_key?: string|null, renew_user_tool_id?: int|null, payment_method?: string|null, redirect_url?: string|null, admin_mark_paid?: bool|null}  $data
+     * @param  array{variant_id?: int|null, quantity: int, idempotency_key?: string|null, payment_method?: string|null, redirect_url?: string|null}  $data
      */
-    public function purchase(User $buyer, PlatformProduct $product, array $data, bool $allowManualWithoutToggle = false): Order
+    public function purchase(User $buyer, PlatformProduct $product, array $data): Order
     {
         $requested = (string) ($data['payment_method'] ?? 'wallet');
 
@@ -128,7 +119,7 @@ class PlatformCheckoutService
             : app(\App\Services\Campaigns\CampaignBriefService::class)->resolve($product, $data);
 
         if ($requested === Order::PAYMENT_MANUAL_BANK_TRANSFER) {
-            if (! $allowManualWithoutToggle && ! $this->manualBankTransferEnabledForCheckout()) {
+            if (! $this->manualBankTransferEnabledForCheckout()) {
                 throw new InvalidArgumentException('Manual bank transfer is not available.');
             }
 
@@ -140,25 +131,6 @@ class PlatformCheckoutService
         }
 
         return $this->purchaseViaWallet($buyer, $product, $data);
-    }
-
-    /**
-     * Admin creates a manual-bank-transfer order for a user (works even when checkout toggle is off).
-     *
-     * @param  array<string, mixed>  $data
-     */
-    public function createManualBankTransferOrderForUser(User $buyer, PlatformProduct $product, array $data, bool $markPaidImmediately, ?int $adminId = null): Order
-    {
-        $data['payment_method'] = Order::PAYMENT_MANUAL_BANK_TRANSFER;
-        $data['notify_manual_bank_submitted'] = false;
-
-        $order = $this->purchase($buyer, $product, $data, allowManualWithoutToggle: true);
-
-        if ($markPaidImmediately) {
-            return $this->fulfillPaidCatalogOrder($order, [Order::PAYMENT_MANUAL_BANK_TRANSFER], $adminId);
-        }
-
-        return $order;
     }
 
     /**
@@ -197,8 +169,6 @@ class PlatformCheckoutService
                 throw new InvalidArgumentException('Order cannot be fulfilled in status '.$locked->status);
             }
 
-            $this->consumeReservedDomainQuotes($locked);
-
             $this->walletService->creditPlatformFromGatewaySale($locked, (float) $locked->total_amount);
 
             $locked->status = 'paid';
@@ -209,9 +179,6 @@ class PlatformCheckoutService
             $locked->save();
 
             $locked->load('items.variant');
-            $buyer = User::query()->findOrFail($locked->user_id);
-            $this->createDomainConnectionsForOrder($buyer, $locked);
-            $this->fulfillTools($locked);
 
             app(\App\Services\Campaigns\CampaignFulfillmentService::class)->createFromPaidOrder($locked);
 
@@ -241,8 +208,6 @@ class PlatformCheckoutService
             if ($locked->status === 'cancelled') {
                 return $locked;
             }
-
-            $this->domainQuotes->releaseReservationForOrder((int) $locked->id);
 
             $meta = $locked->payment_metadata ?? [];
             if ($reason) {
@@ -469,19 +434,6 @@ class PlatformCheckoutService
         }
     }
 
-    private function consumeReservedDomainQuotes(Order $order): void
-    {
-        $buyer = User::query()->findOrFail($order->user_id);
-        $quotes = \App\Models\DomainQuote::query()
-            ->where('reserved_order_id', $order->id)
-            ->whereNull('consumed_at')
-            ->get();
-
-        foreach ($quotes as $quote) {
-            $this->domainQuotes->consumeReservedQuote($buyer, $quote, (int) $order->id);
-        }
-    }
-
     /**
      * @param  array<string, mixed>  $data
      */
@@ -516,7 +468,7 @@ class PlatformCheckoutService
                     }
                 }
 
-                $checkout = $this->buildCheckout($buyer, $product, $data);
+                $checkout = $this->buildCheckout($product, $data);
 
                 $order = Order::create([
                     'source' => 'platform',
@@ -544,11 +496,8 @@ class PlatformCheckoutService
                 }
 
                 $order->load('items.variant');
-                $this->createDomainConnectionsForOrder($buyer, $order);
 
                 $this->walletService->debitForPlatformPurchase($wallet, $order, (float) $checkout['total']);
-
-                $this->fulfillTools($order, $checkout['renew_tool'], $checkout['variant']);
 
                 app(\App\Services\Campaigns\CampaignFulfillmentService::class)->createFromPaidOrder($order);
 
@@ -619,8 +568,7 @@ class PlatformCheckoutService
                     }
                 }
 
-                $deferDomain = true;
-                $checkout = $this->buildCheckout($buyer, $product, $data, deferDomainConsumption: $deferDomain);
+                $checkout = $this->buildCheckout($product, $data);
 
                 $paymentReference = 'PLT-PAY-'.strtoupper((string) Str::ulid());
 
@@ -637,16 +585,6 @@ class PlatformCheckoutService
                     'provider_payment_reference' => $paymentReference,
                     'idempotency_key' => $idempotencyKey,
                 ]);
-
-                foreach ($checkout['pending_domain_quotes'] ?? [] as $pending) {
-                    $this->domainQuotes->reserveForGateway(
-                        $buyer,
-                        $pending['token'],
-                        $pending['fqdn'],
-                        (int) $order->id,
-                        $pending['product_id'],
-                    );
-                }
 
                 foreach ($checkout['lines'] as $line) {
                     OrderItem::create([
@@ -756,7 +694,7 @@ class PlatformCheckoutService
                     }
                 }
 
-                $checkout = $this->buildCheckout($buyer, $product, $data, deferDomainConsumption: true);
+                $checkout = $this->buildCheckout($product, $data);
 
                 $order = Order::create([
                     'source' => 'platform',
@@ -775,16 +713,6 @@ class PlatformCheckoutService
                         'manual_payment_expired' => false,
                     ],
                 ]);
-
-                foreach ($checkout['pending_domain_quotes'] ?? [] as $pending) {
-                    $this->domainQuotes->reserveForGateway(
-                        $buyer,
-                        $pending['token'],
-                        $pending['fqdn'],
-                        (int) $order->id,
-                        $pending['product_id'],
-                    );
-                }
 
                 foreach ($checkout['lines'] as $line) {
                     OrderItem::create([
@@ -810,9 +738,9 @@ class PlatformCheckoutService
 
     /**
      * @param  array<string, mixed>  $data
-     * @return array{lines: list<array<string, mixed>>, total: string, renew_tool: ?UserTool, variant: ?PlatformProductVariant}
+     * @return array{lines: list<array<string, mixed>>, total: string}
      */
-    private function buildCheckout(User $buyer, PlatformProduct $product, array $data, bool $deferDomainConsumption = false): array
+    private function buildCheckout(PlatformProduct $product, array $data): array
     {
         $product = PlatformProduct::query()
             ->with(['serviceCategory', 'productType.serviceCategory'])
@@ -828,58 +756,19 @@ class PlatformCheckoutService
             throw new InvalidArgumentException('This product is not available to buy yet. Please try again later.');
         }
 
-        $lines = [];
-        $pendingDomainQuotes = [];
-
-        [$variant, $renewTool, $mainLine] = $this->prepareMainLine($buyer, $product, $data, null);
-        $lines[] = $mainLine;
-
-        $total = $this->sumLines($lines);
+        $lines = [$this->prepareMainLine($product, $data)];
 
         return [
             'lines' => $lines,
-            'total' => $total,
-            'renew_tool' => $renewTool ?? null,
-            'variant' => $variant ?? null,
-            'pending_domain_quotes' => $pendingDomainQuotes,
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $domainContext
-     */
-    private function domainLineFromQuote(array $domainContext, PlatformProduct $domainProduct): array
-    {
-        $consumed = $domainContext['quote'];
-        $quote = $consumed['quote'];
-        $retail = $consumed['validated_retail'];
-
-        return [
-            'product_id' => $domainProduct->id,
-            'variant_id' => $domainProduct->activeVariants()->orderBy('price')->value('id'),
-            'quantity' => 1,
-            'unit_price' => $retail,
-            'line_total' => $retail,
-            'options' => [
-                'domain_fqdn' => $domainContext['fqdn'],
-                'tld' => $domainContext['tld'],
-                'domain_mode' => 'buy',
-                'retail_price' => $retail,
-                'retail_currency' => config('platform.currency'),
-                'premium' => $quote->premium,
-                'product_title' => $domainProduct->title,
-                'domain_quote_id' => $quote->id,
-                'registrant_contact' => $domainContext['registrant_contact'] ?? null,
-            ],
+            'total' => $this->sumLines($lines),
         ];
     }
 
     /**
      * @param  array<string, mixed>  $data
-     * @param  array<string, mixed>|null  $domainContext
-     * @return array{0: ?PlatformProductVariant, 1: ?UserTool, 2: array<string, mixed>}
+     * @return array<string, mixed>
      */
-    private function prepareMainLine(User $buyer, PlatformProduct $product, array $data, ?array $domainContext = null): array
+    private function prepareMainLine(PlatformProduct $product, array $data): array
     {
         $variant = $this->resolveVariant($product, $data['variant_id'] ?? null);
         if ($variant) {
@@ -910,26 +799,9 @@ class PlatformCheckoutService
         $engagementQuantity = $qty;
         $lineTotal = $quote['total'];
 
-        $renewToolId = isset($data['renew_user_tool_id']) ? (int) $data['renew_user_tool_id'] : null;
-        $renewTool = null;
-        if ($renewToolId) {
-            $renewTool = UserTool::query()
-                ->where('id', $renewToolId)
-                ->where('user_id', $buyer->id)
-                ->where('platform_product_id', $product->id)
-                ->lockForUpdate()
-                ->first();
-            if (! $renewTool) {
-                throw new InvalidArgumentException('Renewal tool not found for this product.');
-            }
-        }
-
-        $domainOptions = [
-            'domain_mode' => $domainContext['mode'] ?? ($data['domain_mode'] ?? 'none'),
-            'domain_name' => $domainContext['fqdn'] ?? ($data['domain_name'] ?? null),
+        $lineOptions = [
             'product_title' => $product->title,
             'variant_label' => $variant?->displayLabel(),
-            'renew_user_tool_id' => $renewTool?->id,
             'pricing_mode' => PlatformProductVariant::PRICING_PER_UNIT,
             'engagement_quantity' => $engagementQuantity,
             'pricing_units' => $variant->effectivePricingUnits(),
@@ -944,19 +816,19 @@ class PlatformCheckoutService
         }
 
         if ($product->taskProfile()->isMultiTask()) {
-            $domainOptions['main_task'] = $quote['main_task'];
-            $domainOptions['task_quantities'] = $quote['task_quantities'];
-            $domainOptions['task_limits'] = $quote['task_limits'];
-            $domainOptions['extra_units'] = $quote['extra_units'];
+            $lineOptions['main_task'] = $quote['main_task'];
+            $lineOptions['task_quantities'] = $quote['task_quantities'];
+            $lineOptions['task_limits'] = $quote['task_limits'];
+            $lineOptions['extra_units'] = $quote['extra_units'];
         }
 
         if (! empty($data['target_url'])) {
             $targetUrl = \App\Services\Engagement\TargetUrlValidator::normalize((string) $data['target_url']);
             if ($product->requiresTargetUrl() && $targetUrl) {
                 \App\Services\Engagement\TargetUrlValidator::assertValidForProduct($targetUrl, (string) $product->slug);
-                $domainOptions['target_url'] = $targetUrl;
+                $lineOptions['target_url'] = $targetUrl;
             } elseif ($targetUrl) {
-                $domainOptions['target_url'] = $targetUrl;
+                $lineOptions['target_url'] = $targetUrl;
             } elseif ($product->requiresTargetUrl()) {
                 throw new InvalidArgumentException('A valid YouTube link is required for this campaign package.');
             }
@@ -965,39 +837,28 @@ class PlatformCheckoutService
         }
 
         if (is_array($data['campaign_brief'] ?? null)) {
-            $domainOptions = array_merge($domainOptions, $data['campaign_brief']);
+            $lineOptions = array_merge($lineOptions, $data['campaign_brief']);
         }
 
         if ($product->isCampaignProduct()) {
-            $domainOptions = array_merge(
-                $domainOptions,
+            $lineOptions = array_merge(
+                $lineOptions,
                 app(\App\Services\Campaigns\CampaignBriefService::class)->taskSnapshot($product),
             );
         }
 
         if (! empty($data['purchased_at'])) {
-            $domainOptions['purchased_at'] = $data['purchased_at'];
+            $lineOptions['purchased_at'] = $data['purchased_at'];
         }
 
-        if ($domainContext !== null) {
-            $domainOptions['domain_fqdn'] = $domainContext['fqdn'];
-            $domainOptions['domain_tld'] = $domainContext['tld'];
-            if (($domainContext['mode'] ?? '') === 'connect') {
-                $domainOptions['domain_connect_acknowledged'] = true;
-                $domainOptions['nameservers_at_scan'] = $domainContext['nameservers_at_scan'] ?? [];
-            }
-        }
-
-        $line = [
+        return [
             'product_id' => $product->id,
             'variant_id' => $variant?->id,
             'quantity' => $qty,
             'unit_price' => $unitPrice,
             'line_total' => $lineTotal,
-            'options' => $domainOptions,
+            'options' => $lineOptions,
         ];
-
-        return [$variant, $renewTool, $line];
     }
 
     /**
@@ -1011,63 +872,6 @@ class PlatformCheckoutService
         }
 
         return $total;
-    }
-
-    private function createDomainConnectionsForOrder(User $buyer, Order $order): void
-    {
-        foreach ($order->items as $item) {
-            $options = $item->options ?? [];
-            if (($options['domain_mode'] ?? '') !== 'connect') {
-                continue;
-            }
-
-            $fqdn = (string) ($options['domain_fqdn'] ?? $options['domain_name'] ?? '');
-            if ($fqdn === '') {
-                continue;
-            }
-
-            $this->domainConnections->createFromOrderItem(
-                $buyer,
-                $order,
-                $item,
-                $fqdn,
-                is_array($options['nameservers_at_scan'] ?? null) ? $options['nameservers_at_scan'] : [],
-                (bool) ($options['domain_connect_acknowledged'] ?? false),
-            );
-        }
-    }
-
-    private function fulfillTools(Order $order, ?UserTool $renewTool = null, ?PlatformProductVariant $variant = null): void
-    {
-        if ($renewTool) {
-            $months = (int) ($variant?->duration_months ?? $renewTool->duration_months ?? 0);
-            if ($months < 1) {
-                $itemVariant = $order->items->first()?->variant;
-                $months = (int) ($itemVariant?->duration_months ?? $renewTool->duration_months ?? 0);
-            }
-            if ($months < 1) {
-                throw new InvalidArgumentException('Selected plan is missing a duration.');
-            }
-            $this->userTools->renew($renewTool, $months);
-
-            return;
-        }
-
-        foreach ($order->items as $orderItem) {
-            $options = $orderItem->options ?? [];
-            if (! empty($options['renew_user_tool_id'])) {
-                $tool = UserTool::query()->find($options['renew_user_tool_id']);
-                if ($tool) {
-                    $months = (int) ($orderItem->variant?->duration_months ?? $tool->duration_months ?? 0);
-                    if ($months > 0) {
-                        $this->userTools->renew($tool, $months);
-                    }
-                }
-
-                continue;
-            }
-            $tool = $this->userTools->createFromOrderItem($order, $orderItem);
-        }
     }
 
     private function resolveVariant(PlatformProduct $product, mixed $variantId): ?PlatformProductVariant

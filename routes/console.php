@@ -34,8 +34,6 @@ $scheduleCommand('analytics:prune-activity', 'analytics:prune-activity')->daily(
 $scheduleCommand('analytics:sync-ga', 'analytics:sync-ga')->daily()->at('05:00');
 $scheduleCommand('monitoring:heartbeat', 'monitoring:heartbeat')->everyFiveMinutes();
 $scheduleCommand('users:purge-anonymized', 'users:purge-anonymized')->hourly();
-$scheduleCommand('site-integrations:expire-user-tools', 'site-integrations:expire-user-tools')->everyFiveMinutes();
-
 $scheduleCommand('campaigns:verify-engagement', 'campaigns:verify-engagement')
     ->everyMinute()
     ->withoutOverlapping(5);

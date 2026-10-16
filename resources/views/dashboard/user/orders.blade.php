@@ -53,9 +53,8 @@
                 if ($order->source === 'platform') {
                     $meta[] = 'Platform';
                 }
-                $domainRegistration = $order->domainRegistrations->first();
-                if ($domainRegistration) {
-                    $meta[] = 'Domain: '.$domainRegistration->fqdn.' ('.$domainRegistration->status.')';
+                if (filled($item?->options['domain_fqdn'] ?? null)) {
+                    $meta[] = 'Domain: '.$item->options['domain_fqdn'];
                 }
             @endphp
             <tr class="hover:bg-muted/50">
@@ -82,11 +81,7 @@
                 <x-dashboard.td class="text-text-secondary text-sm">{{ $order->created_at->format('M j, Y H:i') }}</x-dashboard.td>
                 <x-dashboard.td>
                     @if ($order->source === 'platform' && $order->status === 'paid')
-                        @if($domainRegistration ?? null)
-                            <x-dashboard.button :href="route('dashboard.my-domains.show', $domainRegistration)" size="xs" variant="ghost">Manage domain</x-dashboard.button>
-                        @else
-                            <span class="text-text-muted text-xs">Paid</span>
-                        @endif
+                        <span class="text-text-muted text-xs">Paid</span>
                     @elseif ($order->source === 'platform' && $order->status === 'pending' && $order->payment_method === \App\Models\Order::PAYMENT_MANUAL_BANK_TRANSFER && ! $order->payment_submitted_at)
                         <x-dashboard.button :href="route('dashboard.orders.manual-payment', $order)" size="xs" variant="primary">Complete payment</x-dashboard.button>
                     @elseif ($order->source === 'platform' && $order->status === 'pending' && $order->payment_method === \App\Models\Order::PAYMENT_MANUAL_BANK_TRANSFER && $order->payment_submitted_at)

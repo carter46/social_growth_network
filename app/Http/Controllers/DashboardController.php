@@ -73,7 +73,7 @@ class DashboardController extends Controller
         $orders = auth()->user()
             ->orders()
             ->where('source', 'platform')
-            ->with(['items.variant', 'domainRegistrations'])
+            ->with(['items.variant'])
             ->orderByDesc('created_at')
             ->paginate(15);
 

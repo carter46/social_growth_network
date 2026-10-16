@@ -168,7 +168,11 @@ class CreatorAgentAccessTest extends TestCase
 
     public function test_agent_registration_assigns_agent_role(): void
     {
-        $response = $this->post(route('register.agent.store'), [
+        $referrer = User::factory()->agent()->create();
+        $referrer->ensureReferralCode();
+
+        $response = $this->post(route('agent-onboarding.store'), [
+            'referral_code' => $referrer->fresh()->referral_code,
             'name' => 'Agent User',
             'username' => 'agentuser1',
             'email' => 'agentuser1@example.com',
@@ -187,7 +191,6 @@ class CreatorAgentAccessTest extends TestCase
     public function test_creator_registration_still_assigns_user_role(): void
     {
         $this->post('/register', [
-            'account_type' => 'creator',
             'name' => 'Creator User',
             'username' => 'creatoruser1',
             'email' => 'creatoruser1@example.com',

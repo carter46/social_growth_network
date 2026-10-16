@@ -338,7 +338,7 @@
         <x-dashboard.card variant="solid" id="referral-program">
             <h2 class="text-lg font-semibold text-text-primary mb-1">Referral program</h2>
             <p class="text-sm text-text-secondary mb-4">
-                Only agents can refer. They earn a lifetime percentage of what the people they refer earn (agents) or spend (creators).
+                Only agents can refer, and only new agents can join with a referral code. Referrers earn a lifetime percentage of what the agents they invite earn.
                 Each commission keeps the percentage in force when it was earned, so changes here only affect new earnings.
             </p>
 
@@ -357,16 +357,6 @@
                         label="When an agent refers an agent (%)"
                         :value="old('referral_agent_percent', $referral['agent_percent'])"
                         hint="Percentage of every task reward the referred agent earns. Example: 50% of a $0.04 reward is $0.02."
-                    />
-                    <x-dashboard.input
-                        name="referral_creator_percent"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="100"
-                        label="When an agent refers a creator (%)"
-                        :value="old('referral_creator_percent', $referral['creator_percent'])"
-                        hint="Percentage of every paid order the referred creator places. This is paid out of the platform's margin."
                     />
                 </div>
 

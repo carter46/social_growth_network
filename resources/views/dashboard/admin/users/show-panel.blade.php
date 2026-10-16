@@ -77,45 +77,6 @@
             @endforeach
         </x-dashboard.table>
         <x-dashboard.pagination :paginator="$orders" />
-    @elseif ($activeTab === 'tools')
-        <x-dashboard.table :empty="($tools ?? collect())->isEmpty()" empty-title="No tools" empty-description="Purchased internal catalog services appear here after checkout." striped>
-            <x-slot:head>
-                <x-dashboard.th>Tool</x-dashboard.th>
-                <x-dashboard.th>Status</x-dashboard.th>
-                <x-dashboard.th>Expires</x-dashboard.th>
-                <x-dashboard.th>Connection</x-dashboard.th>
-                <x-dashboard.th></x-dashboard.th>
-            </x-slot:head>
-            @foreach (($tools ?? collect()) as $tool)
-                @php $isPendingSetup = $tool->status->value === 'pending_setup'; @endphp
-                <tr>
-                    <x-dashboard.td>
-                        <div class="font-medium text-text-primary">{{ $tool->resolvedDisplayName() }}</div>
-                        <div class="text-xs text-text-muted">#{{ $tool->id }} · {{ $tool->public_id }}</div>
-                    </x-dashboard.td>
-                    <x-dashboard.td>
-                        <x-dashboard.badge :status="$tool->status->value" />
-                        @if ($tool->isExpiringSoon())
-                            <span class="ml-1 text-xs text-amber-600">Expiring soon</span>
-                        @endif
-                    </x-dashboard.td>
-                    <x-dashboard.td class="text-xs text-text-muted">{{ $tool->expires_at?->format('j M Y') ?? '—' }}</x-dashboard.td>
-                    <x-dashboard.td class="text-xs text-text-muted">{{ $tool->integration?->connection_status ?? '—' }}</x-dashboard.td>
-                    <x-dashboard.td>
-                        <x-dashboard.button
-                            :href="route('admin.users.tools.show', [$user, $tool])"
-                            size="sm"
-                            variant="secondary"
-                        >
-                            {{ $isPendingSetup ? 'Setup' : 'Manage' }}
-                        </x-dashboard.button>
-                    </x-dashboard.td>
-                </tr>
-            @endforeach
-        </x-dashboard.table>
-        @if (($tools ?? null) instanceof \Illuminate\Contracts\Pagination\Paginator)
-            <x-dashboard.pagination :paginator="$tools" />
-        @endif
     @elseif ($activeTab === 'tickets')
         <x-dashboard.table :empty="($tickets ?? collect())->isEmpty()" empty-title="No tickets" striped>
             <x-slot:head>

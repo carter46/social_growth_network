@@ -25,7 +25,7 @@ class ServicesYouTubeSeparationTest extends TestCase
 
         $response->assertOk()
             ->assertSee('services-yt-featured', false)
-            ->assertSee('Buy Watch Hours', false)
+            ->assertSee('Promote your video', false)
             ->assertSee('Other YouTube services', false)
             ->assertDontSee('Other social media services', false)
             ->assertDontSee('id="other-social-services"', false)

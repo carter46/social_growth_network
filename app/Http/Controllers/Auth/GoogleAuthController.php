@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Services\Auth\Identity\SocialAuthService;
+use App\Services\Campaigns\YoutubeIdentityService;
 use App\Services\Referrals\ReferralAttribution;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -26,18 +27,16 @@ class GoogleAuthController extends Controller
             'referral_code' => ['nullable', 'string', 'max:32'],
         ]);
 
-        if (filled($validated['referral_code'] ?? null)) {
-            $referrer = $this->referrals->findReferrer($validated['referral_code']);
-            if (! $referrer) {
-                return $this->failure($request, __('This referral code is not valid.'));
-            }
-            $request->session()->put(ReferralAttribution::SESSION_KEY, $referrer->referral_code);
-        }
+        $accountType = ($validated['account_type'] ?? null) === 'agent' ? 'agent' : 'creator';
+        $inviteCode = $accountType === 'agent'
+            ? (($validated['referral_code'] ?? null) ?: $this->referrals->rememberedCode($request))
+            : null;
 
         try {
             $result = $this->socialAuth->authenticateWithGoogle(
                 $validated['credential'],
-                $validated['account_type'] ?? null,
+                $accountType,
+                $inviteCode,
             );
         } catch (\Throwable $e) {
             return $this->failure($request, $e->getMessage());
@@ -48,9 +47,11 @@ class GoogleAuthController extends Controller
         Auth::login($result['user'], true);
         $request->session()->regenerate();
 
-        $target = $result['user']->hasVerifiedEmail()
-            ? redirect()->intended($result['user']->homeRoute())->getTargetUrl()
-            : route('verification.notice');
+        $target = match (true) {
+            ! $result['user']->hasVerifiedEmail() => route('verification.notice'),
+            $result['action'] === 'signup' && $result['user']->isAgent() && YoutubeIdentityService::enabled() => route('agent.onboarding'),
+            default => redirect()->intended($result['user']->homeRoute())->getTargetUrl(),
+        };
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json(['redirect' => $target]);

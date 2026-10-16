@@ -6,6 +6,7 @@ Disallow: /admin
 Disallow: /api
 Disallow: /login
 Disallow: /register
+Disallow: /agent-onboarding
 Disallow: /checkout
 
 # Prefer dynamic robots via RobotsController when routed; keep sitemap relative to APP_URL in production.

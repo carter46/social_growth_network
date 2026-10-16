@@ -63,13 +63,13 @@ class SettingsController extends Controller
         $validated = $request->validate([
             'referral_enabled' => ['nullable', 'boolean'],
             'referral_agent_percent' => ['required', 'numeric', 'min:0', 'max:100'],
-            'referral_creator_percent' => ['required', 'numeric', 'min:0', 'max:100'],
+            'referral_creator_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
         $old = SystemSetting::referralSettings();
         $enabled = $request->boolean('referral_enabled');
         $agentPercent = number_format((float) $validated['referral_agent_percent'], 2, '.', '');
-        $creatorPercent = number_format((float) $validated['referral_creator_percent'], 2, '.', '');
+        $creatorPercent = number_format((float) ($validated['referral_creator_percent'] ?? $old['creator_percent']), 2, '.', '');
 
         SystemSetting::set('referral_enabled', $enabled);
         SystemSetting::set('referral_agent_percent', $agentPercent);

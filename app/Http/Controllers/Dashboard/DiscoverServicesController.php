@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Enums\EngagementMetric;
 use App\Http\Controllers\Controller;
+use App\Models\Campaign;
 use App\Models\Order;
 use App\Models\PlatformProduct;
 use App\Modules\Catalog\Services\CatalogBrowseService;
@@ -16,6 +17,7 @@ use App\Services\Catalog\PackageQuoteException;
 use App\Services\Catalog\PackageQuoteService;
 use App\Services\Catalog\PurchaseDraftService;
 use App\Services\Engagement\TargetUrlValidator;
+use App\Services\Engagement\YoutubeLookupService;
 use App\Support\PlatformProductSlugRedirect;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -127,7 +129,7 @@ class DiscoverServicesController extends Controller
         $product = PlatformProduct::query()
             ->visibleToPublic()
             ->where('slug', $slug)
-            ->with(['serviceCategory', 'productType.serviceCategory', 'activeVariants', 'images', 'heroMedia.variants', 'siteIntegration'])
+            ->with(['serviceCategory', 'productType.serviceCategory', 'activeVariants', 'images', 'heroMedia.variants'])
             ->firstOrFail();
 
         $typeSlug = $product->typeSlug();
@@ -143,25 +145,7 @@ class DiscoverServicesController extends Controller
             'groupSlug' => $groupSlug,
             'groupLabel' => $groupSlug ? ($this->content->forGroup($groupSlug)['label'] ?? $groupSlug) : null,
             'wallet' => $request->user()->wallet,
-            'isDomainProduct' => false,
-            'domainTlds' => [],
-            'domainTldsAdvanced' => [],
         ]);
-    }
-
-    public function domainTlds(): JsonResponse
-    {
-        abort(410, 'Domain registration is no longer available.');
-    }
-
-    public function domainQuote(Request $request): JsonResponse
-    {
-        abort(422, 'Domain quotes are no longer available.');
-    }
-
-    public function domainConnectScan(Request $request): JsonResponse
-    {
-        abort(422, 'Domain connect is no longer available.');
     }
 
     /**
@@ -265,15 +249,6 @@ class DiscoverServicesController extends Controller
 
         $this->activity->record($request->user()->id, 'viewed', $product, 'service.checkout');
 
-        $renewTool = null;
-        if ($request->filled('renew')) {
-            $renewTool = \App\Models\UserTool::query()
-                ->where('public_id', $request->string('renew')->toString())
-                ->where('user_id', $request->user()->id)
-                ->where('platform_product_id', $product->id)
-                ->first();
-        }
-
         return view('dashboard.user.discover.services-checkout', [
             'product' => $product,
             'variants' => $variants,
@@ -281,23 +256,15 @@ class DiscoverServicesController extends Controller
             'selectedUnits' => $selectedUnits,
             'engagementMetric' => $metric,
             'targetUrl' => $targetUrl,
+            'linkPreview' => $targetUrl ? $this->linkPreview($product, $targetUrl, $brief['channel_url'] ?? null) : [],
             'taskProfile' => $product->taskProfile(),
             'campaignBrief' => $brief,
             'packageQuote' => $quote,
             'packageLayout' => app(PackageQuoteService::class)->layout($product),
             'basePrice' => (float) $product->displayPrice(),
             'showPlanSummary' => $showPlanSummary,
-            'isWebsitePackage' => false,
-            'isDomainProduct' => false,
-            'requireDomainChoice' => false,
-            'domainTlds' => [],
-            'domainTldsAdvanced' => [],
-            'quoteToken' => null,
-            'quotedFqdn' => null,
-            'quotedPrice' => null,
             'idempotencyKey' => (string) Str::uuid(),
             'wallet' => $request->user()->wallet,
-            'renewTool' => $renewTool,
             'gatewayEnabled' => $this->checkoutService->gatewayEnabled(),
             'gateways' => $this->checkoutService->availableGateways(),
             'defaultGateway' => $this->checkoutService->defaultGatewayKey(),
@@ -344,7 +311,6 @@ class DiscoverServicesController extends Controller
             'qty' => ['nullable', 'array'],
             'qty.*' => ['nullable', 'integer', 'min:0', 'max:1000000'],
             'idempotency_key' => ['required', 'string', 'uuid', 'max:64'],
-            'renew_user_tool_id' => ['nullable', 'integer', 'exists:user_tools,id'],
             'payment_method' => ['nullable', 'in:'.implode(',', $allowedMethods)],
             'gateway' => ['nullable', 'string', 'max:40'],
             'target_url' => [
@@ -434,29 +400,9 @@ class DiscoverServicesController extends Controller
                 ->with('status', 'Order '.$order->reference.' created. Complete your bank transfer using the instructions below.');
         }
 
-        if (! empty($data['renew_user_tool_id'])) {
-            $tool = \App\Models\UserTool::query()->find($data['renew_user_tool_id']);
-
-            return redirect()
-                ->route('dashboard.my-tools.show', $tool)
-                ->with('success', 'Subscription renewed. Order '.$order->reference.'.');
-        }
-
         if ($product->isCampaignProduct()) {
-            return redirect()
-                ->route('dashboard.campaigns')
-                ->with('success', 'Order '.$order->reference.' placed. Your campaign is live for agents.');
-        }
-
-        $tool = \App\Models\UserTool::query()
-            ->where('order_id', $order->id)
-            ->where('user_id', $request->user()->id)
-            ->first();
-
-        if ($tool) {
-            return redirect()
-                ->route('dashboard.service-orders')
-                ->with('success', 'Order '.$order->reference.' placed successfully.');
+            return $this->campaignRedirect($order)
+                ->with('success', 'Order '.$order->reference.' placed. Your campaign is live.');
         }
 
         return redirect()
@@ -509,20 +455,63 @@ class DiscoverServicesController extends Controller
                 ->with('error', 'Payment is still pending. If you completed payment, refresh shortly or check My Orders or My Campaigns.');
         }
 
-        $tool = \App\Models\UserTool::query()
-            ->where('order_id', $order->id)
-            ->where('user_id', $request->user()->id)
-            ->first();
-
-        if ($tool) {
-            return redirect()
-                ->route('dashboard.my-tools.show', $tool)
-                ->with('success', 'Payment confirmed. Order '.$order->reference.'.');
+        if ($this->orderCampaign($order) !== null) {
+            return $this->campaignRedirect($order)
+                ->with('success', 'Payment confirmed. Order '.$order->reference.'. Your campaign is live.');
         }
 
         return redirect()
             ->route('dashboard.service-orders')
             ->with('success', 'Payment confirmed. Order '.$order->reference.'.');
+    }
+
+    /**
+     * Video and channel cards for checkout. The link check before checkout already looked
+     * these up, so they normally come from the lookup cache.
+     *
+     * @return array{video?: ?array<string, mixed>, target_channel?: ?array<string, mixed>, channel?: ?array<string, mixed>}
+     */
+    private function linkPreview(PlatformProduct $product, string $targetUrl, mixed $channelUrl): array
+    {
+        $profile = $product->taskProfile();
+        $tasks = $profile->tasks();
+        if ($tasks === []) {
+            return [];
+        }
+
+        try {
+            $lookup = app(YoutubeLookupService::class);
+            if ($profile->targetIsChannel()) {
+                return ['target_channel' => $lookup->channel($targetUrl, $tasks, 0)['channel'] ?? null];
+            }
+
+            return [
+                'video' => $lookup->video($targetUrl, $tasks)['video'] ?? null,
+                'channel' => filled($channelUrl) ? ($lookup->channel((string) $channelUrl, $tasks, 0)['channel'] ?? null) : null,
+            ];
+        } catch (\Throwable $e) {
+            Log::info('Checkout link preview unavailable', ['product' => $product->slug, 'exception' => $e::class]);
+
+            return [];
+        }
+    }
+
+    private function orderCampaign(Order $order): ?Campaign
+    {
+        return Campaign::query()
+            ->where('creator_id', $order->user_id)
+            ->whereIn('order_item_id', $order->items()->select('id'))
+            ->orderBy('id')
+            ->first();
+    }
+
+    private function campaignRedirect(Order $order): RedirectResponse
+    {
+        $campaign = $this->orderCampaign($order);
+
+        return $campaign
+            ? redirect()->route('dashboard.campaigns.show', $campaign)
+            : redirect()->route('dashboard.campaigns');
     }
 
     /**

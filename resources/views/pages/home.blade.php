@@ -22,7 +22,6 @@
         'text-sky-600',
     ];
     $badgeIcons = ['smart_display', 'share', 'public', 'task_alt', 'campaign'];
-    $agentTaskPreview = is_array($agentTaskPreview ?? null) ? $agentTaskPreview : null;
     /** Accent “YouTube” in large titles (red on light, white on red surfaces). */
     $ytWord = static function (string $text, string $tone = 'red'): string {
         $class = $tone === 'white' ? 'text-white' : 'text-red-600';
@@ -50,10 +49,10 @@
                 {{ $brandName }}
             </p>
             <h1 class="home-hero-title sm:text-4xl md:text-5xl lg:text-[52px] font-extrabold text-slate-900 tracking-tight leading-[1.15] text-balance mb-4 sm:mb-5 font-display">
-                {!! $ytWord('Pay People to Subscribe, Watch, Like and Comment on Your YouTube Videos.') !!}
+                {!! $ytWord('Get your YouTube videos seen by more viewers.') !!}
             </h1>
             <p class="text-base sm:text-lg lg:text-xl text-slate-600 font-normal leading-relaxed mb-8 sm:mb-10 max-w-xl mx-auto">
-                Not buying? Become an earner and get paid to watch, like, subscribe and comment on other people's YouTube videos.
+                Promotion campaigns that help creators boost visibility, reach, watch time and engagement on YouTube.
             </p>
 
             <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
@@ -61,16 +60,21 @@
                     class="inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm sm:text-base px-5 py-3 sm:px-6 sm:py-3.5 rounded-lg shadow-sm hover:shadow transition-all"
                     href="{{ route('services') }}"
                 >
-                    <span>Buy Watch Hours</span>
+                    <span>Start a campaign</span>
                     <span class="material-symbols-outlined text-base sm:text-lg" aria-hidden="true">arrow_forward</span>
                 </a>
                 <a
                     class="inline-flex items-center justify-center bg-white hover:bg-slate-50 text-slate-800 font-medium text-sm sm:text-base px-5 py-3 sm:px-6 sm:py-3.5 rounded-lg border border-slate-200 transition-all"
-                    href="{{ route('agents') }}"
+                    href="#how-it-works"
                 >
-                    Watch &amp; Earn
+                    How it works
                 </a>
             </div>
+
+            <p class="mt-6 inline-flex items-center justify-center gap-1.5 text-sm text-slate-500">
+                <span class="material-symbols-outlined text-base text-emerald-600" aria-hidden="true">verified</span>
+                We don't use bots, fake views or fake subscribers.
+            </p>
         </div>
     </div>
 </section>
@@ -81,7 +85,7 @@
         <div class="mb-12 lg:mb-16 max-w-2xl">
             <span class="text-slate-500 font-bold text-xs sm:text-sm tracking-wider uppercase mb-2 block">YouTube services</span>
             <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-display">{!! $ytWord('Built around YouTube growth.') !!}</h2>
-            <p class="text-slate-600 text-base sm:text-lg mt-2">Order watch hours, views, likes, and comments for your YouTube videos.</p>
+            <p class="text-slate-600 text-base sm:text-lg mt-2">Campaigns that help your videos gain more views, watch time and engagement.</p>
         </div>
 
         @if(is_array($watchHours))
@@ -111,7 +115,7 @@
                                 class="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm sm:text-base px-5 py-3 rounded-lg shadow-sm transition-all w-full sm:w-auto"
                                 href="{{ $watchHoursHref }}"
                             >
-                                <span>Buy Watch Hours</span>
+                                <span>Promote your video</span>
                                 <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
                             </a>
                         </div>
@@ -136,7 +140,7 @@
         @if($youtubeOthers->isNotEmpty())
             <div class="mb-6">
                 <h3 class="text-lg sm:text-xl font-bold text-slate-900 font-display">More YouTube packages</h3>
-                <p class="text-slate-500 text-sm mt-1">Views, likes, comments, and subscribers, each with a clear price.</p>
+                <p class="text-slate-500 text-sm mt-1">Campaigns for views, engagement and channel growth, each with a clear price.</p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 {{ $youtubeOthers->count() >= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3' }} gap-6 lg:gap-8">
                 @foreach($youtubeOthers as $index => $product)
@@ -194,7 +198,7 @@
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
             @foreach([
-                ['n' => '01', 'icon' => 'category', 'title' => 'Choose a service', 'body' => 'Pick YouTube Watch Hours or another service, then choose a package. You’ll see the price before you pay.', 'foot' => 'Step 1 · No haggling'],
+                ['n' => '01', 'icon' => 'category', 'title' => 'Choose a service', 'body' => 'Pick a YouTube campaign, then choose a package. You’ll see the price before you pay.', 'foot' => 'Step 1 · No haggling'],
                 ['n' => '02', 'icon' => 'link', 'title' => 'Provide campaign details', 'body' => 'Add your YouTube video or channel link and any campaign instructions at checkout.', 'foot' => 'Step 2 · Quick setup'],
                 ['n' => '03', 'icon' => 'rocket_launch', 'title' => 'Pay and track', 'body' => 'Pay securely, then follow your campaign’s progress from your account.', 'foot' => 'Step 3 · Secure payment'],
             ] as $step)
@@ -218,74 +222,6 @@
                     </div>
                 </div>
             @endforeach
-        </div>
-    </div>
-</section>
-
-{{-- 4. Agent recruitment (final band) --}}
-<section class="py-20 lg:py-24 bg-slate-50 border-y border-slate-200/60" id="agents">
-    <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-            <div class="{{ $agentTaskPreview ? 'lg:col-span-7' : 'lg:col-span-12' }}">
-                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
-                    <span class="material-symbols-outlined text-base text-red-600" aria-hidden="true">handshake</span>
-                    For Agents
-                </span>
-                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-display mb-4">
-                    Earn by completing available digital tasks
-                </h2>
-                <p class="text-slate-600 text-base sm:text-lg leading-relaxed mb-4 max-w-xl">
-                    Join {{ $brandName }} as an Agent. When campaigns are open, you can take on tasks like watching a YouTube video for a set time, liking or commenting on a video, or subscribing to a channel. Follow each task’s instructions, then submit your proof.
-                </p>
-                <p class="text-slate-500 text-sm leading-relaxed mb-8 max-w-xl">
-                    Approved tasks can earn rewards. Earnings and open tasks are not guaranteed; rewards depend on task requirements and approval.
-                </p>
-                <div class="flex flex-wrap items-center gap-3 sm:gap-4">
-                    <a
-                        class="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm sm:text-base px-5 py-3 sm:px-6 sm:py-3.5 rounded-lg shadow-sm transition-all"
-                        href="{{ route('agents') }}"
-                    >
-                        <span>Learn more</span>
-                        <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
-                    </a>
-                    <a
-                        class="inline-flex items-center justify-center bg-white hover:bg-slate-50 text-slate-800 font-medium text-sm sm:text-base px-5 py-3 sm:px-6 sm:py-3.5 rounded-lg border border-slate-200 transition-all"
-                        href="{{ route('register.agent') }}"
-                    >
-                        Start earning
-                    </a>
-                </div>
-            </div>
-            @if($agentTaskPreview)
-                <div class="lg:col-span-5 w-full">
-                    <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
-                        <div class="flex items-center justify-between pb-3 border-b border-slate-200/80 text-xs font-semibold text-slate-500">
-                            <span class="flex items-center gap-1">
-                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                Open task
-                            </span>
-                            <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-200 font-bold">{{ $agentTaskPreview['badge'] ?? 'Available' }}</span>
-                        </div>
-                        <div class="py-3">
-                            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">{{ $agentTaskPreview['label'] ?? 'Campaign' }}</p>
-                            <h3 class="font-bold text-slate-900 text-base mb-1">{{ $agentTaskPreview['title'] }}</h3>
-                            <div class="flex items-center justify-between bg-slate-50 px-3 py-2 rounded-lg border border-slate-200/70 mb-3 mt-3">
-                                <span class="text-xs text-slate-600 font-medium">Reward</span>
-                                <span class="text-sm font-extrabold text-emerald-600">
-                                    {{ $agentTaskPreview['reward'] }}
-                                    @if(! empty($agentTaskPreview['time']) && $agentTaskPreview['time'] !== 'Flexible')
-                                        <span class="font-semibold text-slate-400">· {{ $agentTaskPreview['time'] }}</span>
-                                    @endif
-                                </span>
-                            </div>
-                        </div>
-                        <a href="{{ route('agents') }}" class="w-full py-2.5 bg-slate-100 hover:bg-slate-900 hover:text-white text-slate-700 font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1">
-                            <span>Learn how tasks work</span>
-                            <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_forward</span>
-                        </a>
-                    </div>
-                </div>
-            @endif
         </div>
     </div>
 </section>

@@ -34,7 +34,7 @@ class FooterViewModel
 
         return new self(
             siteName: $branding['site_name'],
-            tagline: $branding['tagline'] ?: 'YouTube growth packages with clear prices and secure checkout.',
+            tagline: $branding['tagline'] ?: 'YouTube promotion campaigns that help creators get seen by more viewers.',
             metaDescription: $branding['meta_description'],
             logoDarkUrl: $logoDark,
             logoLightUrl: $logoLight,

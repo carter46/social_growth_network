@@ -14,7 +14,6 @@
     $crumbs[] = [$product->title, null];
     $heroUrl = media_url($product->heroMedia, $product->hero_image, 'large')
         ?? media_url($product->heroMedia, $product->hero_image, 'medium');
-    $isDomainProduct = $isDomainProduct ?? false;
 @endphp
 <x-layout.page
     :title="$product->title"
@@ -41,28 +40,11 @@
                     @if(filled($product->description))
                         <div class="prose prose-sm max-w-none text-text-secondary whitespace-pre-line">{{ $product->description }}</div>
                     @endif
-                    <div class="pt-1">
-                        @include('partials.catalog.product-demo-actions', [
-                            'product' => $product,
-                            'modalName' => 'view-demo-dash-'.$product->id,
-                        ])
-                    </div>
-                    @if (filled($product->tutorial_description))
-                        <p class="text-sm text-text-secondary whitespace-pre-line">{{ $product->tutorial_description }}</p>
-                    @endif
                 </div>
             </x-dashboard.card>
 
             <div class="space-y-6">
-                @if($isDomainProduct)
-                    @include('dashboard.user.discover._domain-product-search', [
-                        'product' => $product,
-                        'domainTlds' => $domainTlds ?? [],
-                        'domainTldsAdvanced' => $domainTldsAdvanced ?? [],
-                    ])
-                @else
-                    @include('partials.catalog.package-configurator', ['product' => $product, 'theme' => 'dashboard'])
-                @endif
+                @include('partials.catalog.package-configurator', ['product' => $product, 'theme' => 'dashboard'])
                 @if($groupSlug)
                     <a href="{{ route('dashboard.services.browse', $groupSlug) }}" class="inline-flex text-sm text-text-secondary hover:text-primary">← Back to {{ $groupLabel ?? 'services' }}</a>
                 @endif

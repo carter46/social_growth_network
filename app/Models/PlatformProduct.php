@@ -215,11 +215,6 @@ class PlatformProduct extends Model
             && $this->taskSetupIssues() === [];
     }
 
-    public function siteIntegration(): \Illuminate\Database\Eloquent\Relations\HasOne
-    {
-        return $this->hasOne(SiteIntegration::class);
-    }
-
     public function reviews(): HasMany
     {
         return $this->hasMany(ProductReview::class);
@@ -474,10 +469,5 @@ class PlatformProduct extends Model
         }
 
         return media_url(null, $this->hero_image, 'medium');
-    }
-
-    public function hasTutorialDetails(): bool
-    {
-        return filled($this->tutorial_url) || filled($this->tutorial_description);
     }
 }

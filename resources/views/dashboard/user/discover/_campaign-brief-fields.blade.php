@@ -3,13 +3,13 @@
 @endphp
 <div class="space-y-4">
     <div>
-        <p class="text-sm font-medium text-text-primary">What each agent does</p>
+        <p class="text-sm font-medium text-text-primary">What each unit includes</p>
         <ol class="mt-2 space-y-1 text-sm text-text-secondary list-decimal list-inside">
             @foreach($briefProfile->tasks() as $task)
                 <li>{{ $task->label() }}</li>
             @endforeach
         </ol>
-        <p class="mt-2 text-xs text-text-muted">Each unit is one new agent completing all tasks, in this order.</p>
+        <p class="mt-2 text-xs text-text-muted">Each unit is one campaign session that includes every step, in this order.</p>
     </div>
 
     @if($briefProfile->needsChannelUrl())
@@ -26,7 +26,7 @@
                 placeholder="https://www.youtube.com/@yourchannel"
                 class="mt-2 w-full rounded-lg border-border-default bg-elevated text-text-primary text-sm"
             >
-            <p class="mt-1 text-xs text-text-muted">The channel agents will subscribe to. The video above must be on this channel.</p>
+            <p class="mt-1 text-xs text-text-muted">The channel you want to promote. The video above must be on this channel.</p>
             @error('channel_url')
                 <p class="mt-1 text-xs text-danger">{{ $message }}</p>
             @enderror
@@ -48,7 +48,7 @@
                 class="mt-2 w-full rounded-lg border-border-default bg-elevated text-text-primary text-sm"
             >{{ $initialCommentInstructions ?? '' }}</textarea>
             <p class="mt-1 text-xs text-text-muted">
-                Tell agents what their comment should be about. Each agent writes their own comment in their own words.
+                Tell us what comments should focus on. Each comment is written in its own words.
                 @if($bindAlpine ?? true)
                     <span x-text="'(' + String(commentInstructions || '').length + ' / {{ \App\Services\Campaigns\CampaignBriefService::COMMENT_INSTRUCTIONS_MAX }})'"></span>
                 @endif
