@@ -23,10 +23,11 @@
             $logoUrl = $footer->logoLightUrl
                 ?? $footer->logoDarkUrl
                 ?? asset('assets/images/originla_logo.png');
+            $navHome = route('home');
+            $navServices = route('services');
             $navAbout = route('about');
+            $navHelp = route('help');
             $isAgentsPage = request()->routeIs('agents');
-            $loginUrl = $isAgentsPage ? route('agent-login') : route('login');
-            $getStartedUrl = $isAgentsPage ? route('agent-onboarding') : route('register');
         @endphp
         <title>{{ $resolvedTitle }}</title>
         <meta name="description" content="{{ $resolvedDescription }}">
@@ -57,26 +58,34 @@
                     </a>
 
                     @unless ($isAgentsPage)
-                        <nav class="hidden sm:flex items-center space-x-0.5 xl:space-x-1 text-[13px] xl:text-sm font-medium text-slate-600" aria-label="Main">
-                            <a class="px-2.5 xl:px-3 py-1.5 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('about') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navAbout }}">About Us</a>
-                        </nav>
+                    <nav class="hidden xl:flex items-center space-x-0.5 xl:space-x-1 text-[13px] xl:text-sm font-medium text-slate-600">
+                        <a class="px-2.5 xl:px-3 py-1.5 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('home') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navHome }}">Home</a>
+                        <a class="px-2.5 xl:px-3 py-1.5 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('services*') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navServices }}">Services</a>
+                        <a class="px-2.5 xl:px-3 py-1.5 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('about') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navAbout }}">About Us</a>
+                        <a class="px-2.5 xl:px-3 py-1.5 rounded-md hover:text-primary hover:bg-slate-50 transition-colors {{ request()->routeIs('help*') ? 'text-primary bg-slate-50 font-semibold' : '' }}" href="{{ $navHelp }}">Help Center</a>
+                    </nav>
                     @endunless
                 </div>
 
                 <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-                    @auth
-                        <a class="inline-flex text-[13px] lg:text-sm font-medium text-slate-700 hover:text-slate-950 px-3 py-1.5 rounded-lg transition-colors" href="{{ url(auth()->user()->homeRoute()) }}">Dashboard</a>
+                    @if ($isAgentsPage)
+                        <a class="inline-flex text-[13px] lg:text-sm font-medium text-slate-700 hover:text-slate-950 px-2 sm:px-3 py-1.5 rounded-lg transition-colors" href="{{ route('agent-login') }}">Log In</a>
+                        <a class="inline-flex items-center justify-center bg-primary hover:bg-primary-hover text-white text-[13px] lg:text-sm font-semibold px-3 sm:px-4 py-2 rounded-lg shadow-sm hover:shadow transition-all duration-150" href="{{ route('agent-onboarding') }}">
+                            Get Started
+                        </a>
                     @else
-                        <a class="inline-flex text-[13px] lg:text-sm font-medium text-slate-700 hover:text-slate-950 px-2 sm:px-3 py-1.5 rounded-lg transition-colors" href="{{ $loginUrl }}">Log In</a>
-                        <a class="inline-flex items-center justify-center bg-primary hover:bg-primary-hover text-white text-[13px] lg:text-sm font-semibold px-3 sm:px-4 py-2 rounded-lg shadow-sm hover:shadow transition-all duration-150" href="{{ $getStartedUrl }}">
+                    @auth
+                        <a class="hidden sm:inline-flex text-[13px] lg:text-sm font-medium text-slate-700 hover:text-slate-950 px-3 py-1.5 rounded-lg transition-colors" href="{{ url(auth()->user()->homeRoute()) }}">Dashboard</a>
+                    @else
+                        <a class="hidden sm:inline-flex text-[13px] lg:text-sm font-medium text-slate-700 hover:text-slate-950 px-3 py-1.5 rounded-lg transition-colors" href="{{ route('login') }}">Log In</a>
+                        <a class="hidden sm:inline-flex items-center justify-center bg-primary hover:bg-primary-hover text-white text-[13px] lg:text-sm font-semibold px-4 py-2 rounded-lg shadow-sm hover:shadow transition-all duration-150" href="{{ route('register') }}">
                             Get Started
                         </a>
                     @endauth
 
-                    @unless ($isAgentsPage)
                     <button
                         type="button"
-                        class="sm:hidden p-1.5 rounded-lg text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        class="xl:hidden p-1.5 rounded-lg text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                         @click="open = true"
                         :aria-expanded="open.toString()"
                         aria-controls="marketing-mobile-menu"
@@ -84,7 +93,7 @@
                     >
                         <x-ui.icon name="menu" class="w-6 h-6" />
                     </button>
-                    @endunless
+                    @endif
                 </div>
             </div>
         </header>
@@ -94,7 +103,7 @@
             id="marketing-mobile-menu"
             x-show="open"
             x-cloak
-            class="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:hidden"
+            class="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 xl:hidden"
             role="dialog"
             aria-modal="true"
             aria-label="Site menu"
@@ -140,8 +149,19 @@
 
                 <nav class="flex flex-col p-3 sm:p-4 overflow-y-auto overscroll-contain min-h-0 flex-1">
                     <div class="flex flex-col divide-y divide-slate-200/40">
+                        <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navHome }}" @click="close()">Home</a>
+                        <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navServices }}" @click="close()">Services</a>
                         <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navAbout }}" @click="close()">About Us</a>
+                        <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ $navHelp }}" @click="close()">Help Center</a>
+                        <a class="px-4 py-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50/80 hover:text-primary transition-colors" href="{{ route('contact') }}" @click="close()">Contact</a>
                     </div>
+
+                    @auth
+                        <a class="mt-4 px-4 py-3 rounded-xl text-sm font-bold text-center border border-slate-200 text-slate-800 hover:bg-slate-50 transition-colors" href="{{ url(auth()->user()->homeRoute()) }}" @click="close()">Dashboard</a>
+                    @else
+                        <a class="mt-4 px-4 py-3 rounded-xl text-sm font-medium text-center text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors" href="{{ route('login') }}" @click="close()">Log In</a>
+                        <a class="mt-2 px-4 py-3 rounded-xl bg-primary text-white text-sm font-bold text-center hover:bg-primary-hover transition-colors" href="{{ route('register') }}" @click="close()">Get Started</a>
+                    @endauth
                 </nav>
             </div>
         </div>
@@ -169,6 +189,7 @@
                         <h4 class="font-bold text-slate-900 text-sm tracking-wider uppercase mb-4 font-display">Platform</h4>
                         <ul class="space-y-2.5 text-sm text-slate-600">
                             <li><a class="hover:text-primary transition-colors" href="{{ route('home') }}">Home</a></li>
+                            <li><a class="hover:text-primary transition-colors" href="{{ route('services') }}">Services</a></li>
                             <li><a class="hover:text-primary transition-colors" href="{{ route('agents') }}">For Agents</a></li>
                             <li><a class="hover:text-primary transition-colors" href="{{ route('about') }}">About Us</a></li>
                         </ul>
@@ -189,10 +210,11 @@
 <li><a class="hover:text-primary transition-colors" href="{{ url(auth()->user()->homeRoute()) }}">Dashboard</a></li>
                         <li><a class="hover:text-primary transition-colors" href="{{ \App\Support\MemberShell::userRoute('support.create') }}">Open a ticket</a></li>
                             @else
-                                <li><a class="hover:text-primary transition-colors" href="{{ $loginUrl }}">Log In</a></li>
                                 @if ($isAgentsPage)
-                                    <li><a class="hover:text-primary transition-colors" href="{{ $getStartedUrl }}">Join as an Agent</a></li>
+                                    <li><a class="hover:text-primary transition-colors" href="{{ route('agent-login') }}">Log In</a></li>
+                                    <li><a class="hover:text-primary transition-colors" href="{{ route('agent-onboarding') }}">Join as an Agent</a></li>
                                 @else
+                                    <li><a class="hover:text-primary transition-colors" href="{{ route('login') }}">Log In</a></li>
                                     <li><a class="hover:text-primary transition-colors" href="{{ route('register') }}">Register</a></li>
                                     <li><a class="hover:text-primary transition-colors" href="{{ route('register') }}">Join as a Creator</a></li>
                                 @endif

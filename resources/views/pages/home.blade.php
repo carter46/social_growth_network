@@ -11,7 +11,7 @@
     $watchHoursHref = is_array($watchHours) && filled($watchHours['href'] ?? null)
         ? $watchHours['href']
         : '#youtube-services';
-    $campaignHref = route('dashboard.services');
+    $campaignHref = route('services');
     $promoteHref = is_array($watchHours) && filled($watchHours['href'] ?? null)
         ? $watchHours['href']
         : $campaignHref;

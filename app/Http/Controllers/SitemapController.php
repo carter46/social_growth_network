@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Modules\Catalog\Services\CatalogBrowseService;
 use App\Support\HelpContent;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Response;
@@ -13,6 +14,8 @@ use Throwable;
 
 class SitemapController extends Controller
 {
+    public function __construct(private CatalogBrowseService $browse) {}
+
     public function index(): Response
     {
         $urls = Cache::remember('sitemap.xml.v3', now()->addHour(), fn () => $this->buildUrls());
@@ -23,8 +26,6 @@ class SitemapController extends Controller
     }
 
     /**
-     * Only public marketing pages: service pages live behind login in the member dashboard.
-     *
      * @return list<array{loc: string, lastmod?: string, priority: string, changefreq: string}>
      */
     private function buildUrls(): array
@@ -37,6 +38,7 @@ class SitemapController extends Controller
             'agents' => ['priority' => '0.6', 'changefreq' => 'monthly'],
             'help' => ['priority' => '0.5', 'changefreq' => 'monthly'],
             'contact' => ['priority' => '0.5', 'changefreq' => 'monthly'],
+            'services' => ['priority' => '0.8', 'changefreq' => 'weekly'],
             'legal' => ['priority' => '0.3', 'changefreq' => 'yearly'],
         ];
 
@@ -44,6 +46,13 @@ class SitemapController extends Controller
             if (Route::has($name)) {
                 $this->push($urls, route($name), $meta);
             }
+        }
+
+        if (Route::has('services.type')) {
+            $this->push($urls, route('services.type', [
+                'category' => 'social-media',
+                'service' => 'social_service',
+            ]), ['priority' => '0.7', 'changefreq' => 'weekly']);
         }
 
         $this->push($urls, route('legal', ['doc' => 'terms']), ['priority' => '0.3', 'changefreq' => 'yearly']);
@@ -58,6 +67,24 @@ class SitemapController extends Controller
             }
         } catch (Throwable $e) {
             Log::warning('sitemap.help_failed', ['message' => $e->getMessage()]);
+        }
+
+        try {
+            foreach ($this->browse->groupSlugs() as $groupSlug) {
+                $this->push($urls, route('services.segment', $groupSlug), [
+                    'priority' => '0.7',
+                    'changefreq' => 'weekly',
+                ]);
+            }
+
+            foreach ($this->browse->typeKeys() as $typeKey) {
+                $this->push($urls, route('services.segment', $typeKey), [
+                    'priority' => '0.65',
+                    'changefreq' => 'weekly',
+                ]);
+            }
+        } catch (Throwable $e) {
+            Log::warning('sitemap.catalog_hierarchy_failed', ['message' => $e->getMessage()]);
         }
 
         return $urls;

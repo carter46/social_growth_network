@@ -140,13 +140,21 @@ class CatalogBrowseService
         return $this->groupForType($type) === $group;
     }
 
-    /** Member catalog listing for a service (product type). */
+    /** Canonical public URL for a service (product type) listing. */
     public function serviceListingUrl(string $serviceSlug, ?string $categorySlug = null): string
     {
-        return route('dashboard.services.browse', $serviceSlug);
+        $categorySlug ??= $this->groupForType($serviceSlug);
+        if ($categorySlug) {
+            return route('services.type', [
+                'category' => $categorySlug,
+                'service' => $serviceSlug,
+            ]);
+        }
+
+        return route('services.segment', $serviceSlug);
     }
 
-    /** Member catalog page for a product; guests are asked to log in first. */
+    /** Product details live in the member dashboard; guests are asked to log in first. */
     public function productUrl(PlatformProduct $product): string
     {
         return route('dashboard.services.product', $product->slug);
@@ -257,12 +265,13 @@ class CatalogBrowseService
         return collect(config('catalog.groups', []))->map(function (array $group, string $slug) use ($content) {
             $resolved = $content->forGroup($slug);
             $stats = $this->statsForTypes($group['types'] ?? []);
+            $routeName = $group['route'] ?? null;
 
             return array_merge($resolved, [
                 'slug' => $slug,
                 'count' => $stats['count'],
                 'from_price' => $stats['from_price'],
-                'href' => route('dashboard.services.browse', $slug),
+                'href' => $routeName ? route($routeName) : route('services.segment', $slug),
                 'cta' => $group['cta'] ?? 'Explore',
             ]);
         })->values();
@@ -282,7 +291,7 @@ class CatalogBrowseService
             'slug' => $category->slug,
             'count' => $stats['count'],
             'from_price' => $stats['from_price'],
-            'href' => route('dashboard.services.browse', $category->slug),
+            'href' => route('services.segment', $category->slug),
             'cta' => $category->cta_label ?: 'Explore',
             'mode' => $category->mode,
         ]);
@@ -309,7 +318,7 @@ class CatalogBrowseService
                         'slug' => $service->slug,
                         'count' => $stats['count'],
                         'from_price' => $stats['from_price'],
-                        'href' => route('dashboard.services.browse', $service->slug),
+                        'href' => route('services.segment', $service->slug),
                     ]);
                 })
                 ->values();

@@ -10,6 +10,7 @@ import { initDashboardPageLoader } from './dashboard-page-loader';
 import { assignAlpineHelpers, createCheckoutValidationHelpers } from './checkout-validation';
 import { registerAdminConnectionTest } from './admin-connection-test';
 import { registerManualBankPayment } from './manual-bank-payment';
+import { registerServicesMarketplace } from './services-marketplace';
 import { registerPackageConfigurator } from './package-configurator';
 import { copyToClipboard, copyFromAsync, copyFailedMessage } from './copy-to-clipboard';
 import Alpine from 'alpinejs';
@@ -33,6 +34,7 @@ document.addEventListener('alpine:init', () => {
     registerPullToRefresh(Alpine);
     registerAdminConnectionTest(Alpine);
     registerManualBankPayment(Alpine);
+    registerServicesMarketplace(Alpine);
     registerPackageConfigurator(Alpine);
 
     Alpine.data('toastStore', (initial = []) => ({

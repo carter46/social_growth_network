@@ -22,7 +22,7 @@
                     {{ $brandName }} runs YouTube promotion campaigns that help creators boost the visibility and reach of their videos and channels. Launch, manage and track every campaign from one place.
                 </p>
                 <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                    <a href="{{ route('dashboard.services') }}" class="inline-flex items-center justify-center px-6 py-3 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-sm transition-colors">
+                    <a href="{{ route('services') }}" class="inline-flex items-center justify-center px-6 py-3 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-sm transition-colors">
                         Start a campaign
                     </a>
                     <a href="{{ route('home') }}#how-it-works" class="inline-flex items-center justify-center px-6 py-3 bg-white text-slate-900 hover:bg-slate-50 font-semibold text-sm rounded-lg shadow-sm border border-slate-200 transition-colors">

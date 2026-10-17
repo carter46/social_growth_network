@@ -118,7 +118,7 @@ class HomeHeroTest extends TestCase
             ->assertOk()
             ->assertSee('Stay in control', false)
             ->assertSee('Ready to get your <span class="text-white">YouTube</span> videos seen?', false)
-            ->assertSee('href="'.route('dashboard.services').'"', false);
+            ->assertSee('href="'.route('services').'"', false);
     }
 
     public function test_creators_page_is_gone_and_redirects_home(): void
@@ -126,15 +126,17 @@ class HomeHeroTest extends TestCase
         $this->get('/creators')->assertStatus(301)->assertRedirect('/');
     }
 
-    public function test_header_shows_only_about_us_and_footer_links_agents(): void
+    public function test_header_keeps_menu_without_for_creators_and_footer_links_agents(): void
     {
         $html = $this->get(route('home'))->assertOk()->getContent();
 
         $header = substr($html, 0, (int) strpos($html, '<main'));
         $footer = substr($html, (int) strpos($html, '<footer'));
 
-        $this->assertStringContainsString('About Us', $header);
-        foreach (['>Services<', 'For Creators', 'For Agents', 'Help Center'] as $hidden) {
+        foreach (['>Home<', '>Services<', 'About Us', 'Help Center'] as $shown) {
+            $this->assertStringContainsString($shown, $header);
+        }
+        foreach (['For Creators', 'For Agents', 'href="'.route('agent-login').'"'] as $hidden) {
             $this->assertStringNotContainsString($hidden, $header);
         }
         $this->assertStringContainsString('href="'.route('login').'"', $header);
@@ -160,8 +162,9 @@ class HomeHeroTest extends TestCase
         $header = substr($html, 0, (int) strpos($html, '<main'));
         $main = $this->mainContent($html);
 
-        $this->assertStringNotContainsString('About Us', $header);
-        $this->assertStringNotContainsString('aria-label="Open menu"', $header);
+        foreach (['>Home<', '>Services<', 'About Us', 'Help Center', 'aria-label="Open menu"'] as $hidden) {
+            $this->assertStringNotContainsString($hidden, $header);
+        }
         $this->assertStringContainsString('href="'.route('agent-login').'"', $header);
         $this->assertStringContainsString('href="'.route('agent-onboarding').'"', $header);
         $this->assertStringNotContainsString('href="'.route('login').'"', $header);

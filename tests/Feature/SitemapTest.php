@@ -40,9 +40,9 @@ class SitemapTest extends TestCase
         $response->assertOk();
         $this->assertStringContainsString('application/xml', (string) $response->headers->get('Content-Type'));
         $response->assertSee(route('home'), false);
-        $response->assertSee(route('agents'), false);
-        $response->assertDontSee('/services', false);
+        $response->assertSee(route('services'), false);
         $response->assertDontSee('/creators', false);
+        $response->assertDontSee('/dashboard/', false);
         $response->assertSee('<?xml version="1.0"', false);
     }
 }

@@ -121,15 +121,32 @@ Route::redirect('/privacy', '/legal?doc=privacy')->name('privacy');
 Route::redirect('/developers/integrations', '/help', 301);
 Route::redirect('/developers/integrations/{path}', '/help', 301)->where('path', '.+');
 
-Route::redirect('/marketplace', '/dashboard/services', 301);
-Route::redirect('/marketplace/{path}', '/dashboard/services', 301)->where('path', '.+');
-Route::redirect('/exchange', '/dashboard/services', 301);
+Route::redirect('/marketplace', '/services', 301);
+Route::redirect('/marketplace/{path}', '/services', 301)->where('path', '.+');
+Route::redirect('/exchange', '/services', 301);
 Route::get('/robots.txt', RobotsController::class)->name('robots');
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 
-// Services have no public pages: old links go to the member catalog (guests are asked to log in first).
-Route::get('/services/{path?}', \App\Http\Controllers\LegacyServicePageRedirectController::class)
-    ->where('path', '[A-Za-z0-9\-_/]*');
+Route::get('/services', [\App\Modules\Catalog\Http\Controllers\ServiceController::class, 'index'])->name('services');
+// Legacy nested product: /services/{category}/{service}/{product} → 301 to Category→Product.
+Route::get('/services/{category}/{service}/{productSlug}', [\App\Modules\Catalog\Http\Controllers\ServiceController::class, 'nestedShow'])
+    ->where('category', '[a-z0-9\-_]+')
+    ->where('service', '[a-z0-9\-_]+')
+    ->where('productSlug', '[A-Za-z0-9\-_]+')
+    ->name('services.nested.show');
+// Two segments: canonical Category→Product (/services/{category}/{productSlug}) OR legacy type listing.
+// /services is a public path prefix only — ownership is service_category_id, not ProductType.
+Route::get('/services/{category}/{service}', [\App\Modules\Catalog\Http\Controllers\ServiceController::class, 'pair'])
+    ->where('category', '[a-z0-9\-_]+')
+    ->where('service', '[A-Za-z0-9\-_]+')
+    ->name('services.type');
+Route::get('/services/{type}/{productSlug}', [\App\Modules\Catalog\Http\Controllers\ServiceController::class, 'pair'])
+    ->where('type', '[a-z0-9\-_]+')
+    ->where('productSlug', '[A-Za-z0-9\-_]+')
+    ->name('services.show');
+// One segment: category slug (product listing), type key (legacy), or product slug (301)
+Route::get('/services/{segment}', [\App\Modules\Catalog\Http\Controllers\ServiceController::class, 'segment'])
+    ->name('services.segment');
 Route::post('/services/package/{slug}', [\App\Modules\Catalog\Http\Controllers\PackageConfiguratorController::class, 'configure'])
     ->where('slug', '[A-Za-z0-9\-_]+')
     ->middleware('throttle:20,1')

@@ -11,7 +11,7 @@ return [
     'printable' => true,
     'related' => ['getting-started', 'browsing-purchasing-services', 'billing-wallets-payments'],
     'platform_actions' => [
-        ['label' => 'Browse services', 'route' => 'dashboard.services'],
+        ['label' => 'Browse services', 'route' => 'services'],
         ['label' => 'Create account', 'route' => 'register'],
     ],
     'sections' => [
