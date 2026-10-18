@@ -18,7 +18,7 @@ class SitemapController extends Controller
 
     public function index(): Response
     {
-        $urls = Cache::remember('sitemap.xml.v3', now()->addHour(), fn () => $this->buildUrls());
+        $urls = Cache::remember('sitemap.xml.v4', now()->addHour(), fn () => $this->buildUrls());
 
         return response()
             ->view('sitemap', ['urls' => $urls])
@@ -35,7 +35,6 @@ class SitemapController extends Controller
         $staticRoutes = [
             'home' => ['priority' => '1.0', 'changefreq' => 'daily'],
             'about' => ['priority' => '0.5', 'changefreq' => 'monthly'],
-            'agents' => ['priority' => '0.6', 'changefreq' => 'monthly'],
             'help' => ['priority' => '0.5', 'changefreq' => 'monthly'],
             'contact' => ['priority' => '0.5', 'changefreq' => 'monthly'],
             'services' => ['priority' => '0.8', 'changefreq' => 'weekly'],

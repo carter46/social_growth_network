@@ -9,12 +9,15 @@
     $prefix = $prefix ?: ($isAdmin ? 'admin' : 'dashboard');
     $prefix = \Illuminate\Support\Str::before($prefix, '.account');
     $items = [
-        ['page' => 'profile', 'label' => 'Profile', 'icon' => 'user'],
-        ['page' => 'security', 'label' => 'Security', 'icon' => 'lock'],
-        ['page' => 'notifications', 'label' => 'Notifications', 'icon' => 'notifications'],
-        ['page' => 'preferences', 'label' => 'Preferences', 'icon' => 'tune'],
-        ['page' => 'sessions', 'label' => 'Sessions', 'icon' => 'monitoring'],
+        ['href' => route($prefix.'.account.profile'), 'label' => 'Profile', 'icon' => 'user'],
+        ['href' => route($prefix.'.account.security'), 'label' => 'Security', 'icon' => 'lock'],
     ];
+    if (! $isAdmin && \Illuminate\Support\Facades\Route::has($prefix.'.youtube-channel.show') && \App\Services\Campaigns\YoutubeIdentityService::enabled()) {
+        $items[] = ['href' => route($prefix.'.youtube-channel.show'), 'label' => 'YouTube channel', 'icon' => 'verified'];
+    }
+    $items[] = ['href' => route($prefix.'.account.notifications'), 'label' => 'Notifications', 'icon' => 'notifications'];
+    $items[] = ['href' => route($prefix.'.account.preferences'), 'label' => 'Preferences', 'icon' => 'tune'];
+    $items[] = ['href' => route($prefix.'.account.sessions'), 'label' => 'Sessions', 'icon' => 'monitoring'];
 @endphp
 
 <div class="relative" x-data="accountMenu" data-account-menu>
@@ -57,7 +60,7 @@
     >
         @foreach ($items as $item)
             <a
-                href="{{ route($prefix.'.account.'.$item['page']) }}"
+                href="{{ $item['href'] }}"
                 class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-muted/60 hover:text-text-primary focus-ring"
                 role="menuitem"
                 @click="close()"

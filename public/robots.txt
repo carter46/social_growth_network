@@ -5,10 +5,11 @@ Disallow: /dashboard
 Disallow: /admin
 Disallow: /api
 Disallow: /login
-Disallow: /agent-login
 Disallow: /register
-Disallow: /agent-onboarding
 Disallow: /checkout
+
+# /agents, /agent-login and /agent-onboarding are kept out of search with a noindex header.
+# Do not Disallow them here: blocked pages can't be crawled, so the noindex would never be seen.
 
 # Prefer dynamic robots via RobotsController when routed; keep sitemap relative to APP_URL in production.
 Sitemap: /sitemap.xml

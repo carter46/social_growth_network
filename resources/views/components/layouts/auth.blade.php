@@ -13,6 +13,9 @@
     @include('partials.site-currency-meta')
 
     <title>{{ $title ?? ('Sign in | '.config('app.name')) }}</title>
+    @if (request()->attributes->get('noindex'))
+        <meta name="robots" content="{{ \App\Http\Middleware\NoIndex::VALUE }}">
+    @endif
     @include('partials.branding.head-icons')
     @include('partials.branding.social-meta')
 

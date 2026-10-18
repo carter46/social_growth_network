@@ -22,9 +22,11 @@ Route::middleware('guest')->group(function () {
         ->middleware('throttle:60,1')
         ->name('register.username-check');
 
-    Route::match(['get', 'post'], 'register/agent', [RegisteredUserController::class, 'redirectToAgentOnboarding']);
+    Route::match(['get', 'post'], 'register/agent', [RegisteredUserController::class, 'redirectToAgentOnboarding'])
+        ->middleware('noindex');
 
     Route::get('agent-onboarding', [AgentOnboardingController::class, 'create'])
+        ->middleware('noindex')
         ->name('agent-onboarding');
 
     Route::post('agent-onboarding', [AgentOnboardingController::class, 'store'])
@@ -38,6 +40,7 @@ Route::middleware('guest')->group(function () {
         ->middleware('throttle:5,1');
 
     Route::get('agent-login', [AuthenticatedSessionController::class, 'createAgent'])
+        ->middleware('noindex')
         ->name('agent-login');
 
     Route::post('auth/google', [GoogleAuthController::class, 'store'])

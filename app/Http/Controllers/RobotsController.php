@@ -10,6 +10,8 @@ class RobotsController extends Controller
     {
         $sitemap = rtrim((string) config('app.url'), '/').'/sitemap.xml';
 
+        // Agent pages are kept out of search with a noindex header instead of Disallow:
+        // a blocked page can't be crawled, so search engines would never see the noindex.
         $body = implode("\n", [
             'User-agent: *',
             'Allow: /',
@@ -18,9 +20,7 @@ class RobotsController extends Controller
             'Disallow: /admin',
             'Disallow: /api',
             'Disallow: /login',
-            'Disallow: /agent-login',
             'Disallow: /register',
-            'Disallow: /agent-onboarding',
             'Disallow: /checkout',
             '',
             'Sitemap: '.$sitemap,

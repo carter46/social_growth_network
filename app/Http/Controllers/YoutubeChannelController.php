@@ -33,7 +33,9 @@ class YoutubeChannelController extends Controller
         $prefix = $this->prefix($user);
         $missing = $request->session()->get('youtube_channel_missing');
 
-        return view('youtube-channel.show', [
+        $view = $request->headers->get('X-Dashboard-Tab') === '1' ? 'youtube-channel.panel' : 'youtube-channel.show';
+
+        return view($view, [
             'layout' => $prefix === 'agent' ? 'layouts.dashboard-agent' : 'layouts.dashboard-user',
             'prefix' => $prefix,
             'isAgent' => $prefix === 'agent',

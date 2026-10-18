@@ -31,7 +31,11 @@
         @endphp
         <title>{{ $resolvedTitle }}</title>
         <meta name="description" content="{{ $resolvedDescription }}">
-        <link rel="canonical" href="{{ url()->current() }}">
+        @if (request()->attributes->get('noindex'))
+            <meta name="robots" content="{{ \App\Http\Middleware\NoIndex::VALUE }}">
+        @else
+            <link rel="canonical" href="{{ url()->current() }}">
+        @endif
         @include('partials.branding.social-meta', [
             'ogTitleOverride' => $resolvedOgTitle,
             'ogDescriptionOverride' => $resolvedOgDescription,
@@ -190,7 +194,6 @@
                         <ul class="space-y-2.5 text-sm text-slate-600">
                             <li><a class="hover:text-primary transition-colors" href="{{ route('home') }}">Home</a></li>
                             <li><a class="hover:text-primary transition-colors" href="{{ route('services') }}">Services</a></li>
-                            <li><a class="hover:text-primary transition-colors" href="{{ route('agents') }}">For Agents</a></li>
                             <li><a class="hover:text-primary transition-colors" href="{{ route('about') }}">About Us</a></li>
                         </ul>
                     </div>

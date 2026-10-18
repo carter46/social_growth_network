@@ -61,7 +61,7 @@ Route::get('/agents', function (
     return view('pages.agents', [
         'marketplaceTasks' => $browse->agentsMarketplacePreviewCards(3),
     ]);
-})->name('agents');
+})->middleware('noindex')->name('agents');
 Route::get('/help', function () {
     return view('pages.help', [
         'categories' => config('help.categories', []),

@@ -224,12 +224,29 @@ class YoutubeChannelConnectionTest extends TestCase
             ->assertSee(route('agent.youtube-channel.show'), false);
     }
 
-    public function test_agent_sidebar_links_to_the_channel_page(): void
+    public function test_channel_page_lives_in_settings_and_the_profile_menu_not_the_sidebar(): void
     {
-        $this->actingAs($this->agent())
-            ->get(route('agent'))
-            ->assertOk()
-            ->assertSee(route('agent.youtube-channel.show'), false);
+        foreach (['agent' => $this->agent(), 'dashboard' => $this->creator()] as $prefix => $user) {
+            $channelUrl = route($prefix.'.youtube-channel.show');
+
+            $html = $this->actingAs($user)->get(route($prefix.'.account.profile'))->assertOk()->getContent();
+            $this->assertStringContainsString('data-tab-id="youtube-channel"', $html);
+            $menu = substr($html, (int) strpos($html, 'data-account-menu'));
+            $this->assertStringContainsString('href="'.$channelUrl.'"', $menu);
+
+            $sidebar = (array) config('menus.'.($prefix === 'agent' ? 'agent' : 'dashboard'));
+            $this->assertNotContains('youtube-channel', array_column($sidebar, 'id'));
+
+            $this->actingAs($user)->get($channelUrl)
+                ->assertOk()
+                ->assertSee('data-tab-id="youtube-channel"', false)
+                ->assertSee('id="dashboard-tab-panel"', false);
+
+            $panel = $this->actingAs($user)->withHeaders(['X-Dashboard-Tab' => '1'])->get($channelUrl)->assertOk()->getContent();
+            $this->assertStringNotContainsString('<html', $panel);
+            $this->assertStringContainsString('Connect your channel', $panel);
+            $this->flushHeaders();
+        }
     }
 
     public function test_the_legacy_agent_callback_still_works(): void
@@ -658,14 +675,6 @@ class YoutubeChannelConnectionTest extends TestCase
             ->assertJsonCount(1, 'videos');
 
         $this->actingAs($this->agent())->getJson(route('dashboard.youtube-channel.videos'))->assertForbidden();
-    }
-
-    public function test_creator_sidebar_links_to_the_channel_page(): void
-    {
-        $this->actingAs($this->creator())
-            ->get(route('dashboard.campaigns'))
-            ->assertOk()
-            ->assertSee(route('dashboard.youtube-channel.show'), false);
     }
 
     public function test_product_page_offers_the_picker_when_connected_and_a_hint_when_not(): void

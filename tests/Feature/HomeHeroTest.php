@@ -141,7 +141,8 @@ class HomeHeroTest extends TestCase
         }
         $this->assertStringContainsString('href="'.route('login').'"', $header);
         $this->assertStringContainsString('href="'.route('register').'"', $header);
-        $this->assertStringContainsString('href="'.route('agents').'"', $footer);
+        $this->assertStringNotContainsString('href="'.route('agents').'"', $footer);
+        $this->assertStringNotContainsString('For Agents', $footer);
         $this->assertStringNotContainsString('For Creators', $footer);
         $this->assertStringNotContainsString('Join as an Agent', $footer);
     }

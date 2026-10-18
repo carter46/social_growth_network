@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->alias([
             'not_suspended' => EnsureNotSuspended::class,
+            'noindex' => \App\Http\Middleware\NoIndex::class,
             'has_wallet' => \App\Http\Middleware\EnsureHasWallet::class,
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
