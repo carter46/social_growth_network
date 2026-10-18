@@ -75,7 +75,10 @@ class AccountRegistration
 
         Auth::login($user);
 
-        OtpVerificationController::createAndSendOtp($user);
+        // Laravel's Registered listener already emails a code; a second one would make the first email's code fail.
+        if (! OtpVerificationController::hasRecentCode($user)) {
+            OtpVerificationController::createAndSendOtp($user);
+        }
 
         return redirect()->route('verification.notice');
     }

@@ -17,6 +17,9 @@
     <title>{{ $pageTitle }}</title>
 </head>
 <body style="margin:0;padding:0;background:#f4f6f8;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#111827;">
+@hasSection('preheader')
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">@yield('preheader')</div>
+@endif
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f6f8;padding:24px 12px;">
     <tr>
         <td align="center">

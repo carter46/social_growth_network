@@ -65,7 +65,7 @@ class EmailService
             to: [['email' => $to]],
             subject: $subject,
             htmlContent: $html ? $body : null,
-            textContent: $html ? strip_tags($body) : $body,
+            textContent: $html ? \App\Support\Email\HtmlToText::convert($body) : $body,
             profile: $profile,
             tags: ['transactional'],
         ));
@@ -83,7 +83,7 @@ class EmailService
             to: [['email' => $to]],
             subject: $subject,
             htmlContent: $html,
-            textContent: $text,
+            textContent: $text ?? \App\Support\Email\HtmlToText::convert($html),
             templateKey: $templateKey,
             profile: $profile,
             tags: $templateKey ? [$templateKey] : ['transactional'],
@@ -260,7 +260,7 @@ class EmailService
         }
 
         $email->htmlContent = View::make($view, $email->params)->render();
-        $email->textContent = trim(strip_tags($email->htmlContent));
+        $email->textContent = \App\Support\Email\HtmlToText::convert($email->htmlContent);
     }
 
     private function bumpDailyUsage(IntegrationProvider $row): void

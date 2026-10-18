@@ -144,6 +144,8 @@ class AppServiceProvider extends ServiceProvider
             'layouts.marketing',
             'layouts.auth',
             'components.layouts.auth',
+            'components.layouts.onboarding',
+            'dashboard.agent.onboarding',
             'auth.login',
             'auth.register',
             'auth.forgot-password',

@@ -9,9 +9,10 @@ use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 /**
- * Email clients (especially Gmail) mishandle WebP logos: the image proxy converts
- * WebP to JPEG and fills transparency with black. Prefer PNG/JPEG variants, or
- * materialize a cached PNG from WebP when that is all we have.
+ * Logo for email headers. Emails point at a dedicated route (/email-assets/logo) that
+ * streams the bytes itself, so the image still loads when the public/storage symlink
+ * is missing on shared hosting. Email clients (especially Gmail) mishandle WebP, so
+ * only PNG/JPEG/GIF is served; WebP-only uploads are converted to a cached PNG.
  */
 class EmailLogoResolver
 {
@@ -31,23 +32,69 @@ class EmailLogoResolver
         'thumb',
     ];
 
+    private const STATIC_FALLBACKS = [
+        'logo.png',
+        'assets/images/originla_logo.png',
+    ];
+
     public function absoluteUrl(?int $mediaId): ?string
     {
-        if (! $mediaId) {
-            return $this->staticFallbackUrl();
+        if ($this->logo($mediaId) === null) {
+            return null;
         }
 
-        $asset = MediaAsset::query()->with('variants')->find($mediaId);
-        if (! $asset) {
-            return $this->staticFallbackUrl();
+        $asset = $mediaId ? MediaAsset::query()->find($mediaId) : null;
+        $version = $asset ? $asset->id.'-'.($asset->updated_at?->timestamp ?? 0) : 'static';
+
+        return $this->baseUrl().route('email.logo', ['v' => $version], false);
+    }
+
+    /**
+     * @return array{bytes: string, mime: string}|null
+     */
+    public function logo(?int $mediaId): ?array
+    {
+        $asset = $mediaId ? MediaAsset::query()->with('variants')->find($mediaId) : null;
+
+        if ($asset) {
+            $safe = $this->firstEmailSafeVariant($asset);
+            if ($safe && ($bytes = $this->readFromDisk($asset->disk, (string) $safe->path)) !== null) {
+                return ['bytes' => $bytes, 'mime' => $this->normalizeMime((string) $safe->mime)];
+            }
+
+            if (($png = $this->pngFromWebp($asset)) !== null) {
+                return ['bytes' => $png, 'mime' => 'image/png'];
+            }
         }
 
-        $safe = $this->firstEmailSafeVariant($asset);
-        if ($safe) {
-            return absolute_url($asset->url($safe->key)) ?? $this->staticFallbackUrl();
+        foreach (self::STATIC_FALLBACKS as $relative) {
+            $path = public_path($relative);
+            if (is_file($path) && ($bytes = @file_get_contents($path)) !== false && $bytes !== '') {
+                return ['bytes' => $bytes, 'mime' => 'image/png'];
+            }
         }
 
-        return $this->materializePngFromWebp($asset) ?? $this->staticFallbackUrl();
+        return null;
+    }
+
+    /**
+     * APP_URL is used when it is a real public address; a local APP_URL (localhost, 127.0.0.1)
+     * would give every inbox a broken image, so the current request host is used instead.
+     */
+    private function baseUrl(): string
+    {
+        $configured = rtrim((string) config('app.url'), '/');
+        $host = strtolower((string) parse_url($configured, PHP_URL_HOST));
+        $isLocal = $host === '' || in_array($host, ['localhost', '127.0.0.1', '::1'], true) || str_ends_with($host, '.test');
+
+        if ($isLocal && ! app()->runningInConsole() && request()->getHost() !== '') {
+            $requestHost = strtolower(request()->getHost());
+            if (! in_array($requestHost, ['localhost', '127.0.0.1', '::1'], true)) {
+                return rtrim(request()->getSchemeAndHttpHost(), '/');
+            }
+        }
+
+        return $configured;
     }
 
     private function firstEmailSafeVariant(MediaAsset $asset): ?MediaVariant
@@ -71,7 +118,33 @@ class EmailLogoResolver
         return in_array(strtolower(trim($mime)), self::EMAIL_SAFE_MIMES, true);
     }
 
-    private function materializePngFromWebp(MediaAsset $asset): ?string
+    private function normalizeMime(string $mime): string
+    {
+        $mime = strtolower(trim($mime));
+
+        return $mime === 'image/jpg' ? 'image/jpeg' : $mime;
+    }
+
+    private function readFromDisk(string $disk, string $path): ?string
+    {
+        if ($path === '') {
+            return null;
+        }
+
+        try {
+            $storage = Storage::disk($disk);
+            if (! $storage->exists($path)) {
+                return null;
+            }
+            $bytes = $storage->get($path);
+
+            return is_string($bytes) && $bytes !== '' ? $bytes : null;
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    private function pngFromWebp(MediaAsset $asset): ?string
     {
         $webp = $asset->variants->first(
             fn (MediaVariant $variant) => str_contains(strtolower((string) $variant->mime), 'webp')
@@ -82,30 +155,22 @@ class EmailLogoResolver
             return null;
         }
 
-        $disk = Storage::disk($asset->disk);
         $cacheRel = 'media/email-safe/'.$asset->uuid.'.png';
 
         try {
-            if (! $disk->exists($cacheRel)) {
-                if (! $disk->exists($webp->path)) {
-                    return null;
-                }
-
-                $png = $this->convertBinaryToPng($disk->get($webp->path));
-                if ($png === null) {
-                    return null;
-                }
-
-                $disk->put($cacheRel, $png);
+            if (($cached = $this->readFromDisk($asset->disk, $cacheRel)) !== null) {
+                return $cached;
             }
 
-            if ($asset->disk === 'public') {
-                return absolute_url('/storage/'.ltrim($cacheRel, '/'));
+            $source = $this->readFromDisk($asset->disk, (string) $webp->path);
+            $png = $source !== null ? $this->convertBinaryToPng($source) : null;
+            if ($png === null) {
+                return null;
             }
 
-            $url = $disk->url($cacheRel);
+            Storage::disk($asset->disk)->put($cacheRel, $png);
 
-            return absolute_url(is_string($url) ? $url : null);
+            return $png;
         } catch (Throwable $e) {
             Log::warning('email.logo_webp_to_png_failed', [
                 'media_id' => $asset->id,
@@ -116,9 +181,9 @@ class EmailLogoResolver
         }
     }
 
-    private function convertBinaryToPng(?string $binary): ?string
+    private function convertBinaryToPng(string $binary): ?string
     {
-        if (! extension_loaded('gd') || ! is_string($binary) || $binary === '') {
+        if (! extension_loaded('gd')) {
             return null;
         }
 
@@ -149,14 +214,5 @@ class EmailLogoResolver
         @unlink($tmp);
 
         return is_string($png) && $png !== '' ? $png : null;
-    }
-
-    private function staticFallbackUrl(): ?string
-    {
-        if (is_file(public_path('logo.png'))) {
-            return absolute_url('/logo.png');
-        }
-
-        return null;
     }
 }

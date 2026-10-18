@@ -82,6 +82,27 @@ class AgentOnboardingTest extends TestCase
             ->assertDontSee('data-channel-banner-reset', false);
     }
 
+    public function test_onboarding_is_a_focused_page_with_a_step_timeline(): void
+    {
+        $agent = User::factory()->agent()->create();
+
+        $this->actingAs($agent)
+            ->get(route('agent.onboarding'))
+            ->assertOk()
+            ->assertSee('aria-label="Onboarding steps"', false)
+            ->assertSeeInOrder(['Create your account', 'Verify your email', 'Connect your YouTube channel', 'Pick your first task'])
+            ->assertSee('Sign out')
+            ->assertDontSee('data-dashboard-sidebar', false)
+            ->assertDontSee('<aside', false);
+    }
+
+    public function test_registration_sends_a_single_verification_code(): void
+    {
+        $agent = $this->registerAgent();
+
+        $this->assertSame(1, DB::table('email_verification_codes')->where('user_id', $agent->id)->count());
+    }
+
     public function test_agent_with_a_verified_channel_continues_to_the_marketplace(): void
     {
         $agent = User::factory()->agent()->create();
@@ -90,7 +111,7 @@ class AgentOnboardingTest extends TestCase
         $this->actingAs($agent)
             ->get(route('agent.onboarding'))
             ->assertOk()
-            ->assertSee('Continue')
+            ->assertSee('Browse open tasks')
             ->assertSee(route('agent.marketplace'), false)
             ->assertDontSee('Skip for now');
 

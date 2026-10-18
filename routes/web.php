@@ -124,6 +124,7 @@ Route::redirect('/developers/integrations/{path}', '/help', 301)->where('path', 
 Route::redirect('/marketplace', '/services', 301);
 Route::redirect('/marketplace/{path}', '/services', 301)->where('path', '.+');
 Route::redirect('/exchange', '/services', 301);
+Route::get('/email-assets/logo', \App\Http\Controllers\EmailLogoController::class)->name('email.logo');
 Route::get('/robots.txt', RobotsController::class)->name('robots');
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 

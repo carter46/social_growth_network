@@ -25,7 +25,7 @@ class OtpVerificationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Verify your email - ' . config('app.name'),
+            subject: 'Your '.app(\App\Services\Branding\SiteBrandingRepository::class)->siteName().' verification code',
         );
     }
 

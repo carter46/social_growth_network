@@ -21,6 +21,17 @@ class OtpVerificationController extends Controller
     private const EXPIRY_MINUTES = 15;
     private const MAX_ATTEMPTS = 5;
 
+    private const ACCEPTED_RECENT_CODES = 3;
+
+    public static function hasRecentCode(\App\Models\User $user, int $seconds = 60): bool
+    {
+        return DB::table('email_verification_codes')
+            ->where('user_id', $user->id)
+            ->where('created_at', '>=', now()->subSeconds($seconds))
+            ->where('expires_at', '>', now())
+            ->exists();
+    }
+
     /**
      * Show the OTP verification form.
      */
@@ -38,6 +49,7 @@ class OtpVerificationController extends Controller
      */
     public function verify(Request $request): RedirectResponse
     {
+        $request->merge(['otp' => preg_replace('/\D/', '', (string) $request->input('otp'))]);
         $request->validate([
             'otp' => ['required', 'string', 'size:6'],
         ]);
@@ -47,12 +59,16 @@ class OtpVerificationController extends Controller
             return redirect()->intended($user->homeRoute());
         }
 
-        $otp = $request->input('otp');
-        $row = DB::table('email_verification_codes')
+        $otp = (string) $request->input('otp');
+        // Any recent unexpired code is accepted, so an email that arrives late or out of order still works after a resend.
+        $rows = DB::table('email_verification_codes')
             ->where('user_id', $user->id)
             ->where('expires_at', '>', now())
             ->orderByDesc('created_at')
-            ->first();
+            ->orderByDesc('id')
+            ->limit(self::ACCEPTED_RECENT_CODES)
+            ->get();
+        $row = $rows->first();
 
         if (! $row) {
             Log::warning('OTP verification failed: expired or missing code', [
@@ -77,7 +93,9 @@ class OtpVerificationController extends Controller
             ]);
         }
 
-        if (! Hash::check($otp, $row->code_hash)) {
+        $matched = $rows->contains(fn ($candidate) => Hash::check($otp, $candidate->code_hash));
+
+        if (! $matched) {
             DB::table('email_verification_codes')
                 ->where('id', $row->id)
                 ->increment('attempts');

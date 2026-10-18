@@ -10,9 +10,18 @@
         </div>
         <h2 class="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Verify your email</h2>
         <p class="mt-2 text-sm sm:text-base text-slate-500">
-            We’ve sent a 6-digit code to your email. Enter it below to activate your account.
+            We’ve sent a 6-digit code to <span class="font-semibold text-slate-700">{{ auth()->user()?->email }}</span>. Enter it below to activate your account.
+        </p>
+        <p class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Can’t find it? Check your Spam or Junk folder. If it’s there, mark it as “Not spam” so our next emails reach your inbox.
         </p>
     </header>
+
+    @if (in_array(session('status'), ['verification-otp-sent', 'verification-link-sent'], true))
+        <div class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">
+            A new code is on its way. It can take a minute to arrive.
+        </div>
+    @endif
 
     <form action="{{ route('verification.verify') }}" method="POST" class="space-y-6" id="otp-form" x-data="{ submitting: false }" @submit="submitting = true">
         @csrf
@@ -58,10 +67,25 @@
                 }
 
                 updateCombined();
+                function fillFrom(start, digits) {
+                    digits.split('').forEach((char, j) => {
+                        if (inputs[start + j]) inputs[start + j].value = char;
+                    });
+                    updateCombined();
+                    const last = Math.min(start + digits.length, inputs.length) - 1;
+                    if (inputs[last]) inputs[last].focus();
+                }
+
                 inputs.forEach((input, i) => {
+                    input.removeAttribute('maxlength');
                     input.addEventListener('input', function () {
                         const v = this.value.replace(/\D/g, '');
-                        this.value = v.slice(-1);
+                        if (v.length > 1) {
+                            // Phone/browser autofill drops the whole code into one box.
+                            fillFrom(i, v.slice(0, inputs.length - i));
+                            return;
+                        }
+                        this.value = v;
                         updateCombined();
                         if (v && i < inputs.length - 1) inputs[i + 1].focus();
                     });
@@ -73,13 +97,7 @@
                     input.addEventListener('paste', function (e) {
                         e.preventDefault();
                         const pasted = (e.clipboardData?.getData('text') || '').replace(/\D/g, '').slice(0, 6);
-                        pasted.split('').forEach((char, j) => {
-                            if (inputs[j]) inputs[j].value = char;
-                        });
-                        updateCombined();
-                        if (inputs[Math.min(pasted.length, inputs.length) - 1]) {
-                            inputs[Math.min(pasted.length, inputs.length) - 1].focus();
-                        }
+                        fillFrom(0, pasted);
                     });
                 });
 
