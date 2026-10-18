@@ -42,6 +42,7 @@ class YoutubeChannelController extends Controller
             'oauthEnabled' => YoutubeIdentityService::oauthEnabled(),
             'returnTo' => $this->safeReturn($user, $request->query('return')),
             'channelMissing' => in_array($missing, ['oauth', 'link'], true) ? $missing : false,
+            'justConnected' => (bool) $request->session()->get('youtube_channel_connected', false),
         ]);
     }
 
@@ -212,9 +213,7 @@ class YoutubeChannelController extends Controller
             return $back->with('error', __('We could not connect your YouTube channel right now. Please try again.'));
         }
 
-        $message = __('Your YouTube channel is connected and verified.');
-
-        return $returnTo ? redirect()->to($returnTo)->with('status', $message) : $back->with('status', $message);
+        return $back->with('youtube_channel_connected', true);
     }
 
     public function oauthDisconnect(Request $request): RedirectResponse
@@ -250,13 +249,11 @@ class YoutubeChannelController extends Controller
         }
 
         $return = $this->safeReturn($request->user(), $return);
-        if ($identity->isVerified() && $return) {
-            return redirect()->to($return)->with('status', $message);
-        }
+        $redirect = redirect()->route($this->prefix($request->user()).'.youtube-channel.show', $return ? ['return' => $return] : []);
 
-        return redirect()
-            ->route($this->prefix($request->user()).'.youtube-channel.show', $return ? ['return' => $return] : [])
-            ->with('status', $message);
+        return $identity->isVerified()
+            ? $redirect->with('youtube_channel_connected', true)
+            : $redirect->with('status', $message);
     }
 
     private function fail(Request $request, string $message, bool $missingChannelHelp = false): RedirectResponse|JsonResponse

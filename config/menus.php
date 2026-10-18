@@ -118,6 +118,16 @@ return [
         ],
         [
             'type' => 'link',
+            'id' => 'youtube-channel',
+            'label' => 'YouTube Channel',
+            'route' => 'agent.youtube-channel.show',
+            'match' => ['agent.youtube-channel.*'],
+            'icon' => 'verified',
+            'keywords' => ['youtube', 'channel', 'connect', 'disconnect'],
+            'sort' => 40,
+        ],
+        [
+            'type' => 'link',
             'id' => 'referrals',
             'label' => 'Referrals',
             'route' => 'agent.referrals',

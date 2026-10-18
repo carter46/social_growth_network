@@ -70,11 +70,25 @@
                                     <x-ui.button :href="route('agent')" variant="ghost" size="lg">Skip for now</x-ui.button>
                                 </div>
                             @else
-                                <p class="text-sm text-slate-600">
-                                    Connected: <span class="font-semibold text-slate-900">{{ $identity->title ?: $identity->handle }}</span>
-                                </p>
-                                <div class="mt-4">
+                                <div class="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3" data-onboarding-channel>
+                                    @if ($identity->thumbnail_url)
+                                        <img src="{{ $identity->thumbnail_url }}" alt="" class="h-12 w-12 shrink-0 rounded-full object-cover" referrerpolicy="no-referrer">
+                                    @else
+                                        <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                                            <x-ui.icon name="check" class="h-5 w-5" />
+                                        </span>
+                                    @endif
+                                    <div class="min-w-0">
+                                        <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Channel connected</p>
+                                        <p class="truncate font-semibold text-slate-900">{{ $identity->title ?: 'Your channel' }}</p>
+                                        @if ($identity->handle)
+                                            <p class="truncate text-sm text-slate-500">{{ $identity->handle }}</p>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex flex-col gap-2 sm:flex-row">
                                     <x-ui.button :href="route('agent.marketplace')" size="lg">Browse open tasks</x-ui.button>
+                                    <x-ui.button :href="route('agent.youtube-channel.show')" variant="ghost" size="lg">Manage channel</x-ui.button>
                                 </div>
                             @endif
                         </div>

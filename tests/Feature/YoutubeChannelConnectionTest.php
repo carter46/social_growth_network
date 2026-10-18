@@ -142,11 +142,68 @@ class YoutubeChannelConnectionTest extends TestCase
 
         $this->oauthReturn($agent)
             ->assertRedirect(route('agent.youtube-channel.show'))
-            ->assertSessionHas('status');
+            ->assertSessionHas('youtube_channel_connected', true);
 
         $identity = app(YoutubeIdentityService::class)->verified($agent);
         $this->assertSame(self::CHANNEL, $identity?->channel_id);
         $this->assertSame(AgentYoutubeIdentity::METHOD_OAUTH, $identity->method);
+    }
+
+    public function test_after_connecting_the_channel_page_shows_the_channel_and_next_step(): void
+    {
+        $this->enableOAuth();
+        $agent = $this->agent();
+        $this->oauthChannels = [$this->channelItem()];
+
+        $this->oauthReturn($agent, 'youtube.oauth.callback', ['state' => 's', 'code' => 'abc'])
+            ->assertRedirect(route('agent.youtube-channel.show'));
+
+        $this->actingAs($agent)
+            ->withSession(['youtube_channel_connected' => true])
+            ->get(route('agent.youtube-channel.show'))
+            ->assertOk()
+            ->assertSee('data-youtube-just-connected', false)
+            ->assertSee('Your YouTube channel is connected')
+            ->assertSee('data-youtube-connected-card', false)
+            ->assertSee('My channel')
+            ->assertSee('@mychannel')
+            ->assertSee('Connected with Google')
+            ->assertSee('https://www.youtube.com/channel/'.self::CHANNEL, false)
+            ->assertSee(route('agent.marketplace'), false)
+            ->assertSee('Remove Google access');
+    }
+
+    public function test_connecting_from_onboarding_keeps_the_way_back(): void
+    {
+        $this->enableOAuth();
+        $agent = $this->agent();
+        $this->oauthChannels = [$this->channelItem()];
+
+        $this->actingAs($agent)->get(route('agent.youtube-channel.oauth', ['return' => '/agent/onboarding']));
+        $state = session('youtube_oauth_state');
+
+        $this->get(route('youtube.oauth.callback', ['state' => $state, 'code' => 'abc']))
+            ->assertRedirect(route('agent.youtube-channel.show', ['return' => '/agent/onboarding']));
+
+        $this->actingAs($agent)
+            ->withSession(['youtube_channel_connected' => true])
+            ->get(route('agent.youtube-channel.show', ['return' => '/agent/onboarding']))
+            ->assertSee('/agent/onboarding', false)
+            ->assertSee('Continue');
+
+        $this->actingAs($agent)->get(route('agent.onboarding'))
+            ->assertOk()
+            ->assertSee('data-onboarding-channel', false)
+            ->assertSee('Channel connected')
+            ->assertSee(route('agent.youtube-channel.show'), false);
+    }
+
+    public function test_agent_sidebar_links_to_the_channel_page(): void
+    {
+        $this->actingAs($this->agent())
+            ->get(route('agent'))
+            ->assertOk()
+            ->assertSee(route('agent.youtube-channel.show'), false);
     }
 
     public function test_the_legacy_agent_callback_still_works(): void
@@ -155,7 +212,7 @@ class YoutubeChannelConnectionTest extends TestCase
         $agent = $this->agent();
         $this->oauthChannels = [$this->channelItem()];
 
-        $this->oauthReturn($agent, 'agent.youtube-channel.oauth.callback')->assertSessionHas('status');
+        $this->oauthReturn($agent, 'agent.youtube-channel.oauth.callback')->assertSessionHas('youtube_channel_connected', true);
 
         $this->assertNotNull(app(YoutubeIdentityService::class)->verified($agent));
     }
@@ -281,7 +338,7 @@ class YoutubeChannelConnectionTest extends TestCase
         $this->oauthReturn($agent)->assertSessionHas('youtube_channel_missing', 'oauth');
 
         $this->oauthChannels = [$this->channelItem()];
-        $this->oauthReturn($agent)->assertSessionHas('status');
+        $this->oauthReturn($agent)->assertSessionHas('youtube_channel_connected', true);
 
         $this->assertNotNull(app(YoutubeIdentityService::class)->verified($agent));
     }
@@ -441,7 +498,7 @@ class YoutubeChannelConnectionTest extends TestCase
         $pending = app(YoutubeIdentityService::class)->begin($agent, 'https://www.youtube.com/channel/'.self::CHANNEL);
 
         $this->oauthChannels = [$this->channelItem()];
-        $this->oauthReturn($agent)->assertSessionHas('status');
+        $this->oauthReturn($agent)->assertSessionHas('youtube_channel_connected', true);
 
         $this->assertSame(AgentYoutubeIdentity::STATUS_REPLACED, $pending->fresh()->status);
         $this->assertSame(1, AgentYoutubeIdentity::query()->where('user_id', $agent->id)->whereIn('status', ['verified', 'pending'])->count());
@@ -510,7 +567,9 @@ class YoutubeChannelConnectionTest extends TestCase
         $this->assertTrue($identity->isPending());
 
         $this->description = $identity->verification_code;
-        $this->actingAs($creator)->post(route('dashboard.youtube-channel.check'))->assertSessionHas('status', 'Your YouTube channel is connected.');
+        $this->actingAs($creator)->post(route('dashboard.youtube-channel.check'))
+            ->assertRedirect(route('dashboard.youtube-channel.show'))
+            ->assertSessionHas('youtube_channel_connected', true);
     }
 
     public function test_videos_route_returns_only_the_creators_own_uploads(): void

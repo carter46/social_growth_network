@@ -52,15 +52,7 @@
     @endif
 
     @if ($status === 'verified')
-        <div class="flex items-center gap-3 rounded-xl border border-success/30 bg-success/10 px-4 py-3">
-            @if ($identity->thumbnail_url)
-                <img src="{{ $identity->thumbnail_url }}" alt="" class="h-10 w-10 rounded-full">
-            @endif
-            <div class="min-w-0">
-                <p class="font-semibold text-text-primary">{{ $identity->title ?: 'Your channel' }}</p>
-                <p class="text-xs text-text-muted">{{ $identity->handle }} · Verified {{ $identity->verified_at?->diffForHumans() }}</p>
-            </div>
-        </div>
+        @include('partials.youtube-channel.connected-card', ['identity' => $identity])
     @elseif ($status === 'pending')
         <div class="space-y-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3">
             <p class="font-semibold text-text-primary">Pending verification{{ $identity->title ? ': '.$identity->title : '' }}</p>
