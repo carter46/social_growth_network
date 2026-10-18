@@ -86,7 +86,7 @@ class UserManagementController extends Controller
             ->with('status', __('User created.'));
     }
 
-    public function index(Request $request): View
+    public function index(Request $request): View|\Illuminate\Http\JsonResponse
     {
         $status = $request->string('status')->toString() ?: 'active';
         if (! in_array($status, ['active', 'suspended'], true)) {
@@ -104,21 +104,53 @@ class UserManagementController extends Controller
             default => null,
         };
 
+        $search = trim($request->string('q')->toString());
+
         $base = User::query()
             ->role($roleName ? [$roleName] : ['user', 'agent'])
-            ->notAnonymized();
+            ->notAnonymized()
+            ->when($search !== '', function ($q) use ($search) {
+                // Partial matches so results narrow while the admin is still typing.
+                $like = '%'.addcslashes($search, '\\%_').'%';
+                $q->where(fn ($inner) => $inner
+                    ->where('name', 'like', $like)
+                    ->orWhere('email', 'like', $like)
+                    ->orWhere('username', 'like', $like));
+            });
+
+        if ($request->headers->get('X-Users-Suggest') === '1') {
+            if ($search === '') {
+                return response()->json(['data' => []]);
+            }
+
+            $suggestions = (clone $base)
+                ->with('roles')
+                ->orderByRaw('CASE WHEN name LIKE ? THEN 0 ELSE 1 END', [addcslashes($search, '\\%_').'%'])
+                ->orderByDesc('created_at')
+                ->limit(5)
+                ->get()
+                ->map(fn (User $u) => [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'email' => $u->email,
+                    'roles' => array_values(array_filter([
+                        $u->hasRole('user') ? 'Creator' : null,
+                        $u->hasRole('agent') ? 'Agent' : null,
+                    ])),
+                    'suspended' => (bool) $u->is_suspended,
+                    'url' => route('admin.users.show', $u),
+                ]);
+
+            return response()->json(['data' => $suggestions]);
+        }
 
         $activeCount = (clone $base)->where('is_suspended', false)->count();
         $suspendedCount = (clone $base)->where('is_suspended', true)->count();
 
-        $search = trim($request->string('q')->toString());
-
-        $users = User::query()
-            ->role($roleName ? [$roleName] : ['user', 'agent'])
-            ->notAnonymized()
+        $users = (clone $base)
             ->when($status === 'suspended', fn ($q) => $q->where('is_suspended', true))
             ->when($status === 'active', fn ($q) => $q->where('is_suspended', false))
-            ->when($search !== '', fn ($q) => \App\Support\Search::apply($q, $search))
+            ->with('roles')
             ->orderByDesc('created_at')
             ->paginate(50)
             ->withQueryString();
@@ -134,6 +166,10 @@ class UserManagementController extends Controller
 
         if ($this->wantsTabPartial($request)) {
             return view('dashboard.admin.users._table', $data);
+        }
+
+        if ($request->headers->get('X-Users-Live') === '1') {
+            return view('dashboard.admin.users._results', $data);
         }
 
         return view('dashboard.admin.users', $data);

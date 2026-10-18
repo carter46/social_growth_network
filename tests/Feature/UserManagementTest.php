@@ -23,6 +23,71 @@ class UserManagementTest extends TestCase
             ->assertDontSee($admin->email);
     }
 
+    public function test_users_table_shows_role_badges_and_join_date_under_email(): void
+    {
+        $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
+        $creator = User::factory()->creator()->create(['name' => 'Casey Creator', 'email' => 'casey@example.com']);
+        $agent = User::factory()->agent()->create(['name' => 'Avery Agent', 'email' => 'avery@example.com']);
+
+        $html = $this->actingAs($admin)->get(route('admin.users'))->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression('/Casey Creator\s*<\/a>\s*<div[^>]*>\s*<span[^>]*>\s*Creator\s*<\/span>/', $html);
+        $this->assertMatchesRegularExpression('/Avery Agent\s*<\/a>\s*<div[^>]*>\s*<span[^>]*>\s*Agent\s*<\/span>/', $html);
+        $this->assertMatchesRegularExpression('/casey@example\.com<\/div>\s*<div[^>]*>Joined /', $html);
+        $this->assertStringNotContainsString('>Search</button>', $html);
+        $this->assertStringContainsString('id="users-results"', $html);
+    }
+
+    public function test_live_filter_returns_results_fragment_with_partial_search_and_role(): void
+    {
+        $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
+        User::factory()->creator()->create(['name' => 'Jordan Creator', 'email' => 'jordan@example.com']);
+        User::factory()->agent()->create(['name' => 'Jordan Agent', 'email' => 'jagent@example.com']);
+        User::factory()->creator()->create(['name' => 'Morgan Other', 'email' => 'morgan@example.com']);
+
+        $response = $this->actingAs($admin)
+            ->withHeaders(['X-Users-Live' => '1'])
+            ->get(route('admin.users', ['q' => 'jor', 'role' => 'agent']))
+            ->assertOk();
+
+        $response->assertSee('id="dashboard-tab-panel"', false)
+            ->assertDontSee('<html', false)
+            ->assertSee('Jordan Agent')
+            ->assertDontSee('Jordan Creator')
+            ->assertDontSee('Morgan Other')
+            ->assertSee('q=jor', false);
+    }
+
+    public function test_search_suggestions_return_at_most_five_matches_with_roles(): void
+    {
+        $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
+        foreach (range(1, 7) as $i) {
+            User::factory()->creator()->create(['name' => 'Taylor '.$i, 'email' => "taylor{$i}@example.com"]);
+        }
+        User::factory()->agent()->create(['name' => 'Taylor Agent', 'email' => 'tagent@example.com']);
+        User::factory()->creator()->create(['name' => 'Someone Else', 'email' => 'else@example.com']);
+
+        $data = $this->actingAs($admin)
+            ->withHeaders(['X-Users-Suggest' => '1'])
+            ->getJson(route('admin.users', ['q' => 'tay']))
+            ->assertOk()
+            ->json('data');
+
+        $this->assertCount(5, $data);
+        foreach ($data as $row) {
+            $this->assertStringStartsWith('Taylor', $row['name']);
+            $this->assertNotEmpty($row['roles']);
+            $this->assertStringContainsString('/admin/users/', $row['url']);
+        }
+
+        $agents = $this->actingAs($admin)
+            ->withHeaders(['X-Users-Suggest' => '1'])
+            ->getJson(route('admin.users', ['q' => 'tay', 'role' => 'agent']))
+            ->json('data');
+        $this->assertSame(['Taylor Agent'], array_column($agents, 'name'));
+        $this->assertSame(['Agent'], $agents[0]['roles']);
+    }
+
     public function test_suspended_tab_lists_suspended_users(): void
     {
         $admin = User::factory()->admin()->create(['email_verified_at' => now()]);

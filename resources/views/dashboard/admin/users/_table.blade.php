@@ -54,11 +54,21 @@
                         <a href="{{ route('admin.users.show', $u) }}" class="font-medium text-text-primary hover:text-primary focus-ring rounded">
                             {{ $u->name }}
                         </a>
-                        <div class="text-xs text-text-muted mt-0.5">Joined {{ $u->created_at->format('j M Y') }}</div>
+                        <div class="mt-1 flex flex-wrap gap-1">
+                            @if ($u->hasRole('user'))
+                                <x-dashboard.badge status="info">Creator</x-dashboard.badge>
+                            @endif
+                            @if ($u->hasRole('agent'))
+                                <x-dashboard.badge status="warning">Agent</x-dashboard.badge>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </x-dashboard.td>
-            <x-dashboard.td class="text-text-secondary">{{ $u->email }}</x-dashboard.td>
+            <x-dashboard.td>
+                <div class="text-text-secondary">{{ $u->email }}</div>
+                <div class="text-xs text-text-muted mt-0.5">Joined {{ $u->created_at->format('j M Y') }}</div>
+            </x-dashboard.td>
             <x-dashboard.td>
                 <x-dashboard.badge :status="$u->is_suspended ? 'suspended' : 'active'" />
             </x-dashboard.td>
