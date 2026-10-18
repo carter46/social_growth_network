@@ -1226,9 +1226,21 @@ document.addEventListener('alpine:init', () => {
         usernameRequestId: 0,
         submitting: false,
         init() {
-            if (this.username) {
+            if (this.looksAutofilled(this.username)) {
+                this.resetAutofilledUsername();
+            } else if (this.username) {
                 this.checkUsername(true);
             }
+            this.$watch('username', (value) => {
+                if (this.looksAutofilled(value)) {
+                    this.resetAutofilledUsername();
+                }
+            });
+            this.$watch('email', () => {
+                if (this.looksAutofilled(this.username)) {
+                    this.resetAutofilledUsername();
+                }
+            });
         },
         queueUsernameCheck() {
             clearTimeout(this.usernameTimer);
@@ -1307,8 +1319,34 @@ document.addEventListener('alpine:init', () => {
                 .replace(/_+/g, '_')
                 .slice(0, 30);
         },
+        looksAutofilled(value) {
+            const v = String(value || '').trim().toLowerCase();
+            const email = String(this.email || '').trim().toLowerCase();
+            return v.includes('@') || (email !== '' && v === email);
+        },
+        onUsernameInput(event) {
+            // Browsers often push the saved login email into this field; usernames never contain "@",
+            // so treat that as autofill and go back to the name-based suggestion.
+            if (this.looksAutofilled(this.username)) {
+                this.resetAutofilledUsername();
+                return;
+            }
+            const inputType = event?.inputType || '';
+            if (inputType !== '' && inputType !== 'insertReplacementText') {
+                this.usernameTouched = true;
+            }
+            this.queueUsernameCheck();
+        },
+        resetAutofilledUsername() {
+            this.usernameTouched = false;
+            this.usernameBase = '';
+            this.username = '';
+            this.usernameStatus = '';
+            this.usernameMessage = '';
+            this.syncUsernameFromName();
+        },
         syncUsernameFromName() {
-            if (this.usernameTouched) {
+            if (this.usernameTouched && ! this.looksAutofilled(this.username)) {
                 return;
             }
             const generated = this.slugifyUsername(this.name);
