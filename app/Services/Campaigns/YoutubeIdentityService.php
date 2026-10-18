@@ -372,6 +372,13 @@ class YoutubeIdentityService
 
         if ($previous) {
             $this->audit(null, 'youtube_identity.unlinked', $previous);
+            $channel = $previous->title ?: ($previous->handle ?: 'Your YouTube channel');
+            $this->notify($previous, 'youtube_identity.disconnected', 'YouTube channel disconnected',
+                $channel.' was disconnected from your account. '
+                .($user->isAgent()
+                    ? 'Connect a channel again before you start your next YouTube task. '
+                    : 'You can connect a channel again at any time. ')
+                .'If you didn\'t do this, change your password and contact our support team.');
         }
     }
 
@@ -504,6 +511,15 @@ class YoutubeIdentityService
         ])->save();
 
         $this->audit($admin->id, 'youtube_identity.rejected', $identity, ['reason' => $reason]);
+
+        $channel = $identity->title ?: ($identity->handle ?: 'your YouTube channel');
+        $this->notify($identity, 'youtube_identity.rejected',
+            $wasVerified ? 'YouTube channel disconnected' : 'YouTube channel not approved',
+            ($wasVerified
+                ? 'Our team disconnected '.$channel.' from your account.'
+                : 'Our team could not approve '.$channel.'.')
+            .' Reason: '.$reason.' You can connect a channel you own from your YouTube channel page.');
+
         if ($wasVerified) {
             $this->warnAboutOpenTasks($identity);
         }

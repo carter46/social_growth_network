@@ -19,6 +19,7 @@ class UserManagementController extends Controller
     public function __construct(
         private AuditLogService $audit,
         private WalletProvisioningService $walletProvisioning,
+        private \App\Services\Notifications\AccountStatusNotifier $accountStatus,
     ) {}
 
     public function create(): View
@@ -419,12 +420,17 @@ class UserManagementController extends Controller
             return back()->with('error', __('This account has been permanently deleted.'));
         }
 
+        $wasSuspended = (bool) $user->is_suspended;
         $user->suspend(auth()->id());
 
         $this->audit->log(auth()->id(), 'user.suspended', $user, null, [
             'user_id' => $user->id,
             'is_suspended' => true,
         ], $request->ip());
+
+        if (! $wasSuspended) {
+            $this->accountStatus->suspended($user);
+        }
 
         return back()->with('status', __('User suspended.'));
     }
@@ -437,12 +443,17 @@ class UserManagementController extends Controller
             return back()->with('error', __('Anonymized accounts cannot be restored.'));
         }
 
+        $wasSuspended = (bool) $user->is_suspended;
         $user->restoreAccess();
 
         $this->audit->log(auth()->id(), 'user.restored', $user, null, [
             'user_id' => $user->id,
             'is_suspended' => false,
         ], $request->ip());
+
+        if ($wasSuspended) {
+            $this->accountStatus->restored($user);
+        }
 
         return back()->with('status', __('User restored.'));
     }
@@ -513,6 +524,7 @@ class UserManagementController extends Controller
                 'is_suspended' => true,
                 'bulk' => true,
             ], $request->ip());
+            $this->accountStatus->suspended($user);
             $suspended++;
         }
 
@@ -550,6 +562,7 @@ class UserManagementController extends Controller
                 'is_suspended' => false,
                 'bulk' => true,
             ], $request->ip());
+            $this->accountStatus->restored($user);
             $restored++;
         }
 

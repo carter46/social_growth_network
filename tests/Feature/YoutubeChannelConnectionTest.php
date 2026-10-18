@@ -542,6 +542,30 @@ class YoutubeChannelConnectionTest extends TestCase
         $this->assertSame(self::OTHER_CHANNEL, app(YoutubeIdentityService::class)->current($agent)->channel_id);
     }
 
+    public function test_disconnecting_or_an_admin_revoke_emails_the_person(): void
+    {
+        $subjects = [];
+        $mock = \Mockery::mock(\App\Services\Communications\Email\EmailService::class);
+        $mock->shouldReceive('sendMailableHtml')->andReturnUsing(function (...$args) use (&$subjects) {
+            $subjects[] = [$args['to'] ?? $args[0] ?? '', $args['subject'] ?? $args[1] ?? ''];
+
+            return \App\Services\Communications\Email\SendResult::ok('test', 'msg');
+        });
+        $this->app->instance(\App\Services\Communications\Email\EmailService::class, $mock);
+
+        $creator = User::factory()->creator()->create(['email' => 'creator@example.com']);
+        $this->linkVerifiedYoutubeChannel($creator, self::CHANNEL);
+        $this->actingAs($creator)->post(route('dashboard.youtube-channel.unlink'));
+        $this->assertContains(['creator@example.com', 'YouTube channel disconnected'], $subjects);
+        $this->assertTrue(\App\Models\UserNotification::query()->where('user_id', $creator->id)->where('type', 'youtube_identity.disconnected')->exists());
+
+        $agent = User::factory()->agent()->kycApproved()->create(['email' => 'agent@example.com']);
+        $identity = $this->linkVerifiedYoutubeChannel($agent, self::OTHER_CHANNEL);
+        $admin = User::factory()->admin()->create();
+        app(YoutubeIdentityService::class)->adminReject($identity, $admin, 'This channel belongs to someone else.');
+        $this->assertContains(['agent@example.com', 'YouTube channel disconnected'], $subjects);
+    }
+
     public function test_an_agent_with_open_tasks_cannot_disconnect(): void
     {
         $this->seed(\Database\Seeders\PlatformCatalogSeeder::class);

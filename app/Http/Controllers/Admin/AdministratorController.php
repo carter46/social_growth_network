@@ -150,11 +150,16 @@ class AdministratorController extends Controller
             return back()->with('error', __('Cannot suspend the last administrator with admins.manage.'));
         }
 
+        $wasSuspended = (bool) $administrator->is_suspended;
         $administrator->suspend(auth()->id());
 
         $this->audit->log(auth()->id(), 'administrator.suspended', $administrator, null, [
             'user_id' => $administrator->id,
         ], $request->ip());
+
+        if (! $wasSuspended) {
+            app(\App\Services\Notifications\AccountStatusNotifier::class)->suspended($administrator);
+        }
 
         return back()->with('status', __('Administrator suspended.'));
     }
@@ -163,11 +168,16 @@ class AdministratorController extends Controller
     {
         abort_unless($administrator->hasRole('admin'), 404);
 
+        $wasSuspended = (bool) $administrator->is_suspended;
         $administrator->restoreAccess();
 
         $this->audit->log(auth()->id(), 'administrator.restored', $administrator, null, [
             'user_id' => $administrator->id,
         ], $request->ip());
+
+        if ($wasSuspended) {
+            app(\App\Services\Notifications\AccountStatusNotifier::class)->restored($administrator);
+        }
 
         return back()->with('status', __('Administrator restored.'));
     }
