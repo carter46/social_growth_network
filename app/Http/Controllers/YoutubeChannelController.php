@@ -16,7 +16,7 @@ use Illuminate\View\View;
 
 /**
  * YouTube channel connection for Agents (required for YouTube tasks) and Creators (optional).
- * Both roles share the same identity records and rules; only agents use change requests.
+ * Both roles share the same identity records and rules. Agents cannot disconnect while a task is open.
  */
 class YoutubeChannelController extends Controller
 {
@@ -43,6 +43,7 @@ class YoutubeChannelController extends Controller
             'returnTo' => $this->safeReturn($user, $request->query('return')),
             'channelMissing' => in_array($missing, ['oauth', 'link'], true) ? $missing : false,
             'justConnected' => (bool) $request->session()->get('youtube_channel_connected', false),
+            'openTasks' => $prefix === 'agent' ? $this->identities->openTaskCount($user->id) : 0,
         ]);
     }
 
@@ -125,11 +126,14 @@ class YoutubeChannelController extends Controller
 
     public function unlink(Request $request): RedirectResponse
     {
-        abort_if($request->user()->isAgent(), 404);
-        $this->identities->unlink($request->user());
+        try {
+            $this->identities->unlink($request->user());
+        } catch (\InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
-        return redirect()->route('dashboard.youtube-channel.show')
-            ->with('status', __('Your YouTube channel is disconnected. You can connect a channel again at any time.'));
+        return redirect()->route($this->prefix($request->user()).'.youtube-channel.show')
+            ->with('status', __('Your YouTube channel is disconnected. You can connect the right channel now.'));
     }
 
     /** Recent public uploads of the creator's own verified channel, for the checkout picker. */
@@ -220,7 +224,9 @@ class YoutubeChannelController extends Controller
     {
         $this->identities->disconnectOAuth($request->user());
 
-        return back()->with('status', __('Google access removed. Your channel stays linked; checks now use public data only.'));
+        return back()->with('status', $request->user()->isAgent()
+            ? __('Google access removed. Your channel is still connected, and your tasks are now checked using public YouTube data.')
+            : __('Google access removed. Your channel is still connected. To remove the channel too, choose Disconnect channel.'));
     }
 
     private function oauthMessage(string $outcome): string

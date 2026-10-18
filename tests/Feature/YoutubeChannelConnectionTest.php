@@ -167,10 +167,36 @@ class YoutubeChannelConnectionTest extends TestCase
             ->assertSee('data-youtube-connected-card', false)
             ->assertSee('My channel')
             ->assertSee('@mychannel')
-            ->assertSee('Connected with Google')
+            ->assertSee('Verified with Google (read-only access)')
             ->assertSee('https://www.youtube.com/channel/'.self::CHANNEL, false)
             ->assertSee(route('agent.marketplace'), false)
             ->assertSee('Remove Google access');
+
+        $this->actingAs($agent)->post(route('agent.youtube-channel.oauth.disconnect'))
+            ->assertSessionHas('status', fn ($m) => str_contains($m, 'still connected'));
+
+        $this->actingAs($agent)->get(route('agent.youtube-channel.show'))
+            ->assertSee('Google access removed')
+            ->assertSee('data-youtube-connected-card', false)
+            ->assertDontSee('Remove Google access')
+            ->assertSee('data-youtube-grant-access', false)
+            ->assertSee('Give Google access again');
+
+        $this->oauthReturn($agent)->assertSessionHas('youtube_channel_connected', true);
+        $identity = app(YoutubeIdentityService::class)->verified($agent);
+        $this->assertNotNull($identity->oauth_token);
+        $this->assertSame(1, AgentYoutubeIdentity::query()->where('user_id', $agent->id)->count());
+    }
+
+    public function test_granting_google_access_with_a_different_channel_is_refused(): void
+    {
+        $this->enableOAuth();
+        $agent = $this->agent();
+        $this->linkVerifiedYoutubeChannel($agent, self::CHANNEL);
+        $this->oauthChannels = [$this->channelItem(self::OTHER_CHANNEL)];
+
+        $this->oauthReturn($agent)->assertSessionHas('error', fn ($m) => str_contains($m, 'different channel'));
+        $this->assertSame(self::CHANNEL, app(YoutubeIdentityService::class)->verified($agent)->channel_id);
     }
 
     public function test_connecting_from_onboarding_keeps_the_way_back(): void
@@ -478,17 +504,59 @@ class YoutubeChannelConnectionTest extends TestCase
         $this->assertSame(AgentYoutubeIdentity::STATUS_VERIFIED, $identities->check($pending)->status);
     }
 
-    public function test_agents_cannot_unlink_and_still_use_change_requests(): void
+    public function test_an_agent_can_disconnect_a_wrong_channel_and_connect_the_right_one(): void
     {
         $agent = $this->agent();
         $this->linkVerifiedYoutubeChannel($agent, self::CHANNEL);
 
-        $this->actingAs($agent)->post(route('dashboard.youtube-channel.unlink'))->assertForbidden();
+        $this->actingAs($agent)->get(route('agent.youtube-channel.show'))
+            ->assertSee('Wrong channel or want to change it?')
+            ->assertSee(route('agent.youtube-channel.unlink'), false)
+            ->assertDontSee('Request change');
+
+        $this->actingAs($agent)->post(route('agent.youtube-channel.unlink'))
+            ->assertRedirect(route('agent.youtube-channel.show'))
+            ->assertSessionHas('status');
+        $this->assertNull(app(YoutubeIdentityService::class)->verified($agent));
 
         $this->actingAs($agent)
-            ->post(route('agent.youtube-channel.change'), ['channel_url' => 'https://www.youtube.com/channel/'.self::OTHER_CHANNEL])
-            ->assertSessionHas('status');
-        $this->assertTrue(AgentYoutubeIdentity::query()->where('user_id', $agent->id)->where('status', AgentYoutubeIdentity::STATUS_CHANGE_REQUESTED)->exists());
+            ->post(route('agent.youtube-channel.store'), ['channel_url' => 'https://www.youtube.com/channel/'.self::OTHER_CHANNEL])
+            ->assertRedirect(route('agent.youtube-channel.show'));
+        $this->assertSame(self::OTHER_CHANNEL, app(YoutubeIdentityService::class)->current($agent)->channel_id);
+    }
+
+    public function test_an_agent_with_open_tasks_cannot_disconnect(): void
+    {
+        $this->seed(\Database\Seeders\PlatformCatalogSeeder::class);
+        $agent = $this->agent();
+        $this->linkVerifiedYoutubeChannel($agent, self::CHANNEL);
+        $product = \App\Models\PlatformProduct::query()->where('slug', 'youtube-likes')->firstOrFail();
+        $campaign = \App\Models\Campaign::query()->create([
+            'creator_id' => $this->creator()->id,
+            'platform_product_id' => $product->id,
+            'title' => 'Likes campaign',
+            'target_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            'quantity' => 5,
+            'completed_count' => 0,
+            'locked_creator_price' => 0,
+            'locked_agent_reward' => 0,
+            'status' => \App\Models\Campaign::STATUS_ACTIVE,
+        ]);
+        \App\Models\CampaignParticipation::query()->create([
+            'campaign_id' => $campaign->id,
+            'agent_id' => $agent->id,
+            'status' => \App\Models\CampaignParticipation::STATUS_STARTED,
+            'started_at' => now(),
+            'reward_amount' => 0,
+        ]);
+
+        $this->actingAs($agent)->get(route('agent.youtube-channel.show'))
+            ->assertSee('data-youtube-unlink-blocked', false)
+            ->assertSee(route('agent.tasks.active'), false);
+
+        $this->actingAs($agent)->post(route('agent.youtube-channel.unlink'))
+            ->assertSessionHas('error', fn ($m) => str_contains($m, 'finish or cancel'));
+        $this->assertSame(self::CHANNEL, app(YoutubeIdentityService::class)->verified($agent)?->channel_id);
     }
 
     public function test_switching_from_the_code_method_to_google_does_not_leave_duplicates(): void

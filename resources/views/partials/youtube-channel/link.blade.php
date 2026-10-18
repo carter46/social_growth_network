@@ -40,10 +40,14 @@
         },
     }" x-on:youtube-show-paste.window="showPaste = true; $nextTick(() => $refs.channelUrl?.focus())">
     <p class="text-text-secondary">
-        @if ($isAgent)
-            Linking your channel lets us check your YouTube tasks automatically. It does not give us access to your account.
+        @if ($status === 'verified')
+            {{ $isAgent
+                ? 'Your YouTube tasks are checked against this channel.'
+                : 'We use this channel to fill in your channel and videos when you set up campaigns.' }}
+        @elseif ($isAgent)
+            Linking your channel lets us check your YouTube tasks automatically. We can never post, comment or change anything on your channel.
         @else
-            Connecting your channel helps us identify your channel and videos when you set up campaigns. It's optional and does not give us access to your account.
+            Connecting your channel helps us identify your channel and videos when you set up campaigns. It's optional, and we can never post, comment or change anything on your channel.
         @endif
     </p>
 

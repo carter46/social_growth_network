@@ -371,6 +371,7 @@ Route::middleware(['auth', 'verified', 'role:agent'])->prefix('agent')->name('ag
         Route::post('/check', 'check')->middleware('throttle:10,1')->name('.check');
         Route::post('/retry', 'retry')->middleware('throttle:5,1')->name('.retry');
         Route::post('/change', 'requestChange')->middleware('throttle:5,1')->name('.change');
+        Route::post('/unlink', 'unlink')->middleware('throttle:5,1')->name('.unlink');
         Route::get('/oauth', 'oauthRedirect')->middleware('throttle:10,1')->name('.oauth');
         // Legacy redirect URI, still registered in Google Cloud Console for older setups.
         Route::get('/oauth/callback', 'oauthCallback')->name('.oauth.callback');

@@ -4,7 +4,7 @@
         ? 'https://www.youtube.com/channel/'.$identity->channel_id
         : $identity->channel_url;
     $methodLabel = match ($identity->method) {
-        'oauth' => 'Connected with Google',
+        'oauth' => filled($identity->oauth_token) ? 'Verified with Google (read-only access)' : 'Verified with Google · Google access removed',
         'admin' => 'Approved by our team',
         default => 'Verified with a description code',
     };

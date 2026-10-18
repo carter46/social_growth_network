@@ -168,9 +168,7 @@ class YoutubeIdentityService
             User::query()->whereKey($agent->id)->lockForUpdate()->first();
 
             if ($this->verified($agent)) {
-                throw new InvalidArgumentException($agent->isAgent()
-                    ? 'Your channel is already verified. To use a different channel, send a change request.'
-                    : 'Your channel is already connected. Disconnect it first to connect a different one.');
+                throw new InvalidArgumentException('Your channel is already connected. Disconnect it first to connect a different one.');
             }
 
             $this->assertChannelFree($agent, $preview['id']);
@@ -291,9 +289,7 @@ class YoutubeIdentityService
 
             $verified = $this->verified($agent);
             if ($verified && $verified->channel_id !== $channel['id']) {
-                throw new InvalidArgumentException($agent->isAgent()
-                    ? 'Your account is already linked to a different channel. Send a change request to switch.'
-                    : 'Your account is already connected to a different channel. Disconnect it first to switch.');
+                throw new InvalidArgumentException('Your account is already connected to a different channel. Disconnect it first to switch.');
             }
 
             if ($verified) {
@@ -335,17 +331,28 @@ class YoutubeIdentityService
             ->update(['oauth_token' => null]);
     }
 
-    /** Creators only: drop the linked channel (no admin step) so another one can be connected. */
-    public function unlink(User $creator): void
+    /**
+     * Drop the linked channel so another one can be connected. Agents cannot do this while a task
+     * that is checked against the channel is still open.
+     */
+    public function unlink(User $user): void
     {
-        if ($creator->isAgent()) {
-            throw new InvalidArgumentException('Agents change channels through a change request.');
+        if ($user->isAgent()) {
+            $open = $this->openTaskCount($user->id);
+            if ($open > 0) {
+                throw new InvalidArgumentException(trans_choice(
+                    '{1} You have 1 YouTube task in progress or awaiting review. It is checked against this channel, so finish or cancel it before disconnecting.|[2,*] You have :count YouTube tasks in progress or awaiting review. They are checked against this channel, so finish or cancel them before disconnecting.',
+                    $open,
+                    ['count' => $open],
+                ));
+            }
         }
 
-        $this->revokeStoredTokens($creator);
+        $previous = $this->verified($user);
+        $this->revokeStoredTokens($user);
 
         AgentYoutubeIdentity::query()
-            ->where('user_id', $creator->id)
+            ->where('user_id', $user->id)
             ->whereIn('status', [
                 AgentYoutubeIdentity::STATUS_VERIFIED,
                 AgentYoutubeIdentity::STATUS_PENDING,
@@ -357,6 +364,28 @@ class YoutubeIdentityService
                 'oauth_token' => null,
                 'updated_at' => now(),
             ]);
+
+        AgentYoutubeIdentity::query()
+            ->where('user_id', $user->id)
+            ->where('status', AgentYoutubeIdentity::STATUS_CHANGE_REQUESTED)
+            ->update(['status' => AgentYoutubeIdentity::STATUS_REJECTED, 'failure_reason' => 'Withdrawn: the channel was disconnected.', 'updated_at' => now()]);
+
+        if ($previous) {
+            $this->audit(null, 'youtube_identity.unlinked', $previous);
+        }
+    }
+
+    public function openTaskCount(int $userId): int
+    {
+        return CampaignParticipation::query()
+            ->where('agent_id', $userId)
+            ->whereIn('status', [
+                CampaignParticipation::STATUS_STARTED,
+                CampaignParticipation::STATUS_SUBMITTED,
+                CampaignParticipation::STATUS_UNDER_REVIEW,
+                CampaignParticipation::STATUS_VERIFYING,
+            ])
+            ->count();
     }
 
     private function revokeStoredTokens(User $user): void

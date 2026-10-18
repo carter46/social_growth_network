@@ -57,24 +57,18 @@
 
         @if ($verified)
             <x-dashboard.card>
-                <h2 class="mb-3 text-sm font-semibold">Manage</h2>
-                @if ($isAgent)
-                    <p class="mb-3 text-sm text-text-secondary">
-                        Your tasks are checked against this channel, so it can't be removed on your own. To switch to another channel you own, send a change request. Your current channel stays connected until an admin approves it.
-                    </p>
-                    @if ($changeRequest)
-                        <p class="text-sm text-text-secondary">Your change request to <span class="font-medium text-text-primary">{{ $changeRequest->title ?: $changeRequest->channel_url }}</span> is waiting for admin review.</p>
-                    @else
-                        <form method="POST" action="{{ route('agent.youtube-channel.change') }}" class="flex gap-2">
-                            @csrf
-                            <input type="text" inputmode="url" name="channel_url" required placeholder="https://www.youtube.com/@newchannel"
-                                   class="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm">
-                            <x-dashboard.button type="submit" size="sm" variant="secondary">Request change</x-dashboard.button>
-                        </form>
-                    @endif
+                <h2 class="mb-3 text-sm font-semibold">Wrong channel or want to change it?</h2>
+                <p class="mb-3 text-sm text-text-secondary">
+                    Disconnect this channel, then connect the right one.
+                    {{ $isAgent ? 'Tasks you already completed are not affected.' : 'Your campaigns are not affected.' }}
+                </p>
+                @if ($isAgent && $openTasks > 0)
+                    <x-dashboard.alert type="warning" class="mb-3" data-youtube-unlink-blocked>
+                        {{ trans_choice('{1} You have 1 YouTube task in progress or awaiting review. It is checked against this channel, so you can disconnect once it is finished.|[2,*] You have :count YouTube tasks in progress or awaiting review. They are checked against this channel, so you can disconnect once they are finished.', $openTasks, ['count' => $openTasks]) }}
+                    </x-dashboard.alert>
+                    <x-dashboard.button :href="route('agent.tasks.active')" size="sm" variant="secondary">View my tasks</x-dashboard.button>
                 @else
-                    <p class="mb-3 text-sm text-text-secondary">Disconnect this channel at any time, for example to connect a different one. Your campaigns are not affected.</p>
-                    <form method="POST" action="{{ route('dashboard.youtube-channel.unlink') }}" onsubmit="return confirm('Disconnect this YouTube channel?')">
+                    <form method="POST" action="{{ route($prefix.'.youtube-channel.unlink') }}" onsubmit="return confirm({{ \Illuminate\Support\Js::from('Disconnect '.($identity->title ?: 'this channel').'? You can connect another channel right after.') }})">
                         @csrf
                         <x-dashboard.button type="submit" size="sm" variant="secondary">Disconnect channel</x-dashboard.button>
                     </form>
@@ -86,6 +80,16 @@
                             @csrf
                             <x-dashboard.button type="submit" size="sm" variant="link">Remove Google access</x-dashboard.button>
                         </form>
+                    </div>
+                @elseif ($oauthEnabled)
+                    <div class="mt-5 border-t border-border-default pt-4" data-youtube-grant-access>
+                        <p class="mb-2 text-sm text-text-secondary">
+                            {{ $identity->method === 'oauth' ? 'Google access is off.' : 'Your channel was verified without Google.' }}
+                            Allowing read-only Google access lets us confirm your channel directly with YouTube. When Google asks, pick the account for {{ $identity->title ?: 'this channel' }}.
+                        </p>
+                        <x-dashboard.button :href="route($prefix.'.youtube-channel.oauth', $returnTo ? ['return' => $returnTo] : [])" size="sm" variant="secondary">
+                            {{ $identity->method === 'oauth' ? 'Give Google access again' : 'Connect with Google' }}
+                        </x-dashboard.button>
                     </div>
                 @endif
             </x-dashboard.card>
