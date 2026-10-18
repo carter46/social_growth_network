@@ -193,10 +193,11 @@
                     :required="step === 2"
                 >
                 <span class="text-sm text-slate-600 leading-relaxed">
+                    @php $agentSignup = ($accountType ?? null) === 'agent'; @endphp
                     I agree to the
-                    <a class="font-semibold text-primary hover:underline" href="{{ route('legal', ['doc' => 'terms']) }}">Terms of Service</a>
+                    <a class="font-semibold text-primary hover:underline" href="{{ route($agentSignup ? 'agents.legal' : 'legal', ['doc' => 'terms']) }}" target="_blank" rel="noopener">{{ $agentSignup ? 'Agent Terms of Use' : 'Terms of Service' }}</a>
                     and
-                    <a class="font-semibold text-primary hover:underline" href="{{ route('legal', ['doc' => 'privacy']) }}">Privacy Policy</a>.
+                    <a class="font-semibold text-primary hover:underline" href="{{ route($agentSignup ? 'agents.legal' : 'legal', ['doc' => 'privacy']) }}" target="_blank" rel="noopener">{{ $agentSignup ? 'Agent Privacy Policy' : 'Privacy Policy' }}</a>.
                 </span>
             </label>
 

@@ -94,9 +94,9 @@ Route::get('/contact', function () {
 Route::post('/newsletter', [\App\Http\Controllers\NewsletterSubscriptionController::class, 'store'])
     ->middleware('throttle:6,1')
     ->name('newsletter.subscribe');
-Route::get('/legal', function (\Illuminate\Http\Request $request) {
+$legalPage = static function (\Illuminate\Http\Request $request, string $set, string $routeName) {
     $doc = $request->string('doc')->toString() ?: 'terms';
-    $documents = config('legal.documents', []);
+    $documents = config('legal.'.$set, []);
     if (! isset($documents[$doc])) {
         $doc = 'terms';
     }
@@ -113,10 +113,17 @@ Route::get('/legal', function (\Illuminate\Http\Request $request) {
     return view('pages.legal', [
         'activeDoc' => $doc,
         'document' => $document,
+        'documents' => $documents,
+        'legalRoute' => $routeName,
+        'forAgents' => $set === 'agent_documents',
     ]);
-})->name('legal');
+};
+Route::get('/legal', fn (\Illuminate\Http\Request $request) => $legalPage($request, 'documents', 'legal'))->name('legal');
 Route::redirect('/terms', '/legal?doc=terms')->name('terms');
 Route::redirect('/privacy', '/legal?doc=privacy')->name('privacy');
+Route::get('/agents/legal', fn (\Illuminate\Http\Request $request) => $legalPage($request, 'agent_documents', 'agents.legal'))
+    ->middleware('noindex')
+    ->name('agents.legal');
 
 Route::redirect('/developers/integrations', '/help', 301);
 Route::redirect('/developers/integrations/{path}', '/help', 301)->where('path', '.+');

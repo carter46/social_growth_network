@@ -176,7 +176,7 @@ class YoutubeChannelController extends Controller
         $expected = (string) $request->session()->pull('youtube_oauth_state', '');
         $redirectUri = (string) ($request->session()->pull('youtube_oauth_redirect_uri') ?: url()->current());
         $returnTo = $request->session()->pull('youtube_oauth_return');
-        $back = redirect()->route($this->prefix($user).'.youtube-channel.show', $returnTo ? ['return' => $returnTo] : []);
+        $back = $this->destination($user, $returnTo);
 
         if ($request->filled('error')) {
             if ($request->query('error') === 'access_denied') {
@@ -256,8 +256,7 @@ class YoutubeChannelController extends Controller
             ]);
         }
 
-        $return = $this->safeReturn($request->user(), $return);
-        $redirect = redirect()->route($this->prefix($request->user()).'.youtube-channel.show', $return ? ['return' => $return] : []);
+        $redirect = $this->destination($request->user(), $this->safeReturn($request->user(), $return));
 
         return $identity->isVerified()
             ? $redirect->with('youtube_channel_connected', true)
@@ -273,6 +272,16 @@ class YoutubeChannelController extends Controller
         $redirect = back()->withInput()->with('error', $message);
 
         return $missingChannelHelp ? $redirect->with('youtube_channel_missing', 'link') : $redirect;
+    }
+
+    /** Onboarding handles the whole connection itself, so it gets every outcome back directly. */
+    private function destination(User $user, ?string $return): RedirectResponse
+    {
+        if ($user->isAgent() && $return === route('agent.onboarding', [], false)) {
+            return redirect()->to($return);
+        }
+
+        return redirect()->route($this->prefix($user).'.youtube-channel.show', $return ? ['return' => $return] : []);
     }
 
     private function prefix(User $user): string

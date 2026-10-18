@@ -42,6 +42,22 @@
         </div>
     @endif
 
+    @php
+        $links = ($section['links'] ?? null) === 'google' ? config('legal.google_links', []) : (array) ($section['links'] ?? []);
+    @endphp
+    @if(! empty($links))
+        <ul class="flex flex-wrap gap-x-5 gap-y-2 text-sm" data-legal-links>
+            @foreach($links as $link)
+                <li>
+                    <a href="{{ $link['url'] }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 font-medium text-primary hover:underline">
+                        {{ $link['label'] }}
+                        <span class="material-symbols-outlined text-[16px]" aria-hidden="true">open_in_new</span>
+                    </a>
+                </li>
+            @endforeach
+        </ul>
+    @endif
+
     @if(! empty($section['blocks']))
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             @foreach($section['blocks'] as $block)

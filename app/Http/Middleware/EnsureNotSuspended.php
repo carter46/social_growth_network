@@ -10,12 +10,22 @@ class EnsureNotSuspended
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user()?->is_suspended) {
+        $user = $request->user();
+
+        if ($user?->is_suspended) {
+            $loginRoute = $user->isAgent() ? 'agent-login' : 'login';
+
             auth()->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return redirect()->route('login')->with('error', __('Your account has been suspended.'));
+            $message = __('Your account has been suspended. If you think this is a mistake, please contact our support team.');
+
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message, 'redirect' => route($loginRoute)], 403);
+            }
+
+            return redirect()->route($loginRoute)->with('error', $message);
         }
 
         return $next($request);

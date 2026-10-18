@@ -20,11 +20,15 @@ class OnboardingController extends Controller
     public function show(Request $request): View
     {
         $identity = $this->identities->current($request->user());
+        $missing = $request->session()->get('youtube_channel_missing');
 
         return view('dashboard.agent.onboarding', [
             'identity' => $identity,
             'channelVerified' => (bool) $identity?->isVerified(),
             'returnPath' => route('agent.onboarding', [], false),
+            'oauthEnabled' => YoutubeIdentityService::oauthEnabled(),
+            'channelMissing' => in_array($missing, ['oauth', 'link'], true) ? $missing : false,
+            'justConnected' => (bool) $request->session()->get('youtube_channel_connected', false),
         ]);
     }
 }

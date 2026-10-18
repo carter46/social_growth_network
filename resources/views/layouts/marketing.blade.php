@@ -27,7 +27,8 @@
             $navServices = route('services');
             $navAbout = route('about');
             $navHelp = route('help');
-            $isAgentsPage = request()->routeIs('agents');
+            $isAgentsPage = request()->routeIs('agents', 'agents.legal');
+            $legalRoute = $isAgentsPage ? 'agents.legal' : 'legal';
         @endphp
         <title>{{ $resolvedTitle }}</title>
         <meta name="description" content="{{ $resolvedDescription }}">
@@ -202,8 +203,8 @@
                         <ul class="space-y-2.5 text-sm text-slate-600">
                             <li><a class="hover:text-primary transition-colors" href="{{ route('help') }}">Help Center</a></li>
                             <li><a class="hover:text-primary transition-colors" href="{{ route('contact') }}">Contact</a></li>
-                            <li><a class="hover:text-primary transition-colors" href="{{ route('legal', ['doc' => 'terms']) }}">Terms of Service</a></li>
-                            <li><a class="hover:text-primary transition-colors" href="{{ route('legal', ['doc' => 'privacy']) }}">Privacy Policy</a></li>
+                            <li><a class="hover:text-primary transition-colors" href="{{ route($legalRoute, ['doc' => 'terms']) }}">{{ $isAgentsPage ? 'Agent Terms of Use' : 'Terms of Service' }}</a></li>
+                            <li><a class="hover:text-primary transition-colors" href="{{ route($legalRoute, ['doc' => 'privacy']) }}">{{ $isAgentsPage ? 'Agent Privacy Policy' : 'Privacy Policy' }}</a></li>
                         </ul>
                     </div>
                     <div>
@@ -229,9 +230,9 @@
                 <div class="pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
                     <p>Fixed-price YouTube promotion campaigns with clear progress tracking.</p>
                     <div class="flex items-center space-x-4">
-                        <a class="hover:text-slate-600 transition-colors" href="{{ route('legal', ['doc' => 'privacy']) }}">Security</a>
+                        <a class="hover:text-slate-600 transition-colors" href="{{ route($legalRoute, ['doc' => 'privacy']) }}#security-privacy">Security</a>
                         <a class="hover:text-slate-600 transition-colors" href="{{ route('help') }}">Help Center</a>
-                    <a class="hover:text-slate-600 transition-colors" href="{{ route('legal', ['doc' => 'privacy']) }}">Cookies</a>
+                        <a class="hover:text-slate-600 transition-colors" href="{{ route($legalRoute, ['doc' => 'privacy']) }}{{ $isAgentsPage ? '' : '#cookies' }}">{{ $isAgentsPage ? 'Privacy' : 'Cookies' }}</a>
                     </div>
                 </div>
             </div>

@@ -57,19 +57,57 @@
                     @if ($step['state'] === 'current')
                         <div class="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                             @if (! $channelVerified)
-                                @if ($identity?->isPending())
+                                @php
+                                    $isPending = (bool) $identity?->isPending();
+                                    $openLinkModal = ($isPending && session('status')) || $errors->any() || old('channel_url') || $channelMissing === 'link';
+                                @endphp
+                                @if (session('error'))
+                                    <p class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert" data-onboarding-error>{{ session('error') }}</p>
+                                @elseif (session('status'))
+                                    <p class="mb-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-slate-700">{{ session('status') }}</p>
+                                @elseif ($isPending)
                                     <p class="mb-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-slate-700">
-                                        Your channel check is in progress. You can finish it from the YouTube channel page.
+                                        Your channel check is in progress. Open it to see your code and finish.
                                     </p>
+                                @endif
+                                @if ($channelMissing === 'oauth')
+                                    <div class="mb-4">
+                                        @include('partials.youtube-channel.missing-channel', ['prefix' => 'agent', 'oauthEnabled' => $oauthEnabled, 'returnTo' => $returnPath, 'source' => 'oauth'])
+                                    </div>
                                 @endif
                                 <p class="text-sm text-slate-600">
                                     Connect it now or later. You'll need a connected channel before you can apply for a YouTube task.
                                 </p>
                                 <div class="mt-4 flex flex-col gap-2 sm:flex-row">
-                                    <x-ui.button :href="route('agent.youtube-channel.show', ['return' => $returnPath])" size="lg">Connect YouTube channel</x-ui.button>
+                                    @if ($isPending)
+                                        <x-ui.button type="button" size="lg" x-data x-on:click="$dispatch('open-modal', 'connect-youtube')" data-onboarding-finish>Finish connecting</x-ui.button>
+                                    @elseif ($oauthEnabled)
+                                        <x-ui.button :href="route('agent.youtube-channel.oauth', ['return' => $returnPath])" size="lg" data-onboarding-connect>Connect YouTube channel</x-ui.button>
+                                    @else
+                                        <x-ui.button type="button" size="lg" x-data x-on:click="$dispatch('open-modal', 'connect-youtube')" data-onboarding-connect>Connect YouTube channel</x-ui.button>
+                                    @endif
                                     <x-ui.button :href="route('agent')" variant="ghost" size="lg">Skip for now</x-ui.button>
                                 </div>
+                                @if ($oauthEnabled && ! $isPending)
+                                    <p class="mt-3 text-xs text-slate-500">
+                                        You'll sign in with Google and pick the account that owns your channel. We can only view it, never post or change anything.
+                                        <button type="button" class="font-semibold text-primary hover:underline" x-data x-on:click="$dispatch('open-modal', 'connect-youtube')" data-onboarding-manual>Use your channel link instead</button>
+                                    </p>
+                                @endif
+
+                                <x-ui.modal name="connect-youtube" title="Connect your YouTube channel" data-onboarding-modal>
+                                    @include('partials.youtube-channel.link', ['identity' => $identity, 'prefix' => 'agent', 'oauthEnabled' => false, 'returnTo' => $returnPath, 'channelMissing' => $channelMissing === 'link' ? 'link' : false])
+                                    <x-slot:footer>
+                                        <x-ui.button type="button" variant="secondary" x-on:click="closeModal()">Close</x-ui.button>
+                                    </x-slot:footer>
+                                </x-ui.modal>
+                                @if ($openLinkModal)
+                                    <div x-data x-init="$nextTick(() => $dispatch('open-modal', 'connect-youtube'))"></div>
+                                @endif
                             @else
+                                @if ($justConnected)
+                                    <p class="mb-4 text-sm font-semibold text-emerald-700" data-onboarding-just-connected>Nice work, your channel is connected. You're ready for your first task.</p>
+                                @endif
                                 <div class="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3" data-onboarding-channel>
                                     @if ($identity->thumbnail_url)
                                         <img src="{{ $identity->thumbnail_url }}" alt="" class="h-12 w-12 shrink-0 rounded-full object-cover" referrerpolicy="no-referrer">

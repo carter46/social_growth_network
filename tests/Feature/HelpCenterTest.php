@@ -18,7 +18,8 @@ class HelpCenterTest extends TestCase
             ->assertSee('Getting Started')
             ->assertSee('Campaigns & Packages')
             ->assertSee('For Creators')
-            ->assertSee('For Agents')
+            ->assertDontSee('For Agents')
+            ->assertDontSee(route('help.article', 'for-agents'), false)
             ->assertSee('Contact Support')
             ->assertDontSee('Institutional security', false);
     }
@@ -74,22 +75,21 @@ class HelpCenterTest extends TestCase
             ->assertSee('Secure payment protection');
     }
 
-    public function test_legal_terms_describe_creator_agent_marketplace(): void
+    public function test_legal_terms_describe_creator_campaigns(): void
     {
         $this->get(route('legal', ['doc' => 'terms']))
             ->assertOk()
-            ->assertSee('Creators and Agents')
-            ->assertSee('Campaigns, Packages & Tasks')
-            ->assertDontSee('does not operate a peer-to-peer marketplace', false)
+            ->assertSee('Campaigns & Packages')
+            ->assertSee('Connecting Your YouTube Channel')
             ->assertDontSee(':site_name', false);
     }
 
-    public function test_legal_privacy_covers_proof_and_kyc(): void
+    public function test_legal_privacy_explains_youtube_read_only_access(): void
     {
         $this->get(route('legal', ['doc' => 'privacy']))
             ->assertOk()
-            ->assertSee('Creators and Agents')
-            ->assertSee('proof assets')
+            ->assertSee('youtube.readonly')
+            ->assertSee('Limited Use')
             ->assertSee('KYC')
             ->assertDontSee(':site_name', false);
     }

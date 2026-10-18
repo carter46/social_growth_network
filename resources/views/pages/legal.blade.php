@@ -4,7 +4,9 @@
 
 @section('content')
 @php
-    $documents = config('legal.documents', []);
+    $forAgents = (bool) ($forAgents ?? false);
+    $documents = $documents ?? config($forAgents ? 'legal.agent_documents' : 'legal.documents', []);
+    $legalRoute = $legalRoute ?? ($forAgents ? 'agents.legal' : 'legal');
     $updatedAt = config('legal.updated_at');
     $contact = app(\App\Services\Communications\Contact\PlatformContactRepository::class)->all();
     $legalEmail = config('legal.contact.email')
@@ -29,14 +31,18 @@
     $sections = $document['sections'] ?? [];
     $ticketHref = auth()->check()
         ? \App\Support\MemberShell::userRoute('support.create')
-        : route('login');
+        : route($forAgents ? 'agent-login' : 'login');
 @endphp
 
 <section class="relative w-full bg-slate-50 border-b border-slate-100 overflow-hidden">
     <div class="absolute inset-0 bg-gradient-to-b from-slate-100/80 via-transparent to-white pointer-events-none" aria-hidden="true"></div>
     <div class="max-w-site mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 relative z-10">
         <div class="flex flex-wrap items-center gap-1.5 text-sm text-slate-500 mb-4">
-            <a href="{{ route('home') }}" class="hover:text-primary transition-colors">Home</a>
+            @if ($forAgents)
+                <a href="{{ route('agents') }}" class="hover:text-primary transition-colors">For Agents</a>
+            @else
+                <a href="{{ route('home') }}" class="hover:text-primary transition-colors">Home</a>
+            @endif
             <span class="text-slate-300">/</span>
             <span class="text-primary font-semibold">{{ $document['label'] ?? 'Legal' }}</span>
         </div>
@@ -60,7 +66,7 @@
     <div class="flex flex-wrap gap-2 mb-8 sm:mb-10" role="tablist" aria-label="Legal documents">
         @foreach($documents as $key => $doc)
             <a
-                href="{{ route('legal', ['doc' => $key]) }}"
+                href="{{ route($legalRoute, ['doc' => $key]) }}"
                 role="tab"
                 aria-selected="{{ $activeKey === $key ? 'true' : 'false' }}"
                 @class([

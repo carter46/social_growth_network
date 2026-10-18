@@ -209,19 +209,70 @@ class YoutubeChannelConnectionTest extends TestCase
         $state = session('youtube_oauth_state');
 
         $this->get(route('youtube.oauth.callback', ['state' => $state, 'code' => 'abc']))
-            ->assertRedirect(route('agent.youtube-channel.show', ['return' => '/agent/onboarding']));
+            ->assertRedirect('/agent/onboarding')
+            ->assertSessionHas('youtube_channel_connected', true);
 
         $this->actingAs($agent)
             ->withSession(['youtube_channel_connected' => true])
-            ->get(route('agent.youtube-channel.show', ['return' => '/agent/onboarding']))
-            ->assertSee('/agent/onboarding', false)
-            ->assertSee('Continue');
-
-        $this->actingAs($agent)->get(route('agent.onboarding'))
+            ->get(route('agent.onboarding'))
             ->assertOk()
+            ->assertSee('data-onboarding-just-connected', false)
             ->assertSee('data-onboarding-channel', false)
             ->assertSee('Channel connected')
             ->assertSee(route('agent.youtube-channel.show'), false);
+    }
+
+    public function test_onboarding_starts_the_google_connection_directly(): void
+    {
+        $this->enableOAuth();
+        $agent = $this->agent();
+
+        $this->actingAs($agent)->get(route('agent.onboarding'))
+            ->assertOk()
+            ->assertSee(route('agent.youtube-channel.oauth', ['return' => '/agent/onboarding']), false)
+            ->assertDontSee(route('agent.youtube-channel.show', ['return' => '/agent/onboarding']), false)
+            ->assertSee('data-onboarding-manual', false)
+            ->assertSee('data-onboarding-modal', false);
+    }
+
+    public function test_onboarding_google_errors_and_missing_channels_come_back_to_onboarding(): void
+    {
+        $this->enableOAuth();
+        $agent = $this->agent();
+
+        $this->actingAs($agent)->get(route('agent.youtube-channel.oauth', ['return' => '/agent/onboarding']));
+        $this->get(route('youtube.oauth.callback', ['state' => session('youtube_oauth_state'), 'error' => 'access_denied']))
+            ->assertRedirect('/agent/onboarding');
+
+        $this->oauthChannels = [];
+        $this->actingAs($agent)->get(route('agent.youtube-channel.oauth', ['return' => '/agent/onboarding']));
+        $this->get(route('youtube.oauth.callback', ['state' => session('youtube_oauth_state'), 'code' => 'abc']))
+            ->assertRedirect('/agent/onboarding')
+            ->assertSessionHas('youtube_channel_missing', 'oauth');
+
+        $this->actingAs($agent)
+            ->withSession(['error' => 'Google sign-in was cancelled.'])
+            ->get(route('agent.onboarding'))
+            ->assertSee('data-onboarding-error', false)
+            ->assertSee('Google sign-in was cancelled.');
+    }
+
+    public function test_linking_by_url_from_onboarding_shows_the_code_in_the_modal(): void
+    {
+        $agent = $this->agent();
+
+        $this->actingAs($agent)
+            ->post(route('agent.youtube-channel.store'), ['channel_url' => 'https://www.youtube.com/channel/'.self::CHANNEL, 'return' => '/agent/onboarding'])
+            ->assertRedirect('/agent/onboarding');
+
+        $identity = app(YoutubeIdentityService::class)->current($agent);
+        $this->actingAs($agent)
+            ->withSession(['status' => 'Almost there.'])
+            ->get(route('agent.onboarding'))
+            ->assertOk()
+            ->assertSee('data-onboarding-finish', false)
+            ->assertSee($identity->verification_code)
+            ->assertSee("open-modal', 'connect-youtube'", false);
     }
 
     public function test_channel_page_lives_in_settings_and_the_profile_menu_not_the_sidebar(): void

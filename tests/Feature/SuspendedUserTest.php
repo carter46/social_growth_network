@@ -22,6 +22,21 @@ class SuspendedUserTest extends TestCase
 
         $response->assertRedirect(route('login'));
         $this->assertGuest();
+        $this->get(route('login'))->assertSee('Your account has been suspended.');
+    }
+
+    public function test_suspended_agent_is_sent_to_the_agent_login_with_the_reason(): void
+    {
+        $agent = User::factory()->agent()->kycApproved()->create(['is_suspended' => true]);
+
+        $response = $this->actingAs($agent)->get(route('agent'));
+
+        $response->assertRedirect(route('agent-login'));
+        $this->assertGuest();
+        $this->get(route('agent-login'))
+            ->assertOk()
+            ->assertSee('Agent Login')
+            ->assertSee('Your account has been suspended.');
     }
 
     public function test_suspended_user_cannot_log_in(): void

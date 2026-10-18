@@ -4,9 +4,9 @@ return [
     'slug' => 'keeping-account-secure',
     'category_key' => 'security',
     'title' => 'Security, trust & verification',
-    'intro' => 'Protect your login, complete KYC when required, understand proof standards, and report abuse safely.',
-    'summary' => 'Trust on Social Growth Network depends on secure accounts, verified identity where needed, and honest proof from Agents.',
-    'updated_at' => '2026-09-09',
+    'intro' => 'Protect your login, complete KYC when required, connect your YouTube channel safely, and report problems.',
+    'summary' => 'Keep your account secure, verify your identity when asked, and stay in control of your YouTube channel connection.',
+    'updated_at' => '2026-10-19',
     'printable' => true,
     'related' => ['getting-started', 'billing-wallets-payments', 'browsing-purchasing-services'],
     'platform_actions' => [
@@ -19,7 +19,7 @@ return [
             'nav' => 'Passwords & access',
             'title' => 'Passwords and account access',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'Your account controls wallet funds, campaign purchases, and Agent earnings. Treat login security as part of payment security.'],
+                ['type' => 'paragraph', 'content' => 'Your account controls your wallet funds and campaign purchases. Treat login security as part of payment security.'],
                 ['type' => 'checklist', 'items' => [
                     'Use a strong, unique password.',
                     'Never share your password, OTP, or recovery codes.',
@@ -33,30 +33,30 @@ return [
             'nav' => 'KYC',
             'title' => 'KYC verification',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'Depending on site settings and activity level, KYC (Know Your Customer) may be required before wallet funding, larger withdrawals, or higher-tier campaigns. Submit accurate government-issued identification and any requested details from your account settings.'],
-                ['type' => 'important', 'title' => 'Why KYC exists', 'content' => 'Identity checks reduce fraud, protect Creators’ campaign budgets, and help Agents receive reliable payouts through compliant channels.'],
+                ['type' => 'paragraph', 'content' => 'Depending on site settings and activity level, KYC (Know Your Customer) may be required before larger payments or higher-tier campaigns. Submit accurate government-issued identification and any requested details from your account settings.'],
+                ['type' => 'important', 'title' => 'Why KYC exists', 'content' => 'Identity checks reduce fraud and protect your campaign budget and payments.'],
             ],
         ],
         [
-            'id' => 'proof-standards',
-            'nav' => 'Proof standards',
-            'title' => 'Proof standards for Agents',
+            'id' => 'youtube-channel',
+            'nav' => 'YouTube channel',
+            'title' => 'Connecting your YouTube channel',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'Proof must match the campaign instructions. Blurry, cropped, edited, reused, or unrelated evidence can be rejected.'],
+                ['type' => 'paragraph', 'content' => 'Connecting your YouTube channel is optional. It confirms the channel is yours, fills in your channel details, and lets you pick your own videos when you set up a campaign.'],
                 ['type' => 'bullets', 'items' => [
-                    'Capture the full required screen or URL evidence when screenshots are requested.',
-                    'Do not use bots or fake engagement to simulate completion.',
-                    'If proof is rejected, read the reason carefully before resubmitting.',
+                    'Connect with Google gives us read-only access. We can never post, comment, upload, delete or change anything on your channel.',
+                    'You can also connect by adding a short code to your channel description.',
+                    'Disconnect your channel or remove Google access at any time from the YouTube channel page in your settings. We email you when a channel is disconnected.',
+                    'We will never ask for your YouTube or Google password.',
                 ]],
-                ['type' => 'tip', 'title' => 'Creators', 'content' => 'Clear instructions and realistic proof requirements make verification faster and reduce disputes.'],
             ],
         ],
         [
             'id' => 'reporting',
             'nav' => 'Report issues',
-            'title' => 'Reporting invalid proof or suspicious activity',
+            'title' => 'Reporting suspicious activity',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'If you see fraudulent proof, suspicious tasks, phishing attempts, or unauthorized wallet activity, report it through official support channels with evidence (order IDs, screenshots, timestamps).'],
+                ['type' => 'paragraph', 'content' => 'If you see phishing attempts, unfamiliar logins, or unauthorized wallet activity, report it through official support channels with evidence (order IDs, screenshots, timestamps).'],
                 ['type' => 'warning', 'title' => 'Support safety', 'content' => 'Official support will never ask for your password. Use Help Center articles, the Contact page, or dashboard tickets only. Ignore random social DMs claiming to be staff.'],
             ],
         ],
@@ -65,7 +65,7 @@ return [
             'nav' => 'Support safety',
             'title' => 'Safe support practices',
             'blocks' => [
-                ['type' => 'paragraph', 'content' => 'For payment audits, campaign adjustments, and proof disputes, open a tracked ticket from your dashboard when logged in, or start from the Contact page. Keep communication inside official channels so records stay attached to your account.'],
+                ['type' => 'paragraph', 'content' => 'For payment questions, campaign adjustments, and delivery issues, open a tracked ticket from your dashboard when logged in, or start from the Contact page. Keep communication inside official channels so records stay attached to your account.'],
             ],
         ],
     ],

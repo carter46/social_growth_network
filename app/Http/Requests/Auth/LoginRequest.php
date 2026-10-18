@@ -82,7 +82,7 @@ class LoginRequest extends FormRequest
             Auth::logout();
 
             throw ValidationException::withMessages([
-                'email' => __('Your account has been suspended.'),
+                'email' => __('Your account has been suspended. If you think this is a mistake, please contact our support team.'),
             ]);
         }
 
