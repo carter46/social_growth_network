@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Modules\Admin\Services\AuditLogService;
 use App\Services\Engagement\TargetUrlValidator;
 use App\Services\Engagement\YoutubeChannelApi;
+use App\Services\Engagement\YoutubeOAuthClient;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Notifications\NotificationMessage;
 use Illuminate\Database\QueryException;
@@ -20,7 +21,8 @@ use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 
 /**
- * Links an agent to one public YouTube channel, at their first YouTube task.
+ * Links an account to one public YouTube channel: required for agents at their first YouTube task,
+ * optional for creators. A channel can be active on only one account across both roles.
  * Path A: Google OAuth (admin toggle). Path B: a code pasted into the channel description,
  * checked now and then every 30 minutes for 24 hours.
  */
@@ -28,11 +30,15 @@ class YoutubeIdentityService
 {
     public const CHECK_INTERVAL_MINUTES = 30;
 
+    /** Exception code for links that point to no channel, so the UI can offer the "create a channel" help. */
+    public const ERROR_NOT_FOUND = 404;
+
     private const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
     public function __construct(
         private YoutubeChannelApi $api,
         private NotificationDispatcher $notifications,
+        private YoutubeOAuthClient $oauth,
     ) {}
 
     public static function enabled(): bool
@@ -114,10 +120,14 @@ class YoutubeIdentityService
      */
     public function preview(string $url): array
     {
-        $normalized = TargetUrlValidator::normalize($url);
+        $normalized = TargetUrlValidator::normalizeChannelInput($url);
         $ref = TargetUrlValidator::extractYoutubeChannelRef($normalized);
         if (! $normalized || ! $ref) {
-            throw new InvalidArgumentException('Paste your YouTube channel link, for example https://www.youtube.com/@yourchannel.');
+            if (TargetUrlValidator::extractYoutubeVideoId(TargetUrlValidator::normalize($url) ?? '') !== null) {
+                throw new InvalidArgumentException('That is a video link. Paste the link to your channel instead, for example https://www.youtube.com/@yourchannel.', self::ERROR_NOT_FOUND);
+            }
+
+            throw new InvalidArgumentException('Paste your YouTube channel link, for example https://www.youtube.com/@yourchannel.', self::ERROR_NOT_FOUND);
         }
         if ($ref['type'] === 'custom') {
             throw new InvalidArgumentException('Links like youtube.com/c/name can\'t be checked reliably. Please use your @handle link or your youtube.com/channel/UC... link.');
@@ -136,7 +146,7 @@ class YoutubeIdentityService
 
         $channel = $this->api->resolveChannel($normalized);
         if (! $channel) {
-            throw new InvalidArgumentException('We couldn\'t find that channel. Check the link and make sure the channel is public.');
+            throw new InvalidArgumentException('We couldn\'t find that channel. Check the link and make sure the channel is public.', self::ERROR_NOT_FOUND);
         }
 
         return [
@@ -158,7 +168,9 @@ class YoutubeIdentityService
             User::query()->whereKey($agent->id)->lockForUpdate()->first();
 
             if ($this->verified($agent)) {
-                throw new InvalidArgumentException('Your channel is already verified. To use a different channel, send a change request.');
+                throw new InvalidArgumentException($agent->isAgent()
+                    ? 'Your channel is already verified. To use a different channel, send a change request.'
+                    : 'Your channel is already connected. Disconnect it first to connect a different one.');
             }
 
             $this->assertChannelFree($agent, $preview['id']);
@@ -279,7 +291,9 @@ class YoutubeIdentityService
 
             $verified = $this->verified($agent);
             if ($verified && $verified->channel_id !== $channel['id']) {
-                throw new InvalidArgumentException('Your account is already linked to a different channel. Send a change request to switch.');
+                throw new InvalidArgumentException($agent->isAgent()
+                    ? 'Your account is already linked to a different channel. Send a change request to switch.'
+                    : 'Your account is already connected to a different channel. Disconnect it first to switch.');
             }
 
             if ($verified) {
@@ -313,15 +327,54 @@ class YoutubeIdentityService
 
     public function disconnectOAuth(User $agent): void
     {
+        $this->revokeStoredTokens($agent);
+
         AgentYoutubeIdentity::query()
             ->where('user_id', $agent->id)
             ->whereNotNull('oauth_token')
             ->update(['oauth_token' => null]);
     }
 
+    /** Creators only: drop the linked channel (no admin step) so another one can be connected. */
+    public function unlink(User $creator): void
+    {
+        if ($creator->isAgent()) {
+            throw new InvalidArgumentException('Agents change channels through a change request.');
+        }
+
+        $this->revokeStoredTokens($creator);
+
+        AgentYoutubeIdentity::query()
+            ->where('user_id', $creator->id)
+            ->whereIn('status', [
+                AgentYoutubeIdentity::STATUS_VERIFIED,
+                AgentYoutubeIdentity::STATUS_PENDING,
+                AgentYoutubeIdentity::STATUS_FAILED,
+            ])
+            ->update([
+                'status' => AgentYoutubeIdentity::STATUS_REPLACED,
+                'active_channel_id' => null,
+                'oauth_token' => null,
+                'updated_at' => now(),
+            ]);
+    }
+
+    private function revokeStoredTokens(User $user): void
+    {
+        AgentYoutubeIdentity::query()
+            ->where('user_id', $user->id)
+            ->whereNotNull('oauth_token')
+            ->get()
+            ->each(fn (AgentYoutubeIdentity $identity) => $this->oauth->revoke($identity->oauth_token));
+    }
+
     /** Change of channel: needs admin approval; the current verified channel stays active meanwhile. */
     public function requestChange(User $agent, string $url): AgentYoutubeIdentity
     {
+        if (! $agent->isAgent()) {
+            throw new InvalidArgumentException('Disconnect your current channel to connect a different one.');
+        }
+
         $preview = $this->preview($url);
         $current = $this->verified($agent);
         if (! $current) {
@@ -481,8 +534,10 @@ class YoutubeIdentityService
             throw new InvalidArgumentException('This YouTube channel is already linked to another account.');
         }
 
-        $this->notify($identity, 'youtube_identity.verified', 'YouTube channel verified',
-            'Your YouTube channel is verified. You can now start YouTube tasks. You may remove the code from your channel description.');
+        $isAgent = (bool) $identity->user()->first()?->isAgent();
+        $this->notify($identity, 'youtube_identity.verified', 'YouTube channel verified', $isAgent
+            ? 'Your YouTube channel is verified. You can now start YouTube tasks. You may remove the code from your channel description.'
+            : 'Your YouTube channel is connected. You may remove the code from your channel description.');
 
         return $identity->fresh();
     }
@@ -524,7 +579,7 @@ class YoutubeIdentityService
             $this->notifications->notifyAdmins(new NotificationMessage(
                 type: 'youtube_identity.duplicate',
                 title: 'Duplicate YouTube channel attempt',
-                body: 'An agent tried to link a YouTube channel that is already linked to another account.',
+                body: 'An account tried to link a YouTube channel that is already linked to another account.',
                 actionUrl: Route::has('admin.youtube-identities.index') ? route('admin.youtube-identities.index') : null,
                 meta: ['user_id' => $identity->user_id, 'channel_id' => $identity->channel_id],
             ), ['database']);
@@ -540,7 +595,7 @@ class YoutubeIdentityService
             $this->notifications->notifyAdmins(new NotificationMessage(
                 type: 'youtube_identity.manual_review',
                 title: 'YouTube channel needs manual approval',
-                body: 'An agent linked a YouTube channel, but no YouTube API key is set, so it must be approved manually.',
+                body: ($identity->user()->first()?->isAgent() ? 'An agent' : 'A creator').' linked a YouTube channel, but no YouTube API key is set, so it must be approved manually.',
                 actionUrl: Route::has('admin.youtube-identities.index') ? route('admin.youtube-identities.index') : null,
                 meta: ['identity_id' => $identity->id],
             ), ['database']);
@@ -560,7 +615,9 @@ class YoutubeIdentityService
                 type: $type,
                 title: $title,
                 body: $body,
-                actionUrl: Route::has('agent.youtube-channel.show') ? route('agent.youtube-channel.show') : null,
+                actionUrl: Route::has($user->isAgent() ? 'agent.youtube-channel.show' : 'dashboard.youtube-channel.show')
+                    ? route($user->isAgent() ? 'agent.youtube-channel.show' : 'dashboard.youtube-channel.show')
+                    : null,
                 meta: ['identity_id' => $identity->id],
                 emailSubject: $title,
                 dedupeKey: $type.'.'.$identity->id,

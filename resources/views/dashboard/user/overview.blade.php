@@ -11,6 +11,32 @@
         ['Overview', null],
     ]"
 >
+    @php($channelPromptKey = 'creator_channel_prompt_dismissed:'.auth()->id())
+    @if ($showChannelPrompt ?? false)
+        <div
+            class="mb-4"
+            x-data="{ key: @js($channelPromptKey), open: false }"
+            x-init="open = localStorage.getItem(key) !== '1'"
+            x-show="open"
+            x-cloak
+            data-creator-channel-prompt
+        >
+            <x-dashboard.alert type="info" title="Get more accurate campaign insights">
+                <p>Connect your YouTube channel to help us identify your channel and video data more accurately when setting up and managing your campaigns. It can also help reduce the need to enter channel details manually.</p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <x-dashboard.button :href="route('dashboard.youtube-channel.show')" size="sm">Connect YouTube channel</x-dashboard.button>
+                    <x-dashboard.button
+                        variant="secondary"
+                        size="sm"
+                        x-on:click="open = false; localStorage.setItem(key, '1')"
+                    >Maybe later</x-dashboard.button>
+                </div>
+            </x-dashboard.alert>
+        </div>
+    @else
+        <script data-creator-channel-prompt-reset>try { localStorage.removeItem(@js($channelPromptKey)); } catch (e) {}</script>
+    @endif
+
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <x-dashboard.stats-card
             label="Total Balance"

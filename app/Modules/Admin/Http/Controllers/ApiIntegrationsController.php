@@ -18,7 +18,8 @@ class ApiIntegrationsController extends Controller
             'oauthEnabled' => SystemSetting::enabled('youtube_oauth_enabled'),
             'oauthClientId' => (string) SystemSetting::get('youtube_oauth_client_id', ''),
             'oauthHasSecret' => trim((string) SystemSetting::get('youtube_oauth_client_secret', '')) !== '',
-            'oauthCallbackUrl' => route('agent.youtube-channel.oauth.callback'),
+            'oauthCallbackUrl' => route('youtube.oauth.callback'),
+            'oauthLegacyCallbackUrl' => route('agent.youtube-channel.oauth.callback'),
         ]);
     }
 

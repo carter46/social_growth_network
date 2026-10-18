@@ -138,6 +138,38 @@ class TargetUrlValidator
         };
     }
 
+    /**
+     * Canonical channel link from what people actually paste: "@handle", a bare UC... ID,
+     * "youtube.com/@x" without https, m.youtube.com links and tabs like /videos.
+     */
+    public static function normalizeChannelInput(?string $input): ?string
+    {
+        $input = trim((string) $input);
+        if ($input === '') {
+            return null;
+        }
+
+        if (preg_match('/^@[A-Za-z0-9._-]{3,100}$/', $input)) {
+            $input = 'https://www.youtube.com/'.$input;
+        } elseif (preg_match('/^UC[A-Za-z0-9_-]{22}$/', $input)) {
+            $input = 'https://www.youtube.com/channel/'.$input;
+        } elseif (! preg_match('#^https?://#i', $input)) {
+            $input = 'https://'.ltrim($input, '/');
+        }
+
+        $ref = self::extractYoutubeChannelRef($input);
+        if (! $ref) {
+            return null;
+        }
+
+        return match ($ref['type']) {
+            'handle' => 'https://www.youtube.com/@'.$ref['value'],
+            'id' => 'https://www.youtube.com/channel/'.$ref['value'],
+            'user' => 'https://www.youtube.com/user/'.$ref['value'],
+            default => 'https://www.youtube.com/c/'.$ref['value'],
+        };
+    }
+
     /** Comment ID from a "copy link" comment URL (watch?v=...&lc=...). */
     public static function extractYoutubeCommentId(?string $url): ?string
     {

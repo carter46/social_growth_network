@@ -266,7 +266,23 @@ Route::middleware(['auth', 'verified', 'role:user'])->prefix('dashboard')->name(
         ->name('.support.attachments.download');
     Route::get('/support/{ticket}', [SupportTicketController::class, 'show'])->name('.support.show');
     Route::post('/support/{ticket}/reply', [SupportTicketController::class, 'reply'])->name('.support.reply');
+
+    Route::prefix('youtube-channel')->name('.youtube-channel')->controller(\App\Http\Controllers\YoutubeChannelController::class)->group(function () {
+        Route::get('/', 'show')->name('.show');
+        Route::post('/preview', 'preview')->middleware('throttle:20,1')->name('.preview');
+        Route::post('/', 'store')->middleware('throttle:10,1')->name('.store');
+        Route::post('/check', 'check')->middleware('throttle:10,1')->name('.check');
+        Route::post('/retry', 'retry')->middleware('throttle:5,1')->name('.retry');
+        Route::post('/unlink', 'unlink')->middleware('throttle:5,1')->name('.unlink');
+        Route::get('/videos', 'videos')->middleware('throttle:30,1')->name('.videos');
+        Route::get('/oauth', 'oauthRedirect')->middleware('throttle:10,1')->name('.oauth');
+        Route::post('/oauth/disconnect', 'oauthDisconnect')->name('.oauth.disconnect');
+    });
 });
+
+Route::get('/youtube-channel/oauth/callback', [\App\Http\Controllers\YoutubeChannelController::class, 'oauthCallback'])
+    ->middleware(['auth', 'verified', 'role:user|agent'])
+    ->name('youtube.oauth.callback');
 
 Route::middleware(['auth', 'verified', 'role:agent'])->prefix('agent')->name('agent')->group(function () {
     Route::get('/', [\App\Http\Controllers\Agent\DashboardController::class, 'index'])->name('');
@@ -348,14 +364,15 @@ Route::middleware(['auth', 'verified', 'role:agent'])->prefix('agent')->name('ag
         ->middleware('throttle:30,1')
         ->name('.tasks.heartbeat');
 
-    Route::prefix('youtube-channel')->name('.youtube-channel')->controller(\App\Http\Controllers\Agent\YoutubeChannelController::class)->group(function () {
+    Route::prefix('youtube-channel')->name('.youtube-channel')->controller(\App\Http\Controllers\YoutubeChannelController::class)->group(function () {
         Route::get('/', 'show')->name('.show');
         Route::post('/preview', 'preview')->middleware('throttle:20,1')->name('.preview');
         Route::post('/', 'store')->middleware('throttle:10,1')->name('.store');
         Route::post('/check', 'check')->middleware('throttle:10,1')->name('.check');
         Route::post('/retry', 'retry')->middleware('throttle:5,1')->name('.retry');
         Route::post('/change', 'requestChange')->middleware('throttle:5,1')->name('.change');
-        Route::get('/oauth', 'oauthRedirect')->name('.oauth');
+        Route::get('/oauth', 'oauthRedirect')->middleware('throttle:10,1')->name('.oauth');
+        // Legacy redirect URI, still registered in Google Cloud Console for older setups.
         Route::get('/oauth/callback', 'oauthCallback')->name('.oauth.callback');
         Route::post('/oauth/disconnect', 'oauthDisconnect')->name('.oauth.disconnect');
     });

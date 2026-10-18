@@ -81,7 +81,8 @@
     @if ($needsChannel)
         <x-ui.modal name="youtube-channel" title="Link your YouTube channel" x-init="{{ session('youtube_channel_required') ? '$nextTick(() => openModal())' : '' }}">
             <p class="mb-3">You need a verified YouTube channel before starting YouTube tasks. This is a one-time step.</p>
-            @include('dashboard.agent.partials.youtube-channel-link', [
+            @include('partials.youtube-channel.link', [
+                'prefix' => 'agent',
                 'identity' => $channelIdentity,
                 'oauthEnabled' => $oauthEnabled,
                 'returnTo' => '/'.ltrim(parse_url(route('agent.marketplace.show', $campaign), PHP_URL_PATH), '/'),

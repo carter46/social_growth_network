@@ -1,6 +1,6 @@
 @extends('layouts.dashboard-admin')
 
-@section('title', 'Agent YouTube channels')
+@section('title', 'YouTube channels')
 
 @section('content')
 @php
@@ -14,8 +14,8 @@
     ];
 @endphp
 <x-layout.page
-    title="Agent YouTube channels"
-    subtitle="Channels agents linked for YouTube tasks. Approve manual reviews and channel changes, or revoke a link."
+    title="YouTube channels"
+    subtitle="Channels linked by agents (required for YouTube tasks) and creators (optional). Approve manual reviews and agent channel changes, or revoke a link."
     width="full"
     :breadcrumb="[
         ['Admin', route('admin')],
@@ -32,7 +32,7 @@
     <div class="mb-4 flex flex-wrap items-center gap-2">
         @foreach ($filters as $key => $label)
             <a
-                href="{{ route('admin.youtube-identities.index', array_filter(['filter' => $key, 'q' => request('q')])) }}"
+                href="{{ route('admin.youtube-identities.index', array_filter(['filter' => $key, 'role' => $role, 'q' => request('q')])) }}"
                 @class([
                     'rounded-full px-3 py-1 text-sm',
                     'bg-primary text-white' => $filter === $key,
@@ -44,6 +44,11 @@
         @endforeach
         <form method="GET" action="{{ route('admin.youtube-identities.index') }}" class="ml-auto flex items-center gap-2">
             <input type="hidden" name="filter" value="{{ $filter }}">
+            <select name="role" onchange="this.form.submit()" aria-label="Account type" class="rounded-lg border border-border-default bg-surface px-3 py-1.5 text-sm">
+                <option value="" @selected(! $role)>Agents and creators</option>
+                <option value="agent" @selected($role === 'agent')>Agents</option>
+                <option value="user" @selected($role === 'user')>Creators</option>
+            </select>
             <input type="search" name="q" value="{{ request('q') }}" placeholder="Channel, handle or email" class="rounded-lg border border-border-default bg-surface px-3 py-1.5 text-sm">
             <x-dashboard.button type="submit" variant="secondary" size="sm">Search</x-dashboard.button>
         </form>
@@ -57,7 +62,7 @@
         striped
     >
         <x-slot:head>
-            <x-dashboard.th>Agent</x-dashboard.th>
+            <x-dashboard.th>Account</x-dashboard.th>
             <x-dashboard.th>Channel</x-dashboard.th>
             <x-dashboard.th>Status</x-dashboard.th>
             <x-dashboard.th>Method</x-dashboard.th>
@@ -68,6 +73,9 @@
                 <x-dashboard.td>
                     <p class="font-medium text-text-primary">{{ $identity->user?->name }}</p>
                     <p class="text-xs text-text-muted">{{ $identity->user?->email }}</p>
+                    @if ($identity->user)
+                        <x-dashboard.badge :status="$identity->user->isAgent() ? 'info' : 'neutral'" class="mt-1">{{ $identity->user->isAgent() ? 'Agent' : 'Creator' }}</x-dashboard.badge>
+                    @endif
                 </x-dashboard.td>
                 <x-dashboard.td>
                     @if ($identity->channel_url)

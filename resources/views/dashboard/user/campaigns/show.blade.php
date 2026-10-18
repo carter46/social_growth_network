@@ -35,7 +35,12 @@
             <dl class="grid gap-3 text-sm sm:grid-cols-3">
                 <div class="rounded-xl bg-muted/40 px-4 py-3">
                     <dt class="text-text-muted">Status</dt>
-                    <dd class="mt-1"><x-dashboard.badge :status="$campaign->status">{{ $campaign->statusLabel() }}</x-dashboard.badge></dd>
+                    <dd class="mt-1 flex flex-wrap gap-1">
+                        <x-dashboard.badge :status="$campaign->status">{{ $campaign->statusLabel() }}</x-dashboard.badge>
+                        @if ($onOwnChannel ?? false)
+                            <x-dashboard.badge status="info" data-own-channel-badge>Your channel</x-dashboard.badge>
+                        @endif
+                    </dd>
                 </div>
                 <div class="rounded-xl bg-muted/40 px-4 py-3">
                     <dt class="text-text-muted">Verified tasks</dt>

@@ -3,6 +3,7 @@
 namespace App\Services\Engagement;
 
 use App\Models\SystemSetting;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -65,6 +66,51 @@ class YoutubeChannelApi
             'thumbnail' => $snippet['thumbnails']['default']['url'] ?? null,
             'description' => (string) ($snippet['description'] ?? ''),
         ];
+    }
+
+    /**
+     * Latest public uploads of a channel, newest first. Cached for 10 minutes; null when unavailable.
+     *
+     * @return list<array{id: string, title: string, thumbnail: ?string, published_at: ?string, url: string}>|null
+     */
+    public function recentUploads(string $channelId, int $limit = 10): ?array
+    {
+        $cacheKey = 'youtube.uploads.'.$channelId.'.'.$limit;
+        $cached = Cache::get($cacheKey);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $playlistId = $this->get('channels', ['part' => 'contentDetails', 'id' => $channelId])['items'][0]['contentDetails']['relatedPlaylists']['uploads'] ?? null;
+        if (! is_string($playlistId) || $playlistId === '') {
+            return null;
+        }
+
+        $response = $this->get('playlistItems', ['part' => 'snippet,status', 'playlistId' => $playlistId, 'maxResults' => max(1, min(50, $limit))]);
+        if ($response === null) {
+            return null;
+        }
+
+        $videos = [];
+        foreach ($response['items'] ?? [] as $item) {
+            $snippet = $item['snippet'] ?? [];
+            $videoId = $snippet['resourceId']['videoId'] ?? null;
+            // Uploads playlists also list private and deleted videos, which nobody else can open.
+            if (! is_string($videoId) || $videoId === '' || ($item['status']['privacyStatus'] ?? 'public') !== 'public') {
+                continue;
+            }
+            $videos[] = [
+                'id' => $videoId,
+                'title' => (string) ($snippet['title'] ?? ''),
+                'thumbnail' => $snippet['thumbnails']['default']['url'] ?? null,
+                'published_at' => $snippet['publishedAt'] ?? null,
+                'url' => 'https://www.youtube.com/watch?v='.$videoId,
+            ];
+        }
+
+        Cache::put($cacheKey, $videos, now()->addMinutes(10));
+
+        return $videos;
     }
 
     /**

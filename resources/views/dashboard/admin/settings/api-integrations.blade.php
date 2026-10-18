@@ -49,8 +49,8 @@
         <x-dashboard.card class="space-y-3">
             <div class="flex items-start justify-between gap-3">
                 <div>
-                    <h2 class="text-sm font-semibold text-text-primary">Connect with Google (agent channels)</h2>
-                    <p class="text-xs text-text-muted">Optional. Lets agents link their YouTube channel by signing in with Google (read-only access). Off by default. Agents can always link with a verification code instead.</p>
+                    <h2 class="text-sm font-semibold text-text-primary">Connect with Google (YouTube channels)</h2>
+                    <p class="text-xs text-text-muted">Optional. Lets agents and creators link their YouTube channel by signing in with Google (read-only access). Off by default. Everyone can always link with a verification code instead.</p>
                 </div>
                 <x-dashboard.badge :status="$oauthEnabled ? 'success' : 'neutral'">{{ $oauthEnabled ? 'On' : 'Off' }}</x-dashboard.badge>
             </div>
@@ -65,11 +65,14 @@
                     autocomplete="new-password"
                     :placeholder="$oauthHasSecret ? 'Saved. Leave blank to keep it.' : ''"
                 />
-                <p class="text-xs text-text-muted break-all">Authorised redirect URI to add in Google Cloud: <span class="font-mono">{{ $oauthCallbackUrl }}</span></p>
+                <div class="space-y-1 text-xs text-text-muted break-all" data-oauth-redirect-uris>
+                    <p>Authorised redirect URI to add in Google Cloud: <span class="font-mono">{{ $oauthCallbackUrl }}</span></p>
+                    <p>Google sign-in shows a "redirect_uri_mismatch" error until this exact address is added. If you set up Google sign-in before, keep the older address registered too: <span class="font-mono">{{ $oauthLegacyCallbackUrl }}</span></p>
+                </div>
                 <label class="flex items-center gap-2 text-sm">
                     <input type="hidden" name="youtube_oauth_enabled" value="0">
                     <input type="checkbox" name="youtube_oauth_enabled" value="1" @checked(old('youtube_oauth_enabled', $oauthEnabled))>
-                    Show "Connect with Google" to agents
+                    Show "Connect with Google" to agents and creators
                 </label>
                 <x-dashboard.button type="submit">Save</x-dashboard.button>
             </form>

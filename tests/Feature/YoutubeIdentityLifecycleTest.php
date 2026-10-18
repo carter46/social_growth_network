@@ -115,7 +115,8 @@ class YoutubeIdentityLifecycleTest extends TestCase
             ->withSession(['youtube_oauth_state' => 'expected-state'])
             ->get(route('agent.youtube-channel.oauth.callback', ['state' => 'expected-state', 'code' => 'abc']))
             ->assertRedirect(route('agent.youtube-channel.show'))
-            ->assertSessionHas('error');
+            ->assertSessionHas('youtube_channel_missing', 'oauth')
+            ->assertSessionMissing('error');
 
         $this->assertFalse(AgentYoutubeIdentity::query()->where('user_id', $agent->id)->exists());
     }

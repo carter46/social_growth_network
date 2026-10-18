@@ -28,7 +28,12 @@ class YoutubeIdentityAdminController extends Controller
             ? (string) $request->query('filter')
             : 'review';
 
-        $query = AgentYoutubeIdentity::query()->with('user:id,name,email')->latest('id');
+        $role = in_array($request->query('role'), ['agent', 'user'], true) ? (string) $request->query('role') : null;
+
+        $query = AgentYoutubeIdentity::query()->with(['user:id,name,email', 'user.roles:id,name'])->latest('id');
+        if ($role) {
+            $query->whereHas('user', fn ($u) => $u->role($role));
+        }
 
         match ($filter) {
             'review' => $query->where('status', AgentYoutubeIdentity::STATUS_PENDING)->where('method', AgentYoutubeIdentity::METHOD_ADMIN),
@@ -58,6 +63,7 @@ class YoutubeIdentityAdminController extends Controller
             'identities' => $query->paginate(25)->withQueryString(),
             'filter' => $filter,
             'filters' => self::FILTERS,
+            'role' => $role,
             'counts' => $counts,
         ]);
     }
@@ -87,7 +93,9 @@ class YoutubeIdentityAdminController extends Controller
         $this->identities->adminReject($identity, $request->user(), $data['reason']);
 
         return back()->with('status', $wasVerified
-            ? __('Channel link revoked. The agent must link a channel again before starting YouTube tasks.')
+            ? ($identity->user?->isAgent()
+                ? __('Channel link revoked. The agent must link a channel again before starting YouTube tasks.')
+                : __('Channel link revoked.'))
             : __('Rejected.'));
     }
 

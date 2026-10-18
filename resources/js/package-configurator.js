@@ -27,6 +27,7 @@ export function registerPackageConfigurator(Alpine) {
         channelLoading: false,
         channelRequestId: 0,
         customVideo: false,
+        myVideos: [],
         videoTimer: null,
         channelTimer: null,
         submitting: false,
@@ -50,6 +51,23 @@ export function registerPackageConfigurator(Alpine) {
                     this.lookupVideo();
                 }
             }
+            if (config.myVideosUrl) {
+                this.loadMyVideos();
+            }
+        },
+
+        async loadMyVideos() {
+            try {
+                const res = await fetch(config.myVideosUrl, { headers: { Accept: 'application/json' } });
+                const data = res.ok ? await res.json().catch(() => null) : null;
+                this.myVideos = Array.isArray(data?.videos) ? data.videos : [];
+            } catch {
+                this.myVideos = [];
+            }
+        },
+        pickMyVideo(item) {
+            this.targetUrl = item.url;
+            this.lookupVideo();
         },
 
         get showDetails() {

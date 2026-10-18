@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\Campaign;
+use App\Services\Campaigns\YoutubeIdentityService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -34,8 +35,13 @@ class CampaignController extends Controller
 
         $campaign->load(['product.heroMedia.variants', 'orderItem']);
 
+        $creatorChannelId = YoutubeIdentityService::enabled()
+            ? app(YoutubeIdentityService::class)->verified(auth()->user())?->channel_id
+            : null;
+
         return view('dashboard.user.campaigns.show', [
             'campaign' => $campaign,
+            'onOwnChannel' => $creatorChannelId !== null && $campaign->channel_id === $creatorChannelId,
         ]);
     }
 }

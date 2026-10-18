@@ -46,6 +46,8 @@ class DashboardController extends Controller
                 ->where('creator_id', $user->id)
                 ->whereIn('status', ['active', 'pending_review', 'paused'])
                 ->count(),
+            'showChannelPrompt' => \App\Services\Campaigns\YoutubeIdentityService::enabled()
+                && ! app(\App\Services\Campaigns\YoutubeIdentityService::class)->verified($user),
         ]);
     }
 

@@ -24,6 +24,16 @@
         'channelUrl' => (string) old('channel_url', request()->query('channel_url', $draft['channel_url'] ?? '')),
         'commentInstructions' => (string) old('comment_instructions', request()->query('comment_instructions', $draft['comment_instructions'] ?? '')),
     ];
+    $channelLinkingOn = $needsTargetUrl && $user?->isCreator() && \App\Services\Campaigns\YoutubeIdentityService::enabled();
+    $creatorChannel = $channelLinkingOn ? app(\App\Services\Campaigns\YoutubeIdentityService::class)->verified($user) : null;
+    $creatorChannelUrl = $creatorChannel?->channel_id ? 'https://www.youtube.com/channel/'.$creatorChannel->channel_id : null;
+    if ($creatorChannelUrl && $needsChannel && $initial['channelUrl'] === '') {
+        $initial['channelUrl'] = $creatorChannelUrl;
+    }
+    if ($creatorChannelUrl && $targetIsChannel && $initial['targetUrl'] === '') {
+        $initial['targetUrl'] = $creatorChannelUrl;
+    }
+    $showMyVideos = $creatorChannelUrl && ! $targetIsChannel && ! $needsChannel;
     $config = [
         'productSlug' => $product->slug,
         'csrf' => csrf_token(),
@@ -38,6 +48,7 @@
         'needsComment' => $needsComment,
         'commentMax' => \App\Services\Campaigns\CampaignBriefService::COMMENT_INSTRUCTIONS_MAX,
         'revealed' => $errors->any(),
+        'myVideosUrl' => $showMyVideos ? route('dashboard.youtube-channel.videos') : null,
     ];
 
     $c = $dash ? [
@@ -121,6 +132,21 @@
                     </fieldset>
                 @endif
 
+                @if($showMyVideos)
+                    <fieldset class="space-y-2" x-show="myVideos.length" x-cloak data-my-channel-videos>
+                        <legend class="{{ $c['title'] }}">Pick from my channel</legend>
+                        <div class="grid grid-cols-2 gap-3">
+                            <template x-for="item in myVideos" :key="item.id">
+                                <button type="button" class="text-left {{ $c['tile'] }} overflow-hidden transition" :class="targetUrl === item.url ? 'ring-2 ring-primary' : 'hover:ring-1 hover:ring-primary/40'" @click="pickMyVideo(item)">
+                                    <img x-show="item.thumbnail" :src="item.thumbnail" alt="" class="block w-full aspect-video object-cover" loading="lazy" referrerpolicy="no-referrer">
+                                    <span class="block p-2 text-xs font-medium {{ $c['strong'] }} line-clamp-2" x-text="item.title"></span>
+                                </button>
+                            </template>
+                        </div>
+                        <p class="{{ $c['muted'] }}">Or paste any video link below.</p>
+                    </fieldset>
+                @endif
+
                 <div class="space-y-1.5" @if($needsChannel) x-show="customVideo" x-cloak @endif>
                     <label for="pkg-video" class="{{ $c['label'] }}">YouTube video link</label>
                     <input id="pkg-video" x-ref="videoInput" type="url" class="{{ $c['input'] }}" placeholder="https://www.youtube.com/watch?v=..." x-model="targetUrl" @input="onVideoInput()" autocomplete="off">
@@ -143,6 +169,12 @@
                 </div>
                 <p x-show="video && video.message" x-cloak class="text-xs" :class="video?.allowed === false ? '{{ $dash ? 'text-danger' : 'text-red-600' }}' : '{{ $dash ? 'text-text-muted' : 'text-slate-500' }}'" x-text="video?.message"></p>
                 <p x-show="channelMismatch" x-cloak class="{{ $c['error'] }}">That video is not on the channel above. Pick a video from the same channel.</p>
+
+                @if($channelLinkingOn && ! $creatorChannel)
+                    <p class="{{ $c['muted'] }}" data-connect-channel-hint>
+                        Optional: <a href="{{ route('dashboard.youtube-channel.show') }}" class="font-medium text-primary hover:underline">connect your YouTube channel</a> to fill in your channel and pick from your latest videos.
+                    </p>
+                @endif
 
                 @if($needsComment)
                     <div class="space-y-1.5" x-show="showDetails" x-cloak>
