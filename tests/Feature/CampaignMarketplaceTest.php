@@ -131,6 +131,15 @@ class CampaignMarketplaceTest extends TestCase
             ->assertOk()
             ->assertDontSee('Render campaign');
 
+        $creator->restore();
+        $this->assertTrue($creator->fresh()->anonymize());
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->get(route('admin.campaigns'))
+            ->assertOk()
+            ->assertDontSee('Render campaign')
+            ->assertDontSee('deleted+'.$creator->id.'@invalid.local');
+
         $this->actingAs(User::factory()->admin()->create())
             ->get(route('admin.campaigns.show', $campaign))
             ->assertOk()

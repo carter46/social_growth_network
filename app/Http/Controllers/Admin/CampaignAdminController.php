@@ -19,10 +19,12 @@ class CampaignAdminController extends Controller
     {
         $status = $request->string('status')->toString();
 
+        $liveCreator = fn ($q) => $q->whereHas('creator', fn ($u) => $u->notAnonymized());
+
         $query = Campaign::query()
             ->with(['creator', 'product'])
-            // Soft-deleted creators stay in Trash; hide their campaigns from the live list.
-            ->whereHas('creator')
+            // Trash + permanent-delete tombstones (deleted+N@invalid.local) stay out of the live list.
+            ->whereHas('creator', fn ($u) => $u->notAnonymized())
             ->orderByDesc('created_at');
 
         if ($status !== '' && in_array($status, Campaign::STATUSES, true)) {
@@ -31,11 +33,13 @@ class CampaignAdminController extends Controller
 
         $heldTotals = null;
         if (CampaignBudgetService::enabled()) {
-            $held = CampaignBudget::query()->where('status', CampaignBudget::STATUS_HELD);
+            $held = CampaignBudget::query()
+                ->where('status', CampaignBudget::STATUS_HELD)
+                ->whereHas('campaign', $liveCreator);
             $heldTotals = [
                 'count' => (clone $held)->count(),
                 'remaining' => number_format(max(0, (float) (clone $held)->selectRaw('COALESCE(SUM(funded_amount - paid_amount - refunded_amount - released_amount), 0) as t')->value('t')), 2, '.', ''),
-                'paid' => number_format((float) CampaignBudget::query()->sum('paid_amount'), 2, '.', ''),
+                'paid' => number_format((float) CampaignBudget::query()->whereHas('campaign', $liveCreator)->sum('paid_amount'), 2, '.', ''),
             ];
         }
 

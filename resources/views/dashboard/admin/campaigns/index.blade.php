@@ -48,7 +48,7 @@
         @foreach ($campaigns as $campaign)
             <tr class="hover:bg-muted/50">
                 <x-dashboard.td class="font-medium">{{ $campaign->title }}</x-dashboard.td>
-                <x-dashboard.td>{{ $campaign->creator?->email }}</x-dashboard.td>
+                <x-dashboard.td>{{ $campaign->creator?->displayEmail() ?? $campaign->creator?->displayName() }}</x-dashboard.td>
                 <x-dashboard.td>
                     <x-dashboard.badge :status="$campaign->status" />
                     @if (\App\Services\Campaigns\CampaignBudgetService::isUnfunded($campaign))

@@ -190,6 +190,32 @@ class UserManagementTest extends TestCase
         $this->assertDatabaseMissing('users', ['id' => $id]);
     }
 
+    public function test_retire_only_cleans_leftover_data_for_anonymized_accounts(): void
+    {
+        $creator = User::factory()->creator()->create([
+            'anonymized_at' => now(),
+            'name' => 'Deleted User',
+            'email' => 'deleted+71@invalid.local',
+            'username' => 'deleted_71',
+            'is_suspended' => true,
+        ]);
+        $campaign = \App\Models\Campaign::query()->create([
+            'creator_id' => $creator->id,
+            'title' => 'Orphan monetization',
+            'quantity' => 10,
+            'completed_count' => 0,
+            'locked_creator_price' => 100,
+            'locked_agent_reward' => 50,
+            'status' => \App\Models\Campaign::STATUS_ACTIVE,
+        ]);
+
+        $this->artisan('users:purge-anonymized', ['--retire-only' => true])
+            ->assertSuccessful();
+
+        $this->assertSame(\App\Models\Campaign::STATUS_CANCELLED, $campaign->fresh()->status);
+        $this->assertDatabaseHas('users', ['id' => $creator->id]);
+    }
+
     public function test_purge_anonymized_keeps_recent_tombstones(): void
     {
         $member = User::factory()->create([

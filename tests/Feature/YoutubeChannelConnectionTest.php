@@ -927,4 +927,20 @@ class YoutubeChannelConnectionTest extends TestCase
             ->assertOk()
             ->assertDontSee(self::CHANNEL);
     }
+
+    public function test_admin_youtube_list_hides_permanently_deleted_tombstones(): void
+    {
+        $agent = $this->agent();
+        $identity = $this->linkVerifiedYoutubeChannel($agent, self::CHANNEL);
+        $this->assertTrue($agent->anonymize());
+
+        $this->assertSame(AgentYoutubeIdentity::STATUS_REPLACED, $identity->fresh()->status);
+        $this->assertNull($identity->fresh()->active_channel_id);
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->get(route('admin.youtube-identities.index', ['filter' => 'all']))
+            ->assertOk()
+            ->assertDontSee(self::CHANNEL)
+            ->assertDontSee('deleted+'.$agent->id.'@invalid.local');
+    }
 }

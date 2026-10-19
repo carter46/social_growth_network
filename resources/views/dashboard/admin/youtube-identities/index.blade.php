@@ -78,8 +78,8 @@
         @foreach ($identities as $identity)
             <tr class="align-top">
                 <x-dashboard.td>
-                    <p class="font-medium text-text-primary">{{ $identity->user?->name }}</p>
-                    <p class="text-xs text-text-muted">{{ $identity->user?->email }}</p>
+                    <p class="font-medium text-text-primary">{{ $identity->user?->displayName() }}</p>
+                    <p class="text-xs text-text-muted">{{ $identity->user?->displayEmail() }}</p>
                     @if ($identity->user)
                         <x-dashboard.badge :status="$identity->user->isAgent() ? 'info' : 'neutral'" class="mt-1">{{ $identity->user->isAgent() ? 'Agent' : 'Creator' }}</x-dashboard.badge>
                     @endif

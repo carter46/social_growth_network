@@ -31,15 +31,15 @@ class YoutubeIdentityAdminController extends Controller
 
         $role = in_array($request->query('role'), ['agent', 'user'], true) ? (string) $request->query('role') : null;
 
-        // Soft-deleted accounts live under Trash; do not list their channel rows here.
-        $activeOwner = fn ($q) => $q->whereHas('user');
+        // Soft-deleted + permanent-delete tombstones stay out of the live list.
+        $activeOwner = fn ($q) => $q->whereHas('user', fn ($u) => $u->notAnonymized());
 
         $query = AgentYoutubeIdentity::query()
-            ->with(['user:id,name,email', 'user.roles:id,name'])
-            ->whereHas('user')
+            ->with(['user:id,name,email,anonymized_at', 'user.roles:id,name'])
+            ->whereHas('user', fn ($u) => $u->notAnonymized())
             ->latest('id');
         if ($role) {
-            $query->whereHas('user', fn ($u) => $u->role($role));
+            $query->whereHas('user', fn ($u) => $u->notAnonymized()->role($role));
         }
 
         match ($filter) {

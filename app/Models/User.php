@@ -336,7 +336,18 @@ class User extends Authenticatable implements MustVerifyEmail
             }
 
             return $saved;
-        });
+        }) && $this->runAnonymizedCleanup();
+    }
+
+    private function runAnonymizedCleanup(): bool
+    {
+        try {
+            app(\App\Services\Users\AnonymizedAccountCleanup::class)->retireOwnedData($this->fresh() ?? $this);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return true;
     }
 
     /**
