@@ -278,6 +278,7 @@ Route::middleware(['auth', 'verified', 'role:user'])->prefix('dashboard')->name(
         Route::get('/', 'show')->name('.show');
         Route::post('/preview', 'preview')->middleware('throttle:20,1')->name('.preview');
         Route::post('/', 'store')->middleware('throttle:10,1')->name('.store');
+        Route::post('/reclaim', 'reclaim')->middleware('throttle:5,1')->name('.reclaim');
         Route::post('/check', 'check')->middleware('throttle:10,1')->name('.check');
         Route::post('/retry', 'retry')->middleware('throttle:5,1')->name('.retry');
         Route::post('/unlink', 'unlink')->middleware('throttle:5,1')->name('.unlink');
@@ -375,6 +376,7 @@ Route::middleware(['auth', 'verified', 'role:agent'])->prefix('agent')->name('ag
         Route::get('/', 'show')->name('.show');
         Route::post('/preview', 'preview')->middleware('throttle:20,1')->name('.preview');
         Route::post('/', 'store')->middleware('throttle:10,1')->name('.store');
+        Route::post('/reclaim', 'reclaim')->middleware('throttle:5,1')->name('.reclaim');
         Route::post('/check', 'check')->middleware('throttle:10,1')->name('.check');
         Route::post('/retry', 'retry')->middleware('throttle:5,1')->name('.retry');
         Route::post('/change', 'requestChange')->middleware('throttle:5,1')->name('.change');
@@ -449,6 +451,10 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::post('/users/{user}/unverify-email', [UserManagementController::class, 'unverifyEmail'])->name('.users.unverify-email');
         Route::post('/users/{user}/provision-wallet', [UserManagementController::class, 'provisionWallet'])->name('.users.provision-wallet');
         Route::post('/users/{user}/impersonate', [ImpersonationController::class, 'start'])->name('.users.impersonate');
+
+        Route::get('/trash', [\App\Http\Controllers\Admin\TrashController::class, 'index'])->name('.trash');
+        Route::post('/trash/{user}/restore', [\App\Http\Controllers\Admin\TrashController::class, 'restore'])->name('.trash.restore');
+        Route::delete('/trash/{user}', [\App\Http\Controllers\Admin\TrashController::class, 'destroy'])->name('.trash.destroy');
     });
 
     Route::middleware('permission:admins.manage')->group(function () {
@@ -578,6 +584,12 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::post('/settings/payment-gateways/{gateway}/test', [\App\Modules\Admin\Http\Controllers\PaymentGatewaySettingsController::class, 'test'])->name('.settings.payment-gateways.test');
         Route::post('/settings/manual-bank-transfer', [AdminSettingsController::class, 'updateManualBankTransfer'])->name('.settings.manual-bank-transfer');
         Route::post('/settings/referrals', [AdminSettingsController::class, 'updateReferrals'])->name('.settings.referrals');
+        Route::post('/settings/agent-invite', [AdminSettingsController::class, 'createAgentInvite'])
+            ->middleware('throttle:10,1')
+            ->name('.settings.agent-invite');
+        Route::delete('/settings/agent-invite', [AdminSettingsController::class, 'revokeAgentInvite'])
+            ->middleware('throttle:10,1')
+            ->name('.settings.agent-invite.revoke');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('.audit-logs');
         Route::get('/newsletter', [\App\Modules\Admin\Http\Controllers\NewsletterSubscriberController::class, 'index'])->name('.newsletter');
         Route::get('/newsletter/export', [\App\Modules\Admin\Http\Controllers\NewsletterSubscriberController::class, 'export'])->name('.newsletter.export');

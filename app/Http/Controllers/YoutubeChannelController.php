@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AgentYoutubeIdentity;
 use App\Models\User;
+use App\Services\Campaigns\YoutubeChannelTakenException;
 use App\Services\Campaigns\YoutubeIdentityService;
 use App\Services\Engagement\YoutubeChannelApi;
 use App\Services\Engagement\YoutubeOAuthClient;
@@ -35,6 +36,8 @@ class YoutubeChannelController extends Controller
 
         $view = $request->headers->get('X-Dashboard-Tab') === '1' ? 'youtube-channel.panel' : 'youtube-channel.show';
 
+        $taken = $request->session()->get('youtube_channel_taken');
+
         return view($view, [
             'layout' => $prefix === 'agent' ? 'layouts.dashboard-agent' : 'layouts.dashboard-user',
             'prefix' => $prefix,
@@ -46,6 +49,8 @@ class YoutubeChannelController extends Controller
             'channelMissing' => in_array($missing, ['oauth', 'link'], true) ? $missing : false,
             'justConnected' => (bool) $request->session()->get('youtube_channel_connected', false),
             'openTasks' => $prefix === 'agent' ? $this->identities->openTaskCount($user->id) : 0,
+            'channelTaken' => is_array($taken) ? $taken : null,
+            'reclaimContext' => $this->identities->reclaimContext($user),
         ]);
     }
 
@@ -72,11 +77,39 @@ class YoutubeChannelController extends Controller
 
         try {
             $identity = $this->identities->begin($request->user(), $data['channel_url']);
+        } catch (YoutubeChannelTakenException $e) {
+            return $this->channelTaken($request, $e, $data['channel_url']);
         } catch (\InvalidArgumentException $e) {
             return $this->fail($request, $e->getMessage(), $e->getCode() === YoutubeIdentityService::ERROR_NOT_FOUND);
         }
 
         return $this->done($request, $identity, __('Almost there. Add your code to your channel description, then choose "I\'ve added the code".'), $data['return'] ?? null);
+    }
+
+    /**
+     * Lost access to the account that already holds this channel: start verification first;
+     * the previous account is only deleted after ownership is proven.
+     */
+    public function reclaim(Request $request): RedirectResponse|JsonResponse
+    {
+        $data = $request->validate([
+            'channel_url' => ['required', 'string', 'max:500'],
+            'confirm_delete_previous' => ['accepted'],
+            'return' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        try {
+            $identity = $this->identities->beginReclaim($request->user(), $data['channel_url']);
+        } catch (\InvalidArgumentException $e) {
+            return $this->fail($request, $e->getMessage(), $e->getCode() === YoutubeIdentityService::ERROR_NOT_FOUND);
+        }
+
+        return $this->done(
+            $request,
+            $identity,
+            __('Verify this channel first. After verification succeeds, the previous account that had this channel will be deleted.'),
+            $data['return'] ?? null,
+        );
     }
 
     public function check(Request $request): RedirectResponse|JsonResponse
@@ -88,6 +121,8 @@ class YoutubeChannelController extends Controller
 
         try {
             $identity = $this->identities->check($identity);
+        } catch (YoutubeChannelTakenException $e) {
+            return $this->channelTaken($request, $e, $identity->channel_url);
         } catch (\InvalidArgumentException $e) {
             return $this->fail($request, $e->getMessage());
         }
@@ -211,6 +246,12 @@ class YoutubeChannelController extends Controller
                 'access_token' => $token['access_token'],
                 'expires_at' => now()->addSeconds((int) ($token['expires_in'] ?? 3600))->toIso8601String(),
             ]));
+        } catch (YoutubeChannelTakenException $e) {
+            return $back->with('error', $e->getMessage())->with('youtube_channel_taken', [
+                'channel_id' => $e->channelId,
+                'channel_url' => $e->channelUrl ?: ('https://www.youtube.com/channel/'.$e->channelId),
+                'channel_title' => $e->channelTitle,
+            ]);
         } catch (\InvalidArgumentException $e) {
             return $back->with('error', $e->getMessage());
         } catch (\Throwable $e) {
@@ -272,6 +313,25 @@ class YoutubeChannelController extends Controller
         $redirect = back()->withInput()->with('error', $message);
 
         return $missingChannelHelp ? $redirect->with('youtube_channel_missing', 'link') : $redirect;
+    }
+
+    private function channelTaken(Request $request, YoutubeChannelTakenException $e, ?string $fallbackUrl = null): RedirectResponse|JsonResponse
+    {
+        $payload = [
+            'channel_id' => $e->channelId,
+            'channel_url' => $e->channelUrl ?: $fallbackUrl,
+            'channel_title' => $e->channelTitle,
+            'login_url' => route('login'),
+        ];
+
+        if ($request->expectsJson()) {
+            return response()->json(array_merge([
+                'message' => $e->getMessage(),
+                'channel_taken' => true,
+            ], $payload), 422);
+        }
+
+        return back()->withInput()->with('error', $e->getMessage())->with('youtube_channel_taken', $payload);
     }
 
     /** Onboarding handles the whole connection itself, so it gets every outcome back directly. */

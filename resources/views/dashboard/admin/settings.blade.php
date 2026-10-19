@@ -362,6 +362,71 @@
 
                 <x-dashboard.button type="submit" variant="primary">Save referral settings</x-dashboard.button>
             </form>
+
+            <div class="mt-8 border-t border-border-subtle pt-6 space-y-4" data-agent-invite>
+                <div>
+                    <h3 class="text-base font-semibold text-text-primary">Temporary agent invite</h3>
+                    <p class="mt-1 text-sm text-text-secondary">
+                        Use this when no agent exists yet, or when you need a short-lived invite with no referral downline.
+                        The code and link last 24 hours, then they are deleted automatically.
+                    </p>
+                </div>
+
+                @if ($agentInvite)
+                    <div
+                        class="rounded-xl border border-border-default bg-surface px-4 py-4 space-y-3"
+                        x-data="{
+                            code: @js($agentInvite->code),
+                            link: @js($agentInvite->signupUrl()),
+                            copied: null,
+                            async copy(text, key) {
+                                const copyFn = window.copyToClipboard;
+                                const ok = typeof copyFn === 'function' ? await copyFn(text || '') : false;
+                                if (ok) {
+                                    this.copied = key;
+                                    setTimeout(() => { if (this.copied === key) this.copied = null; }, 1600);
+                                    return;
+                                }
+                                alert(window.copyFailedMessage?.() || 'Unable to copy.');
+                            },
+                        }"
+                    >
+                        <p class="text-xs font-medium uppercase tracking-wide text-text-muted">Active invite</p>
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <p class="font-mono text-xl font-bold tracking-widest text-text-primary">{{ $agentInvite->code }}</p>
+                            <x-dashboard.button type="button" variant="secondary" size="sm" x-on:click="copy(code, 'code')">
+                                <span x-text="copied === 'code' ? 'Copied' : 'Copy code'">Copy code</span>
+                            </x-dashboard.button>
+                        </div>
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <p class="min-w-0 break-all text-sm text-text-secondary">{{ $agentInvite->signupUrl() }}</p>
+                            <x-dashboard.button type="button" variant="secondary" size="sm" x-on:click="copy(link, 'link')">
+                                <span x-text="copied === 'link' ? 'Copied' : 'Copy link'">Copy link</span>
+                            </x-dashboard.button>
+                        </div>
+                        <p class="text-xs text-text-muted">
+                            Expires {{ $agentInvite->expires_at->timezone(config('app.timezone'))->format('M j, Y g:i A') }}
+                            ({{ $agentInvite->expires_at->diffForHumans() }}). Anyone who joins with this code is not linked as a referral.
+                        </p>
+                        <div class="flex flex-col gap-2 sm:flex-row">
+                            <form method="POST" action="{{ route('admin.settings.agent-invite') }}">
+                                @csrf
+                                <x-dashboard.button type="submit" variant="secondary" size="sm">Generate new code</x-dashboard.button>
+                            </form>
+                            <form method="POST" action="{{ route('admin.settings.agent-invite.revoke') }}" onsubmit="return confirm('Remove this invite code now?')">
+                                @csrf
+                                @method('DELETE')
+                                <x-dashboard.button type="submit" variant="secondary" size="sm">Remove now</x-dashboard.button>
+                            </form>
+                        </div>
+                    </div>
+                @else
+                    <form method="POST" action="{{ route('admin.settings.agent-invite') }}">
+                        @csrf
+                        <x-dashboard.button type="submit" variant="secondary">Generate 24-hour invite code</x-dashboard.button>
+                    </form>
+                @endif
+            </div>
         </x-dashboard.card>
 
     </div>

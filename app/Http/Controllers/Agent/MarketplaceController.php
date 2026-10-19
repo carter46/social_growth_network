@@ -30,11 +30,12 @@ class MarketplaceController extends Controller
 
         $campaigns = $this->eligibility->applyToQuery($query, auth()->user())
             ->with([
-                'product.heroMedia.variants',
-                'product.serviceCategory',
-                'product.productType.serviceCategory',
+                'product',
+                'creator.verifiedYoutubeIdentity',
             ])
+            ->whereHas('creator', fn ($q) => $q->where('is_suspended', false))
             ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->paginate(20);
 
         return view('dashboard.agent.marketplace.index', [

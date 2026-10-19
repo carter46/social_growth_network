@@ -20,7 +20,7 @@
             />
         </x-dashboard.card>
     @else
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+        <div class="flex flex-col gap-3 sm:gap-4" data-marketplace-list>
             @foreach ($campaigns as $campaign)
                 @include('dashboard.agent.marketplace._card', ['campaign' => $campaign])
             @endforeach

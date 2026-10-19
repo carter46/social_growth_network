@@ -6,6 +6,7 @@ use App\Events\UserRegistered;
 use App\Http\Controllers\Auth\OtpVerificationController;
 use App\Models\User;
 use App\Services\Referrals\ReferralAttribution;
+use App\Support\UniqueUserRules;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,8 +29,8 @@ class AccountRegistration
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'max:255', 'unique:users,username', 'alpha_dash'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'username' => ['required', 'string', 'max:255', 'alpha_dash', UniqueUserRules::username()],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', UniqueUserRules::email()],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'terms' => ['accepted'],
         ];
@@ -45,7 +46,7 @@ class AccountRegistration
             'string',
             'max:32',
             function (string $attribute, mixed $value, \Closure $fail) {
-                if (! $this->referrals->findReferrer((string) $value)) {
+                if (! $this->referrals->isValidInvite((string) $value)) {
                     $fail(__('This invite code is not valid.'));
                 }
             },

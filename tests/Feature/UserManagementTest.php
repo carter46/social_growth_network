@@ -107,7 +107,7 @@ class UserManagementTest extends TestCase
             ->assertDontSee('Active Member');
     }
 
-    public function test_anonymize_scrubs_pii_and_hides_from_admin_list(): void
+    public function test_destroy_moves_account_to_trash_instead_of_anonymizing(): void
     {
         $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
         $member = User::factory()->create([
@@ -122,25 +122,53 @@ class UserManagementTest extends TestCase
 
         $this->actingAs($admin)
             ->delete(route('admin.users.destroy', $member))
-            ->assertRedirect(route('admin.users', ['status' => 'suspended']));
+            ->assertRedirect(route('admin.trash'));
 
-        $member->refresh();
-        $this->assertNotNull($member->anonymized_at);
-        $this->assertSame('Deleted User', $member->name);
-        $this->assertSame('deleted_'.$memberId, $member->username);
-        $this->assertSame('deleted+'.$memberId.'@invalid.local', $member->email);
-        $this->assertDatabaseHas('users', ['id' => $memberId]);
+        $this->assertSoftDeleted('users', ['id' => $memberId]);
+        $trashed = User::onlyTrashed()->find($memberId);
+        $this->assertNotNull($trashed);
+        $this->assertNull($trashed->anonymized_at);
+        $this->assertSame('Keep History', $trashed->name);
+        $this->assertSame('keep-history@example.com', $trashed->email);
 
         $this->actingAs($admin)
             ->get(route('admin.users', ['status' => 'suspended']))
             ->assertOk()
-            ->assertDontSee('Deleted User')
-            ->assertDontSee('deleted+'.$memberId.'@invalid.local')
             ->assertDontSee('Keep History');
 
         $this->actingAs($admin)
-            ->get(route('admin.users.show', $member))
-            ->assertNotFound();
+            ->get(route('admin.trash'))
+            ->assertOk()
+            ->assertSee('Keep History')
+            ->assertSee('keep-history@example.com');
+    }
+
+    public function test_trash_restore_and_permanent_delete(): void
+    {
+        $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
+        $member = User::factory()->create([
+            'email_verified_at' => now(),
+            'email' => 'restore-me@example.com',
+            'name' => 'Restore Me',
+        ]);
+        $member->assignRole('user');
+
+        $this->actingAs($admin)->delete(route('admin.users.destroy', $member));
+        $this->assertSoftDeleted('users', ['id' => $member->id]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.trash.restore', $member->id))
+            ->assertRedirect();
+
+        $this->assertNull($member->fresh()->deleted_at);
+        $this->assertFalse($member->fresh()->is_suspended);
+
+        $this->actingAs($admin)->delete(route('admin.users.destroy', $member->fresh()));
+        $this->actingAs($admin)
+            ->delete(route('admin.trash.destroy', $member->id))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('users', ['id' => $member->id]);
     }
 
     public function test_purge_anonymized_removes_tombstones_after_retention(): void
@@ -225,7 +253,7 @@ class UserManagementTest extends TestCase
         $this->assertFalse($two->fresh()->is_suspended);
     }
 
-    public function test_bulk_destroy_anonymizes_suspended_members_only(): void
+    public function test_bulk_destroy_moves_selected_accounts_to_trash(): void
     {
         $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
         $suspended = User::factory()->create([
@@ -243,10 +271,40 @@ class UserManagementTest extends TestCase
 
         $this->actingAs($admin)
             ->delete(route('admin.users.bulk-destroy'), ['ids' => [$suspended->id, $active->id]])
-            ->assertRedirect(route('admin.users', ['status' => 'suspended']));
+            ->assertRedirect(route('admin.trash'));
 
-        $this->assertNotNull($suspended->fresh()->anonymized_at);
-        $this->assertNull($active->fresh()->anonymized_at);
-        $this->assertFalse($active->fresh()->is_suspended);
+        $this->assertSoftDeleted('users', ['id' => $suspended->id]);
+        $this->assertSoftDeleted('users', ['id' => $active->id]);
+    }
+
+    public function test_suspending_a_creator_holds_their_open_campaigns(): void
+    {
+        $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
+        $creator = User::factory()->creator()->create();
+        $campaign = \App\Models\Campaign::query()->create([
+            'creator_id' => $creator->id,
+            'title' => 'Open campaign',
+            'quantity' => 5,
+            'completed_count' => 0,
+            'locked_creator_price' => 10,
+            'locked_agent_reward' => 1,
+            'status' => \App\Models\Campaign::STATUS_ACTIVE,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.users.suspend', $creator))
+            ->assertRedirect();
+
+        $campaign->refresh();
+        $this->assertSame(\App\Models\Campaign::STATUS_SUSPENDED, $campaign->status);
+        $this->assertSame(\App\Models\Campaign::STATUS_ACTIVE, $campaign->status_before_hold);
+
+        $this->actingAs($admin)
+            ->post(route('admin.users.restore', $creator))
+            ->assertRedirect();
+
+        $campaign->refresh();
+        $this->assertSame(\App\Models\Campaign::STATUS_ACTIVE, $campaign->status);
+        $this->assertNull($campaign->status_before_hold);
     }
 }

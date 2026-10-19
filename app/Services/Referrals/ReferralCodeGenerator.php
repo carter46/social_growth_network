@@ -3,6 +3,7 @@
 namespace App\Services\Referrals;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 class ReferralCodeGenerator
@@ -19,12 +20,25 @@ class ReferralCodeGenerator
         for ($attempt = 0; $attempt < self::MAX_ATTEMPTS; $attempt++) {
             $code = $this->randomCode();
 
-            if (! DB::table('users')->where('referral_code', $code)->exists()) {
+            if ($this->isAvailable($code)) {
                 return $code;
             }
         }
 
         throw new RuntimeException('Could not generate a unique referral code.');
+    }
+
+    public function isAvailable(string $code): bool
+    {
+        if (DB::table('users')->where('referral_code', $code)->exists()) {
+            return false;
+        }
+
+        if (Schema::hasTable('agent_invite_codes') && DB::table('agent_invite_codes')->where('code', $code)->exists()) {
+            return false;
+        }
+
+        return true;
     }
 
     public static function normalize(?string $code): string

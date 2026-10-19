@@ -447,4 +447,74 @@ class ReferralProgramTest extends TestCase
             ])
             ->assertSessionHasErrors('referral_agent_percent');
     }
+
+    public function test_admin_can_issue_a_temporary_invite_with_no_downline(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->get(route('admin.settings'))
+            ->assertOk()
+            ->assertSee('Temporary agent invite')
+            ->assertSee('Generate 24-hour invite code');
+
+        $this->actingAs($admin)
+            ->post(route('admin.settings.agent-invite'))
+            ->assertRedirect();
+
+        $invite = \App\Models\AgentInviteCode::query()->first();
+        $this->assertNotNull($invite);
+        $this->assertTrue($invite->expires_at->greaterThan(now()->addHours(23)));
+        $this->assertTrue($invite->expires_at->lessThanOrEqualTo(now()->addHours(24)->addMinute()));
+
+        $this->actingAs($admin)
+            ->get(route('admin.settings'))
+            ->assertOk()
+            ->assertSee($invite->code)
+            ->assertSee(route('agent-onboarding', ['ref' => $invite->code]), false);
+
+        $this->post('/logout');
+
+        $this->post(route('agent-onboarding.store'), $this->registrationPayload([
+            'referral_code' => $invite->code,
+            'username' => 'bootstrap1',
+            'email' => 'bootstrap1@example.com',
+        ]))->assertRedirect(route('verification.notice'));
+
+        $agent = User::query()->where('email', 'bootstrap1@example.com')->first();
+        $this->assertNotNull($agent);
+        $this->assertTrue($agent->isAgent());
+        $this->assertNull($agent->referred_by_id);
+
+        $this->post('/logout');
+        $this->travel(25)->hours();
+
+        $this->post(route('agent-onboarding.store'), $this->registrationPayload([
+            'referral_code' => $invite->code,
+            'username' => 'bootstrap2',
+            'email' => 'bootstrap2@example.com',
+        ]))->assertSessionHasErrors('referral_code');
+
+        $this->assertNull(\App\Models\AgentInviteCode::query()->find($invite->id));
+    }
+
+    public function test_admin_can_revoke_temporary_invite(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)->post(route('admin.settings.agent-invite'));
+        $code = \App\Models\AgentInviteCode::query()->value('code');
+
+        $this->actingAs($admin)
+            ->delete(route('admin.settings.agent-invite.revoke'))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('agent_invite_codes', ['code' => $code]);
+
+        $this->post('/logout');
+
+        $this->post(route('agent-onboarding.store'), $this->registrationPayload([
+            'referral_code' => $code,
+        ]))->assertSessionHasErrors('referral_code');
+    }
 }

@@ -70,25 +70,43 @@
                     type="button"
                     variant="danger"
                     size="sm"
-                    x-on:click="$dispatch('open-modal', 'delete-user-{{ $user->id }}')"
+                    x-on:click="$dispatch('open-modal', 'trash-user-{{ $user->id }}')"
                 >
-                    Permanently Delete
+                    Move to trash
                 </x-dashboard.button>
                 <x-dashboard.modal
-                    name="delete-user-{{ $user->id }}"
-                    title="Permanently delete this user?"
+                    name="trash-user-{{ $user->id }}"
+                    title="Move this account to trash?"
                     variant="danger"
-                    confirm-label="Permanently Delete"
+                    confirm-label="Move to trash"
                     :form-action="route('admin.users.destroy', $user)"
                     method="DELETE"
                 >
-                    This anonymizes personal data and cannot be undone.
+                    Their wallet, campaigns and history stay recoverable. You can restore them later from System → Trash, or permanently delete them there.
                 </x-dashboard.modal>
             @else
                 <form method="POST" action="{{ route('admin.users.suspend', $user) }}">
                     @csrf
                     <x-dashboard.button type="submit" variant="danger" size="sm">Suspend</x-dashboard.button>
                 </form>
+                <x-dashboard.button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    x-on:click="$dispatch('open-modal', 'trash-user-{{ $user->id }}')"
+                >
+                    Move to trash
+                </x-dashboard.button>
+                <x-dashboard.modal
+                    name="trash-user-{{ $user->id }}"
+                    title="Move this account to trash?"
+                    variant="danger"
+                    confirm-label="Move to trash"
+                    :form-action="route('admin.users.destroy', $user)"
+                    method="DELETE"
+                >
+                    Their wallet, campaigns and history stay recoverable. Open campaigns will leave the marketplace until you restore the account.
+                </x-dashboard.modal>
             @endif
         @endif
     </x-slot:actions>

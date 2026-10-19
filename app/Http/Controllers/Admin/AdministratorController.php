@@ -36,8 +36,8 @@ class AdministratorController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'max:50', 'alpha_dash', 'unique:users,username'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'username' => ['required', 'string', 'max:50', 'alpha_dash', \App\Support\UniqueUserRules::username()],
+            'email' => ['required', 'string', 'email', 'max:255', \App\Support\UniqueUserRules::email()],
             'password' => ['required', 'confirmed', Password::defaults()],
             'grant_admins_manage' => ['sometimes', 'boolean'],
         ]);

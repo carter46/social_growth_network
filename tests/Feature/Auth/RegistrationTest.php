@@ -53,4 +53,35 @@ class RegistrationTest extends TestCase
         $this->assertTrue($user->hasRole('user'));
         $this->assertFalse($user->hasRole('agent'));
     }
+
+    public function test_soft_deleted_email_and_username_cannot_register_again(): void
+    {
+        $prior = User::factory()->create([
+            'email' => 'trashed@example.com',
+            'username' => 'trasheduser',
+        ]);
+        $prior->assignRole('user');
+        $prior->delete();
+
+        $this->post('/register', [
+            'name' => 'Someone Else',
+            'username' => 'trasheduser',
+            'email' => 'fresh@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'terms' => '1',
+        ])->assertSessionHasErrors('username');
+
+        $this->post('/register', [
+            'name' => 'Someone Else',
+            'username' => 'newusername',
+            'email' => 'trashed@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'terms' => '1',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+        $this->assertSame(1, User::withTrashed()->where('email', 'trashed@example.com')->count());
+    }
 }

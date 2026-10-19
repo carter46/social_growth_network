@@ -14,6 +14,10 @@ class ReferralAttribution
 
     private const COOKIE_MINUTES = 60 * 24 * 30;
 
+    public function __construct(
+        private readonly AgentInviteCodeService $invites,
+    ) {}
+
     /**
      * Store a valid `?ref=` from a referral link so it survives until signup, and
      * return the code to pre-fill (the link's code, else a previously stored one).
@@ -22,7 +26,7 @@ class ReferralAttribution
     {
         $code = ReferralCodeGenerator::normalize($request->query('ref'));
 
-        if ($code !== '' && strlen($code) <= 16 && $this->findReferrer($code)) {
+        if ($code !== '' && strlen($code) <= 16 && $this->isValidInvite($code)) {
             $request->session()->put(self::SESSION_KEY, $code);
             Cookie::queue(self::COOKIE_NAME, $code, self::COOKIE_MINUTES);
 
@@ -31,7 +35,7 @@ class ReferralAttribution
 
         $remembered = $this->rememberedCode($request);
 
-        return $remembered && $this->findReferrer($remembered) ? $remembered : null;
+        return $remembered && $this->isValidInvite($remembered) ? $remembered : null;
     }
 
     public function rememberedCode(?Request $request = null): ?string
@@ -41,6 +45,12 @@ class ReferralAttribution
         $code = ReferralCodeGenerator::normalize($code ?: $request->cookie(self::COOKIE_NAME));
 
         return $code !== '' ? $code : null;
+    }
+
+    /** Agent referral codes and temporary admin invite codes. */
+    public function isValidInvite(?string $code): bool
+    {
+        return $this->findReferrer($code) !== null || $this->invites->findActive($code) !== null;
     }
 
     /** Only active agents can refer. */
@@ -64,6 +74,7 @@ class ReferralAttribution
     /**
      * Link a brand-new agent to the agent who invited them. The link is permanent: an
      * account that already has a referrer is never re-attributed. Creators are never linked.
+     * Admin invite codes intentionally create no downline.
      */
     public function attach(User $newUser, ?string $code): ?User
     {

@@ -102,13 +102,25 @@
                                 action: {{ \Illuminate\Support\Js::from(route('admin.users.destroy', $u)) }},
                             })"
                         >
-                            Permanently Delete
+                            Move to trash
                         </button>
                     @else
                         <form method="POST" action="{{ route('admin.users.suspend', $u) }}">
                             @csrf
                             <x-dashboard.menu-item type="submit" variant="danger">Suspend</x-dashboard.menu-item>
                         </form>
+                        <button
+                            type="button"
+                            role="menuitem"
+                            class="block w-full rounded-lg px-3 py-2 text-left text-sm text-danger hover:bg-danger/10 focus-ring"
+                            @click.stop="close(); $dispatch('admin-delete-user', {
+                                id: {{ (int) $u->id }},
+                                label: {{ \Illuminate\Support\Js::from($u->name.' ('.$u->email.')') }},
+                                action: {{ \Illuminate\Support\Js::from(route('admin.users.destroy', $u)) }},
+                            })"
+                        >
+                            Move to trash
+                        </button>
                     @endif
                 </x-dashboard.row-actions>
             </x-dashboard.td>

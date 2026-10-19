@@ -43,28 +43,26 @@ class DiscoverServicesController extends Controller
         $this->activity->record($user->id, 'viewed', null, 'services.hub');
 
         $q = $request->string('q')->toString();
-        $groups = $this->dashboardGroupCards();
 
-        $searchResults = null;
-        if ($q !== '') {
-            $searchResults = PlatformProduct::query()
-                ->visibleToPublic()
-                ->with(['serviceCategory', 'productType.serviceCategory', 'activeVariants', 'heroMedia'])
-                ->where(function ($inner) use ($q) {
+        $products = PlatformProduct::query()
+            ->visibleToPublic()
+            ->with(['serviceCategory', 'productType.serviceCategory', 'activeVariants', 'heroMedia'])
+            ->when($q !== '', function ($builder) use ($q) {
+                $builder->where(function ($inner) use ($q) {
                     $inner->where('title', 'like', "%{$q}%")
                         ->orWhere('description', 'like', "%{$q}%");
-                })
-                ->orderByDesc('is_featured')
-                ->orderBy('sort_order')
-                ->paginate(12)
-                ->withQueryString();
-        }
+                });
+            })
+            ->orderByDesc('is_featured')
+            ->orderBy('sort_order')
+            ->orderBy('title')
+            ->paginate(12)
+            ->withQueryString();
 
         $wallet = $user->wallet ?? null;
 
         return view('dashboard.user.discover.services', compact(
-            'groups',
-            'searchResults',
+            'products',
             'q',
             'wallet',
         ));
@@ -512,23 +510,6 @@ class DiscoverServicesController extends Controller
         return $campaign
             ? redirect()->route('dashboard.campaigns.show', $campaign)
             : redirect()->route('dashboard.campaigns');
-    }
-
-    /**
-     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
-     */
-    private function dashboardGroupCards()
-    {
-        return $this->browse->groupCards($this->content)->map(function (array $group) {
-            $slug = $group['slug'] ?? null;
-            if (! $slug) {
-                return $group;
-            }
-
-            $group['href'] = route('dashboard.services.browse', $slug);
-
-            return $group;
-        });
     }
 
     /**

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -21,7 +22,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasRoles, Notifiable;
+    use HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -53,9 +54,23 @@ class User extends Authenticatable implements MustVerifyEmail
             'is_suspended' => 'boolean',
             'suspended_at' => 'datetime',
             'anonymized_at' => 'datetime',
+            'deleted_at' => 'datetime',
             'terms_accepted_at' => 'datetime',
             'profile_completed_at' => 'datetime',
         ];
+    }
+
+    public function youtubeIdentities(): HasMany
+    {
+        return $this->hasMany(AgentYoutubeIdentity::class);
+    }
+
+    public function verifiedYoutubeIdentity(): HasOne
+    {
+        return $this->hasOne(AgentYoutubeIdentity::class)->ofMany(
+            ['id' => 'max'],
+            fn ($query) => $query->where('status', AgentYoutubeIdentity::STATUS_VERIFIED),
+        );
     }
 
     public function authProviders(): HasMany
@@ -355,7 +370,7 @@ class User extends Authenticatable implements MustVerifyEmail
                                 $user->permissions()->detach();
                             }
 
-                            $user->delete();
+                            $user->forceDelete();
                         });
                         $purged++;
                     } catch (\Throwable $e) {

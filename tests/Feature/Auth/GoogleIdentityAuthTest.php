@@ -127,6 +127,29 @@ class GoogleIdentityAuthTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'user.google.login_failed']);
     }
 
+    public function test_trashed_email_cannot_sign_up_again_via_google(): void
+    {
+        $this->enableGoogleIdentity();
+        $prior = User::factory()->create(['email' => 'trashed-google@example.com']);
+        $prior->assignRole('user');
+        $prior->delete();
+
+        $this->mockGoogleIdentity(new VerifiedIdentity(
+            provider: UserAuthProvider::GOOGLE,
+            providerUserId: 'google-sub-trashed',
+            email: 'trashed-google@example.com',
+            emailVerified: true,
+            name: 'Trashed',
+        ));
+
+        $this->postJson(route('auth.google'), ['credential' => 'valid-credential', 'account_type' => 'user'])
+            ->assertStatus(422);
+
+        $this->assertGuest();
+        $this->assertSame(1, User::withTrashed()->where('email', 'trashed-google@example.com')->count());
+        $this->assertFalse(User::query()->where('email', 'trashed-google@example.com')->exists());
+    }
+
     public function test_cannot_unlink_google_without_password(): void
     {
         $user = User::factory()->withoutPasswordSet()->create();

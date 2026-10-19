@@ -59,6 +59,8 @@ class Campaign extends Model
         'locked_creator_price',
         'locked_agent_reward',
         'status',
+        'status_before_hold',
+        'account_hold_reason',
         'estimated_minutes',
         'meta',
         'required_tasks',

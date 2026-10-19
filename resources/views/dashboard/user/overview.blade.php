@@ -84,9 +84,9 @@
                 :action="['href' => route('dashboard.services'), 'label' => 'Browse packages']"
             />
         @else
-            <div class="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
                 @foreach($featuredServices as $product)
-                    @include('dashboard.user.partials.service-product-card', ['product' => $product])
+                    @include('dashboard.user.partials.service-product-card', ['product' => $product, 'fullTitle' => true])
                 @endforeach
             </div>
         @endif

@@ -7,6 +7,7 @@
     $ctaLabel = $ctaLabel ?? 'Browse';
     $meta = $meta ?? null;
     $price = $price ?? null;
+    $titleClass = $titleClass ?? 'text-sm sm:text-base font-semibold text-text-primary line-clamp-2 hover:text-primary';
 @endphp
 <x-dashboard.card :padding="false" class="flex h-full flex-col overflow-hidden">
     <div class="p-3">
@@ -23,7 +24,7 @@
         </a>
     </div>
     <div class="flex flex-1 flex-col space-y-2 px-4 pb-4">
-        <a href="{{ $href }}" class="font-semibold text-text-primary line-clamp-2 hover:text-primary">{{ $label }}</a>
+        <a href="{{ $href }}" class="{{ $titleClass }}">{{ $label }}</a>
         @if(filled($description))
             <p class="text-sm text-text-secondary line-clamp-2">{{ $description }}</p>
         @endif

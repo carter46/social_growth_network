@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Session;
 use InvalidArgumentException;
 
 /**
@@ -33,12 +34,17 @@ class YoutubeIdentityService
     /** Exception code for links that point to no channel, so the UI can offer the "create a channel" help. */
     public const ERROR_NOT_FOUND = 404;
 
+    public const RECLAIM_SESSION_CHANNEL = 'youtube_reclaim_channel_id';
+
+    public const RECLAIM_SESSION_OWNER = 'youtube_reclaim_from_user_id';
+
     private const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
     public function __construct(
         private YoutubeChannelApi $api,
         private NotificationDispatcher $notifications,
         private YoutubeOAuthClient $oauth,
+        private CampaignAccountHoldService $campaignHolds,
     ) {}
 
     public static function enabled(): bool
@@ -171,25 +177,10 @@ class YoutubeIdentityService
                 throw new InvalidArgumentException('Your channel is already connected. Disconnect it first to connect a different one.');
             }
 
-            $this->assertChannelFree($agent, $preview['id']);
+            $this->assertChannelFree($agent, $preview['id'], $preview['url'] ?? null, $preview['title'] ?? null);
+            $this->clearReclaimSession();
 
-            AgentYoutubeIdentity::query()
-                ->where('user_id', $agent->id)
-                ->whereIn('status', [AgentYoutubeIdentity::STATUS_PENDING, AgentYoutubeIdentity::STATUS_FAILED])
-                ->update(['status' => AgentYoutubeIdentity::STATUS_REPLACED]);
-
-            return AgentYoutubeIdentity::query()->create([
-                'user_id' => $agent->id,
-                'channel_id' => $preview['id'],
-                'channel_url' => $preview['url'],
-                'handle' => $preview['handle'],
-                'title' => $preview['title'],
-                'thumbnail_url' => $preview['thumbnail'],
-                'method' => $preview['resolved'] ? AgentYoutubeIdentity::METHOD_CODE : AgentYoutubeIdentity::METHOD_ADMIN,
-                'status' => AgentYoutubeIdentity::STATUS_PENDING,
-                'verification_code' => $this->newCode(),
-                'code_expires_at' => now()->addHours(AgentYoutubeIdentity::CHECK_WINDOW_HOURS),
-            ]);
+            return $this->createPendingIdentity($agent, $preview);
         });
 
         if ($identity->method === AgentYoutubeIdentity::METHOD_ADMIN) {
@@ -197,6 +188,109 @@ class YoutubeIdentityService
         }
 
         return $identity;
+    }
+
+    /**
+     * Start reclaiming a channel already linked elsewhere. Ownership must still be proven
+     * (description code or Google) before the previous account is moved to trash.
+     */
+    public function beginReclaim(User $user, string $url): AgentYoutubeIdentity
+    {
+        $preview = $this->preview($url);
+        $channelId = (string) ($preview['id'] ?? '');
+        if ($channelId === '') {
+            throw new InvalidArgumentException('We could not identify that YouTube channel.', self::ERROR_NOT_FOUND);
+        }
+
+        $owner = $this->ownerOfChannel($channelId);
+        if (! $owner) {
+            throw new InvalidArgumentException('That channel is not linked to another account. Connect it the usual way.');
+        }
+        if ($owner->is($user)) {
+            throw new InvalidArgumentException('That channel is already on your account.');
+        }
+
+        Session::put(self::RECLAIM_SESSION_CHANNEL, $channelId);
+        Session::put(self::RECLAIM_SESSION_OWNER, $owner->id);
+
+        $identity = DB::transaction(function () use ($user, $preview, $owner) {
+            User::query()->whereKey($user->id)->lockForUpdate()->first();
+
+            if ($this->verified($user)) {
+                throw new InvalidArgumentException('Disconnect your current channel first, then reclaim the other one.');
+            }
+
+            return $this->createPendingIdentity($user, $preview, $owner->id);
+        });
+
+        if ($identity->method === AgentYoutubeIdentity::METHOD_ADMIN) {
+            $this->notifyAdminsManualReview($identity);
+        }
+
+        return $identity;
+    }
+
+    /** @return array{channel_id: string, from_user_id: int}|null */
+    public function reclaimContext(User $user): ?array
+    {
+        $current = $this->current($user);
+        if (! $current || ! $current->isPending() || ! $current->reclaim_from_user_id) {
+            return null;
+        }
+
+        return [
+            'channel_id' => (string) $current->channel_id,
+            'from_user_id' => (int) $current->reclaim_from_user_id,
+        ];
+    }
+
+    public function clearReclaimSession(): void
+    {
+        Session::forget([self::RECLAIM_SESSION_CHANNEL, self::RECLAIM_SESSION_OWNER]);
+    }
+
+    private function isReclaimSessionFor(string $channelId): bool
+    {
+        return Session::get(self::RECLAIM_SESSION_CHANNEL) === $channelId
+            && is_numeric(Session::get(self::RECLAIM_SESSION_OWNER));
+    }
+
+    /**
+     * @param  array{id: ?string, title: ?string, handle: ?string, thumbnail: ?string, url: string, resolved: bool}  $preview
+     */
+    private function createPendingIdentity(User $user, array $preview, ?int $reclaimFromUserId = null): AgentYoutubeIdentity
+    {
+        AgentYoutubeIdentity::query()
+            ->where('user_id', $user->id)
+            ->whereIn('status', [AgentYoutubeIdentity::STATUS_PENDING, AgentYoutubeIdentity::STATUS_FAILED])
+            ->update(['status' => AgentYoutubeIdentity::STATUS_REPLACED, 'reclaim_from_user_id' => null]);
+
+        return AgentYoutubeIdentity::query()->create([
+            'user_id' => $user->id,
+            'channel_id' => $preview['id'],
+            'channel_url' => $preview['url'],
+            'handle' => $preview['handle'],
+            'title' => $preview['title'],
+            'thumbnail_url' => $preview['thumbnail'],
+            'method' => $preview['resolved'] ? AgentYoutubeIdentity::METHOD_CODE : AgentYoutubeIdentity::METHOD_ADMIN,
+            'status' => AgentYoutubeIdentity::STATUS_PENDING,
+            'verification_code' => $this->newCode(),
+            'code_expires_at' => now()->addHours(AgentYoutubeIdentity::CHECK_WINDOW_HOURS),
+            'reclaim_from_user_id' => $reclaimFromUserId,
+        ]);
+    }
+
+    public function ownerOfChannel(string $channelId): ?User
+    {
+        $identity = AgentYoutubeIdentity::query()
+            ->where('active_channel_id', $channelId)
+            ->first();
+
+        if (! $identity) {
+            return null;
+        }
+
+        return User::withTrashed()->find($identity->user_id);
     }
 
     /** Retry after a failure: a new code and a new 24-hour window. */
@@ -298,12 +392,28 @@ class YoutubeIdentityService
                 return $verified;
             }
 
-            $this->assertChannelFree($agent, $channel['id']);
+            $reclaimFrom = null;
+            if ($this->isReclaimSessionFor((string) $channel['id'])) {
+                $reclaimFrom = (int) Session::get(self::RECLAIM_SESSION_OWNER);
+            } else {
+                $pendingReclaim = AgentYoutubeIdentity::query()
+                    ->where('user_id', $agent->id)
+                    ->where('channel_id', $channel['id'])
+                    ->where('status', AgentYoutubeIdentity::STATUS_PENDING)
+                    ->whereNotNull('reclaim_from_user_id')
+                    ->latest('id')
+                    ->first();
+                $reclaimFrom = $pendingReclaim?->reclaim_from_user_id;
+            }
+
+            if (! $reclaimFrom) {
+                $this->assertChannelFree($agent, $channel['id'], 'https://www.youtube.com/channel/'.$channel['id'], $channel['title'] ?? null);
+            }
 
             AgentYoutubeIdentity::query()
                 ->where('user_id', $agent->id)
                 ->whereIn('status', [AgentYoutubeIdentity::STATUS_PENDING, AgentYoutubeIdentity::STATUS_FAILED])
-                ->update(['status' => AgentYoutubeIdentity::STATUS_REPLACED]);
+                ->update(['status' => AgentYoutubeIdentity::STATUS_REPLACED, 'reclaim_from_user_id' => null]);
 
             $identity = AgentYoutubeIdentity::query()->create([
                 'user_id' => $agent->id,
@@ -315,6 +425,7 @@ class YoutubeIdentityService
                 'method' => AgentYoutubeIdentity::METHOD_OAUTH,
                 'status' => AgentYoutubeIdentity::STATUS_PENDING,
                 'oauth_token' => $token,
+                'reclaim_from_user_id' => $reclaimFrom,
             ]);
 
             return $this->markVerified($identity, AgentYoutubeIdentity::METHOD_OAUTH);
@@ -350,6 +461,7 @@ class YoutubeIdentityService
 
         $previous = $this->verified($user);
         $this->revokeStoredTokens($user);
+        $this->clearReclaimSession();
 
         AgentYoutubeIdentity::query()
             ->where('user_id', $user->id)
@@ -558,33 +670,129 @@ class YoutubeIdentityService
 
     private function markVerified(AgentYoutubeIdentity $identity, string $method, ?int $reviewerId = null, array $extra = []): AgentYoutubeIdentity
     {
-        try {
-            $identity->forceFill(array_merge($extra, [
-                'status' => AgentYoutubeIdentity::STATUS_VERIFIED,
-                'active_channel_id' => $identity->channel_id,
-                'method' => $method,
-                'verified_at' => now(),
-                'failure_reason' => null,
-                'reviewed_by' => $reviewerId,
-            ]))->save();
-        } catch (QueryException $e) {
-            $identity->refresh();
-            $identity->forceFill([
-                'status' => AgentYoutubeIdentity::STATUS_REJECTED,
-                'active_channel_id' => null,
-                'failure_reason' => 'This channel is already linked to another account.',
-            ])->save();
-            $this->flagDuplicate($identity);
+        return DB::transaction(function () use ($identity, $method, $reviewerId, $extra) {
+            User::query()->whereKey($identity->user_id)->lockForUpdate()->first();
 
-            throw new InvalidArgumentException('This YouTube channel is already linked to another account.');
+            $this->releasePriorOwnerForReclaim($identity);
+
+            $stillTaken = AgentYoutubeIdentity::query()
+                ->where('active_channel_id', $identity->channel_id)
+                ->where('user_id', '!=', $identity->user_id)
+                ->exists();
+
+            if ($stillTaken) {
+                $this->flagDuplicate($identity);
+                throw new YoutubeChannelTakenException(
+                    (string) $identity->channel_id,
+                    $identity->channel_url,
+                    $identity->title,
+                );
+            }
+
+            try {
+                $identity->forceFill(array_merge($extra, [
+                    'status' => AgentYoutubeIdentity::STATUS_VERIFIED,
+                    'active_channel_id' => $identity->channel_id,
+                    'method' => $method,
+                    'verified_at' => now(),
+                    'failure_reason' => null,
+                    'reviewed_by' => $reviewerId,
+                    'reclaim_from_user_id' => null,
+                ]))->save();
+            } catch (QueryException $e) {
+                $identity->refresh();
+                $identity->forceFill([
+                    'status' => AgentYoutubeIdentity::STATUS_REJECTED,
+                    'active_channel_id' => null,
+                    'failure_reason' => YoutubeChannelTakenException::defaultMessage(),
+                    'reclaim_from_user_id' => null,
+                ])->save();
+                $this->flagDuplicate($identity);
+
+                throw new YoutubeChannelTakenException(
+                    (string) $identity->channel_id,
+                    $identity->channel_url,
+                    $identity->title,
+                );
+            }
+
+            $this->clearReclaimSession();
+
+            $isAgent = (bool) $identity->user()->first()?->isAgent();
+            $this->notify($identity, 'youtube_identity.verified', 'YouTube channel verified', $isAgent
+                ? 'Your YouTube channel is verified. You can now start YouTube tasks. You may remove the code from your channel description.'
+                : 'Your YouTube channel is connected. You may remove the code from your channel description.');
+
+            return $identity->fresh();
+        });
+    }
+
+    /**
+     * After ownership is proven, free the channel and soft-delete the previous account.
+     * Only runs when this identity was created via the reclaim flow.
+     */
+    private function releasePriorOwnerForReclaim(AgentYoutubeIdentity $identity): void
+    {
+        $channelId = (string) ($identity->channel_id ?? '');
+        $priorOwnerId = (int) ($identity->reclaim_from_user_id
+            ?: (Session::get(self::RECLAIM_SESSION_CHANNEL) === $channelId ? Session::get(self::RECLAIM_SESSION_OWNER) : 0));
+
+        if ($channelId === '' || $priorOwnerId < 1 || $priorOwnerId === (int) $identity->user_id) {
+            return;
         }
 
-        $isAgent = (bool) $identity->user()->first()?->isAgent();
-        $this->notify($identity, 'youtube_identity.verified', 'YouTube channel verified', $isAgent
-            ? 'Your YouTube channel is verified. You can now start YouTube tasks. You may remove the code from your channel description.'
-            : 'Your YouTube channel is connected. You may remove the code from your channel description.');
+        $priorIdentity = AgentYoutubeIdentity::query()
+            ->where('active_channel_id', $channelId)
+            ->where('user_id', $priorOwnerId)
+            ->lockForUpdate()
+            ->first();
 
-        return $identity->fresh();
+        if (! $priorIdentity) {
+            // Channel already free, or owned by someone else — do not delete a random account.
+            return;
+        }
+
+        AgentYoutubeIdentity::query()
+            ->where('user_id', $priorOwnerId)
+            ->whereIn('status', [
+                AgentYoutubeIdentity::STATUS_VERIFIED,
+                AgentYoutubeIdentity::STATUS_PENDING,
+                AgentYoutubeIdentity::STATUS_FAILED,
+            ])
+            ->update([
+                'status' => AgentYoutubeIdentity::STATUS_REPLACED,
+                'active_channel_id' => null,
+                'oauth_token' => null,
+                'updated_at' => now(),
+            ]);
+
+        $priorUser = User::withTrashed()->lockForUpdate()->find($priorOwnerId);
+        if (! $priorUser || $priorUser->hasRole('admin')) {
+            $this->audit(null, 'youtube_identity.reclaimed', $identity, [
+                'from_user_id' => $priorOwnerId,
+                'prior_trashed' => false,
+            ]);
+
+            return;
+        }
+
+        if (! $priorUser->trashed()) {
+            if (! $priorUser->is_suspended) {
+                $priorUser->suspend(null);
+            }
+
+            $this->campaignHolds->holdForCreator(
+                $priorUser,
+                CampaignAccountHoldService::REASON_TRASHED,
+            );
+
+            $priorUser->delete();
+        }
+
+        $this->audit(null, 'youtube_identity.reclaimed', $identity, [
+            'from_user_id' => $priorOwnerId,
+            'prior_trashed' => true,
+        ]);
     }
 
     private function markFailed(AgentYoutubeIdentity $identity, string $reason): AgentYoutubeIdentity
@@ -600,7 +808,7 @@ class YoutubeIdentityService
         return $identity->fresh();
     }
 
-    private function assertChannelFree(User $agent, ?string $channelId): void
+    private function assertChannelFree(User $agent, ?string $channelId, ?string $channelUrl = null, ?string $channelTitle = null): void
     {
         if (! $channelId) {
             return;
@@ -614,7 +822,7 @@ class YoutubeIdentityService
         if ($taken) {
             $this->flagDuplicate(new AgentYoutubeIdentity(['user_id' => $agent->id, 'channel_id' => $channelId]));
 
-            throw new InvalidArgumentException('This YouTube channel is already linked to another account.');
+            throw new YoutubeChannelTakenException($channelId, $channelUrl, $channelTitle);
         }
     }
 

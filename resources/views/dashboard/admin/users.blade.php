@@ -232,7 +232,7 @@
                     size="sm"
                     @click="$dispatch('open-modal', 'bulk-delete-users')"
                 >
-                    Permanently delete selected (<span x-text="selected.length"></span>)
+                    Move selected to trash (<span x-text="selected.length"></span>)
                 </x-dashboard.button>
             </div>
         </template>
@@ -264,11 +264,11 @@
         </x-dashboard.modal>
         <x-dashboard.modal
             name="bulk-delete-users"
-            title="Permanently delete selected users?"
+            title="Move selected accounts to trash?"
             variant="danger"
-            confirm-label="Permanently delete"
+            confirm-label="Move to trash"
         >
-            This anonymizes personal data for the selected suspended accounts and cannot be undone.
+            Wallet, campaigns and history stay recoverable. You can restore them later from System → Trash.
         </x-dashboard.modal>
     </div>
 
@@ -301,14 +301,14 @@
     >
         <x-dashboard.modal
             name="admin-delete-user"
-            title="Permanently delete this user?"
+            title="Move this account to trash?"
             variant="danger"
-            confirm-label="Permanently Delete"
+            confirm-label="Move to trash"
         >
             <p class="text-sm text-text-secondary leading-relaxed">
-                This anonymizes personal data for
+                Move
                 <span class="font-medium text-text-primary" x-text="userLabel || 'this user'"></span>
-                and cannot be undone.
+                to trash. Wallet, campaigns and history stay recoverable from System → Trash.
             </p>
 
             <x-slot:footer>
@@ -341,7 +341,7 @@
                     >
                         <span class="inline-flex items-center gap-2">
                             <span x-show="submitting" x-cloak><x-ui.icon name="spinner" class="w-4 h-4 animate-spin" /></span>
-                            Permanently Delete
+                            Move to trash
                         </span>
                     </x-ui.button>
                 </form>

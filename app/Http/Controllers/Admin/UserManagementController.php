@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\User;
 use App\Modules\Admin\Services\AuditLogService;
 use App\Modules\Wallet\Services\WalletProvisioningService;
+use App\Services\Campaigns\CampaignAccountHoldService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
@@ -20,6 +21,7 @@ class UserManagementController extends Controller
         private AuditLogService $audit,
         private WalletProvisioningService $walletProvisioning,
         private \App\Services\Notifications\AccountStatusNotifier $accountStatus,
+        private CampaignAccountHoldService $campaignHolds,
     ) {}
 
     public function create(): View
@@ -423,16 +425,29 @@ class UserManagementController extends Controller
         $wasSuspended = (bool) $user->is_suspended;
         $user->suspend(auth()->id());
 
-        $this->audit->log(auth()->id(), 'user.suspended', $user, null, [
-            'user_id' => $user->id,
-            'is_suspended' => true,
-        ], $request->ip());
-
+        $held = 0;
         if (! $wasSuspended) {
+            $held = $this->campaignHolds->holdForCreator(
+                $user,
+                CampaignAccountHoldService::REASON_SUSPENDED,
+                auth()->id(),
+                $request->ip(),
+            );
             $this->accountStatus->suspended($user);
         }
 
-        return back()->with('status', __('User suspended.'));
+        $this->audit->log(auth()->id(), 'user.suspended', $user, null, [
+            'user_id' => $user->id,
+            'is_suspended' => true,
+            'campaigns_held' => $held,
+        ], $request->ip());
+
+        $status = __('User suspended.');
+        if ($held > 0) {
+            $status .= ' '.__(':count campaign(s) were removed from the marketplace.', ['count' => $held]);
+        }
+
+        return back()->with('status', $status);
     }
 
     public function restore(User $user, Request $request): RedirectResponse
@@ -446,58 +461,69 @@ class UserManagementController extends Controller
         $wasSuspended = (bool) $user->is_suspended;
         $user->restoreAccess();
 
-        $this->audit->log(auth()->id(), 'user.restored', $user, null, [
-            'user_id' => $user->id,
-            'is_suspended' => false,
-        ], $request->ip());
-
+        $released = 0;
         if ($wasSuspended) {
+            $released = $this->campaignHolds->releaseForCreator($user, auth()->id(), $request->ip());
             $this->accountStatus->restored($user);
         }
 
-        return back()->with('status', __('User restored.'));
+        $this->audit->log(auth()->id(), 'user.restored', $user, null, [
+            'user_id' => $user->id,
+            'is_suspended' => false,
+            'campaigns_released' => $released,
+        ], $request->ip());
+
+        $status = __('User restored.');
+        if ($released > 0) {
+            $status .= ' '.__(':count campaign(s) were put back on the marketplace.', ['count' => $released]);
+        }
+
+        return back()->with('status', $status);
     }
 
+    /** Move the account to Trash (soft delete). Data stays recoverable. */
     public function destroy(User $user, Request $request): RedirectResponse
     {
         $this->ensureMember($user);
 
         if ($user->hasRole('admin')) {
-            abort(403, 'Administrators cannot be permanently deleted.');
+            abort(403, 'Administrators cannot be moved to trash.');
         }
 
         if ($user->anonymized_at !== null) {
-            return back()->with('error', __('This account is already permanently deleted.'));
+            return back()->with('error', __('This account has already been permanently deleted.'));
         }
 
-        if (! $user->is_suspended) {
-            return back()->with('error', __('Suspend the user before permanently deleting.'));
+        if ($user->id === auth()->id()) {
+            return back()->with('error', __('You cannot move your own account to trash.'));
         }
 
         $oldEmail = $user->email;
+        $actorId = auth()->id();
 
-        try {
-            $ok = $user->anonymize(auth()->id());
-        } catch (\Throwable $e) {
-            report($e);
-
-            return back()->with('error', __('Could not delete user: :message', ['message' => $e->getMessage()]));
+        if (! $user->is_suspended) {
+            $user->suspend($actorId);
         }
 
-        if (! $ok) {
-            return back()->with('error', __('This account cannot be permanently deleted.'));
-        }
+        $held = $this->campaignHolds->holdForCreator(
+            $user,
+            CampaignAccountHoldService::REASON_TRASHED,
+            $actorId,
+            $request->ip(),
+        );
 
-        $this->audit->log(auth()->id(), 'user.anonymized', $user, [
+        $user->delete();
+
+        $this->audit->log($actorId, 'user.trashed', $user, [
             'email' => $oldEmail,
         ], [
             'user_id' => $user->id,
-            'anonymized_at' => optional($user->fresh())->anonymized_at?->toIso8601String(),
+            'campaigns_held' => $held,
         ], $request->ip());
 
         return redirect()
-            ->route('admin.users', ['status' => 'suspended'])
-            ->with('status', __('User permanently deleted. They are hidden now and will be fully removed within 24 hours.'));
+            ->route('admin.trash')
+            ->with('status', __('Account moved to trash. You can restore it later from System → Trash.'));
     }
 
     public function bulkSuspend(Request $request): RedirectResponse
@@ -519,10 +545,17 @@ class UserManagementController extends Controller
             }
 
             $user->suspend($adminId);
+            $held = $this->campaignHolds->holdForCreator(
+                $user,
+                CampaignAccountHoldService::REASON_SUSPENDED,
+                $adminId,
+                $request->ip(),
+            );
             $this->audit->log($adminId, 'user.suspended', $user, null, [
                 'user_id' => $user->id,
                 'is_suspended' => true,
                 'bulk' => true,
+                'campaigns_held' => $held,
             ], $request->ip());
             $this->accountStatus->suspended($user);
             $suspended++;
@@ -557,10 +590,12 @@ class UserManagementController extends Controller
             }
 
             $user->restoreAccess();
+            $released = $this->campaignHolds->releaseForCreator($user, $adminId, $request->ip());
             $this->audit->log($adminId, 'user.restored', $user, null, [
                 'user_id' => $user->id,
                 'is_suspended' => false,
                 'bulk' => true,
+                'campaigns_released' => $released,
             ], $request->ip());
             $this->accountStatus->restored($user);
             $restored++;
@@ -588,7 +623,7 @@ class UserManagementController extends Controller
         $adminId = (int) auth()->id();
 
         foreach ($this->memberUsersByIds($data['ids']) as $user) {
-            if ($user->hasRole('admin') || $user->anonymized_at !== null || ! $user->is_suspended) {
+            if ($user->hasRole('admin') || $user->anonymized_at !== null || $user->id === $adminId) {
                 $skipped++;
 
                 continue;
@@ -597,7 +632,17 @@ class UserManagementController extends Controller
             $oldEmail = $user->email;
 
             try {
-                $ok = $user->anonymize($adminId);
+                if (! $user->is_suspended) {
+                    $user->suspend($adminId);
+                }
+                $held = $this->campaignHolds->holdForCreator(
+                    $user,
+                    CampaignAccountHoldService::REASON_TRASHED,
+                    $adminId,
+                    $request->ip(),
+                );
+                $user->delete();
+                $ok = true;
             } catch (\Throwable $e) {
                 report($e);
                 $skipped++;
@@ -611,23 +656,23 @@ class UserManagementController extends Controller
                 continue;
             }
 
-            $this->audit->log($adminId, 'user.anonymized', $user, [
+            $this->audit->log($adminId, 'user.trashed', $user, [
                 'email' => $oldEmail,
             ], [
                 'user_id' => $user->id,
-                'anonymized_at' => optional($user->fresh())->anonymized_at?->toIso8601String(),
+                'campaigns_held' => $held,
                 'bulk' => true,
             ], $request->ip());
             $deleted++;
         }
 
-        $status = __('Permanently deleted :count user(s).', ['count' => $deleted]);
+        $status = __('Moved :count account(s) to trash.', ['count' => $deleted]);
         if ($skipped > 0) {
             $status .= ' '.__(':skipped skipped.', ['skipped' => $skipped]);
         }
 
         return redirect()
-            ->route('admin.users', ['status' => 'suspended'])
+            ->route('admin.trash')
             ->with('status', $status);
     }
 

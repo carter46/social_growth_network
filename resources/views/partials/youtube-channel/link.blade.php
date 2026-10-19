@@ -6,8 +6,10 @@
     $oauthEnabled = $oauthEnabled ?? false;
     $returnTo = $returnTo ?? null;
     $channelMissing = $channelMissing ?? false;
+    $channelTaken = is_array($channelTaken ?? null) ? $channelTaken : null;
+    $reclaimContext = is_array($reclaimContext ?? null) ? $reclaimContext : null;
     $status = $identity?->status;
-    $showPasteForm = ! in_array($status, ['verified', 'pending'], true) || ($channelMissing && $status !== 'verified');
+    $showPasteForm = ! in_array($status, ['verified', 'pending'], true) || ($channelMissing && $status !== 'verified') || $channelTaken;
 @endphp
 
 <div class="space-y-4 text-sm" x-data="{
@@ -17,6 +19,17 @@
         missingHelp: false,
         channel: null,
         showPaste: @js($showPasteForm),
+        copied: false,
+        async copyCode(text) {
+            const copyFn = window.copyToClipboard;
+            const ok = typeof copyFn === 'function' ? await copyFn(text || '') : false;
+            if (! ok) {
+                alert(window.copyFailedMessage?.() || 'Unable to copy.');
+                return;
+            }
+            this.copied = true;
+            setTimeout(() => { this.copied = false; }, 1600);
+        },
         async preview() {
             this.error = '';
             this.missingHelp = false;
@@ -55,11 +68,49 @@
         @include('partials.youtube-channel.missing-channel', ['prefix' => $prefix, 'oauthEnabled' => $oauthEnabled, 'returnTo' => $returnTo, 'source' => $channelMissing === 'link' ? 'link' : 'oauth'])
     @endif
 
+    @if ($channelTaken && $status !== 'verified')
+        <div class="space-y-3 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3" data-youtube-channel-taken>
+            <p class="font-semibold text-text-primary">This channel is already linked</p>
+            <p class="text-text-secondary">
+                {{ $channelTaken['channel_title'] ? $channelTaken['channel_title'].' is' : 'That YouTube channel is' }}
+                already connected to another account. Sign in to that account to manage it.
+            </p>
+            <div class="flex flex-wrap items-center gap-3">
+                <x-dashboard.button :href="route('login')" size="sm">Sign in to that account</x-dashboard.button>
+            </div>
+            <div class="border-t border-danger/20 pt-3" x-data="{ confirmReclaim: false }">
+                <button type="button" class="text-xs font-semibold text-text-secondary hover:underline" x-on:click="confirmReclaim = ! confirmReclaim" data-youtube-lost-access>
+                    I no longer have access
+                </button>
+                <div x-show="confirmReclaim" x-cloak class="mt-3 space-y-3">
+                    <p class="text-xs text-text-secondary">
+                        You must verify you own this channel first. After verification succeeds, the previous account that had this channel will be deleted.
+                    </p>
+                    <form method="POST" action="{{ route($prefix.'.youtube-channel.reclaim') }}" class="space-y-2">
+                        @csrf
+                        <input type="hidden" name="channel_url" value="{{ $channelTaken['channel_url'] ?? old('channel_url') }}">
+                        @if ($returnTo)<input type="hidden" name="return" value="{{ $returnTo }}">@endif
+                        <label class="flex items-start gap-2 text-xs text-text-secondary">
+                            <input type="checkbox" name="confirm_delete_previous" value="1" required class="mt-0.5 rounded border-border-default">
+                            <span>I understand the previous account will be deleted after I verify this channel.</span>
+                        </label>
+                        <x-dashboard.button type="submit" size="sm" variant="secondary">Verify channel to reclaim it</x-dashboard.button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
+
     @if ($status === 'verified')
         @include('partials.youtube-channel.connected-card', ['identity' => $identity])
     @elseif ($status === 'pending')
         <div class="space-y-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3">
             <p class="font-semibold text-text-primary">Pending verification{{ $identity->title ? ': '.$identity->title : '' }}</p>
+            @if ($reclaimContext)
+                <x-dashboard.alert type="warning" data-youtube-reclaim-pending>
+                    Reclaim in progress: prove you own this channel. When verification succeeds, the previous account that had this channel will be deleted.
+                </x-dashboard.alert>
+            @endif
             @if ($identity->method === 'admin')
                 <p class="text-text-secondary">Automatic checks are not available right now, so an admin will review your channel. You'll get a notification when it's approved.</p>
             @else
@@ -72,7 +123,15 @@
                 </ol>
                 <div class="flex items-center gap-2">
                     <code class="rounded-lg bg-surface px-3 py-2 font-mono text-base font-semibold tracking-wider text-text-primary">{{ $identity->verification_code }}</code>
-                    <button type="button" class="text-xs text-primary hover:underline" x-on:click="navigator.clipboard?.writeText(@js($identity->verification_code))">Copy</button>
+                    <button
+                        type="button"
+                        class="text-xs font-semibold text-primary hover:underline"
+                        x-on:click="copyCode(@js($identity->verification_code))"
+                        x-bind:aria-label="copied ? 'Code copied' : 'Copy code'"
+                        data-youtube-copy-code
+                    >
+                        <span x-text="copied ? 'Copied' : 'Copy'">Copy</span>
+                    </button>
                 </div>
                 <p class="text-xs text-text-muted"
                    x-data="{ ends: @js($identity->code_expires_at?->toIso8601String()), left: '' }"

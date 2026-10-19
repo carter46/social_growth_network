@@ -37,6 +37,8 @@
             'oauthEnabled' => $oauthEnabled,
             'returnTo' => $returnTo,
             'channelMissing' => $channelMissing,
+            'channelTaken' => $channelTaken ?? null,
+            'reclaimContext' => $reclaimContext ?? null,
         ])
         @if ($verified && ! $justConnected && $returnTo)
             <x-dashboard.button :href="$returnTo" class="mt-4">Continue</x-dashboard.button>

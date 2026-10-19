@@ -29,7 +29,7 @@ class DashboardSidebarTest extends TestCase
             ->assertSee('Administrators')
             ->assertSee('Finance')
             ->assertSee('System')
-            ->assertSee('Wallet Adjustments')
+            ->assertSee('Trash')
             ->assertSee('Support')
             ->assertDontSee(route('admin.services'), false)
             ->assertDontSee('>Commerce<', false)

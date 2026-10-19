@@ -47,6 +47,7 @@ class AgentYoutubeIdentity extends Model
         'oauth_token',
         'failure_reason',
         'reviewed_by',
+        'reclaim_from_user_id',
     ];
 
     protected $hidden = ['oauth_token'];

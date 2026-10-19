@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\AgentYoutubeIdentity;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Services\Campaigns\YoutubeChannelTakenException;
 use App\Services\Campaigns\YoutubeIdentityService;
 use App\Services\Engagement\TargetUrlValidator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -543,13 +544,108 @@ class YoutubeChannelConnectionTest extends TestCase
         try {
             app(YoutubeIdentityService::class)->begin($this->creator(), 'https://www.youtube.com/channel/'.self::CHANNEL);
             $this->fail('Expected the duplicate channel to be refused.');
-        } catch (InvalidArgumentException $e) {
+        } catch (YoutubeChannelTakenException $e) {
             $this->assertStringContainsString('already linked to another account', $e->getMessage());
+            $this->assertStringContainsString('Sign in', $e->getMessage());
         }
 
         $this->linkVerifiedYoutubeChannel($this->creator(), self::OTHER_CHANNEL);
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(YoutubeChannelTakenException::class);
         app(YoutubeIdentityService::class)->begin($this->agent(), 'https://www.youtube.com/channel/'.self::OTHER_CHANNEL);
+    }
+
+    public function test_channel_on_a_trashed_account_still_blocks_linking(): void
+    {
+        $prior = $this->creator();
+        $this->linkVerifiedYoutubeChannel($prior, self::CHANNEL);
+        $prior->delete();
+
+        $this->expectException(YoutubeChannelTakenException::class);
+        app(YoutubeIdentityService::class)->begin($this->agent(), 'https://www.youtube.com/channel/'.self::CHANNEL);
+    }
+
+    public function test_store_shows_taken_error_and_lost_access_cta(): void
+    {
+        $this->linkVerifiedYoutubeChannel($this->agent(), self::CHANNEL);
+        $creator = $this->creator();
+
+        $this->actingAs($creator)
+            ->post(route('dashboard.youtube-channel.store'), [
+                'channel_url' => 'https://www.youtube.com/channel/'.self::CHANNEL,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('error')
+            ->assertSessionHas('youtube_channel_taken');
+
+        $this->actingAs($creator)
+            ->withSession([
+                'error' => YoutubeChannelTakenException::defaultMessage(),
+                'youtube_channel_taken' => [
+                    'channel_id' => self::CHANNEL,
+                    'channel_url' => 'https://www.youtube.com/channel/'.self::CHANNEL,
+                    'channel_title' => 'Channel',
+                ],
+            ])
+            ->get(route('dashboard.youtube-channel.show'))
+            ->assertOk()
+            ->assertSee('data-youtube-channel-taken', false)
+            ->assertSee('data-youtube-lost-access', false)
+            ->assertSee('Sign in to that account')
+            ->assertSee('I no longer have access');
+    }
+
+    public function test_reclaim_verifies_first_then_trashes_the_previous_account(): void
+    {
+        $prior = $this->creator();
+        $old = $this->linkVerifiedYoutubeChannel($prior, self::CHANNEL);
+        $claimant = $this->agent();
+        $identities = app(YoutubeIdentityService::class);
+
+        $this->actingAs($claimant)
+            ->post(route('agent.youtube-channel.reclaim'), [
+                'channel_url' => 'https://www.youtube.com/channel/'.self::CHANNEL,
+                'confirm_delete_previous' => '1',
+            ])
+            ->assertRedirect();
+
+        $pending = $identities->current($claimant);
+        $this->assertNotNull($pending);
+        $this->assertSame($prior->id, $pending->reclaim_from_user_id);
+        $this->assertSame(AgentYoutubeIdentity::STATUS_VERIFIED, $old->fresh()->status);
+        $this->assertFalse($prior->fresh()->trashed());
+
+        $this->actingAs($claimant)
+            ->get(route('agent.youtube-channel.show'))
+            ->assertOk()
+            ->assertSee('data-youtube-reclaim-pending', false);
+
+        $this->description = $pending->verification_code;
+        $verified = $identities->check($pending->fresh());
+
+        $this->assertSame(AgentYoutubeIdentity::STATUS_VERIFIED, $verified->status);
+        $this->assertSame(self::CHANNEL, $verified->active_channel_id);
+        $this->assertNull($verified->reclaim_from_user_id);
+        $this->assertSame(AgentYoutubeIdentity::STATUS_REPLACED, $old->fresh()->status);
+        $this->assertNull($old->fresh()->active_channel_id);
+        $this->assertTrue($prior->fresh()->trashed());
+    }
+
+    public function test_reclaim_from_already_trashed_owner_frees_the_channel_without_error(): void
+    {
+        $prior = $this->creator();
+        $old = $this->linkVerifiedYoutubeChannel($prior, self::CHANNEL);
+        $prior->delete();
+
+        $claimant = $this->agent();
+        $identities = app(YoutubeIdentityService::class);
+        $pending = $identities->beginReclaim($claimant, 'https://www.youtube.com/channel/'.self::CHANNEL);
+
+        $this->description = $pending->verification_code;
+        $verified = $identities->check($pending->fresh());
+
+        $this->assertSame(AgentYoutubeIdentity::STATUS_VERIFIED, $verified->status);
+        $this->assertNull($old->fresh()->active_channel_id);
+        $this->assertTrue($prior->fresh()->trashed());
     }
 
     public function test_creators_disconnect_and_reconnect_without_admin_approval(): void

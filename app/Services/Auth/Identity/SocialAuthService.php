@@ -163,7 +163,11 @@ class SocialAuthService
             return ['user' => $user, 'action' => 'login'];
         }
 
-        $user = User::query()->where('email', $identity->email)->first();
+        $user = User::withTrashed()->where('email', $identity->email)->first();
+
+        if ($user?->trashed()) {
+            throw new InvalidArgumentException(__('An account with this email already exists but is inactive. Ask support to restore it from Trash, or use a different Google account.'));
+        }
 
         if ($user) {
             $this->linkProvider($user, $identity);
@@ -207,8 +211,8 @@ class SocialAuthService
         $role = $accountType === 'agent' ? 'agent' : 'user';
         $referrals = app(ReferralAttribution::class);
 
-        if ($role === 'agent' && ! $referrals->findReferrer($inviteCode)) {
-            throw new InvalidArgumentException(__('A valid invite code from an active Agent is required to join as an Agent.'));
+        if ($role === 'agent' && ! $referrals->isValidInvite($inviteCode)) {
+            throw new InvalidArgumentException(__('A valid invite code is required to join as an Agent.'));
         }
 
         $name = trim((string) ($identity->name ?: Str::before($identity->email, '@')));
@@ -265,7 +269,7 @@ class SocialAuthService
 
         $candidate = $base;
         $i = 0;
-        while (User::query()->where('username', $candidate)->exists()) {
+        while (User::withTrashed()->where('username', $candidate)->exists()) {
             $i++;
             $candidate = Str::limit($base, 32, '').'_'.$i;
         }

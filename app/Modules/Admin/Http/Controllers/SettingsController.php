@@ -20,6 +20,7 @@ use App\Services\Communications\Email\EmailProfile;
 use App\Services\Communications\Email\EmailService;
 use App\Services\Communications\LiveChat\LiveChatManager;
 use App\Services\Communications\Social\SocialLinkRepository;
+use App\Services\Referrals\AgentInviteCodeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,6 +40,7 @@ class SettingsController extends Controller
         private LiveChatManager $liveChat,
         private SocialLinkRepository $socialLinks,
         private EmailService $emails,
+        private AgentInviteCodeService $agentInvites,
     ) {}
 
     public function index(): View
@@ -55,6 +57,7 @@ class SettingsController extends Controller
             'googleIdentity' => IntegrationProvider::forProvider(IntegrationProvider::GOOGLE_IDENTITY),
             'googleIdentityJsOrigin' => rtrim((string) config('app.url'), '/'),
             'referral' => SystemSetting::referralSettings(),
+            'agentInvite' => $this->agentInvites->current(),
         ]);
     }
 
@@ -82,6 +85,36 @@ class SettingsController extends Controller
         ], $request->ip());
 
         return back()->with('status', __('Referral program settings saved.'));
+    }
+
+    public function createAgentInvite(Request $request): RedirectResponse
+    {
+        $invite = $this->agentInvites->issue($request->user());
+
+        $this->audit->log(auth()->id(), 'settings.agent_invite.created', null, null, [
+            'code' => $invite->code,
+            'expires_at' => $invite->expires_at?->toIso8601String(),
+        ], $request->ip());
+
+        return redirect()
+            ->to(route('admin.settings').'#referral-program')
+            ->with('status', __('A temporary agent invite code is ready. It expires in 24 hours and does not create a referral downline.'));
+    }
+
+    public function revokeAgentInvite(Request $request): RedirectResponse
+    {
+        $current = $this->agentInvites->current();
+        $this->agentInvites->revoke($current);
+
+        if ($current) {
+            $this->audit->log(auth()->id(), 'settings.agent_invite.revoked', null, [
+                'code' => $current->code,
+            ], null, $request->ip());
+        }
+
+        return redirect()
+            ->to(route('admin.settings').'#referral-program')
+            ->with('status', __('The temporary agent invite code was removed.'));
     }
 
     public function emailSettings(): View
