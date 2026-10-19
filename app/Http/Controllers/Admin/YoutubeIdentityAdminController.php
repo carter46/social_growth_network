@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AgentYoutubeIdentity;
 use App\Services\Campaigns\YoutubeIdentityService;
+use App\Services\Engagement\YoutubeChannelApi;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -30,7 +31,13 @@ class YoutubeIdentityAdminController extends Controller
 
         $role = in_array($request->query('role'), ['agent', 'user'], true) ? (string) $request->query('role') : null;
 
-        $query = AgentYoutubeIdentity::query()->with(['user:id,name,email', 'user.roles:id,name'])->latest('id');
+        // Soft-deleted accounts live under Trash; do not list their channel rows here.
+        $activeOwner = fn ($q) => $q->whereHas('user');
+
+        $query = AgentYoutubeIdentity::query()
+            ->with(['user:id,name,email', 'user.roles:id,name'])
+            ->whereHas('user')
+            ->latest('id');
         if ($role) {
             $query->whereHas('user', fn ($u) => $u->role($role));
         }
@@ -55,8 +62,13 @@ class YoutubeIdentityAdminController extends Controller
         }
 
         $counts = [
-            'review' => AgentYoutubeIdentity::query()->where('status', AgentYoutubeIdentity::STATUS_PENDING)->where('method', AgentYoutubeIdentity::METHOD_ADMIN)->count(),
-            'change' => AgentYoutubeIdentity::query()->where('status', AgentYoutubeIdentity::STATUS_CHANGE_REQUESTED)->count(),
+            'review' => AgentYoutubeIdentity::query()->tap($activeOwner)
+                ->where('status', AgentYoutubeIdentity::STATUS_PENDING)
+                ->where('method', AgentYoutubeIdentity::METHOD_ADMIN)
+                ->count(),
+            'change' => AgentYoutubeIdentity::query()->tap($activeOwner)
+                ->where('status', AgentYoutubeIdentity::STATUS_CHANGE_REQUESTED)
+                ->count(),
         ];
 
         return view('dashboard.admin.youtube-identities.index', [
@@ -65,6 +77,7 @@ class YoutubeIdentityAdminController extends Controller
             'filters' => self::FILTERS,
             'role' => $role,
             'counts' => $counts,
+            'youtubeApiReady' => app(YoutubeChannelApi::class)->hasKey(),
         ]);
     }
 

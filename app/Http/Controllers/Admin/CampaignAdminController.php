@@ -21,6 +21,8 @@ class CampaignAdminController extends Controller
 
         $query = Campaign::query()
             ->with(['creator', 'product'])
+            // Soft-deleted creators stay in Trash; hide their campaigns from the live list.
+            ->whereHas('creator')
             ->orderByDesc('created_at');
 
         if ($status !== '' && in_array($status, Campaign::STATUSES, true)) {

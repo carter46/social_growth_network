@@ -15,7 +15,7 @@
 @endphp
 <x-layout.page
     title="YouTube channels"
-    subtitle="Channels linked by agents (required for YouTube tasks) and creators (optional). Approve manual reviews and agent channel changes, or revoke a link."
+    subtitle="Channels linked by agents (required for YouTube tasks) and creators (optional). When the YouTube Data API key is set, description codes are checked automatically. This page is for manual fallbacks, change requests, and revokes."
     width="full"
     :breadcrumb="[
         ['Admin', route('admin')],
@@ -27,6 +27,13 @@
     @endif
     @if (session('error'))
         <x-dashboard.alert type="danger" class="mb-4">{{ session('error') }}</x-dashboard.alert>
+    @endif
+    @if (empty($youtubeApiReady))
+        <x-dashboard.alert type="warning" class="mb-4" data-youtube-api-key-missing>
+            No YouTube Data API key is configured, so the system cannot read channel descriptions to confirm codes.
+            Every new link lands in <strong>Needs review</strong> for manual approval.
+            Add the key under Admin → API integrations to turn automatic verification on.
+        </x-dashboard.alert>
     @endif
 
     <div class="mb-4 flex flex-wrap items-center gap-2">

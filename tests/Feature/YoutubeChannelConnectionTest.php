@@ -915,4 +915,16 @@ class YoutubeChannelConnectionTest extends TestCase
             ->assertSee(self::OTHER_CHANNEL)
             ->assertDontSee(self::CHANNEL);
     }
+
+    public function test_admin_youtube_list_hides_soft_deleted_owners(): void
+    {
+        $creator = $this->creator();
+        $this->linkVerifiedYoutubeChannel($creator, self::CHANNEL);
+        $creator->delete();
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)->get(route('admin.youtube-identities.index', ['filter' => 'all']))
+            ->assertOk()
+            ->assertDontSee(self::CHANNEL);
+    }
 }

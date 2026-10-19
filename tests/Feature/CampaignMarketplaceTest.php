@@ -120,6 +120,18 @@ class CampaignMarketplaceTest extends TestCase
             ->assertDontSee('Agent reward');
 
         $this->actingAs(User::factory()->admin()->create())
+            ->get(route('admin.campaigns'))
+            ->assertOk()
+            ->assertSee('Render campaign');
+
+        $creator->delete();
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->get(route('admin.campaigns'))
+            ->assertOk()
+            ->assertDontSee('Render campaign');
+
+        $this->actingAs(User::factory()->admin()->create())
             ->get(route('admin.campaigns.show', $campaign))
             ->assertOk()
             ->assertSee('Agent payouts')
