@@ -174,18 +174,16 @@
                 <div class="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 space-y-3">
                     <div>
                         <p class="text-sm font-semibold text-slate-800">Where you get paid</p>
-                        <p class="mt-0.5 text-xs text-slate-500">We use this to set up withdrawals for your country. Include your phone country code (for example +1… or +44…).</p>
+                        <p class="mt-0.5 text-xs text-slate-500">We use this to set up withdrawals for your country. The phone country code fills in when you pick a country.</p>
                     </div>
-                    <div class="space-y-1.5">
-                        <label for="signup-country" class="block text-sm font-medium text-slate-600">Country</label>
-                        <select id="signup-country" name="country" required class="block w-full h-10 px-3 text-sm rounded-lg border border-slate-200 bg-white text-slate-900 focus-ring">
-                            <option value="">Choose country</option>
-                            @foreach ($payoutCountries as $c)
-                                <option value="{{ $c['code'] }}" @selected(old('country') === $c['code'])>{{ $c['name'] }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <x-ui.input label="Phone (with country code)" name="phone" id="signup-phone" type="tel" placeholder="+15551234567" autocomplete="tel" value="{{ old('phone') }}" class="!bg-white !border-slate-200" />
+                    <x-forms.country-phone
+                        :countries="$payoutCountries"
+                        :country="old('country')"
+                        :phone="old('phone')"
+                        variant="marketing"
+                        country-id="signup-country"
+                        phone-id="signup-phone"
+                    />
                     <x-ui.input label="Address" name="address_line1" id="signup-address_line1" placeholder="Street address" autocomplete="address-line1" value="{{ old('address_line1') }}" class="!bg-white !border-slate-200" />
                     <div class="grid gap-3 sm:grid-cols-2">
                         <x-ui.input label="City" name="address_city" id="signup-address_city" autocomplete="address-level2" value="{{ old('address_city') }}" class="!bg-white !border-slate-200" />

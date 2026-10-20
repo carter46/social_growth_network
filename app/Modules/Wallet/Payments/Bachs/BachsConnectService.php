@@ -238,7 +238,7 @@ class BachsConnectService
         $phone = (string) ($input['phone'] ?? $user->phone ?? '');
         if ($phone !== '' && ! PhoneNumber::isE164($phone)) {
             throw ValidationException::withMessages([
-                'phone' => __('Enter a phone number with country code, like +15551234567.'),
+                'phone' => __('Enter a valid phone number for your country.'),
             ]);
         }
 

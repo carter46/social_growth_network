@@ -28,16 +28,13 @@
 
             <form method="POST" action="{{ route('agent.payout-profile.update') }}" class="mt-4 space-y-3">
                 @csrf
-                <div>
-                    <label class="mb-1 block text-sm font-medium" for="pp-country">Country</label>
-                    <select id="pp-country" name="country" required class="w-full rounded-lg border border-border-subtle px-3 py-2 text-sm">
-                        <option value="">Choose country</option>
-                        @foreach ($payoutCountries as $c)
-                            <option value="{{ $c['code'] }}" @selected(old('country', $agent->country) === $c['code'])>{{ $c['name'] }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <x-dashboard.input name="phone" id="pp-phone" label="Phone (with country code)" :value="old('phone', $agent->phone)" placeholder="+15551234567" required />
+                <x-forms.country-phone
+                    :countries="$payoutCountries"
+                    :country="old('country', $agent->country)"
+                    :phone="old('phone', $agent->phone)"
+                    country-id="pp-country"
+                    phone-id="pp-phone"
+                />
                 <x-dashboard.input name="address_line1" id="pp-line1" label="Address" :value="old('address_line1', $agent->address_line1)" required />
                 <div class="grid gap-3 sm:grid-cols-2">
                     <x-dashboard.input name="address_city" id="pp-city" label="City" :value="old('address_city', $agent->address_city)" required />

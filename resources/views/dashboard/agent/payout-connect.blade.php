@@ -6,6 +6,10 @@
 @php
     $prefix = $prefix ?? 'agent';
     $prefill = $prefill ?? [];
+    [$prefillDial, $prefillLocal] = \App\Support\PhoneNumber::split(
+        (string) ($prefill['phone'] ?? ''),
+        (string) ($prefill['country'] ?? '')
+    );
 @endphp
 <x-layout.page
     title="Connect bank account"
@@ -35,12 +39,15 @@
                 class="space-y-5"
                 x-data="payoutConnectForm({
                     countries: @js($countries),
+                    dialCodes: @js(\App\Support\PhoneNumber::dialCodes()),
                     optionsUrl: @js(route('agent.payouts.connect.options')),
                     csrf: @js(csrf_token()),
                     country: @js($prefill['country'] ?? ''),
                     method: @js($prefill['method'] ?? 'bank_account'),
                     bankCode: @js($prefill['bank_code'] ?? ''),
                     mobileProvider: @js($prefill['mobile_provider'] ?? ''),
+                    phoneDial: @js($prefillDial),
+                    phoneLocal: @js($prefillLocal),
                 })"
                 x-init="onCountry()"
             >
@@ -76,7 +83,24 @@
                         <x-dashboard.input name="first_name" label="First name" :value="$prefill['first_name'] ?? ''" required />
                         <x-dashboard.input name="last_name" label="Last name" :value="$prefill['last_name'] ?? ''" required />
                         <x-dashboard.input type="email" name="email" label="Email" :value="$prefill['email'] ?? ''" required />
-                        <x-dashboard.input name="phone" label="Phone (with country code)" :value="$prefill['phone'] ?? ''" placeholder="+234…" />
+                        <div>
+                            <label class="mb-1 block text-sm font-medium" for="connect-phone">Phone number</label>
+                            <div class="flex">
+                                <span class="inline-flex items-center rounded-l-lg border border-r-0 border-border-subtle bg-muted px-3 text-sm font-medium text-text-secondary" x-text="phoneDial || '+…'" aria-hidden="true"></span>
+                                <input
+                                    id="connect-phone"
+                                    type="tel"
+                                    inputmode="tel"
+                                    autocomplete="tel-national"
+                                    x-model="phoneLocal"
+                                    placeholder="Phone number"
+                                    required
+                                    class="block w-full rounded-r-lg border border-border-subtle px-3 py-2 text-sm bg-surface text-text-primary focus-ring"
+                                >
+                            </div>
+                            <input type="hidden" name="phone" :value="phoneE164">
+                            <p class="mt-1 text-xs text-text-muted">Country code follows the payout country above.</p>
+                        </div>
                         <x-dashboard.input type="date" name="dob" label="Date of birth" :value="$prefill['dob'] ?? ''" required />
                     </div>
                     <div class="mt-3 grid gap-3 sm:grid-cols-2">
@@ -155,19 +179,29 @@
 function payoutConnectForm(cfg) {
     return {
         countries: cfg.countries || {},
+        dialCodes: cfg.dialCodes || {},
         optionsUrl: cfg.optionsUrl,
         csrf: cfg.csrf,
         country: cfg.country || '',
         method: cfg.method || 'bank_account',
         bankCode: cfg.bankCode || '',
         mobileProvider: cfg.mobileProvider || '',
+        phoneDial: cfg.phoneDial || '',
+        phoneLocal: cfg.phoneLocal || '',
         options: [],
         loadingOptions: false,
+        get phoneE164() {
+            if (!this.phoneDial) return '';
+            let digits = String(this.phoneLocal || '').replace(/\D+/g, '');
+            digits = digits.replace(/^0+/, '');
+            return digits ? (this.phoneDial + digits) : '';
+        },
         onCountry() {
             const methods = this.countries[this.country]?.methods || {};
             if (!methods[this.method]) {
                 this.method = Object.keys(methods)[0] || 'bank_account';
             }
+            this.phoneDial = this.dialCodes[this.country] || '';
             this.onMethod();
         },
         onMethod() {

@@ -71,15 +71,14 @@
                         $u = auth()->user();
                     @endphp
                     <div class="sm:col-span-2">
-                        <label class="mb-1 block text-sm font-medium">Country</label>
-                        <select name="country" required class="w-full rounded-lg border border-border-subtle px-3 py-2 text-sm">
-                            <option value="">Choose country</option>
-                            @foreach ($payoutCountries as $c)
-                                <option value="{{ $c['code'] }}" @selected(old('country', $u->country) === $c['code'])>{{ $c['name'] }}</option>
-                            @endforeach
-                        </select>
+                        <x-forms.country-phone
+                            :countries="$payoutCountries"
+                            :country="old('country', $u->country)"
+                            :phone="old('phone', $u->phone)"
+                            country-id="wallet-country"
+                            phone-id="wallet-phone"
+                        />
                     </div>
-                    <x-dashboard.input name="phone" label="Phone (with country code)" :value="old('phone', $u->phone)" placeholder="+15551234567" required />
                     <x-dashboard.input name="address_line1" label="Address" :value="old('address_line1', $u->address_line1)" required />
                     <x-dashboard.input name="address_city" label="City" :value="old('address_city', $u->address_city)" required />
                     <x-dashboard.input name="address_state" label="State / region" :value="old('address_state', $u->address_state)" required />
