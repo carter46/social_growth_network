@@ -3,8 +3,11 @@
     $completionMinutes = (int) ($campaign->completion_minutes ?? 0);
     $minutes = $completionMinutes > 0 ? $completionMinutes : (int) ($campaign->estimated_minutes ?? 0);
     $tileProfile = $campaign->taskProfile();
-    $description = trim(strip_tags((string) ($campaign->product?->description ?? '')));
     $status = $status ?? null;
+    $embed = $embed ?? null;
+    $hasEmbed = ($embed['mode'] ?? '') === 'embed' && ! empty($embed['html']);
+    $briefingTasks = $briefingTasks ?? null;
+    $briefing = trim((string) ($campaign->agentBriefing(is_array($briefingTasks) ? $briefingTasks : null) ?? ''));
 @endphp
 <div @class(['grid grid-cols-1 gap-3', 'sm:grid-cols-2 xl:grid-cols-4' => $status, 'sm:grid-cols-3' => ! $status])>
     @if ($status)
@@ -41,16 +44,22 @@
     </div>
 @endif
 
-@if ($campaign->target_url)
-    <div class="{{ $tile }}">
-        <p class="text-xs text-text-muted">{{ __('Target') }}</p>
-        <a href="{{ $campaign->target_url }}" class="mt-0.5 block break-all text-sm font-medium text-primary hover:underline" target="_blank" rel="noopener">{{ $campaign->target_url }}</a>
+@if ($hasEmbed || $campaign->target_url)
+    <div class="{{ $tile }} space-y-2">
+        <p class="text-xs text-text-muted">{{ __('What you will work on') }}</p>
+        @if ($hasEmbed)
+            <div class="overflow-hidden rounded-lg border border-border-default">{!! $embed['html'] !!}</div>
+        @elseif (! empty($embed['open_url']))
+            <a href="{{ $embed['open_url'] }}" class="inline-flex text-sm font-medium text-primary hover:underline" target="_blank" rel="noopener">{{ __('Open on YouTube') }}</a>
+        @elseif ($campaign->target_url)
+            <a href="{{ $campaign->target_url }}" class="inline-flex text-sm font-medium text-primary hover:underline" target="_blank" rel="noopener">{{ __('Open on YouTube') }}</a>
+        @endif
     </div>
 @endif
 
-@if ($description !== '')
+@if ($briefing !== '')
     <div class="{{ $tile }}">
-        <p class="text-xs text-text-muted">{{ __('Description') }}</p>
-        <p class="mt-0.5 text-sm text-text-secondary">{{ \Illuminate\Support\Str::limit($description, 400) }}</p>
+        <p class="text-xs text-text-muted">{{ __('Your task') }}</p>
+        <p class="mt-0.5 text-sm text-text-secondary">{{ $briefing }}</p>
     </div>
 @endif

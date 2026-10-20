@@ -310,6 +310,48 @@ class Campaign extends Model
         return self::STATUS_LABELS[$this->status] ?? ucfirst(str_replace('_', ' ', (string) $this->status));
     }
 
+    /**
+     * Agent-facing instructions for what to do on this campaign (not the creator product blurb).
+     *
+     * @param  list<\App\Enums\CampaignTask>|null  $tasks  Pass the agent's assigned steps when already started.
+     */
+    public function agentBriefing(?array $tasks = null): string
+    {
+        $tasks ??= $this->openTasks();
+        if ($tasks === []) {
+            $tasks = $this->taskProfile()->tasks();
+        }
+
+        $adminSeconds = max(60, max(1, (int) ($this->estimated_minutes ?: 1)) * 60);
+        $videoSeconds = (int) ($this->meta['video_duration_seconds'] ?? 0);
+        if ($videoSeconds > 0 && $videoSeconds < $adminSeconds) {
+            $watchLabel = $videoSeconds < 60
+                ? trans_choice(':count second|:count seconds', $videoSeconds)
+                : __('the full video (:time)', ['time' => gmdate($videoSeconds >= 3600 ? 'G:i:s' : 'i:s', $videoSeconds)]);
+        } else {
+            $watchLabel = trans_choice(':count minute|:count minutes', (int) ceil($adminSeconds / 60));
+        }
+
+        $lines = [];
+        foreach ($tasks as $task) {
+            if (! $task instanceof \App\Enums\CampaignTask) {
+                continue;
+            }
+            $lines[] = match ($task) {
+                \App\Enums\CampaignTask::Watch => __('Watch the video for :time. Keep this page open while it plays. If you leave early or run out of time, the task is cancelled and you are not paid.', ['time' => $watchLabel]),
+                \App\Enums\CampaignTask::Subscribe => __('Subscribe to the creator’s channel with the YouTube account you linked here.'),
+                \App\Enums\CampaignTask::Comment => __('Leave a genuine comment on the video, following any instructions shown after you start.'),
+                \App\Enums\CampaignTask::Like => __('Like the video with the YouTube account you linked here.'),
+            };
+        }
+
+        if ($lines === []) {
+            return __('Complete the steps for this task, then submit. Leaving unfinished cancels the task without pay.');
+        }
+
+        return implode(' ', $lines);
+    }
+
     public function allowsAgentWork(): bool
     {
         if (in_array($this->status, self::WORKABLE_STATUSES, true)) {

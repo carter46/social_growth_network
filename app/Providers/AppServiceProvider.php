@@ -48,6 +48,8 @@ class AppServiceProvider extends ServiceProvider
         UserRegistered::class,
         UserVerified::class,
         WalletFunded::class,
+        \App\Events\WalletDepositFailed::class,
+        \App\Events\WalletDepositAbandoned::class,
         WalletFundingSubmitted::class,
         WalletWithdrawalCompleted::class,
         WithdrawalRequested::class,

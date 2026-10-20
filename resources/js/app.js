@@ -415,6 +415,7 @@ document.addEventListener('alpine:init', () => {
             starting: false,
             claiming: false,
             error: '',
+            playHint: '',
             timer: null,
             get display() {
                 const s = Math.max(0, this.remaining);
@@ -423,12 +424,36 @@ document.addEventListener('alpine:init', () => {
                 return `${m}:${String(r).padStart(2, '0')}`;
             },
             init() {
-                if (this.token) this.runTimer();
+                if (this.token) {
+                    this.runTimer();
+                    this.playYoutube();
+                }
+            },
+            playYoutube(attempt = 0) {
+                const root = this.$el;
+                const iframe = root?.querySelector?.('iframe[data-youtube-player], iframe');
+                if (!iframe?.contentWindow) {
+                    if (attempt < 5) {
+                        setTimeout(() => this.playYoutube(attempt + 1), 400);
+                        return;
+                    }
+                    this.playHint = 'Press play on the video so it keeps running while the timer counts.';
+                    return;
+                }
+                try {
+                    // YouTube IFrame API command channel (enablejsapi=1 on the embed).
+                    iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 1 }), '*');
+                    iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                    this.playHint = 'Keep the video playing on this page until the watch timer finishes. If it did not start, press play.';
+                } catch {
+                    this.playHint = 'Press play on the video so it keeps running while the timer counts.';
+                }
             },
             async start() {
                 if (this.starting || this.token) return;
                 this.starting = true;
                 this.error = '';
+                this.playHint = '';
                 try {
                     const response = await fetch(this.startUrl, {
                         method: 'POST',
@@ -447,6 +472,7 @@ document.addEventListener('alpine:init', () => {
                     this.token = data.token;
                     this.requiredSeconds = Number(data.required_seconds || this.requiredSeconds);
                     this.runTimer();
+                    this.playYoutube();
                 } catch {
                     this.error = 'Could not start the watch session. Check your connection and try again.';
                 } finally {

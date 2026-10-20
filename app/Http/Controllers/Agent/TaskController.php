@@ -69,6 +69,10 @@ class TaskController extends Controller
             ? $this->embeds->resolve($campaign->target_url, $platform)
             : null;
 
+        $requiredSeconds = $campaign && $profile?->has(\App\Enums\CampaignTask::Watch)
+            ? $this->watchSessions->requiredSecondsFor($campaign)
+            : max(60, (int) ($campaign?->estimated_minutes ?: 1) * 60);
+
         return view('dashboard.agent.tasks.show', [
             'participation' => $participation,
             'metric' => $metric,
@@ -79,6 +83,7 @@ class TaskController extends Controller
             'steps' => $usesSteps ? $participation->steps : collect(),
             'secondsRemaining' => $participation->secondsRemaining(),
             'totalSeconds' => $campaign?->completion_minutes ? (int) $campaign->completion_minutes * 60 : null,
+            'requiredSeconds' => $requiredSeconds,
         ]);
     }
 

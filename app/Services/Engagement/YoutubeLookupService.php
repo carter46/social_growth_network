@@ -215,6 +215,7 @@ class YoutubeLookupService
             'channel_url' => ! empty($snippet['channelId']) ? 'https://www.youtube.com/channel/'.$snippet['channelId'] : null,
             'thumbnail' => $this->safeImage($thumbs['medium']['url'] ?? $thumbs['default']['url'] ?? null),
             'duration' => $this->formatDuration($item['contentDetails']['duration'] ?? null),
+            'duration_seconds' => $this->durationSeconds($item['contentDetails']['duration'] ?? null),
             'privacy' => (string) ($status['privacyStatus'] ?? 'public'),
             'embeddable' => (bool) ($status['embeddable'] ?? true),
             'made_for_kids' => (bool) ($status['madeForKids'] ?? false),
@@ -286,6 +287,7 @@ class YoutubeLookupService
             'channel_url' => is_string($json['author_url'] ?? null) && TargetUrlValidator::isYoutubeChannelUrl($json['author_url']) ? $json['author_url'] : null,
             'thumbnail' => $this->safeImage($json['thumbnail_url'] ?? null),
             'duration' => null,
+            'duration_seconds' => null,
         ], 'oembed');
     }
 
@@ -323,14 +325,26 @@ class YoutubeLookupService
 
     private function formatDuration(mixed $iso): ?string
     {
+        $seconds = $this->durationSeconds($iso);
+        if ($seconds === null) {
+            return null;
+        }
+        $h = intdiv($seconds, 3600);
+        $min = intdiv($seconds % 3600, 60);
+        $s = $seconds % 60;
+
+        return $h > 0 ? sprintf('%d:%02d:%02d', $h, $min, $s) : sprintf('%d:%02d', $min, $s);
+    }
+
+    public function durationSeconds(mixed $iso): ?int
+    {
         if (! is_string($iso) || ! preg_match('/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/', $iso, $m)) {
             return null;
         }
-        $h = (int) ($m[1] ?? 0);
-        $min = (int) ($m[2] ?? 0);
-        $s = (int) ($m[3] ?? 0);
 
-        return $h > 0 ? sprintf('%d:%02d:%02d', $h, $min, $s) : sprintf('%d:%02d', $min, $s);
+        $seconds = ((int) ($m[1] ?? 0) * 3600) + ((int) ($m[2] ?? 0) * 60) + (int) ($m[3] ?? 0);
+
+        return $seconds > 0 ? $seconds : null;
     }
 
     /** @return array{status: string, message: ?string, video: ?array<string, mixed>, source: ?string} */

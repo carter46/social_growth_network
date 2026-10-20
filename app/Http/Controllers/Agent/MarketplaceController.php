@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Agent;
 
+use App\Enums\EngagementMetric;
 use App\Http\Controllers\Controller;
 use App\Models\Campaign;
 use App\Models\CampaignParticipation;
@@ -9,6 +10,7 @@ use App\Services\Campaigns\AgentEligibilityService;
 use App\Services\Campaigns\CampaignParticipationService;
 use App\Services\Campaigns\YoutubeChannelRequiredException;
 use App\Services\Campaigns\YoutubeIdentityService;
+use App\Services\Engagement\VideoEmbedResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -18,6 +20,7 @@ class MarketplaceController extends Controller
         private CampaignParticipationService $participations,
         private AgentEligibilityService $eligibility,
         private YoutubeIdentityService $identities,
+        private VideoEmbedResolver $embeds,
     ) {}
 
     public function index(): View
@@ -66,12 +69,19 @@ class MarketplaceController extends Controller
             && YoutubeIdentityService::requiredFor($campaign)
             && ! $this->identities->verified($agent);
 
+        $campaign->load('product.heroMedia.variants');
+        $platform = EngagementMetric::platformFromProductSlug($campaign->product?->slug)
+            ?? ($campaign->meta['platform'] ?? null);
+
         return view('dashboard.agent.marketplace.show', [
-            'campaign' => $campaign->load('product.heroMedia.variants'),
+            'campaign' => $campaign,
             'participation' => $participation,
             'needsChannel' => $needsChannel,
             'channelIdentity' => $needsChannel ? $this->identities->current($agent) : null,
             'oauthEnabled' => YoutubeIdentityService::oauthEnabled(),
+            'embed' => $campaign->target_url
+                ? $this->embeds->resolve($campaign->target_url, $platform)
+                : null,
         ]);
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Wallet\Services;
 
+use App\Events\WalletDepositFailed;
 use App\Models\PaymentTimelineEvent;
 use App\Models\SystemSetting;
 use App\Models\User;
@@ -157,6 +158,13 @@ class DepositCheckoutService
             Log::warning('deposit.checkout_failed', ['funding_id' => $funding->id, 'gateway' => $key, 'code' => $e->providerCode, 'error' => $e->getMessage()]);
             $funding->update(['status' => 'failed', 'internal_status' => 'failed', 'provider_status' => 'INIT_FAILED']);
             PaymentTimelineEvent::record($funding, 'failed', 'Could not open '.$driver->displayName().' checkout');
+            WalletDepositFailed::dispatch(
+                (int) $user->id,
+                (int) $funding->id,
+                (float) $funding->amount,
+                __('We could not open the payment page.'),
+                (string) $funding->currency,
+            );
 
             throw new InvalidArgumentException('We could not open '.$driver->displayName().' right now. Try again, or choose another payment option.');
         }
@@ -211,6 +219,13 @@ class DepositCheckoutService
             if ($event->failed() && in_array($funding->status, ['pending', 'processing'], true)) {
                 $funding->update(['status' => 'failed', 'internal_status' => 'failed']);
                 PaymentTimelineEvent::record($funding, 'failed', 'Payment not completed', ['code' => $event->failureCode]);
+                WalletDepositFailed::dispatch(
+                    (int) $funding->user_id,
+                    (int) $funding->id,
+                    (float) $funding->amount,
+                    __('Your card payment was declined or cancelled.'),
+                    (string) $funding->currency,
+                );
             }
 
             return $funding->fresh();

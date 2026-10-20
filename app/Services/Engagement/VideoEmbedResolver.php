@@ -33,15 +33,16 @@ class VideoEmbedResolver
             return $this->openPrimary($url, 'youtube', 'Open on YouTube to watch.');
         }
 
-        $embedUrl = 'https://www.youtube.com/embed/'.rawurlencode($id).'?rel=0&playsinline=1';
-        $html = '<iframe class="w-full aspect-video rounded-lg" src="'.e($embedUrl).'" title="YouTube video" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>';
+        $embedUrl = 'https://www.youtube.com/embed/'.rawurlencode($id)
+            .'?rel=0&playsinline=1&enablejsapi=1&origin='.rawurlencode(rtrim((string) config('app.url'), '/'));
+        $html = '<iframe data-youtube-player class="w-full aspect-video rounded-lg" src="'.e($embedUrl).'" title="YouTube video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>';
 
         return [
             'mode' => 'embed',
             'html' => $html,
             'open_url' => $url,
             'platform' => 'youtube',
-            'note' => 'Click the native YouTube play button. Autoplay / scripted play does not count toward YouTube views. Completing the session earns your task reward. It does not guarantee a platform view.',
+            'note' => 'Tap Start watching to begin the timer and play the video. Keep this page open until the watch timer finishes.',
         ];
     }
 

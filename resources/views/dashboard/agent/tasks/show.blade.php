@@ -6,7 +6,7 @@
 @php
     $campaign = $participation->campaign;
     $watchToken = session('watch_token');
-    $requiredSeconds = max(60, (int) ($campaign?->estimated_minutes ?: 1) * 60);
+    $requiredSeconds = (int) ($requiredSeconds ?? max(60, (int) ($campaign?->estimated_minutes ?: 1) * 60));
 @endphp
 <x-layout.page
     title="{{ $campaign?->title ?? 'Task' }}"
@@ -46,12 +46,26 @@
                     :class="warning ? 'border-danger/40 bg-danger/5' : 'border-border-default bg-muted/30'"
                     aria-live="polite"
                 >
-                    <p class="text-sm text-text-secondary">Time left to finish every step</p>
+                    <p class="text-sm text-text-secondary">Deadline to finish this whole task (not the watch timer)</p>
                     <p class="text-lg font-semibold" :class="warning ? 'text-danger' : 'text-text-primary'" x-text="display">{{ gmdate($secondsRemaining >= 3600 ? 'G:i:s' : 'i:s', $secondsRemaining) }}</p>
                     <p class="w-full text-xs text-text-muted" x-show="warning" x-cloak>Less than 20% of your time is left. If time runs out, the task is cancelled and you are not paid.</p>
                 </div>
             @endif
         </div>
+    @endif
+
+    @if (in_array($participation->status, ['approved', 'paid'], true))
+        <x-dashboard.card class="mb-4 space-y-4" data-task-complete>
+            <x-dashboard.alert type="success" title="Thank you for completing the task">
+                {{ $participation->status === 'paid'
+                    ? 'Your reward has been paid to your wallet.'
+                    : 'Your reward is approved and will be paid shortly.' }}
+            </x-dashboard.alert>
+            <div class="flex flex-wrap gap-3">
+                <x-dashboard.button :href="route('agent')" icon="home">Back to dashboard</x-dashboard.button>
+                <x-dashboard.button :href="route('agent.marketplace')" variant="secondary">Find more tasks</x-dashboard.button>
+            </div>
+        </x-dashboard.card>
     @endif
 
     @if ($campaign)
@@ -60,6 +74,10 @@
                 'campaign' => $campaign,
                 'reward' => (float) $participation->reward_amount,
                 'status' => $participation->status,
+                'embed' => in_array($participation->status, ['started'], true) ? null : ($embed ?? null),
+                'briefingTasks' => ($taskMode === 'steps' && isset($steps) && $steps->isNotEmpty())
+                    ? $steps->map(fn ($step) => $step->taskEnum())->filter()->values()->all()
+                    : $campaign->taskProfile()->tasks(),
             ])
         </x-dashboard.card>
     @endif
@@ -89,13 +107,9 @@
                 <div class="rounded-xl bg-muted/40 px-4 py-3 text-sm text-text-secondary">
                     <p class="font-medium text-text-primary">How to complete this task</p>
                     <ol class="mt-1 list-decimal space-y-0.5 pl-5">
-                        <li>Tap <strong>Start watching</strong> to start the timer.</li>
-                        @if ($hasEmbed)
-                            <li>Press the play button on the video below. It does not play on its own.</li>
-                        @else
-                            <li>Open the content and keep it playing.</li>
-                        @endif
-                        <li>Keep this page open until the timer finishes, then tap <strong>Claim reward</strong>.</li>
+                        <li>Tap <strong>Start watching</strong> — that starts the watch timer and plays the video.</li>
+                        <li>Keep this page open with the video playing until the watch timer finishes.</li>
+                        <li>Then tap <strong>Claim reward</strong>.</li>
                     </ol>
                 </div>
 
@@ -113,7 +127,7 @@
                     </template>
                     <template x-if="token && ! done">
                         <p class="rounded-lg bg-muted/40 px-3 py-2 text-sm font-semibold text-text-primary" aria-live="polite">
-                            Time left: <span x-text="display"></span>
+                            Watch time left: <span x-text="display"></span>
                         </p>
                     </template>
                     <template x-if="done">
@@ -125,7 +139,8 @@
                     </template>
                 </div>
                 <p class="text-sm text-danger" x-show="error" x-text="error" x-cloak></p>
-                <p class="text-xs text-text-muted" x-show="token && ! done" x-cloak>Closing or leaving this page before the timer finishes resets your progress.</p>
+                <p class="text-sm text-text-secondary" x-show="playHint" x-text="playHint" x-cloak></p>
+                <p class="text-xs text-text-muted" x-show="token && ! done" x-cloak>Closing or leaving this page before the watch timer finishes resets your progress.</p>
             </div>
         @elseif ($taskMode === 'subscribe' && $participation->status === 'started')
             <div class="space-y-3">

@@ -9,12 +9,12 @@
     :breadcrumb="[
         ['Dashboard', route('dashboard')],
         ['Deposit', route('dashboard.deposit.index')],
-        ['Checkout', null],
+        ['Billing', null],
     ]"
 >
     @if (! $gatewayEnabled)
         <x-dashboard.alert type="warning" class="mb-4">
-            Online checkout is not configured yet. Please contact support for wallet funding options.
+            Online card payment is not configured yet. Please contact support for wallet funding options.
         </x-dashboard.alert>
     @else
         <x-dashboard.card class="mb-6">

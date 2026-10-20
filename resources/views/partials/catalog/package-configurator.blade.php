@@ -252,7 +252,7 @@
                 class="inline-flex w-full items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
                 x-bind:disabled="!canSubmit"
             >
-                <span x-show="!submitting">{{ $user ? 'Continue to checkout' : 'Log in to buy' }}</span>
+                <span x-show="!submitting">{{ $user ? 'Continue to payment' : 'Log in to buy' }}</span>
                 <span x-show="submitting" x-cloak>Please wait...</span>
             </button>
             <p class="{{ $c['muted'] }}" x-show="blockedReason" x-cloak x-text="blockedReason"></p>

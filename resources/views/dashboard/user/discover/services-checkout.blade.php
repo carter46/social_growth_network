@@ -1,6 +1,6 @@
 @extends('layouts.dashboard-user')
 
-@section('title', 'Checkout | '.$product->title)
+@section('title', 'Billing | '.$product->title)
 
 @section('content')
 @php
@@ -57,13 +57,13 @@
     ];
 @endphp
 <x-layout.page
-    title="Checkout"
+    title="Billing"
     width="default"
     :breadcrumb="[
         ['Dashboard', route('dashboard')],
         ['Services', route('dashboard.services')],
         [$product->title, route('dashboard.services.product', $product->slug)],
-        ['Checkout', null],
+        ['Billing', null],
     ]"
 >
     <x-dashboard.card class="w-full space-y-5">

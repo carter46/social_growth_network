@@ -392,14 +392,47 @@ class CampaignMarketplaceTest extends TestCase
         $this->actingAs($agent)->get(route('agent.tasks.show', $participation))
             ->assertOk()
             ->assertSee('youtube.com/embed/', false)
-            ->assertSee('Press the play button on the video below')
-            ->assertDontSee('Open on platform');
+            ->assertSee('Start watching')
+            ->assertSee('watch timer')
+            ->assertDontSee('Open on platform')
+            ->assertDontSee('Increase watch time on your');
 
         $this->actingAs($agent)
             ->postJson(route('agent.tasks.start-watch', $participation))
             ->assertOk()
             ->assertJsonStructure(['token', 'required_seconds'])
             ->assertJson(['required_seconds' => 60]);
+    }
+
+    public function test_watch_required_seconds_cap_to_shorter_video_duration(): void
+    {
+        $creator = User::factory()->creator()->create();
+        $agent = User::factory()->agent()->kycApproved()->create();
+        $this->linkVerifiedYoutubeChannel($agent);
+        \App\Models\Wallet::factory()->create(['user_id' => $agent->id, 'balance' => 0]);
+
+        $campaign = Campaign::query()->create([
+            'creator_id' => $creator->id,
+            'title' => 'Short video watch',
+            'target_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            'engagement_metric' => 'watch_hours',
+            'quantity' => 1,
+            'completed_count' => 0,
+            'locked_creator_price' => 1000,
+            'locked_agent_reward' => 50,
+            'estimated_minutes' => 3,
+            'status' => Campaign::STATUS_ACTIVE,
+            'meta' => [
+                'platform' => 'youtube',
+                'product_slug' => 'youtube-watch-hours',
+                'video_duration_seconds' => 42,
+            ],
+        ]);
+
+        $participation = app(CampaignParticipationService::class)->start($agent, $campaign);
+        $session = app(\App\Services\Campaigns\CampaignWatchSessionService::class)->start($participation);
+
+        $this->assertSame(42, (int) $session->required_seconds);
     }
 
     public function test_withdrawal_page_explains_insufficient_balance_instead_of_redirecting(): void

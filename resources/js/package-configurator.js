@@ -175,11 +175,11 @@ export function registerPackageConfigurator(Alpine) {
                 body: JSON.stringify(payload),
             });
             if (res.status === 429) {
-                return { status: 'unverified', allowed: true, message: 'Too many checks in a row. Wait a moment; we will check your link again at checkout.' };
+                return { status: 'unverified', allowed: true, message: 'Too many checks in a row. Wait a moment; we will check your link again at payment.' };
             }
             const data = await res.json().catch(() => null);
             if (! res.ok || ! data || typeof data !== 'object' || ! data.status) {
-                return { status: 'unverified', allowed: true, message: 'We could not check this link right now. We will check it again at checkout.' };
+                return { status: 'unverified', allowed: true, message: 'We could not check this link right now. We will check it again at payment.' };
             }
             return data;
         },
@@ -205,7 +205,7 @@ export function registerPackageConfigurator(Alpine) {
                 }
             } catch {
                 if (requestId !== this.videoRequestId) return;
-                this.video = { status: 'unverified', allowed: true, message: 'We could not check this link right now. We will check it again at checkout.' };
+                this.video = { status: 'unverified', allowed: true, message: 'We could not check this link right now. We will check it again at payment.' };
                 this.revealed = true;
             } finally {
                 if (requestId === this.videoRequestId) this.videoLoading = false;
@@ -234,7 +234,7 @@ export function registerPackageConfigurator(Alpine) {
                 }
             } catch {
                 if (requestId !== this.channelRequestId) return;
-                this.channel = { status: 'unverified', allowed: true, message: 'We could not check this channel right now. We will check it again at checkout.' };
+                this.channel = { status: 'unverified', allowed: true, message: 'We could not check this channel right now. We will check it again at payment.' };
                 this.channelVideos = [];
                 this.customVideo = true;
                 if (this.targetIsChannel) this.revealed = true;

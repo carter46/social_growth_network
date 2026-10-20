@@ -23,6 +23,7 @@ $scheduleCommand('support:remind-unanswered', 'support:remind-unanswered')->ever
 $scheduleCommand('cache:prune-stale-tags', 'cache:prune-stale-tags')->daily();
 
 $scheduleCommand('payments:reconcile', 'payments:reconcile')->everyFiveMinutes()->withoutOverlapping(10);
+$scheduleCommand('payments:remind-abandoned-deposits', 'payments:remind-abandoned-deposits')->hourly()->withoutOverlapping(30);
 $scheduleCommand('payments:sync-coverage', 'payments:sync-coverage')->daily()->at('03:30');
 $scheduleCommand('payments:check-fee-quotes', 'payments:check-fee-quotes')->daily()->at('03:45');
 $scheduleCommand('payments:sync-connect', 'payments:sync-connect')->hourly()->withoutOverlapping(30);

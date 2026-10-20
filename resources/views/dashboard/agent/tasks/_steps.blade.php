@@ -66,7 +66,13 @@
                             csrf: @js(csrf_token()),
                         })">
                             <p class="text-sm text-text-secondary">
-                                Tap <strong>Start watching</strong>, press play on the video and keep this page open for {{ (int) ceil($requiredSeconds / 60) }} minutes.
+                                Tap <strong>Start watching</strong> to start the watch timer and play the video. Keep this page open for
+                                @if ((int) $requiredSeconds < 60)
+                                    {{ (int) $requiredSeconds }} seconds
+                                @else
+                                    {{ (int) ceil($requiredSeconds / 60) }} {{ (int) ceil($requiredSeconds / 60) === 1 ? 'minute' : 'minutes' }}
+                                @endif
+                                (or until a shorter video ends).
                             </p>
                             @if ($hasEmbed)
                                 <div class="overflow-hidden rounded-xl border border-border-default">{!! $embed['html'] !!}</div>
@@ -93,6 +99,7 @@
                                 </template>
                             </div>
                             <p class="text-sm text-danger" x-show="error" x-text="error" x-cloak></p>
+                            <p class="text-sm text-text-secondary" x-show="playHint" x-text="playHint" x-cloak></p>
                             <p class="text-xs text-text-muted" x-show="token && ! done" x-cloak>Leaving this page before the watch timer finishes resets the watch step.</p>
                         </div>
                     @elseif ($task === CampaignTask::Comment)

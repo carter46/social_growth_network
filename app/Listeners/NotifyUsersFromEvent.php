@@ -4,6 +4,8 @@ namespace App\Listeners;
 
 use App\Events\OrderCompleted;
 use App\Events\TicketReplied;
+use App\Events\WalletDepositAbandoned;
+use App\Events\WalletDepositFailed;
 use App\Events\WalletFunded;
 use App\Events\WalletWithdrawalCompleted;
 use App\Events\WithdrawalPayoutFailed;
@@ -32,6 +34,8 @@ class NotifyUsersFromEvent
     {
         match ($event::class) {
             WalletFunded::class => $this->walletFunded($event),
+            WalletDepositFailed::class => $this->walletDepositFailed($event),
+            WalletDepositAbandoned::class => $this->walletDepositAbandoned($event),
             WalletWithdrawalCompleted::class => $this->walletWithdrawalCompleted($event),
             WithdrawalPayoutFailed::class => $this->withdrawalPayoutFailed($event),
             OrderCompleted::class => $this->orderCompleted($event),
@@ -58,6 +62,59 @@ class NotifyUsersFromEvent
                 actionUrl: Route::has('dashboard.wallet') ? route('dashboard.wallet') : null,
                 meta: ['transaction_id' => $event->transactionId],
                 emailSubject: __('Deposit credited'),
+            ),
+            ['database', 'mail']
+        );
+    }
+
+    private function walletDepositFailed(WalletDepositFailed $event): void
+    {
+        $user = User::query()->find($event->userId);
+        if (! $user) {
+            return;
+        }
+
+        $this->dispatcher->notifyUser(
+            $user,
+            new NotificationMessage(
+                type: 'wallet.deposit_failed',
+                title: __('Payment unsuccessful'),
+                body: __('Your wallet deposit of :amount did not go through. :reason You can try again from your wallet.', [
+                    'amount' => money($event->amount, 2),
+                    'reason' => filled($event->reason) ? $event->reason.' ' : '',
+                ]),
+                actionUrl: Route::has('dashboard.deposit.create-checkout')
+                    ? route('dashboard.deposit.create-checkout')
+                    : (Route::has('dashboard.wallet') ? route('dashboard.wallet') : null),
+                meta: ['funding_id' => $event->fundingId],
+                emailSubject: __('Payment unsuccessful'),
+                dedupeKey: 'wallet.deposit_failed.'.$event->fundingId,
+            ),
+            ['database', 'mail']
+        );
+    }
+
+    private function walletDepositAbandoned(WalletDepositAbandoned $event): void
+    {
+        $user = User::query()->find($event->userId);
+        if (! $user) {
+            return;
+        }
+
+        $this->dispatcher->notifyUser(
+            $user,
+            new NotificationMessage(
+                type: 'wallet.deposit_abandoned',
+                title: __('Finish your wallet deposit'),
+                body: __('You started a wallet deposit of :amount but did not finish payment. Resume or start a new deposit from your account.', [
+                    'amount' => money($event->amount, 2),
+                ]),
+                actionUrl: $event->resumeUrl
+                    ?? (Route::has('dashboard.deposit.show') ? route('dashboard.deposit.show', $event->fundingId) : null)
+                    ?? (Route::has('dashboard.deposit.create-checkout') ? route('dashboard.deposit.create-checkout') : null),
+                meta: ['funding_id' => $event->fundingId],
+                emailSubject: __('Finish your wallet deposit'),
+                dedupeKey: 'wallet.deposit_abandoned.'.$event->fundingId,
             ),
             ['database', 'mail']
         );

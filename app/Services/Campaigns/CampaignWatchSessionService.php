@@ -6,6 +6,7 @@ use App\Enums\CampaignTask;
 use App\Models\Campaign;
 use App\Models\CampaignParticipation;
 use App\Models\CampaignWatchSession;
+use App\Services\Engagement\YoutubeLookupService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -16,13 +17,19 @@ class CampaignWatchSessionService
         private CampaignParticipationService $participations,
         private CampaignTaskFlowService $taskFlow,
         private ParticipationExpiryService $expiry,
+        private YoutubeLookupService $youtube,
     ) {}
 
     public function start(CampaignParticipation $participation): CampaignWatchSession
     {
         $this->expireIfOverdue($participation);
 
-        return DB::transaction(function () use ($participation) {
+        $campaign = $participation->campaign()->with('product')->firstOrFail();
+        $campaign->assertAllowsAgentWork();
+        $this->assertTimedWatchAllowed($campaign);
+        $requiredSeconds = $this->requiredSecondsFor($campaign);
+
+        return DB::transaction(function () use ($participation, $requiredSeconds) {
             $participation = CampaignParticipation::query()->whereKey($participation->id)->lockForUpdate()->firstOrFail();
 
             if ($participation->status !== CampaignParticipation::STATUS_STARTED || $participation->isPastDeadline()) {
@@ -37,8 +44,6 @@ class CampaignWatchSessionService
                 $this->taskFlow->assertWatchStepActive($participation);
             }
 
-            $minutes = max(1, (int) ($campaign->estimated_minutes ?: 1));
-
             // Invalidate prior unclaimed sessions for this participation.
             CampaignWatchSession::query()
                 ->where('campaign_participation_id', $participation->id)
@@ -48,10 +53,53 @@ class CampaignWatchSessionService
             return CampaignWatchSession::query()->create([
                 'campaign_participation_id' => $participation->id,
                 'token' => Str::random(40),
-                'required_seconds' => $minutes * 60,
+                'required_seconds' => $requiredSeconds,
                 'started_at' => now(),
             ]);
         });
+    }
+
+    /**
+     * Admin watch minutes, capped to the video length when the video is shorter
+     * so agents are not stuck waiting after the video has ended.
+     */
+    public function requiredSecondsFor(Campaign $campaign): int
+    {
+        $adminSeconds = max(60, (int) ($campaign->estimated_minutes ?: 1) * 60);
+        $videoSeconds = $this->videoDurationSeconds($campaign);
+
+        if ($videoSeconds !== null && $videoSeconds < $adminSeconds) {
+            return max(10, $videoSeconds);
+        }
+
+        return $adminSeconds;
+    }
+
+    private function videoDurationSeconds(Campaign $campaign): ?int
+    {
+        $cached = $campaign->meta['video_duration_seconds'] ?? null;
+        if (is_numeric($cached) && (int) $cached > 0) {
+            return (int) $cached;
+        }
+
+        $url = (string) ($campaign->target_url ?? '');
+        if ($url === '') {
+            return null;
+        }
+
+        // Empty task list: we only need duration; do not reject for embed/comments rules here.
+        $lookup = $this->youtube->video($url, []);
+        $seconds = $lookup['video']['duration_seconds'] ?? null;
+        if (! is_numeric($seconds) || (int) $seconds < 1) {
+            return null;
+        }
+
+        $seconds = (int) $seconds;
+        $meta = (array) ($campaign->meta ?? []);
+        $meta['video_duration_seconds'] = $seconds;
+        $campaign->forceFill(['meta' => $meta])->save();
+
+        return $seconds;
     }
 
     /**
