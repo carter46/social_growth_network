@@ -1,16 +1,23 @@
 @extends($layout ?? 'layouts.dashboard-user')
 
-@section('title', 'Payout accounts')
+@section('title', $prefix === 'agent' ? 'My Bank' : 'Payout accounts')
 
 @section('content')
-@php $prefix = $prefix ?? 'dashboard'; @endphp
+@php
+    $prefix = $prefix ?? 'dashboard';
+    $isAgent = $prefix === 'agent';
+    $connection = $payoutConnection ?? null;
+    $connectStatus = $connection?->status ?? \App\Models\PayoutConnection::NOT_STARTED;
+    $connectActive = $connectStatus === \App\Models\PayoutConnection::ACTIVE;
+    $pageTitle = $isAgent ? 'My Bank' : 'Payout accounts';
+@endphp
 <x-layout.page
-    title="Payout accounts"
-    subtitle="Withdrawals are sent to your primary account. Accounts must be in your profile name."
+    :title="$pageTitle"
+    subtitle="Withdrawals go to your primary account. Accounts must be in your profile name."
     width="full"
     :breadcrumb="[
-        [$prefix === 'agent' ? 'Agent' : 'Dashboard', route($prefix === 'agent' ? 'agent' : 'dashboard')],
-        ['Payout accounts', null],
+        [$isAgent ? 'Agent' : 'Dashboard', route($isAgent ? 'agent' : 'dashboard')],
+        [$pageTitle, null],
     ]"
 >
     @if (session('status'))
@@ -24,6 +31,56 @@
         <x-dashboard.alert type="warning" class="mb-4">
             You can't change your primary account or remove an account while a withdrawal is pending or being processed.
         </x-dashboard.alert>
+    @endif
+
+    @if ($connectAvailable ?? false)
+        @php
+            $badgeStatus = match ($connectStatus) {
+                \App\Models\PayoutConnection::ACTIVE => 'success',
+                \App\Models\PayoutConnection::UNDER_REVIEW => 'pending',
+                \App\Models\PayoutConnection::RESTRICTED, \App\Models\PayoutConnection::REJECTED => 'danger',
+                default => 'warning',
+            };
+        @endphp
+        <x-dashboard.card class="mb-4">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h2 class="text-sm font-semibold text-text-primary">Payout setup</h2>
+                        <x-dashboard.badge :status="$badgeStatus">{{ $connection?->label() ?? \App\Models\PayoutConnection::STATUS_LABELS[\App\Models\PayoutConnection::NOT_STARTED] }}</x-dashboard.badge>
+                    </div>
+                    <p class="mt-1 text-sm text-text-secondary">
+                        @switch($connectStatus)
+                            @case(\App\Models\PayoutConnection::ACTIVE)
+                                Your payout identity is verified. Manage the bank accounts below for withdrawals.
+                                @break
+                            @case(\App\Models\PayoutConnection::UNDER_REVIEW)
+                                Your details are under review. Withdrawals open once that finishes.
+                                @break
+                            @case(\App\Models\PayoutConnection::RESTRICTED)
+                                More information is needed before payouts can resume.
+                                @break
+                            @case(\App\Models\PayoutConnection::REJECTED)
+                                This payout setup could not be approved. Contact support for help.
+                                @break
+                            @default
+                                Connect a bank account to withdraw your earnings.
+                        @endswitch
+                    </p>
+                </div>
+                @if ($connectStatus !== \App\Models\PayoutConnection::REJECTED && $connectStatus !== \App\Models\PayoutConnection::UNDER_REVIEW)
+                    <x-dashboard.button :href="route('agent.payouts.connect')" size="sm" icon="withdraw">
+                        @if ($connectActive)
+                            Update bank details
+                        @elseif ($connection && filled($connection->account_id))
+                            Continue setup
+                        @else
+                            Connect bank account
+                        @endif
+                    </x-dashboard.button>
+                @endif
+            </div>
+        </x-dashboard.card>
     @endif
 
     <div class="space-y-4">
@@ -46,11 +103,18 @@
                         </div>
                         <p class="font-mono">{{ $account->display_mask }}</p>
                         <p class="text-text-secondary">{{ $account->account_holder_name }}</p>
-                        <p class="text-xs text-text-muted">{{ $account->countryName() }} · {{ $account->methodLabel() }} · paid out in {{ $account->currency }}</p>
+                        <p class="text-xs text-text-muted">{{ $account->countryName() }} · {{ $account->methodLabel() }} · paid in {{ $account->currency }}</p>
                         @if ($account->isRejected() && $account->rejected_reason)
                             <p class="text-xs text-danger">{{ $account->rejected_reason }}</p>
-                        @elseif (! $account->routeAvailable())
-                            <p class="text-xs text-warning">Payouts to this method are paused. Choose another primary account.</p>
+                        @elseif (! $account->routeAvailable() && ! $connectActive)
+                            <p class="text-xs text-warning">
+                                This payout method isn’t available right now.
+                                @if ($accounts->count() > 1 && $account->is_primary)
+                                    If you have another account, set that one as primary.
+                                @else
+                                    Try again later or contact support.
+                                @endif
+                            </p>
                         @endif
                     </div>
 
@@ -78,7 +142,11 @@
         @empty
             <x-dashboard.card>
                 @if ($connectAvailable ?? false)
-                    <p class="text-sm text-text-secondary">No payout account on file yet. Connect a bank account to request withdrawals.</p>
+                    @if ($connectActive)
+                        <p class="text-sm text-text-secondary">Your payout identity is ready. Add a bank account below to receive withdrawals. Account numbers show here after you save one on this site.</p>
+                    @else
+                        <p class="text-sm text-text-secondary">No bank account on file yet. Connect a bank account to request withdrawals.</p>
+                    @endif
                 @else
                     <p class="text-sm text-text-secondary">No payout account on file. Add one to request withdrawals.</p>
                 @endif
@@ -90,21 +158,12 @@
         @if ($accounts->count() >= $maxAccounts)
             <p class="text-sm text-text-muted">You have {{ $maxAccounts }} payout accounts, the most allowed. Remove one to add another.</p>
         @elseif ($connectAvailable ?? false)
-            @php
-                $connection = $payoutConnection ?? null;
-                $connectStatus = $connection?->status ?? \App\Models\PayoutConnection::NOT_STARTED;
-            @endphp
-            <x-dashboard.button :href="route('agent.payouts.connect')" icon="withdraw">
-                @if ($connectStatus === \App\Models\PayoutConnection::ACTIVE)
-                    Update bank details
-                @elseif ($connection && filled($connection->account_id))
-                    Continue setup
-                @else
-                    Connect bank account
-                @endif
-            </x-dashboard.button>
-            @if ($hasRoutes)
-                <x-dashboard.button :href="route($prefix.'.banks.replace')" variant="secondary" class="ml-2" icon="withdraw">Add another account</x-dashboard.button>
+            @if ($accounts->isEmpty() && ! $connectActive && ! ($connection && filled($connection->account_id)))
+                {{-- Primary CTA already in the payout setup card above --}}
+            @elseif ($hasRoutes || $connectActive)
+                <x-dashboard.button :href="route($prefix.'.banks.replace')" variant="secondary" icon="withdraw">
+                    {{ $accounts->isEmpty() ? 'Add bank account' : 'Add another account' }}
+                </x-dashboard.button>
             @endif
         @elseif (! $hasRoutes)
             <x-dashboard.alert type="warning">Payout accounts can't be added right now. Try again later.</x-dashboard.alert>

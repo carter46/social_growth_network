@@ -265,7 +265,13 @@ class BachsConnectTest extends TestCase
 
         $this->actingAs($agent)->get(route('agent.wallet'))
             ->assertOk()
-            ->assertSee('Update your payout profile', false);
+            ->assertSee('Update your payout profile', false)
+            ->assertDontSee('Update payout details', false);
+
+        $this->actingAs($agent)->get(route('agent.banks.index'))
+            ->assertOk()
+            ->assertSee('Payout setup', false)
+            ->assertSee('Connect bank account', false);
     }
 
     public function test_return_reads_the_account_from_bachs_before_showing_ready(): void

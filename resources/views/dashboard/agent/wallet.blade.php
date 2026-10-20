@@ -3,7 +3,21 @@
 @section('title', 'Wallet')
 
 @section('content')
-@php $prefix = $prefix ?? 'agent'; @endphp
+@php
+    $prefix = $prefix ?? 'agent';
+    $profileReady = auth()->user()?->hasCompletePayoutProfile() ?? false;
+    $connection = $payoutConnection ?? null;
+    $connectStatus = $connection?->status ?? \App\Models\PayoutConnection::NOT_STARTED;
+    $bankBadge = match (true) {
+        ! ($connectAvailable ?? false) => null,
+        $connectStatus === \App\Models\PayoutConnection::ACTIVE => ['status' => 'success', 'label' => 'Ready'],
+        $connectStatus === \App\Models\PayoutConnection::UNDER_REVIEW => ['status' => 'pending', 'label' => 'In review'],
+        $connectStatus === \App\Models\PayoutConnection::RESTRICTED => ['status' => 'danger', 'label' => 'Needs info'],
+        $connectStatus === \App\Models\PayoutConnection::REJECTED => ['status' => 'danger', 'label' => 'Rejected'],
+        $connection && filled($connection->account_id) => ['status' => 'warning', 'label' => 'Setup incomplete'],
+        default => ['status' => 'warning', 'label' => 'Not connected'],
+    };
+@endphp
 <x-layout.page
     title="Wallet"
     width="full"
@@ -52,12 +66,17 @@
                 icon="wallet"
             />
             <x-dashboard.card class="flex flex-col justify-center gap-3 min-h-[120px]">
-                <x-dashboard.button :href="route($prefix.'.banks.index')" variant="secondary" size="sm" icon="withdraw">My Bank</x-dashboard.button>
+                <div class="flex items-center justify-between gap-2">
+                    <p class="text-xs font-medium text-text-muted">My Bank</p>
+                    @if ($bankBadge)
+                        <x-dashboard.badge :status="$bankBadge['status']">{{ $bankBadge['label'] }}</x-dashboard.badge>
+                    @endif
+                </div>
+                <x-dashboard.button :href="route($prefix.'.banks.index')" variant="secondary" size="sm" icon="withdraw">Open My Bank</x-dashboard.button>
                 <x-dashboard.button :href="route($prefix.'.history')" variant="ghost" size="sm" icon="history">Transaction History</x-dashboard.button>
             </x-dashboard.card>
         </x-dashboard.stat-grid>
 
-        @php $profileReady = auth()->user()?->hasCompletePayoutProfile() ?? false; @endphp
         @if (! $profileReady)
             <x-dashboard.alert type="warning" class="mt-4">
                 <p class="font-semibold">Update your payout profile</p>
@@ -88,56 +107,6 @@
                     </div>
                 </form>
             </x-dashboard.alert>
-        @elseif (($connectAvailable ?? false) && Route::has('agent.payouts.connect'))
-            @php
-                $connection = $payoutConnection ?? null;
-                $connectStatus = $connection?->status ?? \App\Models\PayoutConnection::NOT_STARTED;
-                $badgeStatus = match ($connectStatus) {
-                    \App\Models\PayoutConnection::ACTIVE => 'success',
-                    \App\Models\PayoutConnection::UNDER_REVIEW => 'pending',
-                    \App\Models\PayoutConnection::RESTRICTED, \App\Models\PayoutConnection::REJECTED => 'danger',
-                    default => 'warning',
-                };
-            @endphp
-            <x-dashboard.card class="mt-4">
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <h2 class="text-sm font-semibold text-text-primary">Payout account</h2>
-                            <x-dashboard.badge :status="$badgeStatus">{{ $connection?->label() ?? \App\Models\PayoutConnection::STATUS_LABELS[\App\Models\PayoutConnection::NOT_STARTED] }}</x-dashboard.badge>
-                        </div>
-                        <p class="mt-1 text-sm text-text-secondary">
-                            @switch($connectStatus)
-                                @case(\App\Models\PayoutConnection::ACTIVE)
-                                    Your account is ready to receive withdrawals.
-                                    @break
-                                @case(\App\Models\PayoutConnection::UNDER_REVIEW)
-                                    Your details are under review. Withdrawals open once that finishes.
-                                    @break
-                                @case(\App\Models\PayoutConnection::RESTRICTED)
-                                    More information is needed before payouts can resume.
-                                    @break
-                                @case(\App\Models\PayoutConnection::REJECTED)
-                                    This payout account could not be approved. Contact support for help.
-                                    @break
-                                @default
-                                    Connect a bank account to withdraw your earnings.
-                            @endswitch
-                        </p>
-                    </div>
-                    @if ($connectStatus !== \App\Models\PayoutConnection::REJECTED && $connectStatus !== \App\Models\PayoutConnection::UNDER_REVIEW)
-                        <x-dashboard.button :href="route('agent.payouts.connect')" size="sm" icon="withdraw">
-                            @if ($connectStatus === \App\Models\PayoutConnection::ACTIVE)
-                                Update payout details
-                            @elseif ($connection && filled($connection->account_id))
-                                Continue setup
-                            @else
-                                Connect bank account
-                            @endif
-                        </x-dashboard.button>
-                    @endif
-                </div>
-            </x-dashboard.card>
         @endif
 
         <x-dashboard.alert type="info" class="mt-4">
