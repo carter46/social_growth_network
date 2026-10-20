@@ -81,32 +81,29 @@
                                     Your account is ready to receive withdrawals.
                                     @break
                                 @case(\App\Models\PayoutConnection::UNDER_REVIEW)
-                                    Bachs is reviewing your details. Withdrawals open once the review is finished.
+                                    Your details are under review. Withdrawals open once that finishes.
                                     @break
                                 @case(\App\Models\PayoutConnection::RESTRICTED)
-                                    Bachs needs more information before payouts can resume.
+                                    More information is needed before payouts can resume.
                                     @break
                                 @case(\App\Models\PayoutConnection::REJECTED)
-                                    Bachs could not approve this account. Contact support for help.
+                                    This payout account could not be approved. Contact support for help.
                                     @break
                                 @default
-                                    Connect a bank account through our payout partner Bachs to withdraw your earnings.
+                                    Connect a bank account to withdraw your earnings.
                             @endswitch
                         </p>
                     </div>
                     @if ($connectStatus !== \App\Models\PayoutConnection::REJECTED && $connectStatus !== \App\Models\PayoutConnection::UNDER_REVIEW)
-                        <form method="POST" action="{{ route('agent.payouts.connect') }}" x-data="{ submitting: false }" @submit="submitting = true">
-                            @csrf
-                            <x-dashboard.button type="submit" size="sm" icon="withdraw" x-bind:disabled="submitting">
-                                @if ($connectStatus === \App\Models\PayoutConnection::ACTIVE)
-                                    Update payout details
-                                @elseif ($connection && filled($connection->account_id))
-                                    Continue setup
-                                @else
-                                    Connect bank account
-                                @endif
-                            </x-dashboard.button>
-                        </form>
+                        <x-dashboard.button :href="route('agent.payouts.connect')" size="sm" icon="withdraw">
+                            @if ($connectStatus === \App\Models\PayoutConnection::ACTIVE)
+                                Update payout details
+                            @elseif ($connection && filled($connection->account_id))
+                                Continue setup
+                            @else
+                                Connect bank account
+                            @endif
+                        </x-dashboard.button>
                     @endif
                 </div>
             </x-dashboard.card>

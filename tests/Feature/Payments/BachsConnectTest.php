@@ -54,19 +54,37 @@ class BachsConnectTest extends TestCase
 
         Http::fake(function (HttpRequest $request) use ($capabilities, &$destinations) {
             $path = parse_url($request->url(), PHP_URL_PATH);
+            $method = $request->method();
 
             return match (true) {
-                $path === '/v1/accounts' => Http::response([
+                $path === '/v1/accounts' && $method === 'POST' => Http::response([
                     'id' => 'acct_1',
+                    'entity_type' => 'individual',
                     'capabilities' => ['transfers' => ['status' => 'inactive'], 'payouts' => ['status' => 'inactive']],
                     'requirements' => ['currently_due' => ['individual.id_number']],
+                ]),
+                $path === '/v1/accounts/acct_1' && $method === 'POST' => Http::response([
+                    'id' => 'acct_1',
+                    'entity_type' => 'individual',
+                    'capabilities' => $capabilities,
+                    'requirements' => [],
                 ]),
                 $path === '/v1/accounts/acct_1/account-links' => Http::response(['url' => self::ONBOARDING_URL]),
                 $path === '/v1/accounts/acct_1/capabilities' => Http::response(['capabilities' => $capabilities]),
                 $path === '/v1/accounts/acct_1' => Http::response(['id' => 'acct_1', 'capabilities' => $capabilities, 'requirements' => []]),
-                $path === '/v1/payouts/destinations' && $request->method() === 'GET' => Http::response(['data' => []]),
+                $path === '/v1/accounts/acct_1/persons' && $method === 'GET' => Http::response(['items' => []]),
+                $path === '/v1/accounts/acct_1/persons' && $method === 'POST' => Http::response([
+                    'id' => 'per_1',
+                    'first_name' => 'Ada',
+                    'relationship' => ['representative' => true],
+                ]),
+                $path === '/v1/utilities/uploads' => Http::response(['upload_id' => 'upl_1']),
+                str_starts_with((string) $path, '/v1/accounts/acct_1/persons/') && str_ends_with((string) $path, '/documents') => Http::response(['id' => 'doc_1']),
+                $path === '/v1/reference/banks' => Http::response(['data' => [['code' => '058', 'name' => 'GTBank']]]),
+                $path === '/v1/currencies/payout-supported' => Http::response(['currencies' => []]),
+                $path === '/v1/payouts/destinations' && $method === 'GET' => Http::response(['data' => []]),
                 $path === '/v1/payouts/destinations' => Http::response(['id' => 'pd_'.(++$destinations), 'is_usable' => true, 'status' => 'active']),
-                default => Http::response(['error_code' => 'NOT_FOUND', 'detail' => 'Not faked'], 404),
+                default => Http::response(['error_code' => 'NOT_FOUND', 'detail' => 'Not faked: '.$method.' '.$path], 404),
             };
         });
     }
@@ -94,31 +112,66 @@ class BachsConnectTest extends TestCase
         ]);
     }
 
-    public function test_wallet_shows_connect_button_and_onboarding_reuses_one_account(): void
+    public function test_wallet_shows_connect_button_and_form_stays_on_site(): void
     {
         $this->fakeBachs();
         $agent = $this->agentWithBalance();
 
         $this->actingAs($agent)->get(route('agent.wallet'))
             ->assertOk()
-            ->assertSee('Connect bank account');
+            ->assertSee('Connect bank account')
+            ->assertDontSee('Bachs', false);
 
-        $this->actingAs($agent)->post(route('agent.payouts.connect'))->assertRedirect(self::ONBOARDING_URL);
-        $this->actingAs($agent)->post(route('agent.payouts.connect'))->assertRedirect(self::ONBOARDING_URL);
+        $this->actingAs($agent)->get(route('agent.payouts.connect'))
+            ->assertOk()
+            ->assertSee('Connect bank account')
+            ->assertSee('You stay on this page')
+            ->assertDontSee('registered business', false);
+
+        $this->actingAs($agent)->get(route('agent.payouts.connect.refresh'))
+            ->assertRedirect(route('agent.payouts.connect'));
+    }
+
+    public function test_api_onboarding_creates_individual_recipient_without_external_redirect(): void
+    {
+        $this->fakeBachs();
+        $this->coverRoute('NG', 'bank_account', ['bachs']);
+        $agent = $this->agentWithBalance('100.00', 'Ada Obi');
+        $agent->forceFill(['phone' => '+2348012345678', 'country' => 'NG'])->save();
+
+        $this->actingAs($agent)->post(route('agent.payouts.connect.submit'), [
+            'country' => 'NG',
+            'first_name' => 'Ada',
+            'last_name' => 'Obi',
+            'email' => $agent->email,
+            'phone' => '+2348012345678',
+            'dob' => '1995-06-15',
+            'address_line1' => '12 Marina Road',
+            'address_city' => 'Lagos',
+            'address_state' => 'Lagos',
+            'nin' => '12345678901',
+            'method' => 'bank_account',
+            'bank_code' => '058',
+            'account_number' => '0123456789',
+            'account_name' => 'Ada Obi',
+        ])->assertRedirect(route('agent.wallet'));
 
         $creates = Http::recorded(fn (HttpRequest $r) => $r->method() === 'POST' && parse_url($r->url(), PHP_URL_PATH) === '/v1/accounts')->values();
         $this->assertCount(1, $creates);
-        $this->assertSame('acct-user-'.$agent->id, $creates[0][0]->header('Idempotency-Key')[0]);
+        $this->assertSame('individual', $creates[0][0]['entity_type']);
+        $this->assertSame('NG', $creates[0][0]['country']);
+        $this->assertArrayHasKey('recipient', $creates[0][0]['configuration']);
+        $this->assertArrayNotHasKey('merchant', $creates[0][0]['configuration']);
 
-        $connection = PayoutConnection::for($agent->id, 'bachs');
-        $this->assertSame('acct_1', $connection->account_id);
-        $this->assertSame(PayoutConnection::REQUIREMENTS_DUE, $connection->status);
+        $persons = Http::recorded(fn (HttpRequest $r) => $r->method() === 'POST' && parse_url($r->url(), PHP_URL_PATH) === '/v1/accounts/acct_1/persons');
+        $this->assertCount(1, $persons);
 
-        $this->actingAs($agent)->get(route('agent.wallet'))->assertSee('Continue setup');
+        $updates = Http::recorded(fn (HttpRequest $r) => $r->method() === 'POST' && parse_url($r->url(), PHP_URL_PATH) === '/v1/accounts/acct_1')->values();
+        $this->assertNotEmpty($updates);
+        $this->assertSame('0123456789', data_get($updates->last()[0], 'fields.payout_destination.account_number'));
 
-        $this->actingAs($agent)->get(route('agent.payouts.connect.refresh'))->assertRedirect(self::ONBOARDING_URL);
-        $links = Http::recorded(fn (HttpRequest $r) => parse_url($r->url(), PHP_URL_PATH) === '/v1/accounts/acct_1/account-links');
-        $this->assertCount(3, $links);
+        $this->assertSame('acct_1', PayoutConnection::for($agent->id, 'bachs')?->account_id);
+        $this->assertCount(0, Http::recorded(fn (HttpRequest $r) => str_contains((string) parse_url($r->url(), PHP_URL_PATH), 'account-links')));
     }
 
     public function test_return_reads_the_account_from_bachs_before_showing_ready(): void

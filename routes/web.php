@@ -331,7 +331,9 @@ Route::middleware(['auth', 'verified', 'role:agent'])->prefix('agent')->name('ag
         Route::get('/withdrawal/{withdrawal}', [WithdrawalController::class, 'show'])->name('.withdrawal.show');
         Route::get('/history', [HistoryController::class, 'index'])->name('.history');
 
-        Route::post('/wallet/payouts/connect', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'start'])->middleware('throttle:5,1')->name('.payouts.connect');
+        Route::get('/wallet/payouts/connect', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'show'])->middleware('throttle:30,1')->name('.payouts.connect');
+        Route::post('/wallet/payouts/connect', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'store'])->middleware('throttle:5,1')->name('.payouts.connect.submit');
+        Route::get('/wallet/payouts/connect/options', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'options'])->middleware('throttle:30,1')->name('.payouts.connect.options');
         Route::get('/wallet/payouts/connect/return', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'return'])->middleware('throttle:10,1')->name('.payouts.connect.return');
         Route::get('/wallet/payouts/connect/refresh', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'refresh'])->middleware('throttle:5,1')->name('.payouts.connect.refresh');
 

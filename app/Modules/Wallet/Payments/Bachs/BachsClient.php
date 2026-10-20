@@ -42,6 +42,46 @@ class BachsClient
     }
 
     /**
+     * Multipart upload (identity documents). $file is a local path or an UploadedFile-like object.
+     *
+     * @param  array<string, string>  $fields
+     * @return array<string, mixed>
+     */
+    public function postMultipart(string $path, array $fields, string $fileField, mixed $file, ?string $filename = null, ?string $accountId = null): array
+    {
+        $headers = ['Accept' => 'application/json'];
+        if ($accountId) {
+            $headers['X-Account-Id'] = $accountId;
+        }
+
+        $name = $filename ?? (is_object($file) && method_exists($file, 'getClientOriginalName')
+            ? (string) $file->getClientOriginalName()
+            : 'upload.bin');
+        $contents = is_object($file) && method_exists($file, 'getRealPath')
+            ? file_get_contents((string) $file->getRealPath())
+            : file_get_contents((string) $file);
+        if ($contents === false) {
+            throw new GatewayException('Could not read the uploaded file.', 'INVALID_FILE', 422);
+        }
+
+        try {
+            /** @var Response $response */
+            $response = Http::baseUrl($this->live ? self::LIVE_URL : self::SANDBOX_URL)
+                ->withToken($this->secretKey)
+                ->withHeaders($headers)
+                ->acceptJson()
+                ->timeout(max($this->timeout, 60))
+                ->connectTimeout(min(10, $this->timeout))
+                ->attach($fileField, $contents, $name)
+                ->post($path, $fields);
+        } catch (ConnectionException $e) {
+            throw new GatewayException('Bachs could not be reached: '.$e->getMessage(), null, null, true, [], $e);
+        }
+
+        return $this->decode($response);
+    }
+
+    /**
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
@@ -58,6 +98,12 @@ class BachsClient
             throw new GatewayException('Bachs could not be reached: '.$e->getMessage(), null, null, true, [], $e);
         }
 
+        return $this->decode($response);
+    }
+
+    /** @return array<string, mixed> */
+    private function decode(Response $response): array
+    {
         $body = $response->json();
         $body = is_array($body) ? $body : [];
 
@@ -68,6 +114,13 @@ class BachsClient
         $status = $response->status();
         $code = isset($body['error_code']) ? (string) $body['error_code'] : null;
         $detail = (string) ($body['detail'] ?? $body['message'] ?? ('HTTP '.$status));
+        $errors = (array) ($body['errors'] ?? []);
+        if ($errors !== [] && $detail === 'HTTP '.$status) {
+            $first = $errors[0] ?? null;
+            if (is_array($first)) {
+                $detail = (string) ($first['message'] ?? $first['reason'] ?? $detail);
+            }
+        }
 
         throw new GatewayException(
             $detail,

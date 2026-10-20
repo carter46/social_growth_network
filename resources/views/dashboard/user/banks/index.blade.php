@@ -78,7 +78,7 @@
         @empty
             <x-dashboard.card>
                 @if ($connectAvailable ?? false)
-                    <p class="text-sm text-text-secondary">Connect your bank through Bachs to request withdrawals. Bachs collects your country and bank details securely, then returns you here.</p>
+                    <p class="text-sm text-text-secondary">No payout account on file yet. Connect a bank account to request withdrawals.</p>
                 @else
                     <p class="text-sm text-text-secondary">No payout account on file. Add one to request withdrawals.</p>
                 @endif
@@ -94,18 +94,15 @@
                 $connection = $payoutConnection ?? null;
                 $connectStatus = $connection?->status ?? \App\Models\PayoutConnection::NOT_STARTED;
             @endphp
-            <form method="POST" action="{{ route('agent.payouts.connect') }}" class="inline" x-data="{ submitting: false }" @submit="submitting = true">
-                @csrf
-                <x-dashboard.button type="submit" icon="withdraw" x-bind:disabled="submitting">
-                    @if ($connectStatus === \App\Models\PayoutConnection::ACTIVE)
-                        Update bank on Bachs
-                    @elseif ($connection && filled($connection->account_id))
-                        Continue Bachs setup
-                    @else
-                        Connect bank account
-                    @endif
-                </x-dashboard.button>
-            </form>
+            <x-dashboard.button :href="route('agent.payouts.connect')" icon="withdraw">
+                @if ($connectStatus === \App\Models\PayoutConnection::ACTIVE)
+                    Update bank details
+                @elseif ($connection && filled($connection->account_id))
+                    Continue setup
+                @else
+                    Connect bank account
+                @endif
+            </x-dashboard.button>
             @if ($hasRoutes)
                 <x-dashboard.button :href="route($prefix.'.banks.replace')" variant="secondary" class="ml-2" icon="withdraw">Add another account</x-dashboard.button>
             @endif

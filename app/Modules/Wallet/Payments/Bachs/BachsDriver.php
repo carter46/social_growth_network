@@ -345,6 +345,15 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
         return $this->client()->get('/v1/accounts/'.rawurlencode($accountId));
     }
 
+    /**
+     * @param  array<string, mixed>  $body
+     * @return array<string, mixed>
+     */
+    public function updateAccount(string $accountId, array $body): array
+    {
+        return $this->client()->post('/v1/accounts/'.rawurlencode($accountId), $body);
+    }
+
     /** @return array<string, string> capability name => lower-case status */
     public function accountCapabilities(string $accountId): array
     {
@@ -352,7 +361,56 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
     }
 
     /**
-     * A single-use hosted onboarding (or update) link. The URL is short-lived and must not be stored.
+     * @return list<array<string, mixed>>
+     */
+    public function listPersons(string $accountId): array
+    {
+        $body = $this->client()->get('/v1/accounts/'.rawurlencode($accountId).'/persons');
+        $rows = array_is_list($body) ? $body : (array) ($body['items'] ?? $body['data'] ?? $body['persons'] ?? []);
+
+        return array_values(array_filter($rows, 'is_array'));
+    }
+
+    /**
+     * @param  array<string, mixed>  $person
+     * @return array<string, mixed>
+     */
+    public function createPerson(string $accountId, array $person): array
+    {
+        return $this->client()->post('/v1/accounts/'.rawurlencode($accountId).'/persons', $person);
+    }
+
+    /**
+     * @param  array<string, mixed>  $person
+     * @return array<string, mixed>
+     */
+    public function updatePerson(string $accountId, string $personId, array $person): array
+    {
+        return $this->client()->post('/v1/accounts/'.rawurlencode($accountId).'/persons/'.rawurlencode($personId), $person);
+    }
+
+    /** @return array<string, mixed> */
+    public function uploadIdentityDocument(mixed $file, ?string $filename = null): array
+    {
+        return $this->client()->postMultipart('/v1/utilities/uploads', [
+            'scope' => 'identity_document',
+        ], 'file', $file, $filename);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function attachPersonDocument(string $accountId, string $personId, string $uploadId, string $document = 'primary_verification', string $side = 'front'): array
+    {
+        return $this->client()->post('/v1/accounts/'.rawurlencode($accountId).'/persons/'.rawurlencode($personId).'/documents', [
+            'file' => $uploadId,
+            'document' => $document,
+            'side' => $side,
+        ]);
+    }
+
+    /**
+     * A single-use hosted onboarding (or update) link. Kept for legacy refresh URLs; primary setup is API onboarding.
      */
     public function createAccountLink(string $accountId, string $type, string $returnUrl, string $refreshUrl): string
     {

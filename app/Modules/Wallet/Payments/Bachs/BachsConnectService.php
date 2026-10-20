@@ -8,18 +8,20 @@ use App\Models\User;
 use App\Modules\Wallet\Payments\Data\PaymentEvent;
 use App\Modules\Wallet\Payments\Exceptions\GatewayException;
 use App\Modules\Wallet\Payments\GatewayRegistry;
+use App\Modules\Wallet\Services\PayoutCoverageService;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Notifications\NotificationMessage;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Validation\ValidationException;
 
 /**
- * One Bachs recipient account per agent, onboarded through Bachs hosted account links.
- * Readiness is derived only from the account object and its capability statuses, from the
- * API (sync) or from Connect webhooks. Events can arrive out of order, so an event older than
- * the last one applied is ignored.
+ * One Bachs recipient account per agent. Primary setup is on-site API onboarding
+ * (docs.bachs.io/connect/guides/api-onboarding). Readiness comes from the account object
+ * and capability statuses (API sync or Connect webhooks).
  */
 class BachsConnectService
 {
@@ -62,17 +64,35 @@ class BachsConnectService
     }
 
     /** Create (once) the agent's recipient account and the local row that tracks it. */
-    public function ensureAccount(User $user): PayoutConnection
+    public function ensureAccount(User $user, ?string $country = null): PayoutConnection
     {
+        $country = $country !== null && preg_match('/^[A-Za-z]{2}$/', $country)
+            ? strtoupper($country)
+            : $this->countryFor($user);
+
         $connection = PayoutConnection::query()->firstOrCreate(
             ['user_id' => $user->id, 'provider' => self::PROVIDER],
             ['status' => PayoutConnection::NOT_STARTED],
         );
         if (filled($connection->account_id)) {
-            return $connection;
+            if ($country !== null) {
+                try {
+                    $this->driver()->updateAccount((string) $connection->account_id, [
+                        'country' => $country,
+                        'entity_type' => 'individual',
+                    ]);
+                } catch (GatewayException $e) {
+                    Log::info('bachs.connect.country_update_skipped', [
+                        'user_id' => $user->id,
+                        'code' => $e->providerCode,
+                    ]);
+                }
+            }
+
+            return $connection->fresh() ?? $connection;
         }
 
-        $account = $this->driver()->createRecipientAccount((int) $user->id, (string) $user->email, (string) $user->name, $this->countryFor($user));
+        $account = $this->driver()->createRecipientAccount((int) $user->id, (string) $user->email, (string) $user->name, $country);
         $accountId = (string) $account['id'];
 
         return DB::transaction(function () use ($connection, $accountId, $account) {
@@ -88,7 +108,179 @@ class BachsConnectService
     }
 
     /**
-     * A fresh hosted link: onboarding until the account is active, update afterwards.
+     * Countries agents can pick for on-site setup. Prefers coverage; falls back to Bachs
+     * documented payout routes in config when coverage has not been synced yet.
+     *
+     * @return array<string, array{name: string, currency: string, methods: array<string, string>}>
+     */
+    public function offerableCountries(): array
+    {
+        $offered = app(PayoutCoverageService::class)->offeredCountries();
+        if ($offered !== []) {
+            return $offered;
+        }
+
+        $driver = $this->driver();
+        $fallback = [];
+        foreach ($driver->coverage() as $route) {
+            $code = strtoupper($route->country);
+            $meta = config('payout_methods.countries.'.$code);
+            if (! is_array($meta)) {
+                continue;
+            }
+            $fallback[$code] ??= [
+                'name' => (string) $meta['name'],
+                'currency' => (string) $meta['currency'],
+                'methods' => [],
+            ];
+            $fallback[$code]['methods'][$route->method] = (string) config('payout_methods.methods.'.$route->method, $route->method);
+        }
+        uasort($fallback, fn ($a, $b) => strcmp($a['name'], $b['name']));
+
+        return $fallback;
+    }
+
+    /**
+     * On-site recipient onboarding: individual only, prefilled identity + bank destination.
+     * Does not redirect to Bachs hosted UI.
+     *
+     * @param  array<string, mixed>  $input
+     *
+     * @throws ValidationException
+     * @throws GatewayException
+     */
+    public function submitRecipientOnboarding(User $user, array $input, ?UploadedFile $idDocument = null): PayoutConnection
+    {
+        $country = strtoupper((string) ($input['country'] ?? ''));
+        $currency = (string) config('payout_methods.countries.'.$country.'.currency', '');
+        if ($currency === '') {
+            throw ValidationException::withMessages(['country' => __('Choose a supported payout country.')]);
+        }
+
+        if (filled($user->country) === false || strtoupper((string) $user->country) !== $country) {
+            $user->forceFill(['country' => $country])->save();
+        }
+        if (filled($input['phone'] ?? null) && blank($user->phone)) {
+            $user->forceFill(['phone' => (string) $input['phone']])->save();
+        }
+
+        $connection = $this->ensureAccount($user, $country);
+        $accountId = (string) $connection->account_id;
+        $driver = $this->driver();
+
+        $person = [
+            'first_name' => (string) $input['first_name'],
+            'last_name' => (string) $input['last_name'],
+            'dob' => (string) $input['dob'],
+            'email' => (string) ($input['email'] ?? $user->email),
+            'phone' => (string) ($input['phone'] ?? $user->phone ?? ''),
+            'relationship' => ['representative' => true, 'owner' => true, 'percent_ownership' => 100],
+            'address' => array_filter([
+                'line1' => (string) ($input['address_line1'] ?? ''),
+                'city' => (string) ($input['address_city'] ?? ''),
+                'state' => (string) ($input['address_state'] ?? ''),
+                'postal_code' => (string) ($input['address_postal_code'] ?? ''),
+                'country' => $country,
+            ], fn ($v) => $v !== ''),
+        ];
+        if ($person['phone'] === '') {
+            unset($person['phone']);
+        }
+        if (count($person['address']) < 4) {
+            unset($person['address']);
+        }
+
+        $nin = preg_replace('/\D/', '', (string) ($input['nin'] ?? '')) ?? '';
+        if (strlen($nin) >= 8) {
+            $person['id_numbers'] = [[
+                'type' => 'nin',
+                'value' => $nin,
+                'issuing_country' => $country,
+            ]];
+        }
+
+        $existing = collect($driver->listPersons($accountId))
+            ->first(fn ($row) => (bool) data_get($row, 'relationship.representative'));
+
+        try {
+            if (is_array($existing) && filled($existing['id'] ?? null)) {
+                $personRow = $driver->updatePerson($accountId, (string) $existing['id'], $person);
+            } else {
+                $personRow = $driver->createPerson($accountId, $person);
+            }
+        } catch (GatewayException $e) {
+            throw ValidationException::withMessages([
+                'identity' => $e->getMessage() ?: __('We could not save your identity details. Check the fields and try again.'),
+            ]);
+        }
+
+        $personId = (string) ($personRow['id'] ?? $existing['id'] ?? '');
+        if ($personId !== '' && $idDocument) {
+            try {
+                $upload = $driver->uploadIdentityDocument($idDocument, $idDocument->getClientOriginalName());
+                $uploadId = (string) ($upload['upload_id'] ?? $upload['id'] ?? '');
+                if ($uploadId !== '') {
+                    $driver->attachPersonDocument($accountId, $personId, $uploadId);
+                }
+            } catch (GatewayException $e) {
+                throw ValidationException::withMessages([
+                    'id_document' => $e->getMessage() ?: __('We could not upload your ID. Try a clearer image (JPG or PNG).'),
+                ]);
+            }
+        }
+
+        $accountName = trim((string) ($input['account_name'] ?? ($person['first_name'].' '.$person['last_name'])));
+        $method = (string) ($input['method'] ?? 'bank_account');
+        $destination = [
+            'currency' => $currency,
+            'type' => $method === 'mobile_money' ? 'mobile_money' : 'bank_account',
+        ];
+        if ($destination['type'] === 'mobile_money') {
+            $destination['phone_number'] = (string) ($input['phone_number'] ?? '');
+            $destination['mobile_provider'] = (string) ($input['mobile_provider'] ?? $input['bank_code'] ?? '');
+        } else {
+            $destination['account_number'] = (string) ($input['account_number'] ?? '');
+            $destination['account_name'] = $accountName;
+            $destination['bank_code'] = (string) ($input['bank_code'] ?? '');
+        }
+
+        try {
+            $driver->updateAccount($accountId, [
+                'entity_type' => 'individual',
+                'country' => $country,
+                'contact_email' => (string) ($input['email'] ?? $user->email),
+                'display_name' => mb_substr(trim($person['first_name'].' '.$person['last_name']), 0, 120),
+                'fields' => ['payout_destination' => $destination],
+            ]);
+        } catch (GatewayException $e) {
+            throw ValidationException::withMessages([
+                'bank' => $e->getMessage() ?: __('We could not save your bank details. Check the account number and bank, then try again.'),
+            ]);
+        }
+
+        $connection = $this->sync($connection->fresh() ?? $connection);
+
+        return $connection;
+    }
+
+    /**
+     * Split a profile display name into first / last for prefill.
+     *
+     * @return array{0: string, 1: string}
+     */
+    public static function splitName(string $name): array
+    {
+        $name = trim(preg_replace('/\s+/', ' ', $name) ?? '');
+        if ($name === '') {
+            return ['', ''];
+        }
+        $parts = explode(' ', $name, 2);
+
+        return [$parts[0], $parts[1] ?? $parts[0]];
+    }
+
+    /**
+     * Legacy hosted link (refresh URLs only). Prefer submitRecipientOnboarding.
      *
      * @throws ConnectLinkException
      * @throws GatewayException
