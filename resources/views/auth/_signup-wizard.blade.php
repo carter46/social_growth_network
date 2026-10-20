@@ -4,7 +4,14 @@
 --}}
 @php
     $withInviteCode = (bool) ($withInviteCode ?? false);
-    $initialStep = old('password') || $errors->has('password') || $errors->has('terms') || $errors->has('password_confirmation') ? 2 : 1;
+    $collectPayoutProfile = ($accountType ?? null) === 'agent';
+    $payoutCountries = collect((array) config('payout_methods.countries', []))
+        ->map(fn ($row, $code) => ['code' => $code, 'name' => (string) ($row['name'] ?? $code)])
+        ->sortBy('name')
+        ->values();
+    $profileError = $errors->has('phone') || $errors->has('country') || $errors->has('address_line1')
+        || $errors->has('address_city') || $errors->has('address_state') || $errors->has('address_postal_code');
+    $initialStep = old('password') || $errors->has('password') || $errors->has('terms') || $errors->has('password_confirmation') || $profileError ? 2 : 1;
 @endphp
 
 <div
@@ -161,8 +168,33 @@
             </div>
         </div>
 
-        {{-- Step 2: password + terms --}}
+        {{-- Step 2: password + terms (+ payout profile for agents) --}}
         <div class="space-y-4" x-show="step === 2" x-cloak>
+            @if ($collectPayoutProfile)
+                <div class="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 space-y-3">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-800">Where you get paid</p>
+                        <p class="mt-0.5 text-xs text-slate-500">We use this to set up withdrawals for your country. Include your phone country code (for example +1… or +44…).</p>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label for="signup-country" class="block text-sm font-medium text-slate-600">Country</label>
+                        <select id="signup-country" name="country" required class="block w-full h-10 px-3 text-sm rounded-lg border border-slate-200 bg-white text-slate-900 focus-ring">
+                            <option value="">Choose country</option>
+                            @foreach ($payoutCountries as $c)
+                                <option value="{{ $c['code'] }}" @selected(old('country') === $c['code'])>{{ $c['name'] }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <x-ui.input label="Phone (with country code)" name="phone" id="signup-phone" type="tel" placeholder="+15551234567" autocomplete="tel" value="{{ old('phone') }}" class="!bg-white !border-slate-200" />
+                    <x-ui.input label="Address" name="address_line1" id="signup-address_line1" placeholder="Street address" autocomplete="address-line1" value="{{ old('address_line1') }}" class="!bg-white !border-slate-200" />
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <x-ui.input label="City" name="address_city" id="signup-address_city" autocomplete="address-level2" value="{{ old('address_city') }}" class="!bg-white !border-slate-200" />
+                        <x-ui.input label="State / region" name="address_state" id="signup-address_state" autocomplete="address-level1" value="{{ old('address_state') }}" class="!bg-white !border-slate-200" />
+                    </div>
+                    <x-ui.input label="Postal code (optional)" name="address_postal_code" id="signup-address_postal_code" autocomplete="postal-code" value="{{ old('address_postal_code') }}" class="!bg-white !border-slate-200" />
+                </div>
+            @endif
+
             <x-ui.input
                 label="Password"
                 name="password"

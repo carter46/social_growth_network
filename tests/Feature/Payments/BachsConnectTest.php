@@ -137,7 +137,6 @@ class BachsConnectTest extends TestCase
         $this->fakeBachs();
         $this->coverRoute('NG', 'bank_account', ['bachs']);
         $agent = $this->agentWithBalance('100.00', 'Ada Obi');
-        $agent->forceFill(['phone' => '+2348012345678', 'country' => 'NG'])->save();
 
         $this->actingAs($agent)->post(route('agent.payouts.connect.submit'), [
             'country' => 'NG',
@@ -149,7 +148,8 @@ class BachsConnectTest extends TestCase
             'address_line1' => '12 Marina Road',
             'address_city' => 'Lagos',
             'address_state' => 'Lagos',
-            'nin' => '12345678901',
+            'id_type' => 'id_card',
+            'id_number' => 'A12345678',
             'method' => 'bank_account',
             'bank_code' => '058',
             'account_number' => '0123456789',
@@ -174,6 +174,49 @@ class BachsConnectTest extends TestCase
         $this->assertCount(0, Http::recorded(fn (HttpRequest $r) => str_contains((string) parse_url($r->url(), PHP_URL_PATH), 'account-links')));
     }
 
+    public function test_international_country_uses_hosted_partner_bridge(): void
+    {
+        $this->fakeBachs();
+        $agent = $this->agentWithBalance();
+        $agent->forceFill([
+            'country' => 'US',
+            'phone' => '+12025550123',
+            'address_line1' => '1 Main St',
+            'address_city' => 'Boston',
+            'address_state' => 'MA',
+            'profile_completed_at' => now(),
+        ])->save();
+
+        $this->actingAs($agent)->get(route('agent.payouts.connect'))
+            ->assertOk()
+            ->assertSee('secure form', false)
+            ->assertSee(route('agent.payouts.connect.hosted'), false);
+
+        $this->actingAs($agent)->post(route('agent.payouts.connect.hosted'))
+            ->assertRedirect(self::ONBOARDING_URL);
+    }
+
+    public function test_incomplete_profile_blocks_connect_and_shows_wallet_banner(): void
+    {
+        $this->fakeBachs();
+        $agent = $this->agentWithBalance();
+        $agent->forceFill([
+            'phone' => null,
+            'country' => null,
+            'address_line1' => null,
+            'address_city' => null,
+            'address_state' => null,
+            'profile_completed_at' => null,
+        ])->save();
+
+        $this->actingAs($agent)->get(route('agent.payouts.connect'))
+            ->assertRedirect(route('agent.wallet'));
+
+        $this->actingAs($agent)->get(route('agent.wallet'))
+            ->assertOk()
+            ->assertSee('Update your payout profile', false);
+    }
+
     public function test_return_reads_the_account_from_bachs_before_showing_ready(): void
     {
         $this->fakeBachs();
@@ -181,8 +224,8 @@ class BachsConnectTest extends TestCase
         $this->connection($agent);
 
         $this->actingAs($agent)->get(route('agent.payouts.connect.return'))
-            ->assertRedirect(route('agent.wallet'))
-            ->assertSessionHas('success');
+            ->assertRedirect(route('agent.banks.replace'))
+            ->assertSessionHas('status');
 
         $this->assertTrue(PayoutConnection::for($agent->id, 'bachs')->isActive());
     }

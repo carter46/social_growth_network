@@ -24,6 +24,7 @@
         </div>
     </div>
 
+    @include('dashboard.agent.partials.payout-profile-prompt')
     <x-dashboard.command-palette role="agent" />
     <x-ui.toast />
     @stack('scripts')

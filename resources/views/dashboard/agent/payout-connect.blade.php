@@ -78,7 +78,6 @@
                         <x-dashboard.input type="email" name="email" label="Email" :value="$prefill['email'] ?? ''" required />
                         <x-dashboard.input name="phone" label="Phone (with country code)" :value="$prefill['phone'] ?? ''" placeholder="+234…" />
                         <x-dashboard.input type="date" name="dob" label="Date of birth" :value="$prefill['dob'] ?? ''" required />
-                        <x-dashboard.input name="nin" label="National ID / NIN (if required)" :value="$prefill['nin'] ?? ''" />
                     </div>
                     <div class="mt-3 grid gap-3 sm:grid-cols-2">
                         <div class="sm:col-span-2">
@@ -88,10 +87,28 @@
                         <x-dashboard.input name="address_state" label="State / region" :value="$prefill['address_state'] ?? ''" required />
                         <x-dashboard.input name="address_postal_code" label="Postal code (optional)" :value="$prefill['address_postal_code'] ?? ''" />
                     </div>
+                    <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                        <div>
+                            <label class="mb-1 block text-sm font-medium" for="id_type">ID type (if required)</label>
+                            <select id="id_type" name="id_type" class="w-full rounded-lg border border-border-subtle px-3 py-2 text-sm">
+                                @foreach ([
+                                    'id_card' => 'National / government ID',
+                                    'passport' => 'Passport',
+                                    'drivers_license' => 'Driver’s licence',
+                                    'residence_permit' => 'Residence permit',
+                                    'nin' => 'National identity number',
+                                    'bvn' => 'Bank verification number',
+                                ] as $value => $label)
+                                    <option value="{{ $value }}" @selected(($prefill['id_type'] ?? 'id_card') === $value)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <x-dashboard.input name="id_number" label="ID number (if required)" :value="$prefill['id_number'] ?? ''" />
+                    </div>
                     <div class="mt-3">
-                        <label class="mb-1 block text-sm font-medium" for="id_document">Government ID (optional if not asked yet)</label>
+                        <label class="mb-1 block text-sm font-medium" for="id_document">ID document photo (if required)</label>
                         <input id="id_document" type="file" name="id_document" accept=".jpg,.jpeg,.png,.pdf" class="block w-full text-sm text-text-secondary" />
-                        <p class="mt-1 text-xs text-text-muted">National ID, passport, or driver’s licence. JPG, PNG, or PDF up to 5&nbsp;MB.</p>
+                        <p class="mt-1 text-xs text-text-muted">JPG, PNG, or PDF up to 5&nbsp;MB.</p>
                     </div>
                 </div>
 

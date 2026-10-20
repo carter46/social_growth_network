@@ -76,6 +76,12 @@ trait BuildsPayouts
         $agent = User::factory()->agent()->kycApproved()->create([
             'name' => $name,
             'email_verified_at' => now(),
+            'phone' => '+2348012345678',
+            'country' => 'NG',
+            'address_line1' => '12 Marina Road',
+            'address_city' => 'Lagos',
+            'address_state' => 'Lagos',
+            'profile_completed_at' => now(),
         ]);
         Wallet::factory()->create(['user_id' => $agent->id, 'balance' => $balance, 'locked_balance' => 0]);
 

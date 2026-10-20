@@ -57,7 +57,39 @@
             </x-dashboard.card>
         </x-dashboard.stat-grid>
 
-        @if (($connectAvailable ?? false) && Route::has('agent.payouts.connect'))
+        @php $profileReady = auth()->user()?->hasCompletePayoutProfile() ?? false; @endphp
+        @if (! $profileReady)
+            <x-dashboard.alert type="warning" class="mt-4">
+                <p class="font-semibold">Update your payout profile</p>
+                <p class="mt-1">Add your phone (with country code), country, and address before you can connect a bank account.</p>
+                <form method="POST" action="{{ route('agent.payout-profile.update') }}" class="mt-3 grid gap-2 sm:grid-cols-2">
+                    @csrf
+                    @php
+                        $payoutCountries = collect((array) config('payout_methods.countries', []))
+                            ->map(fn ($row, $code) => ['code' => $code, 'name' => (string) ($row['name'] ?? $code)])
+                            ->sortBy('name')->values();
+                        $u = auth()->user();
+                    @endphp
+                    <div class="sm:col-span-2">
+                        <label class="mb-1 block text-sm font-medium">Country</label>
+                        <select name="country" required class="w-full rounded-lg border border-border-subtle px-3 py-2 text-sm">
+                            <option value="">Choose country</option>
+                            @foreach ($payoutCountries as $c)
+                                <option value="{{ $c['code'] }}" @selected(old('country', $u->country) === $c['code'])>{{ $c['name'] }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <x-dashboard.input name="phone" label="Phone (with country code)" :value="old('phone', $u->phone)" placeholder="+15551234567" required />
+                    <x-dashboard.input name="address_line1" label="Address" :value="old('address_line1', $u->address_line1)" required />
+                    <x-dashboard.input name="address_city" label="City" :value="old('address_city', $u->address_city)" required />
+                    <x-dashboard.input name="address_state" label="State / region" :value="old('address_state', $u->address_state)" required />
+                    <x-dashboard.input name="address_postal_code" label="Postal code (optional)" :value="old('address_postal_code', $u->address_postal_code)" />
+                    <div class="sm:col-span-2">
+                        <x-dashboard.button type="submit" size="sm">Save profile</x-dashboard.button>
+                    </div>
+                </form>
+            </x-dashboard.alert>
+        @elseif (($connectAvailable ?? false) && Route::has('agent.payouts.connect'))
             @php
                 $connection = $payoutConnection ?? null;
                 $connectStatus = $connection?->status ?? \App\Models\PayoutConnection::NOT_STARTED;

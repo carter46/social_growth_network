@@ -11,6 +11,7 @@ use App\Modules\Wallet\Payments\GatewayRegistry;
 use App\Modules\Wallet\Services\PayoutCoverageService;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Notifications\NotificationMessage;
+use App\Support\PhoneNumber;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -117,13 +118,32 @@ class BachsConnectService
     {
         $offered = app(PayoutCoverageService::class)->offeredCountries();
         if ($offered !== []) {
-            return $offered;
+            return $this->onlyInlineDestinationCountries($offered);
         }
 
         $driver = $this->driver();
         $fallback = [];
-        foreach ($driver->coverage() as $route) {
+        try {
+            $routes = $driver->coverage();
+        } catch (GatewayException) {
+            $routes = [];
+            foreach ((array) config('payout_methods.countries', []) as $code => $meta) {
+                foreach (array_keys((array) ($meta['methods'] ?? [])) as $method) {
+                    if ($driver->usesInlinePayoutDestination((string) $code, (string) $method)) {
+                        $routes[] = new \App\Modules\Wallet\Payments\Data\CoverageRoute(
+                            strtoupper((string) $code),
+                            (string) $method,
+                            (string) ($meta['currency'] ?? ''),
+                        );
+                    }
+                }
+            }
+        }
+        foreach ($routes as $route) {
             $code = strtoupper($route->country);
+            if (! $driver->usesInlinePayoutDestination($code, $route->method)) {
+                continue;
+            }
             $meta = config('payout_methods.countries.'.$code);
             if (! is_array($meta)) {
                 continue;
@@ -138,6 +158,53 @@ class BachsConnectService
         uasort($fallback, fn ($a, $b) => strcmp($a['name'], $b['name']));
 
         return $fallback;
+    }
+
+    /**
+     * International routing schemas cannot use inline payout_destination (Bachs docs).
+     * Those agents complete identity on the hosted partner flow, then add a bank on-site.
+     */
+    public function prefersHostedOnboarding(?string $country): bool
+    {
+        if ($country === null || ! preg_match('/^[A-Za-z]{2}$/', $country)) {
+            return false;
+        }
+        $country = strtoupper($country);
+        $methods = array_keys((array) config('payout_methods.countries.'.$country.'.methods', []));
+        if ($methods === []) {
+            return false;
+        }
+        foreach ($methods as $method) {
+            if (! $this->driver()->usesInlinePayoutDestination($country, (string) $method)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, array{name: string, currency: string, methods: array<string, string>}>  $countries
+     * @return array<string, array{name: string, currency: string, methods: array<string, string>}>
+     */
+    private function onlyInlineDestinationCountries(array $countries): array
+    {
+        $driver = $this->driver();
+        $filtered = [];
+        foreach ($countries as $code => $row) {
+            $methods = [];
+            foreach (array_keys((array) ($row['methods'] ?? [])) as $method) {
+                if ($driver->usesInlinePayoutDestination((string) $code, (string) $method)) {
+                    $methods[$method] = $row['methods'][$method];
+                }
+            }
+            if ($methods !== []) {
+                $filtered[$code] = $row;
+                $filtered[$code]['methods'] = $methods;
+            }
+        }
+
+        return $filtered;
     }
 
     /**
@@ -168,18 +235,25 @@ class BachsConnectService
         $accountId = (string) $connection->account_id;
         $driver = $this->driver();
 
+        $phone = (string) ($input['phone'] ?? $user->phone ?? '');
+        if ($phone !== '' && ! PhoneNumber::isE164($phone)) {
+            throw ValidationException::withMessages([
+                'phone' => __('Enter a phone number with country code, like +15551234567.'),
+            ]);
+        }
+
         $person = [
             'first_name' => (string) $input['first_name'],
             'last_name' => (string) $input['last_name'],
             'dob' => (string) $input['dob'],
             'email' => (string) ($input['email'] ?? $user->email),
-            'phone' => (string) ($input['phone'] ?? $user->phone ?? ''),
+            'phone' => $phone,
             'relationship' => ['representative' => true, 'owner' => true, 'percent_ownership' => 100],
             'address' => array_filter([
-                'line1' => (string) ($input['address_line1'] ?? ''),
-                'city' => (string) ($input['address_city'] ?? ''),
-                'state' => (string) ($input['address_state'] ?? ''),
-                'postal_code' => (string) ($input['address_postal_code'] ?? ''),
+                'line1' => (string) ($input['address_line1'] ?? $user->address_line1 ?? ''),
+                'city' => (string) ($input['address_city'] ?? $user->address_city ?? ''),
+                'state' => (string) ($input['address_state'] ?? $user->address_state ?? ''),
+                'postal_code' => (string) ($input['address_postal_code'] ?? $user->address_postal_code ?? ''),
                 'country' => $country,
             ], fn ($v) => $v !== ''),
         ];
@@ -190,11 +264,14 @@ class BachsConnectService
             unset($person['address']);
         }
 
-        $nin = preg_replace('/\D/', '', (string) ($input['nin'] ?? '')) ?? '';
-        if (strlen($nin) >= 8) {
+        // Bachs id schemes (docs): passport, id_card, drivers_license, residence_permit, nin, bvn.
+        $idType = strtolower((string) ($input['id_type'] ?? ''));
+        $idValue = trim((string) ($input['id_number'] ?? ''));
+        $allowedIdTypes = ['passport', 'id_card', 'drivers_license', 'residence_permit', 'nin', 'bvn'];
+        if ($idValue !== '' && in_array($idType, $allowedIdTypes, true)) {
             $person['id_numbers'] = [[
-                'type' => 'nin',
-                'value' => $nin,
+                'type' => $idType,
+                'value' => $idValue,
                 'issuing_country' => $country,
             ]];
         }
@@ -244,6 +321,12 @@ class BachsConnectService
             $destination['bank_code'] = (string) ($input['bank_code'] ?? '');
         }
 
+        if (! $driver->usesInlinePayoutDestination($country, $method)) {
+            throw ValidationException::withMessages([
+                'country' => __('This country needs the secure partner setup. Use Continue setup from your wallet.'),
+            ]);
+        }
+
         try {
             $driver->updateAccount($accountId, [
                 'entity_type' => 'individual',
@@ -259,6 +342,18 @@ class BachsConnectService
         }
 
         $connection = $this->sync($connection->fresh() ?? $connection);
+
+        $due = array_values(array_filter(array_merge(
+            (array) data_get($connection->requirements, 'currently_due', []),
+            (array) data_get($connection->requirements, 'past_due', []),
+        )));
+        if ($due !== [] && $connection->needsSetup()) {
+            throw ValidationException::withMessages([
+                'identity' => __('Details saved, but more information is still required (:fields). Update the form and try again, or upload your ID if you have not.', [
+                    'fields' => implode(', ', array_slice($due, 0, 5)),
+                ]),
+            ]);
+        }
 
         return $connection;
     }

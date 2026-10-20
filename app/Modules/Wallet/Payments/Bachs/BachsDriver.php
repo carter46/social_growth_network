@@ -56,8 +56,11 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
 
     public const CONNECT_EVENTS = ['account.updated', 'capability.updated', 'transfer.created'];
 
-    /** Bank schemas Bachs only accepts through the destinations API, never hosted onboarding. */
-    private const API_ONLY_SCHEMAS = ['us_bank', 'gb_bank', 'sepa', 'ca_bank'];
+    /**
+     * Bank schemas that cannot use inline `payout_destination` on the account
+     * (docs: register via POST /v1/payouts/destinations; hosted onboarding cannot collect them).
+     */
+    public const API_ONLY_SCHEMAS = ['us_bank', 'gb_bank', 'sepa', 'ca_bank'];
 
     private const ACCOUNT_DETAILS_CODES = ['BANK_ROUTING_DETAILS_INVALID'];
 
@@ -970,11 +973,20 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
         }
     }
 
+    /** Whether this country/method can use account `fields.payout_destination` (local rails). */
+    public function usesInlinePayoutDestination(string $country, string $method = 'bank_account'): bool
+    {
+        $schema = (string) config(
+            'payout_methods.countries.'.strtoupper($country).'.methods.'.$method.'.schema',
+            'local_bank',
+        );
+
+        return ! in_array($schema, self::API_ONLY_SCHEMAS, true);
+    }
+
     private function requiresApiDestination(PayoutAccountDetails $d): bool
     {
-        $schema = (string) config('payout_methods.countries.'.strtoupper($d->country).'.methods.'.$d->method.'.schema', 'local_bank');
-
-        return in_array($schema, self::API_ONLY_SCHEMAS, true);
+        return ! $this->usesInlinePayoutDestination($d->country, $d->method);
     }
 
     /**

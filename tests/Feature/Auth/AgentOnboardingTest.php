@@ -25,12 +25,24 @@ class AgentOnboardingTest extends TestCase
             'name' => 'New Agent',
             'username' => 'newagent',
             'email' => 'newagent@example.com',
+            'phone' => '+2348012345678',
+            'country' => 'NG',
+            'address_line1' => '12 Marina Road',
+            'address_city' => 'Lagos',
+            'address_state' => 'Lagos',
             'password' => 'password',
             'password_confirmation' => 'password',
             'terms' => '1',
         ])->assertRedirect(route('verification.notice'));
 
-        return User::query()->where('email', 'newagent@example.com')->firstOrFail();
+        $user = User::query()->where('email', 'newagent@example.com')->firstOrFail();
+        $this->assertSame('+2348012345678', $user->phone);
+        $this->assertSame('NG', $user->country);
+        $this->assertSame('12 Marina Road', $user->address_line1);
+        $this->assertNotNull($user->profile_completed_at);
+        $this->assertTrue($user->hasCompletePayoutProfile());
+
+        return $user;
     }
 
     public function test_onboarding_signup_page_explains_earning_and_needs_an_invite_code(): void
@@ -70,7 +82,9 @@ class AgentOnboardingTest extends TestCase
             ->assertSee('Connect your YouTube channel')
             ->assertSee('Skip for now')
             ->assertSee('href="'.route('agent').'"', false)
-            ->assertSee(route('agent.youtube-channel.show', ['return' => '/agent/onboarding']), false)
+            ->assertSee('data-onboarding-connect', false)
+            ->assertSee('name="return"', false)
+            ->assertSee('/agent/onboarding', false)
             ->assertDontSee('Connect bank account')
             ->assertDontSee('payout', false);
 

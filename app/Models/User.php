@@ -32,6 +32,10 @@ class User extends Authenticatable implements MustVerifyEmail
         'password_set_at',
         'phone',
         'country',
+        'address_line1',
+        'address_city',
+        'address_state',
+        'address_postal_code',
         'bio',
         'avatar',
         'terms_accepted_at',
@@ -267,6 +271,48 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->isAnonymized() ? null : $this->email;
     }
 
+    /**
+     * Phone, country and mailing address needed before payout Connect can pick the right path.
+     *
+     * @return list<string>
+     */
+    public function missingPayoutProfileFields(): array
+    {
+        $missing = [];
+        if (! filled($this->phone) || ! \App\Support\PhoneNumber::isE164((string) $this->phone)) {
+            $missing[] = 'phone';
+        }
+        if (! filled($this->country) || ! preg_match('/^[A-Za-z]{2}$/', (string) $this->country)) {
+            $missing[] = 'country';
+        }
+        if (! filled($this->address_line1)) {
+            $missing[] = 'address_line1';
+        }
+        if (! filled($this->address_city)) {
+            $missing[] = 'address_city';
+        }
+        if (! filled($this->address_state)) {
+            $missing[] = 'address_state';
+        }
+
+        return $missing;
+    }
+
+    public function hasCompletePayoutProfile(): bool
+    {
+        return $this->missingPayoutProfileFields() === [];
+    }
+
+    public function syncPayoutProfileCompletion(): void
+    {
+        $complete = $this->hasCompletePayoutProfile();
+        if ($complete && $this->profile_completed_at === null) {
+            $this->forceFill(['profile_completed_at' => now()])->save();
+        } elseif (! $complete && $this->profile_completed_at !== null) {
+            $this->forceFill(['profile_completed_at' => null])->save();
+        }
+    }
+
     /** Single-line admin label (email preferred; falls back to name). */
     public function adminLabel(): string
     {
@@ -308,6 +354,10 @@ class User extends Authenticatable implements MustVerifyEmail
                 'email' => "deleted+{$id}@invalid.local",
                 'phone' => null,
                 'country' => null,
+                'address_line1' => null,
+                'address_city' => null,
+                'address_state' => null,
+                'address_postal_code' => null,
                 'bio' => null,
                 'avatar' => null,
                 'email_verified_at' => null,

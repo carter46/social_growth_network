@@ -32,7 +32,7 @@ class AgentOnboardingController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate($this->registration->rules() + [
+        $request->validate($this->registration->rules() + $this->registration->agentProfileRules() + [
             'referral_code' => $this->registration->requiredReferralCodeRules(),
         ]);
 
