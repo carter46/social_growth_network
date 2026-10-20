@@ -127,7 +127,7 @@ class BachsConnectService
         $account = $driver->retrieveAccount((string) $connection->account_id);
         $caps = $driver->accountCapabilities((string) $connection->account_id) + BachsDriver::normalizeCapabilities($account);
 
-        return DB::transaction(function () use ($connection, $account, $caps) {
+        $connection = DB::transaction(function () use ($connection, $account, $caps) {
             $locked = PayoutConnection::query()->whereKey($connection->id)->lockForUpdate()->firstOrFail();
             $this->applyState($locked, $account, $caps);
             $locked->last_synced_at = now();
@@ -135,6 +135,13 @@ class BachsConnectService
 
             return $locked;
         });
+
+        // Hosted onboarding may have added a bank destination after capabilities flipped active.
+        if ($connection->isActive()) {
+            $this->syncDestinations((int) $connection->user_id);
+        }
+
+        return $connection;
     }
 
     /**
@@ -265,7 +272,140 @@ class BachsConnectService
 
         if ($previous !== PayoutConnection::ACTIVE && $derived['status'] === PayoutConnection::ACTIVE) {
             $userId = (int) $connection->user_id;
-            DB::afterCommit(fn () => $this->registerDestinations($userId));
+            DB::afterCommit(fn () => $this->syncDestinations($userId));
+        }
+    }
+
+    /**
+     * Bachs hosted onboarding collects the bank destination on Bachs (docs: Connect onboarding /
+     * payouts). Mirror usable destinations into local payout accounts for withdrawals, then
+     * register any site-added accounts that still need an API destination (e.g. US/GB/SEPA).
+     */
+    public function syncDestinations(int $userId): void
+    {
+        $this->importDestinations($userId);
+        $this->registerDestinations($userId);
+    }
+
+    /**
+     * Create or refresh local payout accounts from destinations already on the Bachs Connect account.
+     */
+    public function importDestinations(int $userId): void
+    {
+        $connection = PayoutConnection::for($userId, self::PROVIDER);
+        if (! $connection || blank($connection->account_id) || ! $connection->isActive()) {
+            return;
+        }
+
+        $accountId = (string) $connection->account_id;
+        $user = User::query()->find($userId);
+        if (! $user) {
+            return;
+        }
+
+        try {
+            $rows = $this->driver()->listDestinations($accountId);
+        } catch (\Throwable $e) {
+            Log::warning('bachs.connect.import_list_failed', ['user_id' => $userId, 'error' => $e->getMessage()]);
+
+            return;
+        }
+
+        $hintCountry = $this->countryFor($user);
+        $bounceFee = \App\Modules\Wallet\Services\PayoutAccountService::bounceFee();
+        $terms = app(\App\Modules\Wallet\Services\PayoutAccountService::class)
+            ->termsText((string) $user->name, $bounceFee);
+
+        foreach ($rows as $row) {
+            if (! ($row['is_usable'] ?? false)) {
+                continue;
+            }
+            $destinationId = (string) ($row['id'] ?? $row['destination_id'] ?? '');
+            if ($destinationId === '') {
+                continue;
+            }
+
+            $currency = strtoupper((string) ($row['currency'] ?? ''));
+            $type = strtolower((string) ($row['type'] ?? 'bank_account'));
+            $method = $type === 'mobile_money' ? 'mobile_money' : 'bank_account';
+            $country = $this->countryForDestination($currency, $hintCountry, $row);
+            if ($country === null || config("payout_methods.countries.$country.methods.$method") === null) {
+                continue;
+            }
+
+            $last4 = preg_replace('/\D/', '', (string) ($row['last4'] ?? $row['account_number_last4'] ?? $row['account_number'] ?? $row['phone_number'] ?? ''));
+            $last4 = $last4 !== '' ? substr($last4, -4) : '****';
+            $holder = (string) ($row['account_name'] ?? $row['account_holder_name'] ?? $row['name'] ?? $user->name);
+            $bankName = (string) ($row['bank_name'] ?? $row['bank'] ?? ($method === 'mobile_money' ? 'Mobile money' : 'Bank account'));
+            $bankCode = $this->strOrNull($row['bank_code'] ?? $row['mobile_provider'] ?? null);
+            $fields = $method === 'mobile_money'
+                ? array_filter([
+                    'mobile_provider' => $bankCode,
+                    'phone_number' => (string) ($row['phone_number'] ?? $last4),
+                ])
+                : array_filter([
+                    'account_number' => (string) ($row['account_number'] ?? $last4),
+                    'bank_code' => $bankCode,
+                ]);
+
+            $existing = PayoutAccount::query()->where('user_id', $userId)->where('active', true)->get()
+                ->first(fn (PayoutAccount $a) => (string) data_get($a->provider_beneficiary_ids, self::PROVIDER.'.destination') === $destinationId);
+
+            $ids = [
+                self::PROVIDER => [
+                    'account' => $accountId,
+                    'destination' => $destinationId,
+                    'fingerprint' => 'hosted:'.$destinationId,
+                ],
+            ];
+
+            if ($existing) {
+                $existing->fill([
+                    'country' => $country,
+                    'currency' => $currency,
+                    'method' => $method,
+                    'bank_code' => $bankCode ?? $existing->bank_code,
+                    'bank_name' => $bankName !== '' ? $bankName : $existing->bank_name,
+                    'details' => $fields !== [] ? $fields : $existing->details,
+                    'display_mask' => '****'.$last4,
+                    'account_holder_name' => $holder !== '' ? mb_substr($holder, 0, 120) : $existing->account_holder_name,
+                    'verification' => PayoutAccount::RESOLVED,
+                    'verified_at' => $existing->verified_at ?? now(),
+                    'provider_beneficiary_ids' => array_replace((array) $existing->provider_beneficiary_ids, $ids),
+                ])->save();
+
+                continue;
+            }
+
+            $hasPrimary = PayoutAccount::query()->where('user_id', $userId)->where('active', true)->where('is_primary', true)->exists();
+            $atLimit = PayoutAccount::query()->where('user_id', $userId)->where('active', true)->count()
+                >= app(\App\Modules\Wallet\Services\PayoutAccountService::class)->maxAccounts();
+            if ($atLimit) {
+                Log::info('bachs.connect.import_skipped_limit', ['user_id' => $userId, 'destination' => $destinationId]);
+
+                continue;
+            }
+
+            PayoutAccount::query()->create([
+                'user_id' => $userId,
+                'country' => $country,
+                'currency' => $currency,
+                'method' => $method,
+                'bank_code' => $bankCode,
+                'bank_name' => $bankName,
+                'details' => $fields,
+                'display_mask' => '****'.$last4,
+                'account_holder_name' => mb_substr($holder !== '' ? $holder : (string) $user->name, 0, 120),
+                'verification' => PayoutAccount::RESOLVED,
+                'verified_at' => now(),
+                'resolved_by' => 'bachs_connect',
+                'provider_beneficiary_ids' => $ids,
+                'bounce_terms_accepted_at' => now(),
+                'bounce_fee_disclosed' => $bounceFee,
+                'bounce_terms_text' => $terms,
+                'is_primary' => ! $hasPrimary,
+                'active' => true,
+            ]);
         }
     }
 
@@ -277,12 +417,45 @@ class BachsConnectService
             ->orderByDesc('is_primary')->orderBy('id')->get();
 
         foreach ($accounts as $account) {
+            if (filled(data_get($account->provider_beneficiary_ids, self::PROVIDER.'.destination'))) {
+                continue;
+            }
             try {
                 app(\App\Modules\Wallet\Services\PayoutAccountService::class)->prepareBeneficiaries($account);
             } catch (\Throwable $e) {
                 Log::warning('bachs.connect.destination_failed', ['user_id' => $userId, 'account_id' => $account->id, 'error' => $e->getMessage()]);
             }
         }
+    }
+
+    /**
+     * Map a Bachs destination currency to a country we offer (config/payout_methods.php).
+     *
+     * @param  array<string, mixed>  $row
+     */
+    private function countryForDestination(string $currency, ?string $hintCountry, array $row): ?string
+    {
+        $fromRow = strtoupper((string) ($row['country'] ?? $row['country_code'] ?? ''));
+        if (preg_match('/^[A-Z]{2}$/', $fromRow) && config("payout_methods.countries.$fromRow.currency") === $currency) {
+            return $fromRow;
+        }
+        if ($hintCountry && config("payout_methods.countries.$hintCountry.currency") === $currency) {
+            return $hintCountry;
+        }
+        foreach ((array) config('payout_methods.countries', []) as $code => $meta) {
+            if (strtoupper((string) ($meta['currency'] ?? '')) === $currency) {
+                return (string) $code;
+            }
+        }
+
+        return null;
+    }
+
+    private function strOrNull(mixed $value): ?string
+    {
+        $value = is_string($value) || is_numeric($value) ? trim((string) $value) : '';
+
+        return $value !== '' ? $value : null;
     }
 
     /** @param  array<string, mixed>  $payload */

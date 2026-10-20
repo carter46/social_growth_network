@@ -5,6 +5,7 @@ namespace App\Modules\Wallet\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Withdrawal;
+use App\Modules\Wallet\Payments\Bachs\BachsConnectService;
 use App\Modules\Wallet\Payments\PayoutGate;
 use App\Modules\Wallet\Services\PayoutAccountService;
 use App\Modules\Wallet\Services\WithdrawalConfirmationService;
@@ -25,6 +26,7 @@ class WithdrawalController extends Controller
         private WithdrawalConfirmationService $confirmation,
         private WithdrawalFeeService $fees,
         private WithdrawalPayoutService $payouts,
+        private BachsConnectService $connect,
     ) {}
 
     public function index(): View
@@ -89,9 +91,13 @@ class WithdrawalController extends Controller
             $errors = $e->errors();
             $message = (string) collect($errors)->flatten()->first();
 
+            $bankAction = $prefix === 'agent' && $this->connect->available() && Route::has('agent.wallet')
+                ? $link('agent.wallet', __('Connect bank account'))
+                : $link($prefix.'.banks.index', __('Payout accounts'));
+
             return match (array_key_first($errors)) {
                 'password' => ['title' => __('Set a password first'), 'message' => $message, 'action' => $link($prefix.'.account.security', __('Go to security'))],
-                'bank', 'terms' => ['title' => __('Check your payout account'), 'message' => $message, 'action' => $link($prefix.'.banks.index', __('Payout accounts'))],
+                'bank', 'terms' => ['title' => __('Check your payout account'), 'message' => $message, 'action' => $bankAction],
                 default => str_contains($message, 'KYC')
                     ? ['title' => __('Verify your identity'), 'message' => $message, 'action' => $link($prefix.'.account.kyc', __('Complete KYC'))]
                     : ['title' => __('Withdrawal in progress'), 'message' => $message, 'action' => $link($prefix.'.withdrawal.index', __('View withdrawals'))],

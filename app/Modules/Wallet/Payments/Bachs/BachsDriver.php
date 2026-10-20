@@ -501,6 +501,21 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
             ->filter()
             ->all();
 
+        // Bachs docs (Supported currencies): GET /v1/currencies/payout-supported lists currencies
+        // configured on the organisation, not the product support matrix. A fresh sandbox often
+        // returns none even though NGN/GHS/… payouts are documented. PAYOUT_ROUTES mirrors that
+        // published matrix (docs.bachs.io/guides/payouts/global-payouts), so use it when the
+        // org list is empty rather than reporting zero routes.
+        if ($supported === []) {
+            $supported = collect($this->routes())
+                ->keys()
+                ->map(fn ($country) => strtoupper((string) config("payout_methods.countries.$country.currency")))
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+        }
+
         $routes = [];
         foreach ($this->routes() as $country => $methods) {
             $currency = (string) config("payout_methods.countries.$country.currency");

@@ -337,4 +337,27 @@ class BachsDriverContractTest extends TestCase
         $this->assertSame(PayoutResult::UNKNOWN, $unreachable->status);
         $this->assertFalse($unreachable->confirmedAbsent());
     }
+
+    public function test_coverage_uses_documented_routes_when_org_payout_supported_list_is_empty(): void
+    {
+        $this->on('GET /v1/currencies/payout-supported', ['currencies' => []]);
+
+        $routes = $this->driver->coverage();
+        $ng = collect($routes)->first(fn ($r) => $r->country === 'NG' && $r->method === 'bank_account');
+
+        $this->assertNotNull($ng);
+        $this->assertSame('NGN', $ng->currency);
+        $this->assertNotEmpty($routes);
+    }
+
+    public function test_coverage_respects_org_payout_supported_list_when_present(): void
+    {
+        $this->on('GET /v1/currencies/payout-supported', ['currencies' => ['USD']]);
+
+        $routes = $this->driver->coverage();
+        $countries = collect($routes)->pluck('country')->unique()->values()->all();
+
+        $this->assertContains('US', $countries);
+        $this->assertNotContains('NG', $countries);
+    }
 }

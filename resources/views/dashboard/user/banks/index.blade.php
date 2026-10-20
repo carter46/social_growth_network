@@ -77,7 +77,11 @@
             </x-dashboard.card>
         @empty
             <x-dashboard.card>
-                <p class="text-sm text-text-secondary">No payout account on file. Add one to request withdrawals.</p>
+                @if ($connectAvailable ?? false)
+                    <p class="text-sm text-text-secondary">Connect your bank through Bachs to request withdrawals. Bachs collects your country and bank details securely, then returns you here.</p>
+                @else
+                    <p class="text-sm text-text-secondary">No payout account on file. Add one to request withdrawals.</p>
+                @endif
             </x-dashboard.card>
         @endforelse
     </div>
@@ -85,6 +89,26 @@
     <div class="mt-6">
         @if ($accounts->count() >= $maxAccounts)
             <p class="text-sm text-text-muted">You have {{ $maxAccounts }} payout accounts, the most allowed. Remove one to add another.</p>
+        @elseif ($connectAvailable ?? false)
+            @php
+                $connection = $payoutConnection ?? null;
+                $connectStatus = $connection?->status ?? \App\Models\PayoutConnection::NOT_STARTED;
+            @endphp
+            <form method="POST" action="{{ route('agent.payouts.connect') }}" class="inline" x-data="{ submitting: false }" @submit="submitting = true">
+                @csrf
+                <x-dashboard.button type="submit" icon="withdraw" x-bind:disabled="submitting">
+                    @if ($connectStatus === \App\Models\PayoutConnection::ACTIVE)
+                        Update bank on Bachs
+                    @elseif ($connection && filled($connection->account_id))
+                        Continue Bachs setup
+                    @else
+                        Connect bank account
+                    @endif
+                </x-dashboard.button>
+            </form>
+            @if ($hasRoutes)
+                <x-dashboard.button :href="route($prefix.'.banks.replace')" variant="secondary" class="ml-2" icon="withdraw">Add another account</x-dashboard.button>
+            @endif
         @elseif (! $hasRoutes)
             <x-dashboard.alert type="warning">Payout accounts can't be added right now. Try again later.</x-dashboard.alert>
         @else

@@ -4,6 +4,7 @@ namespace App\Modules\Wallet\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\PayoutAccount;
+use App\Modules\Wallet\Payments\Bachs\BachsConnectService;
 use App\Modules\Wallet\Services\BankCatalogService;
 use App\Modules\Wallet\Services\PayoutAccountService;
 use App\Modules\Wallet\Services\PayoutCoverageService;
@@ -11,6 +12,7 @@ use App\Support\MemberShell;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -24,11 +26,14 @@ class BankAccountController extends Controller
         private PayoutAccountService $accounts,
         private PayoutCoverageService $coverage,
         private BankCatalogService $banks,
+        private BachsConnectService $connect,
     ) {}
 
     public function index(Request $request): View
     {
         $user = $request->user();
+        $prefix = MemberShell::prefix();
+        $connectAvailable = $prefix === 'agent' && $this->connect->available() && Route::has('agent.payouts.connect');
 
         return view('dashboard.user.banks.index', [
             'accounts' => $user->payoutAccounts()->get(),
@@ -36,8 +41,10 @@ class BankAccountController extends Controller
             'hasOpenWithdrawal' => $this->accounts->hasOpenWithdrawal($user),
             'verified' => $this->accounts->isVerified($user),
             'hasRoutes' => $this->coverage->offeredCountries() !== [],
+            'connectAvailable' => $connectAvailable,
+            'payoutConnection' => $connectAvailable ? $this->connect->connection($user) : null,
             'layout' => MemberShell::layout(),
-            'prefix' => MemberShell::prefix(),
+            'prefix' => $prefix,
         ]);
     }
 

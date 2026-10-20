@@ -134,6 +134,61 @@ class BachsConnectTest extends TestCase
         $this->assertTrue(PayoutConnection::for($agent->id, 'bachs')->isActive());
     }
 
+    public function test_return_imports_hosted_bachs_destinations_as_local_payout_accounts(): void
+    {
+        Http::fake(function (HttpRequest $request) {
+            $path = parse_url($request->url(), PHP_URL_PATH);
+
+            return match (true) {
+                $path === '/v1/accounts/acct_1/capabilities' => Http::response(['capabilities' => [
+                    'transfers' => ['status' => 'active'],
+                    'payouts' => ['status' => 'active'],
+                ]]),
+                $path === '/v1/accounts/acct_1' => Http::response([
+                    'id' => 'acct_1',
+                    'country' => 'NG',
+                    'capabilities' => [
+                        'transfers' => ['status' => 'active'],
+                        'payouts' => ['status' => 'active'],
+                    ],
+                    'requirements' => [],
+                ]),
+                $path === '/v1/payouts/destinations' && $request->method() === 'GET' => Http::response(['data' => [[
+                    'id' => 'pd_hosted_ng',
+                    'type' => 'bank_account',
+                    'currency' => 'NGN',
+                    'country' => 'NG',
+                    'is_usable' => true,
+                    'status' => 'active',
+                    'last4' => '7890',
+                    'account_name' => 'Ada Obi',
+                    'bank_name' => 'GTBank',
+                    'bank_code' => '058',
+                ]]]),
+                default => Http::response(['error_code' => 'NOT_FOUND', 'detail' => 'Not faked'], 404),
+            };
+        });
+
+        $agent = $this->agentWithBalance('100.00', 'Ada Obi');
+        $agent->forceFill(['country' => 'NG'])->save();
+        $this->connection($agent);
+
+        $this->actingAs($agent)->get(route('agent.payouts.connect.return'))
+            ->assertRedirect(route('agent.wallet'))
+            ->assertSessionHas('success');
+
+        $account = PayoutAccount::query()->where('user_id', $agent->id)->where('active', true)->first();
+        $this->assertNotNull($account);
+        $this->assertSame('NG', $account->country);
+        $this->assertSame('NGN', $account->currency);
+        $this->assertSame('bank_account', $account->method);
+        $this->assertTrue($account->is_primary);
+        $this->assertSame(PayoutAccount::RESOLVED, $account->verification);
+        $this->assertSame('pd_hosted_ng', data_get($account->provider_beneficiary_ids, 'bachs.destination'));
+        $this->assertSame('acct_1', data_get($account->provider_beneficiary_ids, 'bachs.account'));
+        $this->assertSame('****7890', $account->display_mask);
+    }
+
     public function test_return_without_finished_setup_stays_not_ready(): void
     {
         $this->fakeBachs(['transfers' => 'inactive', 'payouts' => 'inactive']);

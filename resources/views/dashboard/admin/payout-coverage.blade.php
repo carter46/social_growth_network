@@ -5,7 +5,7 @@
 @section('content')
 <x-layout.page
     title="Payout coverage"
-    subtitle="Which gateways may pay each country and method. Agents only see routes with at least one verified gateway."
+    subtitle="Which gateways may pay each country and method after Sync. Agents connect banks through Bachs hosted onboarding; this list is the site whitelist used for withdrawals and any on-site bank forms."
     width="full"
     :breadcrumb="[
         ['Admin', route('admin')],
