@@ -24,7 +24,20 @@ class PayoutQuoteService
     /** First gateway on the route for this destination, or null when none is verified. */
     public function gatewayFor(PayoutAccountDetails $destination): ?string
     {
-        return array_key_first($this->registry->payoutRoute($destination->country, $destination->method));
+        $key = array_key_first($this->registry->payoutRoute($destination->country, $destination->method));
+        if ($key !== null) {
+            return $key;
+        }
+
+        // Active Connect recipient: allow Bachs even when coverage rows are not synced yet.
+        if ($destination->userId !== null
+            && \App\Models\PayoutConnection::for((int) $destination->userId, 'bachs')?->isActive()
+            && $this->registry->payoutDriver('bachs')?->isConfigured()
+            && config('payout_methods.countries.'.strtoupper($destination->country).'.methods.'.$destination->method) !== null) {
+            return 'bachs';
+        }
+
+        return null;
     }
 
     public function quote(string $amount, PayoutAccountDetails $destination, ?string $gatewayKey = null): ?PayoutQuote

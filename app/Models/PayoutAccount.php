@@ -90,10 +90,21 @@ class PayoutAccount extends Model
         return $this->bounce_terms_accepted_at ? (string) ($this->bounce_fee_disclosed ?? '0') : '0';
     }
 
-    /** Whether payouts to this route are currently offered (coverage verified, not disabled). */
+    /**
+     * Whether payouts to this route can proceed.
+     * Coverage-verified routes always count; an active Bachs Connect recipient also unlocks
+     * the route when coverage has not been synced yet (same Connect-first path as onboarding).
+     */
     public function routeAvailable(): bool
     {
-        return app(\App\Modules\Wallet\Services\PayoutCoverageService::class)
-            ->isRouteOffered((string) $this->country, (string) $this->method);
+        if (app(\App\Modules\Wallet\Services\PayoutCoverageService::class)
+            ->isRouteOffered((string) $this->country, (string) $this->method)) {
+            return true;
+        }
+
+        $connection = PayoutConnection::for((int) $this->user_id, 'bachs');
+
+        return $connection?->isActive() === true
+            && config('payout_methods.countries.'.strtoupper((string) $this->country).'.methods.'.$this->method) !== null;
     }
 }

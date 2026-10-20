@@ -109,12 +109,8 @@
             </x-dashboard.alert>
         @endif
 
-        <x-dashboard.alert type="info" class="mt-4">
-            Agents earn by completing verified tasks. Self-serve deposits are not available on agent accounts.
-        </x-dashboard.alert>
-
         <x-dashboard.table
-            class="mt-4"
+            class="mt-4 text-xs sm:text-sm"
             :empty="$transactions->isEmpty()"
             empty-title="No transactions yet"
             empty-description="Task rewards and withdrawals will appear here."
@@ -122,17 +118,18 @@
             striped
         >
             <x-slot:head>
-                <x-dashboard.th>Reference</x-dashboard.th>
-                <x-dashboard.th>Type</x-dashboard.th>
-                <x-dashboard.th>Amount ({{ site_currency()->code }})</x-dashboard.th>
-                <x-dashboard.th>Status</x-dashboard.th>
+                <x-dashboard.th class="text-xs sm:text-sm">Type</x-dashboard.th>
+                <x-dashboard.th class="text-xs sm:text-sm">Amount ({{ site_currency()->code }})</x-dashboard.th>
+                <x-dashboard.th class="text-xs sm:text-sm">Status</x-dashboard.th>
             </x-slot:head>
             @foreach ($transactions as $tx)
                 <tr class="hover:bg-muted/50">
-                    <x-dashboard.td class="font-medium">{{ $tx->reference }}</x-dashboard.td>
-                    <x-dashboard.td>{{ \App\Enums\TransactionType::labelFor($tx->type) }}</x-dashboard.td>
-                    <x-dashboard.td>{{ money($tx->amount, 2) }}</x-dashboard.td>
-                    <x-dashboard.td><x-dashboard.badge :status="$tx->status" /></x-dashboard.td>
+                    <x-dashboard.td class="align-top">
+                        <p class="text-xs font-medium text-text-primary sm:text-sm">{{ \App\Enums\TransactionType::labelFor($tx->type) }}</p>
+                        <p class="mt-0.5 break-all font-mono text-[10px] leading-snug text-text-muted sm:text-xs">{{ $tx->reference }}</p>
+                    </x-dashboard.td>
+                    <x-dashboard.td class="align-top text-xs whitespace-nowrap sm:text-sm">{{ money($tx->amount, 2) }}</x-dashboard.td>
+                    <x-dashboard.td class="align-top"><x-dashboard.badge :status="$tx->status" /></x-dashboard.td>
                 </tr>
             @endforeach
         </x-dashboard.table>

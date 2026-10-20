@@ -124,8 +124,14 @@ class BachsConnectTest extends TestCase
 
         $this->actingAs($agent)->get(route('agent.wallet'))
             ->assertOk()
-            ->assertSee('Connect bank account')
-            ->assertDontSee('Bachs', false);
+            ->assertSee('Open My Bank', false)
+            ->assertSee('Not connected', false)
+            ->assertDontSee('Bachs', false)
+            ->assertDontSee('Self-serve deposits', false);
+
+        $this->actingAs($agent)->get(route('agent.banks.index'))
+            ->assertOk()
+            ->assertSee('Connect bank account', false);
 
         $this->actingAs($agent)->get(route('agent.payouts.connect'))
             ->assertOk()
@@ -245,6 +251,20 @@ class BachsConnectTest extends TestCase
             'account_number' => '0123456789',
             'account_name' => 'Ada Obi',
         ])->assertSessionHasErrors(['id_type', 'id_number']);
+    }
+
+    public function test_active_connect_keeps_primary_route_available_without_coverage(): void
+    {
+        $this->fakeBachs();
+        $agent = $this->agentWithBalance();
+        $account = $this->payoutAccount($agent, ['country' => 'NG', 'method' => 'bank_account', 'is_primary' => true]);
+        $this->connection($agent, PayoutConnection::ACTIVE, [
+            'transfers' => 'active',
+            'payouts' => 'active',
+        ]);
+
+        // No coverRoute() — coverage empty must not block Connect agents.
+        $this->assertTrue($account->fresh()->routeAvailable());
     }
 
     public function test_incomplete_profile_blocks_connect_and_shows_wallet_banner(): void
