@@ -99,4 +99,48 @@ class ProfileTest extends TestCase
 
         $this->assertNotNull($user->fresh());
     }
+
+    public function test_agent_profile_page_shows_and_updates_contact_address(): void
+    {
+        $agent = User::factory()->agent()->create([
+            'username' => 'agent_profile_1',
+            'email_verified_at' => now(),
+            'phone' => '+15551234567',
+            'country' => 'US',
+            'address_line1' => '1 Main St',
+            'address_city' => 'Boston',
+            'address_state' => 'MA',
+            'profile_completed_at' => now(),
+        ]);
+
+        $this->actingAs($agent)
+            ->get(route('agent.account.profile'))
+            ->assertOk()
+            ->assertSee('Contact and address', false)
+            ->assertSee('1 Main St', false)
+            ->assertSee('Boston', false)
+            ->assertSee('5551234567', false);
+
+        $this->actingAs($agent)
+            ->patch(route('agent.account.profile.update'), [
+                'name' => $agent->name,
+                'username' => 'agent_profile_1',
+                'email' => $agent->email,
+                'phone' => '+447911123456',
+                'country' => 'GB',
+                'address_line1' => '10 Downing Street',
+                'address_city' => 'London',
+                'address_state' => 'England',
+                'address_postal_code' => 'SW1A 2AA',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('agent.account.profile'));
+
+        $agent->refresh();
+        $this->assertSame('+447911123456', $agent->phone);
+        $this->assertSame('GB', $agent->country);
+        $this->assertSame('10 Downing Street', $agent->address_line1);
+        $this->assertSame('London', $agent->address_city);
+        $this->assertNotNull($agent->profile_completed_at);
+    }
 }

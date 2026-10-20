@@ -7,8 +7,10 @@ use App\Modules\Wallet\Payments\Bachs\BachsConnectService;
 use App\Modules\Wallet\Payments\Bachs\ConnectLinkException;
 use App\Modules\Wallet\Payments\Exceptions\GatewayException;
 use App\Modules\Wallet\Services\BankCatalogService;
+use App\Modules\Wallet\Services\PayoutAccountService;
 use App\Support\MemberShell;
 use App\Support\PhoneNumber;
+use App\Support\Payouts\AccountFormat;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,6 +28,7 @@ class PayoutConnectController extends Controller
     public function __construct(
         private BachsConnectService $connect,
         private BankCatalogService $banks,
+        private PayoutAccountService $accounts,
     ) {}
 
     public function show(Request $request): View|RedirectResponse
@@ -54,11 +57,18 @@ class PayoutConnectController extends Controller
 
         [$first, $last] = BachsConnectService::splitName((string) $user->name);
         $countries = $this->connect->offerableCountries();
+        $nameChecks = [];
+        foreach (array_keys($countries) as $code) {
+            foreach (array_keys((array) ($countries[$code]['methods'] ?? [])) as $method) {
+                $nameChecks[$code][$method] = $this->accounts->nameCheck((string) $code, (string) $method);
+            }
+        }
 
         return view('dashboard.agent.payout-connect', [
             'layout' => MemberShell::layout(),
             'prefix' => MemberShell::prefix(),
             'countries' => $countries,
+            'nameChecks' => $nameChecks,
             'connection' => $this->connect->connection($user),
             'prefill' => [
                 'first_name' => old('first_name', $first),
@@ -76,7 +86,7 @@ class PayoutConnectController extends Controller
                 'method' => old('method', 'bank_account'),
                 'bank_code' => old('bank_code', ''),
                 'account_number' => old('account_number', ''),
-                'account_name' => old('account_name', trim($first.' '.$last)),
+                'account_name' => old('account_name', ''),
                 'mobile_provider' => old('mobile_provider', ''),
                 'phone_number' => old('phone_number', (string) ($user->phone ?? '')),
             ],
@@ -144,8 +154,8 @@ class PayoutConnectController extends Controller
             'address_city' => ['required', 'string', 'max:80'],
             'address_state' => ['required', 'string', 'max:80'],
             'address_postal_code' => ['nullable', 'string', 'max:20'],
-            'id_type' => ['nullable', 'in:passport,id_card,drivers_license,residence_permit,nin,bvn'],
-            'id_number' => ['nullable', 'string', 'max:40'],
+            'id_type' => ['required', 'in:passport,id_card,drivers_license,residence_permit,nin,bvn'],
+            'id_number' => ['required', 'string', 'max:40'],
             'method' => ['required', 'in:bank_account,mobile_money'],
             'bank_code' => ['required_if:method,bank_account', 'nullable', 'string', 'max:20'],
             'account_number' => ['required_if:method,bank_account', 'nullable', 'string', 'max:30'],
@@ -197,6 +207,51 @@ class PayoutConnectController extends Controller
 
         return response()->json([
             'options' => $this->banks->options($validated['country'], $validated['method']),
+        ]);
+    }
+
+    /** Resolve bank account holder name (same lookup used for payout banks; no bank-replace OTP). */
+    public function resolve(Request $request): JsonResponse
+    {
+        if (! $this->connect->available()) {
+            return response()->json(['message' => __('Payout setup is not available right now.')], 422);
+        }
+
+        $validated = $request->validate([
+            'country' => ['required', 'string', 'size:2'],
+            'method' => ['required', 'in:bank_account,mobile_money'],
+            'bank_code' => ['required', 'string', 'max:20'],
+            'account_number' => ['required', 'string', 'max:30'],
+        ]);
+
+        $country = strtoupper($validated['country']);
+        $method = $validated['method'];
+        if ($this->accounts->nameCheck($country, $method) !== PayoutAccountService::NAME_CHECK_AUTO) {
+            return response()->json(['message' => __('Automatic name lookup is not available for this country.')], 422);
+        }
+
+        $accountNumber = AccountFormat::digits($validated['account_number']);
+        $option = $this->banks->find($country, $method, $validated['bank_code']);
+        if ($option === null || $accountNumber === '') {
+            return response()->json(['message' => __('Choose a bank and enter a valid account number.')], 422);
+        }
+
+        try {
+            $name = $this->accounts->lookupName($request->user(), $country, $method, [
+                'fields' => [
+                    'bank_code' => $option['code'],
+                    'account_number' => $accountNumber,
+                ],
+                'bank_code' => $option['code'],
+                'bank_name' => $option['name'],
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json(['message' => collect($e->errors())->flatten()->first()], 422);
+        }
+
+        return response()->json([
+            'account_name' => $name,
+            'matches' => $name === null ? null : PayoutAccountService::namesMatch((string) $request->user()->name, $name),
         ]);
     }
 

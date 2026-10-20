@@ -2,19 +2,21 @@
 
 namespace App\Http\Requests;
 
+use App\Support\PhoneNumber;
 use App\Support\UniqueUserRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ProfileUpdateRequest extends FormRequest
 {
     /**
-     * Get the validation rules that apply to the request.
-     *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
+        $countries = array_keys((array) config('payout_methods.countries', []));
+
         return [
             'name' => [
                 'required',
@@ -43,7 +45,12 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 UniqueUserRules::email($this->user()->id),
             ],
-            'phone' => ['nullable', 'string', 'max:40'],
+            'phone' => PhoneNumber::e164Rules(false),
+            'country' => ['nullable', 'string', 'size:2', Rule::in($countries !== [] ? $countries : ['US'])],
+            'address_line1' => ['nullable', 'string', 'max:160'],
+            'address_city' => ['nullable', 'string', 'max:80'],
+            'address_state' => ['nullable', 'string', 'max:80'],
+            'address_postal_code' => ['nullable', 'string', 'max:20'],
         ];
     }
 }

@@ -336,6 +336,7 @@ Route::middleware(['auth', 'verified', 'role:agent'])->prefix('agent')->name('ag
         Route::post('/wallet/payouts/connect', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'store'])->middleware('throttle:5,1')->name('.payouts.connect.submit');
         Route::post('/wallet/payouts/connect/hosted', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'startHosted'])->middleware('throttle:5,1')->name('.payouts.connect.hosted');
         Route::get('/wallet/payouts/connect/options', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'options'])->middleware('throttle:30,1')->name('.payouts.connect.options');
+        Route::post('/wallet/payouts/connect/resolve', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'resolve'])->middleware('throttle:20,1')->name('.payouts.connect.resolve');
         Route::get('/wallet/payouts/connect/return', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'return'])->middleware('throttle:10,1')->name('.payouts.connect.return');
         Route::get('/wallet/payouts/connect/refresh', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'refresh'])->middleware('throttle:5,1')->name('.payouts.connect.refresh');
 

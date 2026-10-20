@@ -1,10 +1,18 @@
+@php
+    $payoutCountries = collect((array) config('payout_methods.countries', []))
+        ->map(fn ($row, $code) => ['code' => $code, 'name' => (string) ($row['name'] ?? $code)])
+        ->sortBy('name')
+        ->values();
+    $showContactFields = \Illuminate\Support\Facades\Schema::hasColumn('users', 'address_line1');
+@endphp
+
 <section>
     <header class="mb-6">
         <h2 class="text-lg font-medium text-text-primary">
             {{ __('Profile Information') }}
         </h2>
         <p class="mt-1 text-sm text-text-secondary">
-            {{ __("Update your account's profile information and email address.") }}
+            {{ __("Update your account details, contact info, and address.") }}
         </p>
     </header>
 
@@ -60,7 +68,52 @@
             @endif
         </div>
 
-        @if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'phone'))
+        @if ($showContactFields)
+            <div class="space-y-3 rounded-xl border border-border-subtle p-4">
+                <div>
+                    <p class="text-sm font-semibold text-text-primary">{{ __('Contact and address') }}</p>
+                    <p class="mt-0.5 text-xs text-text-muted">{{ __('Used for payouts and account contact. Country code fills from your country.') }}</p>
+                </div>
+                <x-forms.country-phone
+                    :countries="$payoutCountries"
+                    :country="old('country', $user->country)"
+                    :phone="old('phone', $user->phone)"
+                    country-id="profile-country"
+                    phone-id="profile-phone"
+                    :required="false"
+                />
+                <x-dashboard.input
+                    label="{{ __('Address') }}"
+                    name="address_line1"
+                    id="profile-address_line1"
+                    :value="old('address_line1', $user->address_line1)"
+                    autocomplete="address-line1"
+                />
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <x-dashboard.input
+                        label="{{ __('City') }}"
+                        name="address_city"
+                        id="profile-address_city"
+                        :value="old('address_city', $user->address_city)"
+                        autocomplete="address-level2"
+                    />
+                    <x-dashboard.input
+                        label="{{ __('State / region') }}"
+                        name="address_state"
+                        id="profile-address_state"
+                        :value="old('address_state', $user->address_state)"
+                        autocomplete="address-level1"
+                    />
+                </div>
+                <x-dashboard.input
+                    label="{{ __('Postal code (optional)') }}"
+                    name="address_postal_code"
+                    id="profile-address_postal_code"
+                    :value="old('address_postal_code', $user->address_postal_code)"
+                    autocomplete="postal-code"
+                />
+            </div>
+        @elseif (\Illuminate\Support\Facades\Schema::hasColumn('users', 'phone'))
             <x-dashboard.input
                 label="{{ __('Phone') }}"
                 name="phone"

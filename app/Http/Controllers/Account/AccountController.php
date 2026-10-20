@@ -22,13 +22,22 @@ class AccountController extends Controller
     public function updateProfile(ProfileUpdateRequest $request): RedirectResponse
     {
         $user = $request->user();
-        $user->fill($request->validated());
+        $data = $request->validated();
+        if (array_key_exists('country', $data) && filled($data['country'] ?? null)) {
+            $data['country'] = strtoupper((string) $data['country']);
+        }
+        if (array_key_exists('address_postal_code', $data) && blank($data['address_postal_code'] ?? null)) {
+            $data['address_postal_code'] = null;
+        }
+
+        $user->fill($data);
 
         if ($user->isDirty('email') && ! $user->hasRole('admin')) {
             $user->email_verified_at = null;
         }
 
         $user->save();
+        $user->syncPayoutProfileCompletion();
 
         return Redirect::route($this->routeName($request, 'profile'))
             ->with('status', 'profile-updated');

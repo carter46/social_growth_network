@@ -6,6 +6,7 @@
 @php
     $prefix = $prefix ?? 'agent';
     $prefill = $prefill ?? [];
+    $nameChecks = $nameChecks ?? [];
     [$prefillDial, $prefillLocal] = \App\Support\PhoneNumber::split(
         (string) ($prefill['phone'] ?? ''),
         (string) ($prefill['country'] ?? '')
@@ -39,8 +40,10 @@
                 class="space-y-5"
                 x-data="payoutConnectForm({
                     countries: @js($countries),
+                    nameChecks: @js($nameChecks),
                     dialCodes: @js(\App\Support\PhoneNumber::dialCodes()),
                     optionsUrl: @js(route('agent.payouts.connect.options')),
+                    resolveUrl: @js(route('agent.payouts.connect.resolve')),
                     csrf: @js(csrf_token()),
                     country: @js($prefill['country'] ?? ''),
                     method: @js($prefill['method'] ?? 'bank_account'),
@@ -48,6 +51,8 @@
                     mobileProvider: @js($prefill['mobile_provider'] ?? ''),
                     phoneDial: @js($prefillDial),
                     phoneLocal: @js($prefillLocal),
+                    accountNumber: @js($prefill['account_number'] ?? ''),
+                    accountName: @js($prefill['account_name'] ?? ''),
                 })"
                 x-init="onCountry()"
             >
@@ -113,8 +118,8 @@
                     </div>
                     <div class="mt-3 grid gap-3 sm:grid-cols-2">
                         <div>
-                            <label class="mb-1 block text-sm font-medium" for="id_type">ID type (if required)</label>
-                            <select id="id_type" name="id_type" class="w-full rounded-lg border border-border-subtle px-3 py-2 text-sm">
+                            <label class="mb-1 block text-sm font-medium" for="id_type">ID type <span class="text-danger">*</span></label>
+                            <select id="id_type" name="id_type" required class="w-full rounded-lg border border-border-subtle px-3 py-2 text-sm">
                                 @foreach ([
                                     'id_card' => 'National / government ID',
                                     'passport' => 'Passport',
@@ -127,29 +132,76 @@
                                 @endforeach
                             </select>
                         </div>
-                        <x-dashboard.input name="id_number" label="ID number (if required)" :value="$prefill['id_number'] ?? ''" />
+                        <x-dashboard.input name="id_number" label="ID number" :value="$prefill['id_number'] ?? ''" required />
                     </div>
                     <div class="mt-3">
-                        <label class="mb-1 block text-sm font-medium" for="id_document">ID document photo (if required)</label>
+                        <label class="mb-1 block text-sm font-medium" for="id_document">ID document photo <span class="text-text-muted font-normal">(optional)</span></label>
                         <input id="id_document" type="file" name="id_document" accept=".jpg,.jpeg,.png,.pdf" class="block w-full text-sm text-text-secondary" />
-                        <p class="mt-1 text-xs text-text-muted">JPG, PNG, or PDF up to 5&nbsp;MB.</p>
+                        <p class="mt-1 text-xs text-text-muted">JPG, PNG, or PDF up to 5&nbsp;MB. Upload if you have a clear copy of your ID.</p>
                     </div>
                 </div>
 
                 <div class="border-t border-border-subtle pt-4" x-show="country && method" x-cloak>
                     <h3 class="text-sm font-semibold text-text-primary">Bank / wallet</h3>
+                    <p class="mt-1 text-xs text-text-muted" x-show="method === 'bank_account' && isAuto()" x-cloak>
+                        Type your account number (10 digits) and choose your bank — the account name fills in automatically. You don’t need to click Save for the lookup.
+                    </p>
                     <div class="mt-3 space-y-3" x-show="method === 'bank_account'">
                         <div>
+                            <label class="mb-1 block text-sm font-medium" for="connect-account-number">Account number</label>
+                            <input
+                                id="connect-account-number"
+                                type="text"
+                                name="account_number"
+                                x-model="accountNumber"
+                                inputmode="numeric"
+                                autocomplete="off"
+                                maxlength="20"
+                                required
+                                class="w-full rounded-lg border border-border-subtle px-3 py-2 text-sm"
+                                placeholder="e.g. 0123456789"
+                            >
+                        </div>
+                        <div>
                             <label class="mb-1 block text-sm font-medium">Bank</label>
-                            <select name="bank_code" x-model="bankCode" class="w-full rounded-lg border border-border-subtle px-3 py-2 text-sm" :required="method === 'bank_account'">
+                            <select
+                                name="bank_code"
+                                x-model="bankCode"
+                                class="w-full rounded-lg border border-border-subtle px-3 py-2 text-sm"
+                                :required="method === 'bank_account'"
+                            >
                                 <option value="" x-text="loadingOptions ? 'Loading…' : 'Choose bank'"></option>
                                 <template x-for="o in options" :key="o.code">
                                     <option :value="o.code" x-text="o.name"></option>
                                 </template>
                             </select>
                         </div>
-                        <x-dashboard.input name="account_number" label="Account number" :value="$prefill['account_number'] ?? ''" />
-                        <x-dashboard.input name="account_name" label="Account name" :value="$prefill['account_name'] ?? ''" />
+                        <div>
+                            <label class="mb-1 block text-sm font-medium" for="connect-account-name">Account name</label>
+                            <input type="hidden" name="account_name" :value="accountName">
+                            <div
+                                x-show="isAuto()"
+                                x-cloak
+                                class="rounded-lg border border-border-subtle px-3 py-2.5 text-sm"
+                                :class="accountName && !resolving ? 'border-success/40 bg-success/5' : 'bg-muted'"
+                            >
+                                <p class="text-xs text-text-muted" x-show="resolving">Looking up account name…</p>
+                                <p class="font-semibold text-text-primary" x-show="!resolving && accountName" x-text="accountName"></p>
+                                <p class="text-text-muted" x-show="!resolving && !accountName && !resolveError">Waiting for account number and bank…</p>
+                                <p class="text-danger" x-show="resolveError" x-text="resolveError"></p>
+                            </div>
+                            <input
+                                x-show="!isAuto()"
+                                id="connect-account-name"
+                                type="text"
+                                x-model="accountName"
+                                :required="method === 'bank_account' && !isAuto()"
+                                autocomplete="off"
+                                class="w-full rounded-lg border border-border-subtle px-3 py-2 text-sm"
+                                placeholder="Account holder name"
+                            >
+                            <p class="mt-1 text-xs text-text-muted" x-show="isAuto() && accountName && !resolving" x-cloak>Verified with the bank in real time. This is the name payouts use.</p>
+                        </div>
                     </div>
                     <div class="mt-3 space-y-3" x-show="method === 'mobile_money'" x-cloak>
                         <div>
@@ -166,7 +218,7 @@
                 </div>
 
                 <div class="flex flex-wrap gap-2 pt-2">
-                    <x-dashboard.button type="submit" icon="withdraw">Save and continue</x-dashboard.button>
+                    <x-dashboard.button type="submit" icon="withdraw" x-bind:disabled="method === 'bank_account' && isAuto() && !accountName">Save and continue</x-dashboard.button>
                     <x-dashboard.button :href="route('agent.wallet')" variant="secondary">Cancel</x-dashboard.button>
                 </div>
             </form>
@@ -179,8 +231,10 @@
 function payoutConnectForm(cfg) {
     return {
         countries: cfg.countries || {},
+        nameChecks: cfg.nameChecks || {},
         dialCodes: cfg.dialCodes || {},
         optionsUrl: cfg.optionsUrl,
+        resolveUrl: cfg.resolveUrl,
         csrf: cfg.csrf,
         country: cfg.country || '',
         method: cfg.method || 'bank_account',
@@ -188,13 +242,26 @@ function payoutConnectForm(cfg) {
         mobileProvider: cfg.mobileProvider || '',
         phoneDial: cfg.phoneDial || '',
         phoneLocal: cfg.phoneLocal || '',
+        accountNumber: cfg.accountNumber || '',
+        accountName: cfg.accountName || '',
         options: [],
         loadingOptions: false,
+        resolving: false,
+        resolveError: null,
+        _resolveTimer: null,
+        _resolveSeq: 0,
+        init() {
+            this.$watch('accountNumber', () => this.scheduleResolve());
+            this.$watch('bankCode', () => this.scheduleResolve());
+        },
         get phoneE164() {
             if (!this.phoneDial) return '';
             let digits = String(this.phoneLocal || '').replace(/\D+/g, '');
             digits = digits.replace(/^0+/, '');
             return digits ? (this.phoneDial + digits) : '';
+        },
+        isAuto() {
+            return ((this.nameChecks[this.country] || {})[this.method] || '') === 'auto';
         },
         onCountry() {
             const methods = this.countries[this.country]?.methods || {};
@@ -206,6 +273,9 @@ function payoutConnectForm(cfg) {
         },
         onMethod() {
             this.options = [];
+            this.bankCode = '';
+            this.mobileProvider = '';
+            this.clearResolved();
             if (!this.country || !this.method) return;
             this.loadingOptions = true;
             fetch(this.optionsUrl + '?country=' + encodeURIComponent(this.country) + '&method=' + encodeURIComponent(this.method), {
@@ -215,6 +285,64 @@ function payoutConnectForm(cfg) {
                 .then(data => { this.options = data.options || []; })
                 .catch(() => { this.options = []; })
                 .finally(() => { this.loadingOptions = false; });
+        },
+        clearResolved() {
+            if (this.isAuto()) {
+                this.accountName = '';
+            }
+            this.resolveError = null;
+        },
+        scheduleResolve() {
+            if (this._resolveTimer) {
+                clearTimeout(this._resolveTimer);
+            }
+            this._resolveTimer = setTimeout(() => this.tryResolve(), 400);
+        },
+        async tryResolve() {
+            if (!this.isAuto() || this.method !== 'bank_account') return;
+            const digits = String(this.accountNumber || '').replace(/\D+/g, '');
+            if (!this.bankCode || digits.length < 10) {
+                this.clearResolved();
+                return;
+            }
+            const seq = ++this._resolveSeq;
+            this.resolving = true;
+            this.resolveError = null;
+            try {
+                const res = await fetch(this.resolveUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': this.csrf,
+                    },
+                    body: JSON.stringify({
+                        country: this.country,
+                        method: this.method,
+                        bank_code: this.bankCode,
+                        account_number: digits,
+                    }),
+                });
+                if (seq !== this._resolveSeq) return;
+                const data = await res.json();
+                if (!res.ok) {
+                    this.accountName = '';
+                    this.resolveError = data.message || 'We could not check this account.';
+                    return;
+                }
+                this.accountName = data.account_name || '';
+                if (!this.accountName) {
+                    this.resolveError = 'We could not find this account. Check the details and try again.';
+                }
+            } catch (e) {
+                if (seq !== this._resolveSeq) return;
+                this.accountName = '';
+                this.resolveError = 'We could not check this account. Try again.';
+            } finally {
+                if (seq === this._resolveSeq) {
+                    this.resolving = false;
+                }
+            }
         },
     };
 }

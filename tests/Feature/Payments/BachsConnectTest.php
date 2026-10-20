@@ -81,6 +81,11 @@ class BachsConnectTest extends TestCase
                 $path === '/v1/utilities/uploads' => Http::response(['upload_id' => 'upl_1']),
                 str_starts_with((string) $path, '/v1/accounts/acct_1/persons/') && str_ends_with((string) $path, '/documents') => Http::response(['id' => 'doc_1']),
                 $path === '/v1/reference/banks' => Http::response(['data' => [['code' => '058', 'name' => 'GTBank']]]),
+                $path === '/v1/misc/bank-accounts/resolve' => Http::response([
+                    'account_number' => '0123456789',
+                    'account_name' => 'ADA OBI',
+                    'bank_code' => '058',
+                ]),
                 $path === '/v1/currencies/payout-supported' => Http::response(['currencies' => []]),
                 $path === '/v1/payouts/destinations' && $method === 'GET' => Http::response(['data' => []]),
                 $path === '/v1/payouts/destinations' => Http::response(['id' => 'pd_'.(++$destinations), 'is_usable' => true, 'status' => 'active']),
@@ -194,6 +199,52 @@ class BachsConnectTest extends TestCase
 
         $this->actingAs($agent)->post(route('agent.payouts.connect.hosted'))
             ->assertRedirect(self::ONBOARDING_URL);
+    }
+
+    public function test_connect_resolve_returns_bank_account_name(): void
+    {
+        $this->fakeBachs();
+        $this->coverRoute('NG', 'bank_account', ['bachs']);
+        $agent = $this->agentWithBalance();
+
+        $this->actingAs($agent)->postJson(route('agent.payouts.connect.resolve'), [
+            'country' => 'NG',
+            'method' => 'bank_account',
+            'bank_code' => '058',
+            'account_number' => '0123456789',
+        ])
+            ->assertOk()
+            ->assertJsonPath('account_name', 'ADA OBI');
+    }
+
+    public function test_connect_form_requires_id_fields_and_shows_resolve_hints(): void
+    {
+        $this->fakeBachs();
+        $this->coverRoute('NG', 'bank_account', ['bachs']);
+        $agent = $this->agentWithBalance();
+
+        $this->actingAs($agent)->get(route('agent.payouts.connect'))
+            ->assertOk()
+            ->assertSee('ID type', false)
+            ->assertDontSee('if required', false)
+            ->assertSee('fills in automatically', false)
+            ->assertSee('resolveUrl', false);
+
+        $this->actingAs($agent)->post(route('agent.payouts.connect.submit'), [
+            'country' => 'NG',
+            'first_name' => 'Ada',
+            'last_name' => 'Obi',
+            'email' => $agent->email,
+            'phone' => '+2348012345678',
+            'dob' => '1995-06-15',
+            'address_line1' => '12 Marina Road',
+            'address_city' => 'Lagos',
+            'address_state' => 'Lagos',
+            'method' => 'bank_account',
+            'bank_code' => '058',
+            'account_number' => '0123456789',
+            'account_name' => 'Ada Obi',
+        ])->assertSessionHasErrors(['id_type', 'id_number']);
     }
 
     public function test_incomplete_profile_blocks_connect_and_shows_wallet_banner(): void

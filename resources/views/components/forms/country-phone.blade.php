@@ -72,7 +72,7 @@
             @if ($required) required @endif
             class="{{ $selectClass }}"
         >
-            <option value="">Choose country</option>
+            <option value="">{{ $required ? 'Choose country' : 'Country (optional)' }}</option>
             @foreach ($countries as $c)
                 @php
                     $code = is_array($c) ? (string) ($c['code'] ?? '') : (string) $c;
