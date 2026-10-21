@@ -86,7 +86,7 @@ class CheckoutUrlPreviewTest extends TestCase
         );
 
         $this->assertSame('embed', $payload['mode']);
-        $this->assertStringContainsString('youtube.com/embed/', $payload['html'] ?? '');
+        $this->assertStringContainsString('youtube-nocookie.com/embed/', $payload['html'] ?? '');
     }
 
     public function test_agent_video_embed_resolver_opens_channel_links(): void

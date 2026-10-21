@@ -12,6 +12,7 @@ use App\Services\Campaigns\YoutubeChannelRequiredException;
 use App\Services\Campaigns\YoutubeIdentityService;
 use App\Services\Engagement\VideoEmbedResolver;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class MarketplaceController extends Controller
@@ -85,23 +86,40 @@ class MarketplaceController extends Controller
         ]);
     }
 
-    public function start(Campaign $campaign): RedirectResponse
+    public function start(Request $request, Campaign $campaign): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         try {
-            $participation = $this->participations->start(auth()->user(), $campaign);
+            $participation = $this->participations->start($request->user(), $campaign);
         } catch (YoutubeChannelRequiredException $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
             return redirect()
                 ->route('agent.marketplace.show', $campaign)
                 ->with('youtube_channel_required', true)
                 ->with('error', $e->getMessage());
         } catch (\Throwable $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
             return back()->with('error', $e->getMessage());
+        }
+
+        $status = $campaign->usesStepFlow()
+            ? __('Task started.')
+            : __('Task started.');
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'redirect' => route('agent.tasks.show', $participation),
+                'message' => $status,
+            ]);
         }
 
         return redirect()
             ->route('agent.tasks.show', $participation)
-            ->with('status', $campaign->usesStepFlow()
-                ? __('Task started. Complete each step in order, then submit the task.')
-                : __('Task started. Complete the requirements and submit proof.'));
+            ->with('status', $status);
     }
 }

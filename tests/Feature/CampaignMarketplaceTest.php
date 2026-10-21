@@ -361,7 +361,9 @@ class CampaignMarketplaceTest extends TestCase
 
         $this->actingAs($agent)->get(route('agent.marketplace.show', $campaign))
             ->assertOk()
-            ->assertSee('Slots left')
+            ->assertSee('Slot status')
+            ->assertSee('Open')
+            ->assertDontSee('Slots left')
             ->assertSee('Estimated time')
             ->assertSee('https://example.com/post');
     }
@@ -391,9 +393,10 @@ class CampaignMarketplaceTest extends TestCase
 
         $this->actingAs($agent)->get(route('agent.tasks.show', $participation))
             ->assertOk()
-            ->assertSee('youtube.com/embed/', false)
-            ->assertSee('Start watching')
-            ->assertSee('watch timer')
+            ->assertSee('youtube-nocookie.com/embed/', false)
+            ->assertSee('Press play on the video')
+            ->assertSee('The timer starts when it plays')
+            ->assertDontSee('Start watching')
             ->assertDontSee('Open on platform')
             ->assertDontSee('Increase watch time on your');
 

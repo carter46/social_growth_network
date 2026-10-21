@@ -33,16 +33,18 @@ class VideoEmbedResolver
             return $this->openPrimary($url, 'youtube', 'Open on YouTube to watch.');
         }
 
-        $embedUrl = 'https://www.youtube.com/embed/'.rawurlencode($id)
-            .'?rel=0&playsinline=1&enablejsapi=1&origin='.rawurlencode(rtrim((string) config('app.url'), '/'));
-        $html = '<iframe data-youtube-player class="w-full aspect-video rounded-lg" src="'.e($embedUrl).'" title="YouTube video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>';
+        // Standard player (not the Shorts layout) so the play control stays usable on a phone.
+        $origin = rtrim((string) (request()->getHttpHost() ? request()->getSchemeAndHttpHost() : config('app.url')), '/');
+        $embedUrl = 'https://www.youtube-nocookie.com/embed/'.rawurlencode($id)
+            .'?rel=0&modestbranding=1&playsinline=1&controls=1&enablejsapi=1&iv_load_policy=3&origin='.rawurlencode($origin);
+        $html = '<iframe data-youtube-player class="aspect-video w-full rounded-lg bg-black" src="'.e($embedUrl).'" title="YouTube video" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>';
 
         return [
             'mode' => 'embed',
             'html' => $html,
             'open_url' => $url,
             'platform' => 'youtube',
-            'note' => 'Tap Start watching to begin the timer and play the video. Keep this page open until the watch timer finishes.',
+            'note' => 'Press play on the video. The timer starts when it plays.',
         ];
     }
 

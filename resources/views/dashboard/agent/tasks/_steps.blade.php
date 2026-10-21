@@ -22,11 +22,23 @@
 @endphp
 
 <div class="space-y-4">
-    @if ($isStarted)
-        <div class="rounded-xl bg-muted/40 px-4 py-3 text-sm text-text-secondary">
-            <p class="font-medium text-text-primary">How this task works</p>
-            <p class="mt-1">Do each step in order. When a step is done, tap <strong>Proceed to next task</strong>. After the last step, tap <strong>Submit task</strong>. Nothing is checked until you submit, and you are paid once every step is accepted.</p>
-        </div>
+    @if ($isStarted && $steps->isNotEmpty())
+        <ol class="flex flex-wrap items-center gap-2" aria-label="Steps">
+            @foreach ($steps as $timelineStep)
+                @php $timelineTask = $timelineStep->taskEnum(); @endphp
+                <li class="flex items-center gap-2 text-sm">
+                    @if (! $loop->first)
+                        <span class="text-text-muted" aria-hidden="true">→</span>
+                    @endif
+                    <span @class([
+                        'rounded-full px-3 py-1 font-medium',
+                        'bg-primary/10 text-primary' => $timelineStep->status === Step::STATUS_ACTIVE,
+                        'text-text-primary' => $timelineStep->status === Step::STATUS_DONE,
+                        'text-text-muted' => ! in_array($timelineStep->status, [Step::STATUS_ACTIVE, Step::STATUS_DONE], true),
+                    ])>{{ $timelineTask?->shortLabel() ?? $timelineStep->task }}</span>
+                </li>
+            @endforeach
+        </ol>
     @elseif (in_array($participation->status, ['submitted', 'verifying', 'under_review'], true))
         <x-dashboard.alert type="info">Your task is submitted. We are checking each step. Some checks run again a little later, and some go to an admin for review.</x-dashboard.alert>
     @endif
@@ -36,7 +48,7 @@
             @php $task = $step->taskEnum(); @endphp
             <li class="rounded-xl border border-border-default px-4 py-3 space-y-3 {{ $step->status === Step::STATUS_ACTIVE ? 'bg-elevated' : '' }}">
                 <div class="flex flex-wrap items-center justify-between gap-2">
-                    <p class="text-sm font-semibold text-text-primary">{{ $step->position }}. {{ $task?->label() ?? $step->task }}</p>
+                    <p class="text-sm font-semibold text-text-primary">{{ $task?->shortLabel() ?? $step->task }}</p>
                     <x-dashboard.badge :status="$statusBadge[$step->status] ?? 'neutral'">{{ $step->statusLabel() }}</x-dashboard.badge>
                 </div>
 
@@ -47,7 +59,7 @@
                 @if ($isStarted && $step->status === Step::STATUS_ACTIVE)
                     @if ($task === CampaignTask::Subscribe)
                         <div class="space-y-3">
-                            <p class="text-sm text-text-secondary">Open the channel, subscribe with the YouTube channel you linked, then mark this step done. A screenshot link is optional but helps if your subscriptions are private.</p>
+                            <p class="text-sm text-text-secondary">Subscribe with the YouTube channel you linked, then mark this step done.</p>
                             @if ($channelUrl)
                                 <a href="{{ $channelUrl }}" target="_blank" rel="noopener" class="inline-flex text-sm font-medium text-primary hover:underline">Open the channel on YouTube</a>
                             @endif
@@ -65,26 +77,13 @@
                             claimUrl: @js(route('agent.tasks.claim-watch', $participation)),
                             csrf: @js(csrf_token()),
                         })">
-                            <p class="text-sm text-text-secondary">
-                                Tap <strong>Start watching</strong> to start the watch timer and play the video. Keep this page open for
-                                @if ((int) $requiredSeconds < 60)
-                                    {{ (int) $requiredSeconds }} seconds
-                                @else
-                                    {{ (int) ceil($requiredSeconds / 60) }} {{ (int) ceil($requiredSeconds / 60) === 1 ? 'minute' : 'minutes' }}
-                                @endif
-                                (or until a shorter video ends).
-                            </p>
+                            <p class="text-sm text-text-secondary" x-show="! running && ! done">Press play on the video. The timer starts when it plays.</p>
                             @if ($hasEmbed)
                                 <div class="overflow-hidden rounded-xl border border-border-default">{!! $embed['html'] !!}</div>
                             @elseif (! empty($embed['open_url']))
-                                <a href="{{ $embed['open_url'] }}" target="_blank" rel="noopener" class="inline-flex text-sm font-medium text-primary hover:underline">Open the video</a>
+                                <a href="{{ $embed['open_url'] }}" target="_blank" rel="noopener" class="inline-flex text-sm font-medium text-primary hover:underline" x-on:click="start()">Open the video</a>
                             @endif
                             <div class="flex flex-wrap items-center gap-3">
-                                <template x-if="! token">
-                                    <x-dashboard.button type="button" x-on:click="start()" x-bind:disabled="starting">
-                                        <span x-text="starting ? 'Starting...' : 'Start watching'">Start watching</span>
-                                    </x-dashboard.button>
-                                </template>
                                 <template x-if="token && ! done">
                                     <p class="rounded-lg bg-muted/40 px-3 py-2 text-sm font-semibold text-text-primary" aria-live="polite">
                                         Watch time left: <span x-text="display"></span>
@@ -99,8 +98,7 @@
                                 </template>
                             </div>
                             <p class="text-sm text-danger" x-show="error" x-text="error" x-cloak></p>
-                            <p class="text-sm text-text-secondary" x-show="playHint" x-text="playHint" x-cloak></p>
-                            <p class="text-xs text-text-muted" x-show="token && ! done" x-cloak>Leaving this page before the watch timer finishes resets the watch step.</p>
+                            <p class="text-xs text-text-muted" x-show="token && ! done" x-cloak>Keep this page open while the video plays.</p>
                         </div>
                     @elseif ($task === CampaignTask::Comment)
                         <div class="space-y-3">
@@ -134,8 +132,8 @@
                 @if ($step->proof_url && ! in_array($step->status, [Step::STATUS_LOCKED, Step::STATUS_ACTIVE], true))
                     <p class="text-xs text-text-muted break-all">Your link: <a href="{{ $step->proof_url }}" target="_blank" rel="noopener" class="underline">{{ $step->proof_url }}</a></p>
                 @endif
-                @if ($step->evidence_method === 'timer' && $step->status !== Step::STATUS_LOCKED)
-                    <p class="text-xs text-text-muted">Timer completed, viewing not verified.</p>
+                @if ($step->evidence_method === 'timer' && ! in_array($step->status, [Step::STATUS_LOCKED, Step::STATUS_ACTIVE], true))
+                    <p class="text-xs text-text-muted">Watch time finished.</p>
                 @endif
             </li>
         @endforeach

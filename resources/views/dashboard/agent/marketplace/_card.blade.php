@@ -30,7 +30,7 @@
 
     <div class="flex flex-wrap gap-1.5">
         <span class="px-2 py-0.5 bg-surface-muted text-text-secondary rounded text-xs font-medium">
-            {{ trans_choice(':count slot left|:count slots left', $slotsLeft) }}
+            {{ $slotsLeft > 0 ? __('Slot status: Open') : __('Slot status: Closed') }}
         </span>
         <span class="px-2 py-0.5 bg-surface-muted text-text-secondary rounded text-xs font-medium">
             @if ($completionMinutes > 0)
@@ -40,9 +40,6 @@
             @endif
         </span>
         @if (count($tasks) > 0)
-            <span class="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-medium">
-                {{ trans_choice(':count task|:count tasks', count($tasks)) }}
-            </span>
             @foreach ($tasks as $cardTask)
                 <span class="px-2 py-0.5 bg-surface-muted text-text-secondary rounded text-xs font-medium">{{ $cardTask->shortLabel() }}</span>
             @endforeach
