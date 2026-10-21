@@ -100,9 +100,6 @@
             >
         </div>
         <input type="hidden" name="{{ $phoneName }}" :value="e164">
-        <p class="mt-1 text-xs {{ $variant === 'marketing' ? 'text-slate-500' : 'text-text-muted' }}">
-            Country code is filled from your country — enter the rest of your number.
-        </p>
         @if ($phoneError)
             <p class="mt-1 text-xs text-danger">{{ $phoneError }}</p>
         @endif

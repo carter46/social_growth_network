@@ -17,6 +17,16 @@
         'rejected' => 'danger',
         'expired' => 'expired',
     ];
+    $proofIsImage = function (?string $url, ?string $method = null): bool {
+        if (! is_string($url) || $url === '') {
+            return false;
+        }
+        if ($method === 'screenshot') {
+            return true;
+        }
+
+        return (bool) preg_match('/\.(jpe?g|png|webp|gif)(\?|#|$)/i', $url);
+    };
 @endphp
 <x-layout.page
     title="Review submission"
@@ -27,6 +37,7 @@
         ['Review', null],
     ]"
 >
+<div x-data="{ preview: null, rejecting: {{ filled(old('rejection_reason')) ? 'true' : 'false' }}, approving: false, rejectingBusy: false }">
     @if (session('error'))
         <x-dashboard.alert type="danger" class="mb-4">{{ session('error') }}</x-dashboard.alert>
     @endif
@@ -53,7 +64,13 @@
             </p>
         @endif
         @if ($participation->proof_url)
-            <p>Proof: <a href="{{ $participation->proof_url }}" class="text-accent underline" target="_blank" rel="noopener">{{ $participation->proof_url }}</a></p>
+            @if ($proofIsImage($participation->proof_url))
+                <button type="button" class="block" @click="preview = @js($participation->proof_url)">
+                    <img src="{{ $participation->proof_url }}" alt="Screenshot" class="max-h-40 rounded-lg border border-border-default" />
+                </button>
+            @else
+                <p class="break-all">Link: <a href="{{ $participation->proof_url }}" class="text-accent underline" target="_blank" rel="noopener">{{ $participation->proof_url }}</a></p>
+            @endif
         @endif
         @if ($participation->proof_notes)
             <p>{{ $participation->proof_notes }}</p>
@@ -82,7 +99,13 @@
                             <p class="text-text-muted">Timer completed, viewing not verified ({{ (int) ($step->proof_meta['seconds'] ?? 0) }} seconds).</p>
                         @endif
                         @if ($step->proof_url)
-                            <p class="break-all">Link: <a href="{{ $step->proof_url }}" class="text-accent underline" target="_blank" rel="noopener">{{ $step->proof_url }}</a></p>
+                            @if ($proofIsImage($step->proof_url, $step->evidence_method))
+                                <button type="button" class="block" @click="preview = @js($step->proof_url)">
+                                    <img src="{{ $step->proof_url }}" alt="Screenshot" class="max-h-40 rounded-lg border border-border-default" />
+                                </button>
+                            @else
+                                <p class="break-all">Link: <a href="{{ $step->proof_url }}" class="text-accent underline" target="_blank" rel="noopener">{{ $step->proof_url }}</a></p>
+                            @endif
                         @endif
                         @if (! empty($step->proof_meta['check_note']))
                             <p class="text-text-muted">Last check: {{ $step->proof_meta['check_note'] }}</p>
@@ -115,24 +138,46 @@
     @endif
 
     <div class="flex flex-wrap gap-3">
-        <form method="POST" action="{{ route('admin.verifications.approve', $participation) }}">
+        <form method="POST" action="{{ route('admin.verifications.approve', $participation) }}" @submit="if (approving) { $event.preventDefault(); return } approving = true">
             @csrf
-            <x-dashboard.button type="submit">Approve and pay</x-dashboard.button>
+            <x-dashboard.button type="submit" x-bind:disabled="approving">
+                <span x-show="!approving">Approve and pay</span>
+                <span x-show="approving" x-cloak>Approving…</span>
+            </x-dashboard.button>
         </form>
+        <x-dashboard.button type="button" variant="secondary" x-show="!rejecting" @click="rejecting = true">Reject</x-dashboard.button>
     </div>
 
-    <x-dashboard.card class="mt-4">
-        <form method="POST" action="{{ route('admin.verifications.reject', $participation) }}" class="space-y-3">
-            @csrf
-            <div>
-                <label class="mb-1 block text-sm font-medium" for="rejection_reason">Rejection reason</label>
-                <textarea id="rejection_reason" name="rejection_reason" rows="3" required class="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm">{{ old('rejection_reason') }}</textarea>
-                @if ($usesSteps)
-                    <p class="mt-1 text-xs text-text-muted">Rejecting rejects the whole task. The agent is not paid and the slot opens again.</p>
-                @endif
-            </div>
-            <x-dashboard.button type="submit" variant="secondary">Reject</x-dashboard.button>
-        </form>
-    </x-dashboard.card>
+    <form method="POST" action="{{ route('admin.verifications.reject', $participation) }}" x-show="rejecting" x-cloak class="mt-4 max-w-lg space-y-3" @submit="if (rejectingBusy) { $event.preventDefault(); return } rejectingBusy = true">
+        @csrf
+        <div>
+            <label class="mb-1 block text-sm font-medium" for="rejection_reason">Reason</label>
+            <textarea id="rejection_reason" name="rejection_reason" rows="3" required class="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm">{{ old('rejection_reason') }}</textarea>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <x-dashboard.button type="submit" variant="danger" x-bind:disabled="rejectingBusy">
+                <span x-show="!rejectingBusy">Confirm reject</span>
+                <span x-show="rejectingBusy" x-cloak>Rejecting…</span>
+            </x-dashboard.button>
+            <x-dashboard.button type="button" variant="secondary" @click="rejecting = false" x-bind:disabled="rejectingBusy">Cancel</x-dashboard.button>
+        </div>
+    </form>
+
+    <div
+        x-show="preview"
+        x-cloak
+        class="fixed inset-0 z-[90] flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Screenshot preview"
+        @keydown.escape.window="preview = null"
+    >
+        <div class="absolute inset-0 bg-black/60" @click="preview = null"></div>
+        <div class="relative max-h-[90vh] max-w-4xl">
+            <button type="button" class="absolute -top-10 right-0 text-sm font-medium text-white" @click="preview = null">Close</button>
+            <img :src="preview" alt="Screenshot" class="max-h-[85vh] max-w-full rounded-lg bg-white object-contain" />
+        </div>
+    </div>
+</div>
 </x-layout.page>
 @endsection

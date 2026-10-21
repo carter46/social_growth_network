@@ -72,7 +72,6 @@
             <div class="space-y-3 rounded-xl border border-border-subtle p-4">
                 <div>
                     <p class="text-sm font-semibold text-text-primary">{{ __('Contact and address') }}</p>
-                    <p class="mt-0.5 text-xs text-text-muted">{{ __('Used for payouts and account contact. Country code fills from your country.') }}</p>
                 </div>
                 <x-forms.country-phone
                     :countries="$payoutCountries"

@@ -80,7 +80,6 @@
         @if (! $profileReady)
             <x-dashboard.alert type="warning" class="mt-4">
                 <p class="font-semibold">Update your payout profile</p>
-                <p class="mt-1">Add your phone (with country code), country, and address before you can connect a bank account.</p>
                 <form method="POST" action="{{ route('agent.payout-profile.update') }}" class="mt-3 grid gap-2 sm:grid-cols-2">
                     @csrf
                     @php

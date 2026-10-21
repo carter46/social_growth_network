@@ -172,10 +172,6 @@
         <div class="space-y-4" x-show="step === 2" x-cloak>
             @if ($collectPayoutProfile)
                 <div class="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 space-y-3">
-                    <div>
-                        <p class="text-sm font-semibold text-slate-800">Where you get paid</p>
-                        <p class="mt-0.5 text-xs text-slate-500">We use this to set up withdrawals for your country. The phone country code fills in when you pick a country.</p>
-                    </div>
                     <x-forms.country-phone
                         :countries="$payoutCountries"
                         :country="old('country')"

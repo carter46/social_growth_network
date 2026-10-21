@@ -27,8 +27,7 @@
             >
                 <div class="flex shrink-0 items-start justify-between gap-3 border-b border-border-subtle px-5 py-4">
                     <div>
-                        <h2 id="payout-profile-title" class="text-base font-semibold text-text-primary">Complete your payout profile</h2>
-                        <p class="mt-1 text-sm text-text-secondary">Add your phone, country, and address so we can set up withdrawals for your country.</p>
+                        <h2 id="payout-profile-title" class="text-base font-semibold text-text-primary">Country, phone, and address</h2>
                     </div>
                     <button type="button" class="shrink-0 text-sm text-text-muted hover:text-text-primary" @click="open = false" aria-label="Close">Close</button>
                 </div>
