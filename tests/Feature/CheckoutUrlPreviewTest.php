@@ -86,7 +86,22 @@ class CheckoutUrlPreviewTest extends TestCase
         );
 
         $this->assertSame('embed', $payload['mode']);
-        $this->assertStringContainsString('youtube-nocookie.com/embed/', $payload['html'] ?? '');
+        $this->assertStringContainsString('youtube.com/embed/', $payload['html'] ?? '');
+        $this->assertStringNotContainsString('origin=', $payload['html'] ?? '');
+        $this->assertStringContainsString('aspect-ratio:16/9', $payload['html'] ?? '');
+    }
+
+    public function test_agent_video_embed_uses_a_tall_frame_for_shorts(): void
+    {
+        $payload = app(VideoEmbedResolver::class)->resolve(
+            'https://www.youtube.com/shorts/dQw4w9WgXcQ',
+            'youtube'
+        );
+
+        $this->assertSame('embed', $payload['mode']);
+        $this->assertStringContainsString('youtube.com/embed/dQw4w9WgXcQ', $payload['html'] ?? '');
+        $this->assertStringContainsString('aspect-ratio:9/16', $payload['html'] ?? '');
+        $this->assertStringNotContainsString('origin=', $payload['html'] ?? '');
     }
 
     public function test_agent_video_embed_resolver_opens_channel_links(): void

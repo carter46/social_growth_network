@@ -33,11 +33,15 @@ class VideoEmbedResolver
             return $this->openPrimary($url, 'youtube', 'Open on YouTube to watch.');
         }
 
-        // Standard player (not the Shorts layout) so the play control stays usable on a phone.
-        $origin = rtrim((string) (request()->getHttpHost() ? request()->getSchemeAndHttpHost() : config('app.url')), '/');
-        $embedUrl = 'https://www.youtube-nocookie.com/embed/'.rawurlencode($id)
-            .'?rel=0&modestbranding=1&playsinline=1&controls=1&enablejsapi=1&iv_load_policy=3&origin='.rawurlencode($origin);
-        $html = '<iframe data-youtube-player class="aspect-video w-full rounded-lg bg-black" src="'.e($embedUrl).'" title="YouTube video" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>';
+        // No origin parameter: a host that does not match the page (http vs https, or a proxy)
+        // makes YouTube paint a black player. Shorts need a tall frame; a 16:9 box leaves a tiny picture.
+        $isShort = (bool) preg_match('#/shorts/#i', $url);
+        $embedUrl = 'https://www.youtube.com/embed/'.rawurlencode($id)
+            .'?rel=0&playsinline=1&controls=1&enablejsapi=1';
+        $frame = $isShort
+            ? 'width:min(100%,22rem);aspect-ratio:9/16;margin-inline:auto;'
+            : 'width:100%;aspect-ratio:16/9;';
+        $html = '<div class="overflow-hidden rounded-lg bg-black" style="'.e($frame).'"><iframe data-youtube-player style="width:100%;height:100%;border:0;display:block;" src="'.e($embedUrl).'" title="YouTube video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>';
 
         return [
             'mode' => 'embed',

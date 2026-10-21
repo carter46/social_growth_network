@@ -462,6 +462,12 @@ document.addEventListener('alpine:init', () => {
                 if (!frame) return;
                 player = new window.YT.Player(frame, {
                     events: {
+                        onReady: (event) => {
+                            const el = event?.target?.getIframe?.();
+                            if (!el) return;
+                            el.style.width = '100%';
+                            el.style.height = '100%';
+                        },
                         onStateChange: (event) => this.onPlayerState(event?.data),
                     },
                 });

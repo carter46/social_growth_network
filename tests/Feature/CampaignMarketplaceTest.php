@@ -393,7 +393,8 @@ class CampaignMarketplaceTest extends TestCase
 
         $this->actingAs($agent)->get(route('agent.tasks.show', $participation))
             ->assertOk()
-            ->assertSee('youtube-nocookie.com/embed/', false)
+            ->assertSee('youtube.com/embed/', false)
+            ->assertDontSee('origin=', false)
             ->assertSee('Press play on the video')
             ->assertSee('The timer starts when it plays')
             ->assertDontSee('Start watching')
