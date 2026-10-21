@@ -472,6 +472,9 @@ document.addEventListener('alpine:init', () => {
         };
 
         let player = null;
+        // YouTube often shows its replay button a few seconds before our timer.
+        // Keep counting through that short gap. A much larger gap still needs play.
+        const END_GRACE_SECONDS = 30;
 
         const loadYoutubeApi = () => {
             if (window.YT && window.YT.Player) {
@@ -506,6 +509,10 @@ document.addEventListener('alpine:init', () => {
             running: false,
             starting: false,
             claiming: false,
+            videoEnded: false,
+            needsReplay: false,
+            sawPlayback: false,
+            endedWhileStarting: false,
             error: '',
             timer: null,
             get display() {
@@ -538,6 +545,7 @@ document.addEventListener('alpine:init', () => {
             },
             canCount() {
                 if (document.visibilityState === 'hidden') return false;
+                if (this.videoEnded) return true;
                 try {
                     if (player && typeof player.getPlayerState === 'function') {
                         return player.getPlayerState() === 1;
@@ -546,6 +554,23 @@ document.addEventListener('alpine:init', () => {
                     return false;
                 }
                 return true;
+            },
+            playerDuration() {
+                try {
+                    const duration = Number(player?.getDuration?.() ?? 0);
+                    return Number.isFinite(duration) && duration > 0 ? duration : 0;
+                } catch {
+                    return 0;
+                }
+            },
+            atEndOfVideo() {
+                try {
+                    const duration = this.playerDuration();
+                    const current = Number(player?.getCurrentTime?.() ?? 0);
+                    return duration >= 1 && current >= duration - 1.5;
+                } catch {
+                    return false;
+                }
             },
             async attachPlayer() {
                 const iframe = this.$el?.querySelector?.('iframe[data-youtube-player]');
@@ -574,20 +599,45 @@ document.addEventListener('alpine:init', () => {
             },
             onPlayerState(state) {
                 if (state === 1) {
+                    this.videoEnded = false;
+                    this.needsReplay = false;
                     this.onPlaying();
                     return;
                 }
-                if (state === 2) {
-                    this.pauseTimer();
+                if (state === 0 || (state === 2 && this.atEndOfVideo())) {
+                    this.onVideoEnded();
                     return;
                 }
-                if (state === 0) {
+                if (state === 2 && !this.videoEnded) {
                     this.pauseTimer();
-                    if (this.token && this.remaining <= 2) this.finish();
                 }
+            },
+            onVideoEnded() {
+                if (this.done) return;
+                if (!this.sawPlayback && !this.starting && !this.running && !this.token) return;
+                if (!this.token) {
+                    this.endedWhileStarting = true;
+                    return;
+                }
+                this.settleEndedTimer();
+            },
+            settleEndedTimer() {
+                const leftover = Math.max(0, Number(this.remaining) || 0);
+                if (leftover <= END_GRACE_SECONDS) {
+                    this.needsReplay = false;
+                    this.videoEnded = true;
+                    if (!this.running && this.canCount()) this.resumeTimer();
+                    return;
+                }
+                this.videoEnded = false;
+                this.needsReplay = true;
+                this.pauseTimer();
             },
             async onPlaying() {
                 if (this.done) return;
+                this.sawPlayback = true;
+                this.videoEnded = false;
+                this.needsReplay = false;
                 if (!this.token) {
                     await this.start();
                     return;
@@ -622,6 +672,22 @@ document.addEventListener('alpine:init', () => {
                     this.requiredSeconds = Number(data.required_seconds || this.requiredSeconds);
                     this.remaining = this.requiredSeconds;
                     this.done = false;
+                    this.sawPlayback = true;
+                    const endedDuringStart = this.endedWhileStarting || this.atEndOfVideo();
+                    this.endedWhileStarting = false;
+                    if (endedDuringStart) {
+                        const duration = this.playerDuration();
+                        const gap = duration > 0 ? this.requiredSeconds - Math.floor(duration) : this.requiredSeconds;
+                        if (duration > 0 && gap <= END_GRACE_SECONDS) {
+                            this.videoEnded = true;
+                            this.needsReplay = false;
+                            if (this.canCount()) this.resumeTimer();
+                        } else {
+                            this.videoEnded = false;
+                            this.needsReplay = true;
+                        }
+                        return;
+                    }
                     if (this.canCount()) this.resumeTimer();
                 } catch {
                     this.error = 'Could not start the watch. Check your connection and try again.';
@@ -648,16 +714,20 @@ document.addEventListener('alpine:init', () => {
                 }, 1000);
             },
             finish() {
+                const claimNow = this.videoEnded && !this.claiming;
                 this.done = true;
                 this.pauseTimer();
                 window.removeEventListener('beforeunload', warnBeforeLeaving);
+                if (claimNow) this.claim();
             },
             async claim(event) {
                 event?.preventDefault?.();
-                if (this.claiming) return;
+                if (this.claiming || !this.token) return;
                 this.claiming = true;
                 window.removeEventListener('beforeunload', warnBeforeLeaving);
-                const form = event?.target?.closest?.('form') || event?.target;
+                const form = event?.target?.closest?.('form') || null;
+                const body = form ? new FormData(form) : new FormData();
+                if (!body.get('token')) body.append('token', this.token);
                 try {
                     const response = await fetch(form?.action || this.claimUrl, {
                         method: 'POST',
@@ -667,7 +737,7 @@ document.addEventListener('alpine:init', () => {
                             'X-Requested-With': 'XMLHttpRequest',
                         },
                         credentials: 'same-origin',
-                        body: form ? new FormData(form) : undefined,
+                        body,
                     });
                     const data = await response.json().catch(() => ({}));
                     if (!response.ok || !data.redirect) {

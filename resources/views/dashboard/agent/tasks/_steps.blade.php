@@ -104,7 +104,9 @@
                                 </template>
                             </div>
                             <p class="text-sm text-danger" x-show="error" x-text="error" x-cloak></p>
-                            <p class="text-xs text-text-muted" x-show="token && ! done" x-cloak>Keep this page open while the video plays.</p>
+                            <p class="text-xs text-text-muted" x-show="videoEnded && token && ! done" x-cloak>The video has ended. The timer will finish on its own. You don't need to press play again.</p>
+                            <p class="text-xs text-text-muted" x-show="needsReplay && ! done" x-cloak>The video ended. Press play again so the timer can finish.</p>
+                            <p class="text-xs text-text-muted" x-show="token && ! done && ! videoEnded && ! needsReplay" x-cloak>Keep this page open while the video plays.</p>
                         </div>
                     @elseif ($task === CampaignTask::Comment)
                         <div class="space-y-3">

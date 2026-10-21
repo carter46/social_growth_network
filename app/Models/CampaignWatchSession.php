@@ -31,11 +31,13 @@ class CampaignWatchSession extends Model
 
     public function isClaimable(): bool
     {
-        if ($this->claimed_at) {
+        if ($this->claimed_at || ! $this->started_at) {
             return false;
         }
 
-        return $this->started_at
-            && $this->started_at->copy()->addSeconds($this->required_seconds)->lte(now());
+        // The player can reach the end a few seconds before this clock.
+        return $this->started_at->copy()
+            ->addSeconds(max(0, (int) $this->required_seconds - 5))
+            ->lte(now());
     }
 }
