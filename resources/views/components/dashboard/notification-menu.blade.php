@@ -60,6 +60,7 @@
         x-show="open"
         x-cloak
         @click.outside="close()"
+        data-notification-panel
         class="absolute right-0 z-50 mt-2 w-80 max-w-[90vw] overflow-hidden rounded-2xl border border-border-default bg-surface shadow-panel"
         role="menu"
     >

@@ -114,7 +114,7 @@ return [
             'match' => ['agent.referrals'],
             'icon' => 'users',
             'keywords' => ['refer', 'invite', 'referral code', 'commission', 'earn'],
-            'sort' => 50,
+            'sort' => 65,
         ],
         [
             'type' => 'link',
