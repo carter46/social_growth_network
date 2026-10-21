@@ -397,6 +397,74 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    window.swapDashboardMain = async function (url) {
+        const page = await fetch(url, {
+            headers: { Accept: 'text/html', 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        });
+        if (!page.ok) {
+            window.location = url;
+            return;
+        }
+        const html = await page.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const next = doc.querySelector('#main-content');
+        const current = document.querySelector('#main-content');
+        if (!next || !current) {
+            window.location = url;
+            return;
+        }
+        if (window.Alpine?.destroyTree) window.Alpine.destroyTree(current);
+        current.innerHTML = next.innerHTML;
+        if (doc.title) document.title = doc.title;
+        const nextUrl = new URL(url, window.location.href);
+        const samePage = nextUrl.pathname === window.location.pathname && nextUrl.search === window.location.search;
+        if (samePage) {
+            history.replaceState({}, '', nextUrl.href);
+        } else {
+            if (!window.__agentTaskNavBound) {
+                window.__agentTaskNavBound = true;
+                window.addEventListener('popstate', () => window.location.reload());
+            }
+            history.pushState({}, '', nextUrl.href);
+        }
+        window.Alpine?.initTree(current);
+        current.scrollTop = 0;
+    };
+
+    Alpine.data('taskAction', () => ({
+        busy: false,
+        error: '',
+        async submit(event) {
+            if (this.busy) return;
+            this.busy = true;
+            this.error = '';
+            const form = event.target?.closest?.('form') || event.target;
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content || '',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                    body: new FormData(form),
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.redirect) {
+                    this.error = data.message || 'Could not update this step.';
+                    this.busy = false;
+                    return;
+                }
+                await window.swapDashboardMain(data.redirect);
+            } catch {
+                this.error = 'Could not update this step. Please try again.';
+                this.busy = false;
+            }
+        },
+    }));
+
     Alpine.data('watchTaskModal', (opts = {}) => {
         const warnBeforeLeaving = (e) => {
             e.preventDefault();
@@ -448,6 +516,36 @@ document.addEventListener('alpine:init', () => {
             },
             init() {
                 this.attachPlayer();
+                this._onVisibility = () => {
+                    if (document.visibilityState === 'hidden') {
+                        this.leaveWatch();
+                        return;
+                    }
+                    if (this.done) return;
+                    if (this.canCount()) this.resumeTimer();
+                };
+                this._onPageHide = () => this.leaveWatch();
+                document.addEventListener('visibilitychange', this._onVisibility);
+                window.addEventListener('pagehide', this._onPageHide);
+            },
+            leaveWatch() {
+                try {
+                    player?.pauseVideo?.();
+                } catch {
+                    // The player may not be ready yet.
+                }
+                this.pauseTimer();
+            },
+            canCount() {
+                if (document.visibilityState === 'hidden') return false;
+                try {
+                    if (player && typeof player.getPlayerState === 'function') {
+                        return player.getPlayerState() === 1;
+                    }
+                } catch {
+                    return false;
+                }
+                return true;
             },
             async attachPlayer() {
                 const iframe = this.$el?.querySelector?.('iframe[data-youtube-player]');
@@ -465,6 +563,8 @@ document.addEventListener('alpine:init', () => {
                         onReady: (event) => {
                             const el = event?.target?.getIframe?.();
                             if (!el) return;
+                            el.style.position = 'absolute';
+                            el.style.inset = '0';
                             el.style.width = '100%';
                             el.style.height = '100%';
                         },
@@ -477,8 +577,13 @@ document.addEventListener('alpine:init', () => {
                     this.onPlaying();
                     return;
                 }
-                if (state === 0 || state === 2 || state === 3) {
+                if (state === 2) {
                     this.pauseTimer();
+                    return;
+                }
+                if (state === 0) {
+                    this.pauseTimer();
+                    if (this.token && this.remaining <= 2) this.finish();
                 }
             },
             async onPlaying() {
@@ -517,7 +622,7 @@ document.addEventListener('alpine:init', () => {
                     this.requiredSeconds = Number(data.required_seconds || this.requiredSeconds);
                     this.remaining = this.requiredSeconds;
                     this.done = false;
-                    this.resumeTimer();
+                    if (this.canCount()) this.resumeTimer();
                 } catch {
                     this.error = 'Could not start the watch. Check your connection and try again.';
                 } finally {
@@ -530,7 +635,7 @@ document.addEventListener('alpine:init', () => {
                 this.timer = null;
             },
             resumeTimer() {
-                if (this.done || !this.token || this.timer) return;
+                if (this.done || !this.token || this.timer || !this.canCount()) return;
                 this.running = true;
                 window.addEventListener('beforeunload', warnBeforeLeaving);
                 this.timer = setInterval(() => {
@@ -547,12 +652,39 @@ document.addEventListener('alpine:init', () => {
                 this.pauseTimer();
                 window.removeEventListener('beforeunload', warnBeforeLeaving);
             },
-            claim() {
+            async claim(event) {
+                event?.preventDefault?.();
+                if (this.claiming) return;
                 this.claiming = true;
                 window.removeEventListener('beforeunload', warnBeforeLeaving);
+                const form = event?.target?.closest?.('form') || event?.target;
+                try {
+                    const response = await fetch(form?.action || this.claimUrl, {
+                        method: 'POST',
+                        headers: {
+                            Accept: 'application/json',
+                            'X-CSRF-TOKEN': this.csrf,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        credentials: 'same-origin',
+                        body: form ? new FormData(form) : undefined,
+                    });
+                    const data = await response.json().catch(() => ({}));
+                    if (!response.ok || !data.redirect) {
+                        this.error = data.message || 'Could not finish this step.';
+                        this.claiming = false;
+                        return;
+                    }
+                    await window.swapDashboardMain(data.redirect);
+                } catch {
+                    this.error = 'Could not finish this step. Please try again.';
+                    this.claiming = false;
+                }
             },
             destroy() {
                 this.pauseTimer();
+                if (this._onVisibility) document.removeEventListener('visibilitychange', this._onVisibility);
+                if (this._onPageHide) window.removeEventListener('pagehide', this._onPageHide);
                 window.removeEventListener('beforeunload', warnBeforeLeaving);
                 try {
                     player?.destroy?.();

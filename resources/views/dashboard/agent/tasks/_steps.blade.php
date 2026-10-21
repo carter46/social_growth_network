@@ -63,10 +63,15 @@
                             @if ($channelUrl)
                                 <a href="{{ $channelUrl }}" target="_blank" rel="noopener" class="inline-flex text-sm font-medium text-primary hover:underline">Open the channel on YouTube</a>
                             @endif
-                            <form method="POST" action="{{ route('agent.tasks.steps.save', [$participation, 'subscribe']) }}" class="space-y-3">
+                            <form method="POST" action="{{ route('agent.tasks.steps.save', [$participation, 'subscribe']) }}" enctype="multipart/form-data" class="space-y-3" data-ajax-form x-data="taskAction" @submit.prevent="submit($event)">
                                 @csrf
-                                <x-dashboard.input name="proof_url" label="Screenshot link (optional)" :value="old('proof_url')" placeholder="https://..." />
-                                <x-dashboard.button type="submit">Mark step done</x-dashboard.button>
+                                <div class="space-y-1.5">
+                                    <label class="block text-sm font-medium text-text-secondary" for="subscribe-proof">Screenshot (optional)</label>
+                                    <input id="subscribe-proof" type="file" name="proof" accept="image/jpeg,image/png,image/webp" class="block w-full text-sm text-text-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-elevated file:px-3 file:py-2 file:text-sm file:text-text-primary" />
+                                    <p class="text-xs text-text-muted">JPG, PNG, or WEBP, up to 2 MB. Images over 1 MB are reduced so they stay clear and under 1 MB.</p>
+                                </div>
+                                <x-dashboard.button type="submit" x-bind:disabled="busy">Mark step done</x-dashboard.button>
+                                <p class="text-sm text-danger" x-show="error" x-text="error" x-cloak></p>
                             </form>
                         </div>
                     @elseif ($task === CampaignTask::Watch)
@@ -90,10 +95,11 @@
                                     </p>
                                 </template>
                                 <template x-if="done">
-                                    <form method="POST" :action="claimUrl" x-on:submit="claim()">
+                                    <form method="POST" :action="claimUrl" data-ajax-form @submit.prevent="claim($event)">
                                         <input type="hidden" name="_token" :value="csrf">
                                         <input type="hidden" name="token" :value="token">
                                         <x-dashboard.button type="submit" x-bind:disabled="claiming">Finish watch step</x-dashboard.button>
+                                        <p class="mt-2 text-sm text-danger" x-show="error" x-text="error" x-cloak></p>
                                     </form>
                                 </template>
                             </div>
@@ -120,17 +126,24 @@
                                     <li>Paste the link below. It must contain <span class="font-mono">lc=</span>.</li>
                                 </ol>
                             </details>
-                            <form method="POST" action="{{ route('agent.tasks.steps.save', [$participation, 'comment']) }}" class="space-y-3">
+                            <form method="POST" action="{{ route('agent.tasks.steps.save', [$participation, 'comment']) }}" class="space-y-3" data-ajax-form x-data="taskAction" @submit.prevent="submit($event)">
                                 @csrf
                                 <x-dashboard.input name="proof_url" label="Link to your comment" :value="old('proof_url')" placeholder="https://www.youtube.com/watch?v=...&lc=..." required />
-                                <x-dashboard.button type="submit">Mark step done</x-dashboard.button>
+                                <x-dashboard.button type="submit" x-bind:disabled="busy">Mark step done</x-dashboard.button>
+                                <p class="text-sm text-danger" x-show="error" x-text="error" x-cloak></p>
                             </form>
                         </div>
                     @endif
                 @endif
 
                 @if ($step->proof_url && ! in_array($step->status, [Step::STATUS_LOCKED, Step::STATUS_ACTIVE], true))
-                    <p class="text-xs text-text-muted break-all">Your link: <a href="{{ $step->proof_url }}" target="_blank" rel="noopener" class="underline">{{ $step->proof_url }}</a></p>
+                    @if (preg_match('/\.(jpe?g|png|webp)(\?|$)/i', $step->proof_url))
+                        <a href="{{ $step->proof_url }}" target="_blank" rel="noopener" class="inline-block">
+                            <img src="{{ $step->proof_url }}" alt="Screenshot" class="max-h-40 rounded-lg border border-border-default" />
+                        </a>
+                    @else
+                        <p class="text-xs text-text-muted break-all">Your link: <a href="{{ $step->proof_url }}" target="_blank" rel="noopener" class="underline">{{ $step->proof_url }}</a></p>
+                    @endif
                 @endif
                 @if ($step->evidence_method === 'timer' && ! in_array($step->status, [Step::STATUS_LOCKED, Step::STATUS_ACTIVE], true))
                     <p class="text-xs text-text-muted">Watch time finished.</p>
@@ -140,15 +153,17 @@
     </ol>
 
     @if ($isStarted && ! $activeStep && $hasLocked)
-        <form method="POST" action="{{ route('agent.tasks.proceed', $participation) }}">
+        <form method="POST" action="{{ route('agent.tasks.proceed', $participation) }}" data-ajax-form x-data="taskAction" @submit.prevent="submit($event)" class="space-y-2">
             @csrf
-            <x-dashboard.button type="submit">Proceed to next task</x-dashboard.button>
+            <x-dashboard.button type="submit" x-bind:disabled="busy">Proceed to next task</x-dashboard.button>
+            <p class="text-sm text-danger" x-show="error" x-text="error" x-cloak></p>
         </form>
     @elseif ($isStarted && $allDone)
-        <form method="POST" action="{{ route('agent.tasks.submit-task', $participation) }}" class="space-y-2">
+        <form method="POST" action="{{ route('agent.tasks.submit-task', $participation) }}" data-ajax-form x-data="taskAction" @submit.prevent="submit($event)" class="space-y-2">
             @csrf
             <p class="text-sm text-text-secondary">Every step is done. Submit the task to start the checks.</p>
-            <x-dashboard.button type="submit" icon="verified">Submit task</x-dashboard.button>
+            <x-dashboard.button type="submit" icon="verified" x-bind:disabled="busy">Submit task</x-dashboard.button>
+            <p class="text-sm text-danger" x-show="error" x-text="error" x-cloak></p>
         </form>
     @endif
 </div>

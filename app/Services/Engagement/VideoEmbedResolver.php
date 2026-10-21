@@ -39,9 +39,9 @@ class VideoEmbedResolver
         $embedUrl = 'https://www.youtube.com/embed/'.rawurlencode($id)
             .'?rel=0&playsinline=1&controls=1&enablejsapi=1';
         $frame = $isShort
-            ? 'width:min(100%,22rem);aspect-ratio:9/16;margin-inline:auto;'
-            : 'width:100%;aspect-ratio:16/9;';
-        $html = '<div class="overflow-hidden rounded-lg bg-black" style="'.e($frame).'"><iframe data-youtube-player style="width:100%;height:100%;border:0;display:block;" src="'.e($embedUrl).'" title="YouTube video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>';
+            ? 'position:relative;width:min(100%,22rem);aspect-ratio:9/16;margin-inline:auto;'
+            : 'position:relative;width:100%;aspect-ratio:16/9;';
+        $html = '<div class="overflow-hidden rounded-lg bg-black" style="'.e($frame).'"><iframe data-youtube-player style="position:absolute;inset:0;width:100%;height:100%;border:0;display:block;" src="'.e($embedUrl).'" title="YouTube video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>';
 
         return [
             'mode' => 'embed',

@@ -69,7 +69,7 @@
         </x-dashboard.card>
     @endif
 
-    @if ($participation->status !== 'expired' && $campaign)
+    @if ($participation->status !== 'expired' && $campaign && $taskMode !== 'steps')
         <x-dashboard.card class="mb-4 space-y-3">
             @include('dashboard.agent.partials.campaign-tiles', [
                 'campaign' => $campaign,
@@ -121,10 +121,11 @@
                         </p>
                     </template>
                     <template x-if="done">
-                        <form method="POST" :action="claimUrl" x-on:submit="claim()">
+                        <form method="POST" :action="claimUrl" data-ajax-form @submit.prevent="claim($event)">
                             <input type="hidden" name="_token" :value="csrf">
                             <input type="hidden" name="token" :value="token">
                             <x-dashboard.button type="submit" icon="verified" x-bind:disabled="claiming">Claim reward</x-dashboard.button>
+                            <p class="mt-2 text-sm text-danger" x-show="error" x-text="error" x-cloak></p>
                         </form>
                     </template>
                 </div>
@@ -133,13 +134,17 @@
             </div>
         @elseif ($taskMode === 'subscribe' && $participation->status === 'started')
             <div class="space-y-3">
-                <p class="text-sm text-text-secondary">Open the channel on YouTube, subscribe, then submit a screenshot link that shows you are subscribed. An admin reviews every subscriber task before payment.</p>
+                <p class="text-sm text-text-secondary">Open the channel on YouTube, subscribe, then upload a screenshot that shows you are subscribed. An admin reviews every subscriber task before payment.</p>
                 @if ($campaign?->target_url)
                     <a href="{{ $campaign->target_url }}" target="_blank" rel="noopener" class="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white">Open channel on YouTube</a>
                 @endif
-                <form method="POST" action="{{ route('agent.tasks.submit', $participation) }}" class="space-y-4">
+                <form method="POST" action="{{ route('agent.tasks.submit', $participation) }}" enctype="multipart/form-data" class="space-y-4">
                     @csrf
-                    <x-dashboard.input name="proof_url" label="Screenshot / proof URL" :value="old('proof_url', $participation->proof_url)" placeholder="https://..." required />
+                    <div class="space-y-1.5">
+                        <label class="block text-sm font-medium text-text-secondary" for="subscribe-proof-file">Screenshot</label>
+                        <input id="subscribe-proof-file" type="file" name="proof" accept="image/jpeg,image/png,image/webp" required class="block w-full text-sm text-text-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-elevated file:px-3 file:py-2 file:text-sm file:text-text-primary" />
+                        <p class="text-xs text-text-muted">JPG, PNG, or WEBP, up to 2 MB. Images over 1 MB are reduced so they stay clear and under 1 MB.</p>
+                    </div>
                     <div>
                         <label class="mb-1 block text-sm font-medium text-text-secondary" for="proof_notes">Notes</label>
                         <textarea id="proof_notes" name="proof_notes" rows="3" class="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm">{{ old('proof_notes', $participation->proof_notes) }}</textarea>
@@ -149,13 +154,17 @@
             </div>
         @elseif ($taskMode === 'count_change_proof' && $participation->status === 'started')
             <div class="space-y-3">
-                <p class="text-sm text-text-secondary">Like or comment on the creator's YouTube video, then upload proof. Verification uses <strong>count-change</strong> (aggregate metric increase), not identity of who engaged.</p>
+                <p class="text-sm text-text-secondary">Like or comment on the creator's YouTube video, then upload a screenshot.</p>
                 @if ($campaign?->target_url)
                     <a href="{{ $campaign->target_url }}" target="_blank" rel="noopener" class="inline-flex text-sm font-medium text-accent underline">Open video on YouTube</a>
                 @endif
-                <form method="POST" action="{{ route('agent.tasks.submit', $participation) }}" class="space-y-4">
+                <form method="POST" action="{{ route('agent.tasks.submit', $participation) }}" enctype="multipart/form-data" class="space-y-4">
                     @csrf
-                    <x-dashboard.input name="proof_url" label="Screenshot proof URL" :value="old('proof_url', $participation->proof_url)" placeholder="https://..." required />
+                    <div class="space-y-1.5">
+                        <label class="block text-sm font-medium text-text-secondary" for="count-proof-file">Screenshot</label>
+                        <input id="count-proof-file" type="file" name="proof" accept="image/jpeg,image/png,image/webp" required class="block w-full text-sm text-text-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-elevated file:px-3 file:py-2 file:text-sm file:text-text-primary" />
+                        <p class="text-xs text-text-muted">JPG, PNG, or WEBP, up to 2 MB. Images over 1 MB are reduced so they stay clear and under 1 MB.</p>
+                    </div>
                     <div>
                         <label class="mb-1 block text-sm font-medium text-text-secondary" for="proof_notes">Notes</label>
                         <textarea id="proof_notes" name="proof_notes" rows="3" class="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm">{{ old('proof_notes', $participation->proof_notes) }}</textarea>

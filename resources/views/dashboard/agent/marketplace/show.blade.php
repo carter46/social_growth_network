@@ -58,27 +58,11 @@
                                         starting = false;
                                         return;
                                     }
-                                    const page = await fetch(data.redirect, {
-                                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                                        credentials: 'same-origin',
-                                    });
-                                    const html = await page.text();
-                                    const doc = new DOMParser().parseFromString(html, 'text/html');
-                                    const next = doc.querySelector('#main-content');
-                                    const current = document.querySelector('#main-content');
-                                    if (! next || ! current) {
-                                        window.location = data.redirect;
+                                    if (typeof window.swapDashboardMain === 'function') {
+                                        await window.swapDashboardMain(data.redirect);
                                         return;
                                     }
-                                    if (window.Alpine?.destroyTree) window.Alpine.destroyTree(current);
-                                    current.innerHTML = next.innerHTML;
-                                    if (doc.title) document.title = doc.title;
-                                    if (! window.__agentTaskNavBound) {
-                                        window.__agentTaskNavBound = true;
-                                        window.addEventListener('popstate', () => window.location.reload());
-                                    }
-                                    history.pushState({}, '', data.redirect);
-                                    window.Alpine?.initTree(current);
+                                    window.location = data.redirect;
                                 }).catch(() => {
                                     error = 'Could not start this task. Please try again.';
                                     starting = false;
