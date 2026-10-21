@@ -164,8 +164,10 @@ class ParticipationExpiryService
                 title: $byAdmin ? __('Task released') : __('Task time ran out'),
                 body: $byAdmin
                     ? __('":title" was released to other agents by our team before you submitted it. Nothing was paid for it.', ['title' => $campaign->title])
-                    : __('The time to complete ":title" ran out before you submitted it, so the task was released to other agents. Nothing was paid for it.', ['title' => $campaign->title]),
-                actionUrl: Route::has('agent.tasks.show') ? route('agent.tasks.show', $participation) : null,
+                    : __('The time to complete ":title" ran out, so it was cancelled and you were not paid. If it is still open, you can start it again.', ['title' => $campaign->title]),
+                actionUrl: Route::has('agent.marketplace.show')
+                    ? route('agent.marketplace.show', $campaign)
+                    : (Route::has('agent.tasks.show') ? route('agent.tasks.show', $participation) : null),
                 meta: ['participation_id' => $participation->id, 'campaign_id' => $campaign->id],
                 dedupeKey: 'campaign_task.expired.'.$participation->id,
             ), ['database']);

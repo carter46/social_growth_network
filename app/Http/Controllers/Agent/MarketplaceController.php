@@ -29,7 +29,8 @@ class MarketplaceController extends Controller
         $query = Campaign::query()
             ->openForAgents()
             ->whereDoesntHave('participations', function ($q) {
-                $q->where('agent_id', auth()->id());
+                $q->where('agent_id', auth()->id())
+                    ->where('status', '!=', CampaignParticipation::STATUS_EXPIRED);
             });
 
         $campaigns = $this->eligibility->applyToQuery($query, auth()->user())
@@ -57,7 +58,11 @@ class MarketplaceController extends Controller
 
         abort_unless($campaign->isOpenForAgents() || $participation, 404);
 
-        if (! $participation) {
+        $openParticipation = $participation && $participation->status !== CampaignParticipation::STATUS_EXPIRED
+            ? $participation
+            : null;
+
+        if (! $openParticipation) {
             $reason = $this->eligibility->conflictReason($agent, $campaign)
                 ?? $this->eligibility->precheckWithApi($agent, $campaign);
             if ($reason !== null) {
@@ -66,7 +71,7 @@ class MarketplaceController extends Controller
             }
         }
 
-        $needsChannel = ! $participation
+        $needsChannel = ! $openParticipation
             && YoutubeIdentityService::requiredFor($campaign)
             && ! $this->identities->verified($agent);
 
@@ -76,7 +81,7 @@ class MarketplaceController extends Controller
 
         return view('dashboard.agent.marketplace.show', [
             'campaign' => $campaign,
-            'participation' => $participation,
+            'participation' => $openParticipation,
             'needsChannel' => $needsChannel,
             'channelIdentity' => $needsChannel ? $this->identities->current($agent) : null,
             'oauthEnabled' => YoutubeIdentityService::oauthEnabled(),

@@ -26,11 +26,12 @@
 
     @if ($participation->status === 'expired')
         <x-dashboard.alert type="danger" class="mb-4" title="Time ran out">
-            This task was not finished in time, so it was cancelled for you and the slot was opened for another agent. You were not paid for it.
+            This task was not finished in time, so it was cancelled and you were not paid.
         </x-dashboard.alert>
+        <x-dashboard.button :href="$campaign ? route('agent.marketplace.show', $campaign) : route('agent.marketplace')">Done</x-dashboard.button>
     @endif
 
-    @if ($participation->status === 'started')
+    @if ($participation->status !== 'expired' && $participation->status === 'started')
         <div
             class="mb-4"
             x-data="taskCountdown({
@@ -68,7 +69,7 @@
         </x-dashboard.card>
     @endif
 
-    @if ($campaign)
+    @if ($participation->status !== 'expired' && $campaign)
         <x-dashboard.card class="mb-4 space-y-3">
             @include('dashboard.agent.partials.campaign-tiles', [
                 'campaign' => $campaign,
@@ -82,6 +83,7 @@
         </x-dashboard.card>
     @endif
 
+    @if ($participation->status !== 'expired')
     <x-dashboard.card class="space-y-4">
         @if ($participation->rejection_reason)
             <x-dashboard.alert type="warning" title="Rejection reason">{{ $participation->rejection_reason }}</x-dashboard.alert>
@@ -185,5 +187,6 @@
             </div>
         @endif
     </x-dashboard.card>
+    @endif
 </x-layout.page>
 @endsection

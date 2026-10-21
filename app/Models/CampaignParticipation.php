@@ -22,7 +22,7 @@ class CampaignParticipation extends Model
 
     public const STATUS_PAID = 'paid';
 
-    /** The completion deadline passed before the agent submitted. Final; the slot is freed. */
+    /** The completion deadline passed before the agent submitted. The slot is freed, and the same agent may start again while a place is still open. */
     public const STATUS_EXPIRED = 'expired';
 
     public const STATUSES = [

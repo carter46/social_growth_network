@@ -454,4 +454,90 @@ class CampaignMarketplaceTest extends TestCase
             ->assertSee('Find tasks')
             ->assertDontSee('Send email code');
     }
+
+    public function test_agent_can_start_again_after_the_task_times_out_while_a_place_is_open(): void
+    {
+        $creator = User::factory()->creator()->create();
+        $agent = User::factory()->agent()->kycApproved()->create();
+        $this->linkVerifiedYoutubeChannel($agent);
+        \App\Models\Wallet::factory()->create(['user_id' => $agent->id, 'balance' => 0]);
+
+        $campaign = Campaign::query()->create([
+            'creator_id' => $creator->id,
+            'title' => 'Retry campaign',
+            'quantity' => 2,
+            'completed_count' => 0,
+            'locked_creator_price' => 1000,
+            'locked_agent_reward' => 50,
+            'completion_minutes' => 10,
+            'status' => Campaign::STATUS_ACTIVE,
+        ]);
+
+        $participation = app(CampaignParticipationService::class)->start($agent, $campaign);
+
+        $this->travel(11)->minutes();
+        $this->artisan('campaigns:expire-participations')->assertSuccessful();
+        $participation->refresh();
+        $this->assertSame(CampaignParticipation::STATUS_EXPIRED, $participation->status);
+
+        $this->actingAs($agent)->get(route('agent.tasks.show', $participation))
+            ->assertOk()
+            ->assertSee('Time ran out')
+            ->assertSee('Done')
+            ->assertSee(route('agent.marketplace.show', $campaign), false);
+
+        $this->actingAs($agent)->get(route('agent.marketplace'))
+            ->assertOk()
+            ->assertSee('Retry campaign');
+
+        $this->actingAs($agent)->get(route('agent.marketplace.show', $campaign))
+            ->assertOk()
+            ->assertSee('Start task')
+            ->assertDontSee('Continue task');
+
+        $this->actingAs($agent)->post(route('agent.marketplace.start', $campaign))->assertRedirect();
+
+        $this->assertSame(1, CampaignParticipation::query()->count());
+        $participation->refresh();
+        $this->assertSame(CampaignParticipation::STATUS_STARTED, $participation->status);
+        $this->assertTrue($participation->expires_at->isFuture());
+    }
+
+    public function test_agent_cannot_start_again_after_timeout_when_the_place_was_taken(): void
+    {
+        $creator = User::factory()->creator()->create();
+        $agent = User::factory()->agent()->kycApproved()->create();
+        $other = User::factory()->agent()->kycApproved()->create();
+        $this->linkVerifiedYoutubeChannel($agent);
+        $this->linkVerifiedYoutubeChannel($other);
+        \App\Models\Wallet::factory()->create(['user_id' => $agent->id, 'balance' => 0]);
+        \App\Models\Wallet::factory()->create(['user_id' => $other->id, 'balance' => 0]);
+
+        $campaign = Campaign::query()->create([
+            'creator_id' => $creator->id,
+            'title' => 'One place campaign',
+            'quantity' => 1,
+            'completed_count' => 0,
+            'locked_creator_price' => 1000,
+            'locked_agent_reward' => 50,
+            'completion_minutes' => 10,
+            'status' => Campaign::STATUS_ACTIVE,
+        ]);
+
+        app(CampaignParticipationService::class)->start($agent, $campaign);
+        $this->travel(11)->minutes();
+        $this->artisan('campaigns:expire-participations')->assertSuccessful();
+
+        app(CampaignParticipationService::class)->start($other, $campaign->fresh());
+
+        $this->actingAs($agent)
+            ->post(route('agent.marketplace.start', $campaign))
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertSame(
+            CampaignParticipation::STATUS_EXPIRED,
+            CampaignParticipation::query()->where('agent_id', $agent->id)->value('status'),
+        );
+    }
 }

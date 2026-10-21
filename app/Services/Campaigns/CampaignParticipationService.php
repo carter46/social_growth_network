@@ -6,6 +6,7 @@ use App\Models\AgentYoutubeIdentity;
 use App\Models\Campaign;
 use App\Models\CampaignParticipation;
 use App\Models\CampaignParticipationTask;
+use App\Models\CampaignWatchSession;
 use App\Models\ReferralCommission;
 use App\Models\User;
 use App\Services\Referrals\ReferralCommissionService;
@@ -59,8 +60,7 @@ class CampaignParticipationService
                 ->lockForUpdate()
                 ->first();
 
-            if ($existing) {
-                // No retake, including after rejection or expiry.
+            if ($existing && $existing->status !== CampaignParticipation::STATUS_EXPIRED) {
                 throw new InvalidArgumentException('You already joined this campaign.');
             }
 
@@ -74,6 +74,38 @@ class CampaignParticipationService
 
             $minutes = (int) ($campaign->completion_minutes ?? 0);
             $now = now();
+
+            if ($existing) {
+                $existing->steps()->delete();
+                CampaignWatchSession::query()
+                    ->where('campaign_participation_id', $existing->id)
+                    ->delete();
+
+                $existing->update([
+                    'status' => CampaignParticipation::STATUS_STARTED,
+                    'proof_url' => null,
+                    'proof_notes' => null,
+                    'pre_count' => null,
+                    'post_count' => null,
+                    'verify_attempts' => 0,
+                    'verification_started_at' => null,
+                    'started_at' => $now,
+                    'submitted_at' => null,
+                    'reviewed_at' => null,
+                    'reviewed_by' => null,
+                    'rejection_reason' => null,
+                    'paid_at' => null,
+                    'reward_amount' => $campaign->locked_agent_reward,
+                    'expires_at' => $minutes > 0 ? $now->copy()->addMinutes($minutes) : null,
+                    'last_heartbeat_at' => null,
+                ]);
+
+                if ($campaign->usesStepFlow()) {
+                    app(CampaignTaskFlowService::class)->createSteps($existing, $campaign, $openTasks);
+                }
+
+                return $existing->fresh();
+            }
 
             $participation = CampaignParticipation::query()->create([
                 'campaign_id' => $campaign->id,
