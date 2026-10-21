@@ -24,6 +24,11 @@
     >
         <x-dashboard.icon :name="$group['icon'] ?? 'grid'" class="h-[22px] w-[22px] {{ $active ? 'text-primary' : 'text-text-secondary' }}" />
         <span class="min-w-0 flex-1 truncate">{{ $group['label'] ?? '' }}</span>
+        @if (! empty($group['badge']))
+            <span data-nav-count="{{ $groupId }}" class="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-white">
+                {{ $group['badge'] }}
+            </span>
+        @endif
         <span
             class="inline-flex h-4 w-4 shrink-0 items-center justify-center text-text-muted transition-transform duration-200 motion-reduce:transition-none"
             :class="isOpen({{ $groupIdJs }}) ? 'rotate-180' : ''"

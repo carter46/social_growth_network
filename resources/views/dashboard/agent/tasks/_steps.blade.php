@@ -40,7 +40,8 @@
             @endforeach
         </ol>
     @elseif (in_array($participation->status, ['submitted', 'verifying', 'under_review'], true))
-        <x-dashboard.alert type="info">Your task is submitted. We are checking each step. Some checks run again a little later, and some go to an admin for review.</x-dashboard.alert>
+        <x-dashboard.alert type="info">Task submitted. We are checking it now.</x-dashboard.alert>
+        <x-dashboard.button :href="route('agent.tasks.active')">Done</x-dashboard.button>
     @endif
 
     <ol class="space-y-3">
@@ -58,16 +59,17 @@
 
                 @if ($isStarted && $step->status === Step::STATUS_ACTIVE)
                     @if ($task === CampaignTask::Subscribe)
+                        @php $subscribeProofRequired = app(\App\Services\Campaigns\CampaignTaskFlowService::class)->subscribeScreenshotRequired(); @endphp
                         <div class="space-y-3">
-                            <p class="text-sm text-text-secondary">Subscribe with the YouTube channel you linked, then mark this step done.</p>
+                            <p class="text-sm text-text-secondary">Subscribe with the YouTube channel you linked, then upload a screenshot that shows you are subscribed.</p>
                             @if ($channelUrl)
                                 <a href="{{ $channelUrl }}" target="_blank" rel="noopener" class="inline-flex text-sm font-medium text-primary hover:underline">Open the channel on YouTube</a>
                             @endif
                             <form method="POST" action="{{ route('agent.tasks.steps.save', [$participation, 'subscribe']) }}" enctype="multipart/form-data" class="space-y-3" data-ajax-form x-data="taskAction" @submit.prevent="submit($event)">
                                 @csrf
                                 <div class="space-y-1.5">
-                                    <label class="block text-sm font-medium text-text-secondary" for="subscribe-proof">Screenshot (optional)</label>
-                                    <input id="subscribe-proof" type="file" name="proof" accept="image/jpeg,image/png,image/webp" class="block w-full text-sm text-text-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-elevated file:px-3 file:py-2 file:text-sm file:text-text-primary" />
+                                    <label class="block text-sm font-medium text-text-secondary" for="subscribe-proof">{{ $subscribeProofRequired ? 'Screenshot' : 'Screenshot (optional)' }}</label>
+                                    <input id="subscribe-proof" type="file" name="proof" accept="image/jpeg,image/png,image/webp" @if ($subscribeProofRequired) required @endif class="block w-full text-sm text-text-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-elevated file:px-3 file:py-2 file:text-sm file:text-text-primary" />
                                     <p class="text-xs text-text-muted">JPG, PNG, or WEBP, up to 2 MB. Images over 1 MB are reduced so they stay clear and under 1 MB.</p>
                                 </div>
                                 <x-dashboard.button type="submit" x-bind:disabled="busy">Mark step done</x-dashboard.button>

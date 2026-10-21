@@ -120,11 +120,14 @@ class TaskController extends Controller
         $step = CampaignTask::tryFrom($task);
         abort_unless($step && in_array($step, [CampaignTask::Subscribe, CampaignTask::Comment], true), 404);
 
+        $screenshotRequired = $step === CampaignTask::Subscribe && $this->taskFlow->subscribeScreenshotRequired();
+
         $validated = $request->validate([
-            'proof' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'proof' => [$screenshotRequired ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'proof_url' => [$step === CampaignTask::Comment ? 'required' : 'nullable', 'url', 'max:2048'],
             'proof_notes' => ['nullable', 'string', 'max:1000'],
         ], [
+            'proof.required' => 'Upload a screenshot that shows you are subscribed.',
             'proof.max' => 'Screenshots must be 2 MB or smaller.',
         ]);
 
@@ -165,7 +168,7 @@ class TaskController extends Controller
             return $this->taskError($request, $e->getMessage());
         }
 
-        return $this->taskRedirect($request, $participation, __('Task submitted. We are checking each step now.'));
+        return $this->taskRedirect($request, $participation, '');
     }
 
     /** Keeps the session alive while a task page is open and reports the time left. */
@@ -263,16 +266,18 @@ class TaskController extends Controller
     private function taskRedirect(Request $request, CampaignParticipation $participation, string $status): RedirectResponse|JsonResponse
     {
         if ($request->expectsJson()) {
-            session()->flash('status', $status);
+            if ($status !== '') {
+                session()->flash('status', $status);
+            }
 
             return response()->json([
                 'redirect' => route('agent.tasks.show', $participation),
             ]);
         }
 
-        return redirect()
-            ->route('agent.tasks.show', $participation)
-            ->with('status', $status);
+        $redirect = redirect()->route('agent.tasks.show', $participation);
+
+        return $status !== '' ? $redirect->with('status', $status) : $redirect;
     }
 
     private function taskError(Request $request, string $message): RedirectResponse|JsonResponse

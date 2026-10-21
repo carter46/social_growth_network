@@ -2,6 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Campaign;
+use App\Models\CampaignParticipation;
+use App\Models\KycSubmission;
+use App\Models\SupportTicket;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -95,5 +99,56 @@ class DashboardSidebarTest extends TestCase
             '/href="'.preg_quote(route('dashboard'), '/').'"\\s+class="[^"]*sidebar-link-active/',
             $html,
         );
+    }
+
+    public function test_admin_sidebar_shows_waiting_counts_on_the_group_and_each_queue(): void
+    {
+        $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
+        $creator = User::factory()->creator()->create();
+        $agent = User::factory()->agent()->create();
+
+        $campaign = Campaign::query()->create([
+            'creator_id' => $creator->id,
+            'title' => 'Waiting task',
+            'quantity' => 1,
+            'locked_creator_price' => 10,
+            'locked_agent_reward' => 5,
+            'status' => Campaign::STATUS_ACTIVE,
+        ]);
+        CampaignParticipation::query()->create([
+            'campaign_id' => $campaign->id,
+            'agent_id' => $agent->id,
+            'status' => CampaignParticipation::STATUS_UNDER_REVIEW,
+            'reward_amount' => 5,
+        ]);
+        Campaign::query()->create([
+            'creator_id' => $creator->id,
+            'title' => 'Needs review',
+            'quantity' => 1,
+            'locked_creator_price' => 10,
+            'locked_agent_reward' => 5,
+            'status' => Campaign::STATUS_PENDING_REVIEW,
+        ]);
+        KycSubmission::query()->create([
+            'user_id' => $agent->id,
+            'level_requested' => 1,
+            'status' => 'pending',
+        ]);
+        SupportTicket::factory()->create(['user_id' => $agent->id, 'status' => 'open']);
+
+        $html = $this->actingAs($admin)->get(route('admin'))->assertOk()->getContent();
+
+        foreach ([
+            'operations' => '4',
+            'admin.verifications' => '1',
+            'admin.kyc' => '1',
+            'admin.tickets' => '1',
+            'admin.campaigns' => '1',
+        ] as $key => $count) {
+            $this->assertMatchesRegularExpression(
+                '/data-nav-count="'.preg_quote($key, '/').'"[^>]*>\s*'.$count.'\s*</',
+                $html,
+            );
+        }
     }
 }

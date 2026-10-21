@@ -30,7 +30,7 @@
     <x-dashboard.icon :name="$item['icon'] ?? 'arrow-right'" class="{{ $iconSize }}" />
     <span class="min-w-0 flex-1 truncate">{{ $item['label'] ?? '' }}</span>
     @if (! empty($item['badge']))
-        <span class="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
+        <span data-nav-count="{{ $item['route'] ?? '' }}" class="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-white">
             {{ $item['badge'] }}
         </span>
     @endif

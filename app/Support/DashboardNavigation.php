@@ -67,6 +67,10 @@ class DashboardNavigation
 
         usort($entries, fn (array $a, array $b): int => ($a['sort'] ?? 0) <=> ($b['sort'] ?? 0));
 
+        if ($role === 'admin') {
+            $entries = self::applyQueueBadges($entries, AdminQueueCounts::all());
+        }
+
         return $entries;
     }
 
@@ -204,5 +208,45 @@ class DashboardNavigation
         $permission = $item['permission'] ?? null;
 
         return ! is_string($permission) || $permission === '' || ($user?->can($permission) ?? false);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $entries
+     * @param  array<string, int>  $counts
+     * @return array<int, array<string, mixed>>
+     */
+    private static function applyQueueBadges(array $entries, array $counts): array
+    {
+        foreach ($entries as &$entry) {
+            if (($entry['type'] ?? 'link') === 'group') {
+                $sum = 0;
+                foreach ($entry['children'] as &$child) {
+                    $count = (int) ($counts[$child['route'] ?? ''] ?? 0);
+                    if ($count > 0) {
+                        $child['badge'] = self::formatCount($count);
+                        $sum += $count;
+                    }
+                }
+                unset($child);
+                if ($sum > 0) {
+                    $entry['badge'] = self::formatCount($sum);
+                }
+
+                continue;
+            }
+
+            $count = (int) ($counts[$entry['route'] ?? ''] ?? 0);
+            if ($count > 0) {
+                $entry['badge'] = self::formatCount($count);
+            }
+        }
+        unset($entry);
+
+        return $entries;
+    }
+
+    private static function formatCount(int $count): string
+    {
+        return $count > 99 ? '99+' : (string) $count;
     }
 }

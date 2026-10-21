@@ -10,6 +10,7 @@ use App\Models\CampaignParticipation;
 use App\Models\CampaignParticipationTask;
 use App\Models\User;
 use App\Services\Engagement\TargetUrlValidator;
+use App\Services\Engagement\YoutubeChannelApi;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -22,7 +23,14 @@ class CampaignTaskFlowService
 {
     public function __construct(
         private ParticipationExpiryService $expiry,
+        private YoutubeChannelApi $youtube,
     ) {}
+
+    /** Without the YouTube API, a subscribe step can only be checked from a screenshot. */
+    public function subscribeScreenshotRequired(): bool
+    {
+        return ! $this->youtube->hasKey();
+    }
 
     /**
      * @param  list<\App\Enums\CampaignTask>|null  $tasks  steps this agent was given (default: every step)
@@ -84,6 +92,9 @@ class CampaignTaskFlowService
             }
 
             $proofUrl = trim((string) ($data['proof_url'] ?? ''));
+            if ($task === CampaignTask::Subscribe && $proofUrl === '' && $this->subscribeScreenshotRequired()) {
+                throw new InvalidArgumentException('Upload a screenshot that shows you are subscribed.');
+            }
             $notes = trim((string) ($data['proof_notes'] ?? ''));
             $meta = [];
 

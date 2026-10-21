@@ -201,7 +201,9 @@ class CombinedYouTubeProductsTest extends TestCase
     {
         $flow = app(CampaignTaskFlowService::class);
 
-        $flow->saveStep($participation, $agent, CampaignTask::Subscribe, []);
+        $flow->saveStep($participation, $agent, CampaignTask::Subscribe, [
+            'proof_url' => 'https://example.com/subscribed.jpg',
+        ]);
         $flow->proceed($participation, $agent);
 
         $session = app(CampaignWatchSessionService::class)->start($participation);

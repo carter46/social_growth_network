@@ -89,6 +89,11 @@
             <x-dashboard.alert type="warning" title="Rejection reason">{{ $participation->rejection_reason }}</x-dashboard.alert>
         @endif
 
+        @if ($taskMode !== 'steps' && in_array($participation->status, ['submitted', 'verifying', 'under_review'], true))
+            <x-dashboard.alert type="info">Task submitted. We are checking it now.</x-dashboard.alert>
+            <x-dashboard.button :href="route('agent.tasks.active')">Done</x-dashboard.button>
+        @endif
+
         @if ($taskMode === 'steps')
             @include('dashboard.agent.tasks._steps', [
                 'campaign' => $campaign,
