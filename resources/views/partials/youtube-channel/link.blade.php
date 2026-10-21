@@ -112,15 +112,8 @@
                 </x-dashboard.alert>
             @endif
             @if ($identity->method === 'admin')
-                <p class="text-text-secondary">Automatic checks are not available right now, so an admin will review your channel. You'll get a notification when it's approved.</p>
+                <p class="text-text-secondary">We'll review your channel and let you know when it's approved.</p>
             @else
-                <ol class="list-decimal space-y-1 pl-5 text-text-secondary">
-                    <li>Make sure your channel is public.</li>
-                    @if ($isAgent)
-                        <li>In YouTube settings, turn off "Keep all my subscriptions private". This lets your subscribe steps be checked automatically; otherwise they need screenshot review.</li>
-                    @endif
-                    <li>On YouTube, open your channel, choose Customise channel, then add this code anywhere in your channel description and publish:</li>
-                </ol>
                 <div class="flex items-center gap-2">
                     <code class="rounded-lg bg-surface px-3 py-2 font-mono text-base font-semibold tracking-wider text-text-primary">{{ $identity->verification_code }}</code>
                     <button
@@ -133,11 +126,12 @@
                         <span x-text="copied ? 'Copied' : 'Copy'">Copy</span>
                     </button>
                 </div>
-                <p class="text-xs text-text-muted"
-                   x-data="{ ends: @js($identity->code_expires_at?->toIso8601String()), left: '' }"
-                   x-init="const tick = () => { const s = Math.max(0, Math.floor((new Date(ends) - new Date()) / 1000)); left = Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm'; }; tick(); setInterval(tick, 30000);">
-                    We check automatically every 30 minutes. Time left: <span x-text="left"></span>
-                </p>
+                <ol class="list-decimal space-y-1 pl-5 text-text-secondary">
+                    <li>Make your channel public.</li>
+                    <li>On YouTube, open your channel, then Customize channel.</li>
+                    <li>Paste the code above into the description and save.</li>
+                </ol>
+                <p class="text-xs text-text-muted">We'll check within the next 24 hours.</p>
                 <form method="POST" action="{{ route($prefix.'.youtube-channel.check') }}">
                     @csrf
                     @if ($returnTo)<input type="hidden" name="return" value="{{ $returnTo }}">@endif
@@ -191,7 +185,7 @@
                         <div class="min-w-0">
                             <p class="font-semibold text-text-primary" x-text="channel.title || 'Channel found'"></p>
                             <p class="text-xs text-text-muted" x-text="channel.handle || channel.id || ''"></p>
-                            <p class="text-xs text-warning" x-show="! channel.resolved">We can't preview channels right now, so an admin will confirm it.</p>
+                            <p class="text-xs text-warning" x-show="! channel.resolved">We can't preview this channel right now. We'll confirm it for you.</p>
                         </div>
                     </div>
                     <p class="text-xs text-text-muted">Next, you'll add a short code to this channel's description to prove it's yours.</p>

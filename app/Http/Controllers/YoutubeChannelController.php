@@ -131,7 +131,7 @@ class YoutubeChannelController extends Controller
             ? ($request->user()->isAgent()
                 ? __('Your YouTube channel is verified. You can start YouTube tasks now.')
                 : __('Your YouTube channel is connected.'))
-            : __('We haven\'t found the code yet. We\'ll keep checking every 30 minutes for up to 24 hours. Make sure the code is saved in your channel description and the channel is public.');
+            : __('We haven\'t found the code yet. We\'ll check within the next 24 hours. Make sure the code is in your channel description and the channel is public.');
 
         return $this->done($request, $identity, $message, $request->input('return'));
     }

@@ -66,7 +66,8 @@
         <div
             x-show="open"
             x-cloak
-            class="fixed inset-0 z-[90] flex items-center justify-center p-4"
+            class="fixed inset-0 z-[90] flex items-end justify-center p-4 sm:items-center"
+            style="overflow-y: auto; -webkit-overflow-scrolling: touch;"
             role="dialog"
             aria-modal="true"
             :aria-labelledby="'modal-title-{{ $name }}'"
@@ -88,10 +89,11 @@
                 x-transition:leave="transition ease-in duration-150 motion-reduce:transition-none"
                 x-transition:leave-start="opacity-100 translate-y-0 scale-100"
                 x-transition:leave-end="opacity-0 translate-y-2 scale-95"
-                class="relative w-full max-w-md rounded-2xl border border-border-default bg-elevated p-6 shadow-panel outline-none"
+                class="relative my-auto flex w-full max-w-md flex-col rounded-2xl border border-border-default bg-elevated shadow-panel outline-none"
+                style="max-height: min(90vh, 90dvh); overflow: hidden;"
                 @click.stop
             >
-                <div class="flex items-start justify-between gap-3">
+                <div class="flex shrink-0 items-start justify-between gap-3 px-5 pt-5">
                     <div class="min-w-0">
                         <h2 id="modal-title-{{ $name }}" class="text-lg font-semibold text-text-primary">{{ $title }}</h2>
                         @if ($description)
@@ -109,23 +111,25 @@
                 </div>
 
                 @if ($formAction)
-                    <form method="POST" action="{{ $formAction }}" class="mt-4" x-data="{ submitting: false }" @submit="if (submitting) { $event.preventDefault(); return; } submitting = true;">
+                    <form method="POST" action="{{ $formAction }}" class="flex min-h-0 flex-1 flex-col" style="min-height: 0;" x-data="{ submitting: false }" @submit="if (submitting) { $event.preventDefault(); return; } submitting = true;">
                         @csrf
                         @if (strtoupper($method) !== 'POST')
                             @method($method)
                         @endif
 
-                        @if ($hasBody)
-                            <div class="text-sm text-text-secondary">{{ $slot }}</div>
-                        @endif
+                        <div class="min-h-0 flex-1 px-5 py-4 text-sm text-text-secondary" style="overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                            @if ($hasBody)
+                                {{ $slot }}
+                            @endif
 
-                        @isset($form)
-                            <div @class(['space-y-4', 'mt-4' => $hasBody])>
-                                {{ $form }}
-                            </div>
-                        @endisset
+                            @isset($form)
+                                <div @class(['space-y-4', 'mt-4' => $hasBody])>
+                                    {{ $form }}
+                                </div>
+                            @endisset
+                        </div>
 
-                        <div class="mt-6 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
+                        <div class="flex shrink-0 flex-col-reverse gap-2.5 border-t border-border-default px-5 py-4 sm:flex-row sm:justify-end">
                             @isset($footer)
                                 {{ $footer }}
                             @else
@@ -141,10 +145,10 @@
                     </form>
                 @else
                     @if ($hasBody)
-                        <div class="mt-4 text-sm text-text-secondary">{{ $slot }}</div>
+                        <div class="min-h-0 flex-1 px-5 py-4 text-sm text-text-secondary" style="overflow-y: auto; -webkit-overflow-scrolling: touch;">{{ $slot }}</div>
                     @endif
 
-                    <div class="mt-6 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
+                    <div class="flex shrink-0 flex-col-reverse gap-2.5 border-t border-border-default px-5 py-4 sm:flex-row sm:justify-end">
                         @isset($footer)
                             {{ $footer }}
                         @else
