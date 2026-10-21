@@ -339,7 +339,7 @@ class Campaign extends Model
             }
             $lines[] = match ($task) {
                 \App\Enums\CampaignTask::Watch => __('Watch the video for :time. Keep this page open while it plays. If you leave early or run out of time, the task is cancelled and you are not paid.', ['time' => $watchLabel]),
-                \App\Enums\CampaignTask::Subscribe => __('Subscribe to the creator’s channel with the YouTube account you linked here.'),
+                \App\Enums\CampaignTask::Subscribe => __('Subscribe with the YouTube account you linked. The Subscribe button opens YouTube and asks you to confirm.'),
                 \App\Enums\CampaignTask::Comment => __('Leave a genuine comment on the video, following any instructions shown after you start.'),
                 \App\Enums\CampaignTask::Like => __('Like the video with the YouTube account you linked here.'),
             };

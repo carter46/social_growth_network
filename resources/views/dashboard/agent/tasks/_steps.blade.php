@@ -59,18 +59,25 @@
 
                 @if ($isStarted && $step->status === Step::STATUS_ACTIVE)
                     @if ($task === CampaignTask::Subscribe)
-                        @php $subscribeProofRequired = app(\App\Services\Campaigns\CampaignTaskFlowService::class)->subscribeScreenshotRequired(); @endphp
+                        @php
+                            $subscribeProofRequired = app(\App\Services\Campaigns\CampaignTaskFlowService::class)->subscribeScreenshotRequired();
+                            $subscribeUrl = \App\Services\Engagement\TargetUrlValidator::youtubeSubscribeUrl($channelUrl ?: $campaign?->target_url, $campaign?->channel_id);
+                        @endphp
                         <div class="space-y-3">
-                            <p class="text-sm text-text-secondary">Subscribe with the YouTube channel you linked, then upload a screenshot that shows you are subscribed.</p>
-                            @if ($channelUrl)
-                                <a href="{{ $channelUrl }}" target="_blank" rel="noopener" class="inline-flex text-sm font-medium text-primary hover:underline">Open the channel on YouTube</a>
+                            <p class="text-sm text-text-secondary">{{ $subscribeProofRequired
+                                ? 'Tap Subscribe with the YouTube account you linked. YouTube asks you to confirm. Tap Subscribe there, then upload a screenshot that shows you are subscribed.'
+                                : 'Tap Subscribe with the YouTube account you linked. YouTube asks you to confirm. Tap Subscribe there, then come back and mark this step done.' }}</p>
+                            @if ($subscribeUrl)
+                                <x-dashboard.button :href="$subscribeUrl" target="_blank" rel="noopener noreferrer">Subscribe on YouTube</x-dashboard.button>
                             @endif
                             <form method="POST" action="{{ route('agent.tasks.steps.save', [$participation, 'subscribe']) }}" enctype="multipart/form-data" class="space-y-3" data-ajax-form x-data="taskAction" @submit.prevent="submit($event)">
                                 @csrf
                                 <div class="space-y-1.5">
                                     <label class="block text-sm font-medium text-text-secondary" for="subscribe-proof">{{ $subscribeProofRequired ? 'Screenshot' : 'Screenshot (optional)' }}</label>
                                     <input id="subscribe-proof" type="file" name="proof" accept="image/jpeg,image/png,image/webp" @if ($subscribeProofRequired) required @endif class="block w-full text-sm text-text-secondary file:mr-3 file:rounded-lg file:border-0 file:bg-elevated file:px-3 file:py-2 file:text-sm file:text-text-primary" />
-                                    <p class="text-xs text-text-muted">JPG, PNG, or WEBP, up to 2 MB. Images over 1 MB are reduced so they stay clear and under 1 MB.</p>
+                                    <p class="text-xs text-text-muted">{{ $subscribeProofRequired
+                                        ? 'Upload a picture that shows you are subscribed. JPG, PNG, or WEBP, up to 2 MB. Images over 1 MB are reduced so they stay clear and under 1 MB.'
+                                        : 'Only if the confirm box did not appear. JPG, PNG, or WEBP, up to 2 MB.' }}</p>
                                 </div>
                                 <x-dashboard.button type="submit" x-bind:disabled="busy">Mark step done</x-dashboard.button>
                                 <p class="text-sm text-danger" x-show="error" x-text="error" x-cloak></p>

@@ -170,6 +170,25 @@ class TargetUrlValidator
         };
     }
 
+    /**
+     * Channel link that opens YouTube's subscribe confirmation.
+     * The viewer still has to tap Subscribe. YouTube does not subscribe them on its own.
+     */
+    public static function youtubeSubscribeUrl(?string $url, ?string $channelId = null): ?string
+    {
+        $channelId = trim((string) $channelId);
+        if (preg_match('/^UC[A-Za-z0-9_-]{22}$/', $channelId)) {
+            return 'https://www.youtube.com/channel/'.$channelId.'?sub_confirmation=1';
+        }
+
+        $base = self::normalizeChannelInput($url);
+        if (! $base) {
+            return null;
+        }
+
+        return $base.'?sub_confirmation=1';
+    }
+
     /** Comment ID from a "copy link" comment URL (watch?v=...&lc=...). */
     public static function extractYoutubeCommentId(?string $url): ?string
     {

@@ -140,10 +140,11 @@
                 <p class="text-xs text-text-muted" x-show="token && ! done && ! videoEnded && ! needsReplay" x-cloak>Keep this page open while the video plays.</p>
             </div>
         @elseif ($taskMode === 'subscribe' && $participation->status === 'started')
+            @php $subscribeUrl = \App\Services\Engagement\TargetUrlValidator::youtubeSubscribeUrl($campaign?->channel_url ?: $campaign?->target_url, $campaign?->channel_id); @endphp
             <div class="space-y-3">
-                <p class="text-sm text-text-secondary">Open the channel on YouTube, subscribe, then upload a screenshot that shows you are subscribed. An admin reviews every subscriber task before payment.</p>
-                @if ($campaign?->target_url)
-                    <a href="{{ $campaign->target_url }}" target="_blank" rel="noopener" class="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white">Open channel on YouTube</a>
+                <p class="text-sm text-text-secondary">Tap Subscribe with the YouTube account you linked. YouTube asks you to confirm. Tap Subscribe there, then upload a screenshot that shows you are subscribed. An admin reviews it before payment.</p>
+                @if ($subscribeUrl)
+                    <x-dashboard.button :href="$subscribeUrl" target="_blank" rel="noopener noreferrer">Subscribe on YouTube</x-dashboard.button>
                 @endif
                 <form method="POST" action="{{ route('agent.tasks.submit', $participation) }}" enctype="multipart/form-data" class="space-y-4">
                     @csrf
