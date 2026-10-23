@@ -5,6 +5,23 @@
 @section('content')
 @php $prefix = $prefix ?? 'dashboard'; @endphp
 @php $step = session('withdrawal_step', old('_step', 'confirm')); @endphp
+@php $maxWithdrawable = min((float) $withdrawalMax, (float) $wallet->withdrawableBalance()); @endphp
+@php
+    $otpReceive = null;
+    if ($breakdown ?? null) {
+        $q = (array) ($breakdown['quote'] ?? []);
+        $destAmount = isset($q['destination_amount']) ? (string) $q['destination_amount'] : null;
+        $destCurrency = isset($q['destination_currency']) ? strtoupper((string) $q['destination_currency']) : null;
+        $site = site_currency()->code;
+        if ($destAmount !== null && $destCurrency !== null && $destCurrency !== $site) {
+            $symbol = (string) (config('platform.currencies.'.$destCurrency.'.symbol') ?: $destCurrency.' ');
+            $otpReceive = $symbol.number_format((float) $destAmount, 2, '.', ',');
+        } else {
+            $otpReceive = money($breakdown['net'], 2);
+        }
+        $otpFee = money(\App\Support\Money\Money::add($breakdown['provider_fee'], $breakdown['platform_fee'], 2), 2);
+    }
+@endphp
 <x-layout.page
     title="Withdraw"
     width="full"
@@ -44,20 +61,12 @@
     @else
     <x-dashboard.card>
         <div class="mb-4 rounded-xl border border-border-subtle p-4 text-sm">
-            <p class="font-medium text-text-primary">Sent to your primary payout account</p>
-            <p class="mt-1 text-text-secondary">{{ $account->summary() }}</p>
+            <p class="font-medium text-text-primary">{{ $account->summary() }}</p>
             <p class="text-text-muted">{{ $account->account_holder_name }}</p>
-            @unless ($account->isResolved())
-                <p class="mt-1 text-xs text-text-muted">This account couldn't be checked automatically, so the first payout is reviewed by our team.</p>
-            @endunless
-            <a href="{{ route($prefix.'.banks.index') }}" class="mt-2 inline-block text-sm underline">Change primary account</a>
+            <a href="{{ route($prefix.'.banks.index') }}" class="mt-2 inline-block text-sm underline">Change account</a>
         </div>
         <p class="mb-4 text-sm text-text-secondary">
-            Available: {{ money($wallet->availableBalance()) }}.
-            You can withdraw up to {{ money($wallet->withdrawableBalance(), 2, 2) }}.
-            @if (bccomp($wallet->subCentRemainder(), '0', 4) > 0)
-                <span class="text-text-muted">The remaining {{ money($wallet->subCentRemainder()) }} stays in your wallet until it adds up to a full cent.</span>
-            @endif
+            Available: {{ money($wallet->withdrawableBalance(), 2, 2) }}
         </p>
 
         @if ($step === 'confirm')
@@ -65,7 +74,7 @@
                 method="POST"
                 action="{{ route($prefix.'.withdrawal.otp') }}"
                 class="space-y-4"
-                x-data="withdrawalQuote(@js(route($prefix.'.withdrawal.quote')), @js(old('amount', '')))"
+                x-data="withdrawalQuote(@js(route($prefix.'.withdrawal.quote')), @js(old('amount', '')), @js($maxWithdrawable), @js(money($maxWithdrawable, 2, 2)))"
             >
                 @csrf
                 <input type="hidden" name="payout_account_id" value="{{ $account->id }}">
@@ -74,63 +83,45 @@
                     type="number"
                     name="amount"
                     :min="$withdrawalMin"
-                    :max="min((float) $withdrawalMax, (float) $wallet->withdrawableBalance())"
+                    :max="$maxWithdrawable"
                     step="0.01"
                     x-model="amount"
-                    x-on:input.debounce.500ms="load()"
-                    :hint="'Min '.money($withdrawalMin, 2).' · Max '.money($withdrawalMax, 2)"
+                    x-on:input.debounce.400ms="load()"
+                    :hint="'Min '.money($withdrawalMin, 2).' · Max '.money($maxWithdrawable, 2, 2)"
                     required
                 />
 
                 <div class="rounded-xl border border-border-subtle p-4 text-sm space-y-1" x-show="amount" x-cloak>
-                    <p class="text-xs text-text-muted" x-show="loading">Getting the current fee…</p>
+                    <p class="text-xs text-text-muted" x-show="loading">Calculating…</p>
                     <p class="text-danger" x-show="error" x-text="error"></p>
                     <template x-if="quote && !error">
                         <div class="space-y-1">
                             <p class="flex justify-between gap-4"><span>You withdraw</span><strong x-text="quote.amount"></strong></p>
-                            <p class="flex justify-between gap-4"><span>Provider fee ({{ $account->methodLabel() }}, {{ $account->countryName() }})</span><span x-text="quote.provider_fee"></span></p>
-                            <p class="flex justify-between gap-4" x-show="quote.platform_fee"><span>Platform fee</span><span x-text="quote.platform_fee"></span></p>
-                            <p class="flex justify-between gap-4 border-t border-border-subtle pt-1"><span>Sent to your account</span><strong x-text="quote.net"></strong></p>
-                            <p class="text-xs text-text-muted" x-show="quote.destination_amount">
-                                Estimated amount received: <span x-text="quote.destination_amount"></span> <span x-text="quote.destination_currency"></span>
-                                (rate <span x-text="quote.fx_rate"></span>, quoted <span x-text="quote.quoted_at"></span>). The final rate is set by the provider at payout.
-                            </p>
-                            <p class="text-xs text-text-muted" x-show="!quote.destination_amount && quote.destination_currency && quote.destination_currency !== '{{ site_currency()->code }}'">
-                                Your account receives this in <span x-text="quote.destination_currency"></span> at the payment provider's rate at payout time.
-                            </p>
-                            <p class="text-xs text-warning" x-show="quote.high_fee">The fee is a large share of this amount. A cheaper payout method, or waiting until your balance is higher, would lower it.</p>
+                            <p class="flex justify-between gap-4"><span>Fee</span><span x-text="quote.fee"></span></p>
+                            <p class="flex justify-between gap-4 border-t border-border-subtle pt-1"><span>You'll receive</span><strong x-text="quote.receive"></strong></p>
                         </div>
                     </template>
                 </div>
 
-                @if (bccomp($bounceFee, '0', 2) > 0)
-                    <p class="text-xs text-text-muted">If the payout is returned for incorrect account details, a {{ money($bounceFee, 2) }} fee applies. All other failed payouts are refunded in full.</p>
-                @else
-                    <p class="text-xs text-text-muted">If a payout fails, the full amount including the fee is returned to your balance.</p>
-                @endif
-
-                <x-dashboard.input type="password" name="password" label="Confirm your password" required autocomplete="current-password" />
-                <x-dashboard.button type="submit" icon="withdraw">Send email code</x-dashboard.button>
+                <x-dashboard.input type="password" name="password" label="Password" required autocomplete="current-password" />
+                <x-dashboard.button type="submit" icon="withdraw">Withdraw</x-dashboard.button>
             </form>
         @elseif ($step === 'otp')
             @if ($breakdown)
                 <div class="mb-4 rounded-xl border border-border-subtle p-4 text-sm space-y-1">
                     <p class="flex justify-between gap-4"><span>You withdraw</span><strong>{{ money($breakdown['amount'], 2) }}</strong></p>
-                    <p class="flex justify-between gap-4"><span>Provider fee</span><span>{{ money($breakdown['provider_fee'], 2) }}</span></p>
-                    @if (bccomp($breakdown['platform_fee'], '0', 2) > 0)
-                        <p class="flex justify-between gap-4"><span>Platform fee</span><span>{{ money($breakdown['platform_fee'], 2) }}</span></p>
-                    @endif
-                    <p class="flex justify-between gap-4 border-t border-border-subtle pt-1"><span>Sent to your account</span><strong>{{ money($breakdown['net'], 2) }}</strong></p>
+                    <p class="flex justify-between gap-4"><span>Fee</span><span>{{ $otpFee }}</span></p>
+                    <p class="flex justify-between gap-4 border-t border-border-subtle pt-1"><span>You'll receive</span><strong>{{ $otpReceive }}</strong></p>
                 </div>
             @endif
             <form method="POST" action="{{ route($prefix.'.withdrawal.verify-otp') }}" class="space-y-4">
                 @csrf
-                <x-dashboard.input name="otp" label="6-digit verification code" maxlength="6" required />
-                <x-dashboard.button type="submit" icon="withdraw">Verify and submit withdrawal</x-dashboard.button>
+                <x-dashboard.input name="otp" label="Email code" maxlength="6" required autocomplete="one-time-code" />
+                <x-dashboard.button type="submit" icon="withdraw">Confirm withdrawal</x-dashboard.button>
             </form>
-            <p class="mt-4 text-xs text-text-muted">Check your email for the code. To change the amount, <a href="{{ route($prefix.'.withdrawal.create') }}" class="underline">start again</a>.</p>
+            <p class="mt-4 text-xs text-text-muted"><a href="{{ route($prefix.'.withdrawal.create') }}" class="underline">Change amount</a></p>
         @else
-            <p class="text-sm text-text-secondary">Start again from the beginning.</p>
+            <p class="text-sm text-text-secondary">Start again.</p>
             <x-dashboard.button :href="route($prefix.'.withdrawal.create')" class="mt-4">Restart</x-dashboard.button>
         @endif
     </x-dashboard.card>
@@ -138,19 +129,27 @@
 </x-layout.page>
 
 <script>
-    function withdrawalQuote(url, initial) {
+    function withdrawalQuote(url, initial, maxWithdrawable, maxLabel) {
         return {
             amount: initial || '',
             quote: null,
             error: null,
             loading: false,
+            maxWithdrawable: Number(maxWithdrawable),
+            maxLabel: maxLabel,
             init() {
                 if (this.amount) this.load();
             },
             async load() {
                 this.error = null;
-                if (!this.amount || Number(this.amount) <= 0) {
+                const value = Number(this.amount);
+                if (!this.amount || value <= 0) {
                     this.quote = null;
+                    return;
+                }
+                if (value > this.maxWithdrawable) {
+                    this.quote = null;
+                    this.error = 'You can withdraw up to ' + this.maxLabel + '.';
                     return;
                 }
                 this.loading = true;
@@ -159,13 +158,13 @@
                     const data = await res.json();
                     if (!res.ok) {
                         this.quote = null;
-                        this.error = data.message || 'The fee could not be calculated.';
+                        this.error = data.message || 'Could not calculate this amount.';
                         return;
                     }
                     this.quote = data;
                 } catch (e) {
                     this.quote = null;
-                    this.error = 'The fee could not be calculated. Try again.';
+                    this.error = 'Could not calculate this amount. Try again.';
                 } finally {
                     this.loading = false;
                 }

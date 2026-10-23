@@ -97,4 +97,24 @@ class WithdrawalConfirmationTest extends TestCase
             ->assertRedirect(route('agent.withdrawal.create'))
             ->assertSessionHas('error');
     }
+
+    public function test_quote_refuses_amount_above_withdrawable_balance(): void
+    {
+        [$user] = $this->userWithPayoutAccount();
+
+        $this->actingAs($user)
+            ->getJson(route('agent.withdrawal.quote', ['amount' => '8000000']))
+            ->assertStatus(422)
+            ->assertJsonFragment(['message' => 'Insufficient available balance. You can withdraw up to $500.00.']);
+    }
+
+    public function test_quote_returns_simple_breakdown_fields(): void
+    {
+        [$user] = $this->userWithPayoutAccount();
+
+        $this->actingAs($user)
+            ->getJson(route('agent.withdrawal.quote', ['amount' => '100']))
+            ->assertOk()
+            ->assertJsonStructure(['amount', 'fee', 'receive']);
+    }
 }

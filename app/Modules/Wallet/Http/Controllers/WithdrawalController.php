@@ -134,18 +134,27 @@ class WithdrawalController extends Controller
         }
 
         $quote = (array) $breakdown['quote'];
+        $destinationCurrency = isset($quote['destination_currency']) ? strtoupper((string) $quote['destination_currency']) : null;
+        $destinationAmount = isset($quote['destination_amount']) ? (string) $quote['destination_amount'] : null;
 
         return response()->json([
             'amount' => money($breakdown['amount'], 2),
-            'provider_fee' => money($breakdown['provider_fee'], 2),
-            'platform_fee' => bccomp($breakdown['platform_fee'], '0', 2) > 0 ? money($breakdown['platform_fee'], 2) : null,
-            'net' => money($breakdown['net'], 2),
-            'fx_rate' => $quote['fx_rate'] ?? null,
-            'destination_amount' => isset($quote['destination_amount']) ? number_format((float) $quote['destination_amount'], 2) : null,
-            'destination_currency' => $quote['destination_currency'] ?? null,
-            'quoted_at' => isset($quote['quoted_at']) ? \Carbon\Carbon::parse($quote['quoted_at'])->format('H:i') : null,
-            'high_fee' => $breakdown['high_fee'],
+            'fee' => money(Money::add($breakdown['provider_fee'], $breakdown['platform_fee'], 2), 2),
+            'receive' => $this->receiveDisplay($destinationAmount, $destinationCurrency, $breakdown['net']),
         ]);
+    }
+
+    /** Local currency when the payout converts; otherwise the USD amount sent after fees. */
+    private function receiveDisplay(?string $destinationAmount, ?string $destinationCurrency, string $netUsd): string
+    {
+        $site = site_currency()->code;
+        if ($destinationAmount !== null && $destinationCurrency !== null && $destinationCurrency !== $site) {
+            $symbol = (string) (config('platform.currencies.'.$destinationCurrency.'.symbol') ?: $destinationCurrency.' ');
+
+            return $symbol.number_format((float) $destinationAmount, 2, '.', ',');
+        }
+
+        return money($netUsd, 2);
     }
 
     public function sendOtp(Request $request): RedirectResponse

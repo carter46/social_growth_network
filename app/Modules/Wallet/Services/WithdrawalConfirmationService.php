@@ -95,6 +95,16 @@ class WithdrawalConfirmationService
             throw ValidationException::withMessages(['bank' => __('Add a payout account before requesting a withdrawal.')]);
         }
 
+        $amount = Money::round($amount, 2);
+        $wallet = $user->wallet;
+        if (! $wallet || Money::cmp($wallet->withdrawableBalance(), $amount, 4) < 0) {
+            throw ValidationException::withMessages([
+                'amount' => __('Insufficient available balance. You can withdraw up to :max.', [
+                    'max' => money($wallet?->withdrawableBalance() ?? '0', 2, 2),
+                ]),
+            ]);
+        }
+
         return $this->fees->quote($amount, $account);
     }
 
