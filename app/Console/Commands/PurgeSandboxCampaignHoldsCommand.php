@@ -132,6 +132,11 @@ class PurgeSandboxCampaignHoldsCommand extends Command
         $this->line('Total held matched: '.Money::round($totalRelease, 2)
             .($execute ? " — voided {$done}, failed {$failed}." : ' (dry-run, nothing written).'));
 
+        if ($execute) {
+            \App\Support\SandboxCutover::remember($before);
+            $this->line('Analytics cutover saved: sandbox orders at/before '.$before->toDateString().' are excluded from revenue.');
+        }
+
         if (! $execute) {
             $this->comment('Re-run with --execute to apply. Add --claw-platform to also remove the unlocked amount from the platform wallet balance.');
         }

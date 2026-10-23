@@ -91,6 +91,11 @@ class PurgeSandboxWalletCreditsCommand extends Command
             $this->archiveRecords($before, $userFilter, $execute);
         }
 
+        if ($execute) {
+            \App\Support\SandboxCutover::remember($before);
+            $this->line('Analytics cutover saved: sandbox orders at/before '.$before->toDateString().' are excluded from revenue.');
+        }
+
         if (! $execute) {
             $this->comment('Re-run with --execute to apply.');
             if (! $cancelOpen || ! $archive) {

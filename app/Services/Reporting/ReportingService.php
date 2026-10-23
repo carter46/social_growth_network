@@ -95,13 +95,17 @@ class ReportingService
      */
     public function revenueSection(ReportingRange $range): array
     {
+        $breakdown = $this->revenue->breakdown($range);
+
         return [
-            'total' => $this->revenue->sum($range),
+            'total' => $breakdown['platform_revenue'],
             'count' => $this->revenue->count($range),
             'by_type' => $this->revenue->byType($range),
             'delta_percent' => $this->revenue->deltaPercent($range),
             'series' => $this->revenue->dailySeries($range),
-            'gmv' => $this->ops->gmv($range),
+            'gmv' => $breakdown['creator_spend'],
+            'breakdown' => $breakdown,
+            'sandbox_cutover_at' => \App\Support\SandboxCutover::at()?->toDateString(),
             'fee_split_started_at' => \App\Models\SystemSetting::get(\App\Modules\Wallet\Services\WalletService::FEE_SPLIT_STARTED_SETTING),
         ];
     }

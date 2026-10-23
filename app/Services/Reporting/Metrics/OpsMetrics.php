@@ -83,14 +83,17 @@ class OpsMetrics
             ->count();
     }
 
-    /** Gross platform order totals completed/paid in range. */
+    /** Gross creator spend: paid platform orders only (sandbox-era excluded). */
     public function gmv(ReportingRange $range): float
     {
-        return round((float) Order::query()
+        $query = Order::query()
             ->where('source', 'platform')
-            ->whereIn('status', ['completed', 'paid', 'processing'])
-            ->whereBetween('created_at', [$range->from, $range->to])
-            ->sum(DB::raw('COALESCE(total_amount, amount)')), 2);
+            ->where('status', 'paid')
+            ->whereBetween('created_at', [$range->from, $range->to]);
+
+        \App\Support\SandboxCutover::excludeSandboxOrders($query);
+
+        return round((float) $query->sum(DB::raw('COALESCE(total_amount, amount)')), 2);
     }
 
     /**

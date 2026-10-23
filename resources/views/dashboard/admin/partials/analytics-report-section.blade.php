@@ -38,32 +38,40 @@
 @elseif ($section === 'revenue')
     <x-dashboard.command.section-label title="Business — Revenue" accent="primary" />
     @php
+        $bd = $data['breakdown'] ?? [];
         $pulse = [
+            [
+                'label' => 'Creators paid in',
+                'value' => money($bd['creator_spend'] ?? $data['gmv'] ?? 0, 2),
+                'accent' => 'blue',
+                'hint' => 'Paid campaign / service orders',
+                'href' => route('admin.orders'),
+            ],
+            [
+                'label' => 'Paid to agents',
+                'value' => money($bd['agent_rewards_paid'] ?? 0, 2),
+                'accent' => 'indigo',
+                'hint' => 'Campaign rewards paid out',
+                'href' => route('admin.transactions'),
+            ],
+            [
+                'label' => 'Platform keep',
+                'value' => money($bd['platform_share'] ?? 0, 2),
+                'accent' => 'emerald',
+                'hint' => 'Order total − agent budget',
+            ],
             [
                 'label' => 'Platform revenue',
                 'value' => money($data['total'] ?? 0, 2),
                 'accent' => 'emerald',
                 'delta' => $data['delta_percent'] ?? null,
                 'delta_label' => 'vs prior period',
-                'hint' => 'fees + platform sales',
+                'hint' => 'Platform keep + fees',
                 'href' => route('admin.transactions'),
-            ],
-            [
-                'label' => 'Transactions',
-                'value' => number_format($data['count'] ?? 0),
-                'accent' => 'indigo',
-                'hint' => 'in selected range',
-                'href' => route('admin.transactions'),
-            ],
-            [
-                'label' => 'GMV',
-                'value' => money($data['gmv'] ?? 0, 2),
-                'accent' => 'blue',
-                'hint' => 'platform order volume',
             ],
         ];
     @endphp
-    <x-dashboard.command.pulse-grid :items="$pulse" class="mb-6 xl:!grid-cols-3" />
+    <x-dashboard.command.pulse-grid :items="$pulse" class="mb-6 xl:!grid-cols-4" />
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div class="xl:col-span-2">
             <x-dashboard.command.hero-chart
@@ -97,10 +105,15 @@
         />
     </div>
     <p class="mt-3 text-xs text-text-secondary">
+        <strong>Platform revenue</strong> is what the platform keeps: (creator order total − agent budget) + withdrawal/platform fees.
+        It is not the full checkout amount — agent rewards are a cost, not revenue.
+        @if (! empty($data['sandbox_cutover_at']))
+            Sandbox-era paid orders on or before {{ $data['sandbox_cutover_at'] }} are excluded.
+        @endif
         @if (! empty($data['fee_split_started_at']))
-            Withdrawal fee revenue counts only the platform's own fee, from {{ \Illuminate\Support\Carbon::parse($data['fee_split_started_at'])->format('M j, Y') }}. Provider fees are pass-through and are not revenue.
+            Withdrawal fee revenue counts only the platform's own fee, from {{ \Illuminate\Support\Carbon::parse($data['fee_split_started_at'])->format('M j, Y') }}. Provider fees are pass-through.
         @else
-            Withdrawal fee revenue starts with the first withdrawal completed after the fee split. Provider fees are pass-through and are not revenue.
+            Withdrawal fee revenue starts after the fee split. Provider fees are pass-through.
         @endif
     </p>
 
