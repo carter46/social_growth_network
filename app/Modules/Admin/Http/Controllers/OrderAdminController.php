@@ -25,6 +25,7 @@ class OrderAdminController extends Controller
     public function index(Request $request): View
     {
         $query = Order::query()
+            ->forActiveUsers()
             ->with(['user', 'items'])
             ->where('source', 'platform')
             ->orderByDesc('created_at');

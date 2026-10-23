@@ -29,7 +29,9 @@ class WalletFundingController extends Controller
 
     public function index(): View
     {
-        $fundings = WalletFunding::with(['user', 'wallet'])
+        $fundings = WalletFunding::query()
+            ->forActiveUsers()
+            ->with(['user', 'wallet'])
             ->orderByDesc('created_at')
             ->paginate(20);
 

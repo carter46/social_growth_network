@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToActiveUser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 class SupportTicket extends Model
 {
     /** @use HasFactory<\Database\Factories\SupportTicketFactory> */
+    use BelongsToActiveUser;
     use HasFactory;
 
     public const TYPE_CREATOR = 'creator';

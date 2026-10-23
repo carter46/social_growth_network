@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToActiveUser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Withdrawal extends Model
 {
+    use BelongsToActiveUser;
+
     protected $guarded = ['id'];
 
     public const OPEN_STATUSES = ['pending', 'approved', 'processing'];

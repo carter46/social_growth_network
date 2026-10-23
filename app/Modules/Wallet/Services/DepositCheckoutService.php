@@ -118,7 +118,8 @@ class DepositCheckoutService
 
         $reference = 'DEP-'.strtoupper((string) Str::ulid());
 
-        $funding = DB::transaction(function () use ($user, $amount, $currency, $method, $key, $reference) {
+        $environment = method_exists($driver, 'environment') ? $driver->environment() : 'sandbox';
+        $funding = DB::transaction(function () use ($user, $amount, $currency, $method, $key, $reference, $environment) {
             $funding = WalletFunding::create([
                 'user_id' => $user->id,
                 'wallet_id' => $user->wallet->id,
@@ -130,6 +131,7 @@ class DepositCheckoutService
                 'provider' => $key,
                 'provider_payment_reference' => $reference,
                 'reference' => $reference,
+                'metadata' => ['environment' => $environment],
             ]);
 
             PaymentTimelineEvent::record($funding, 'created', 'Created');

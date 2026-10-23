@@ -139,7 +139,9 @@ class DashboardController extends Controller
 
     public function transactions(): View
     {
-        $transactions = \App\Models\Transaction::with('user')
+        $transactions = \App\Models\Transaction::query()
+            ->forActiveUsers()
+            ->with('user')
             ->orderByDesc('created_at')
             ->paginate(20);
 

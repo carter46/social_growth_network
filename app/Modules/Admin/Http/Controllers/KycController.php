@@ -22,7 +22,10 @@ class KycController extends Controller
             $status = 'pending';
         }
 
-        $query = KycSubmission::with('user')->orderByDesc('created_at');
+        $query = KycSubmission::query()
+            ->forActiveUsers()
+            ->with('user')
+            ->orderByDesc('created_at');
 
         if ($status !== 'all') {
             $query->where('status', $status);
@@ -45,9 +48,9 @@ class KycController extends Controller
         $submissions = $query->paginate(20)->withQueryString();
 
         $counts = [
-            'pending' => KycSubmission::where('status', 'pending')->count(),
-            'approved' => KycSubmission::where('status', 'approved')->count(),
-            'rejected' => KycSubmission::where('status', 'rejected')->count(),
+            'pending' => KycSubmission::query()->forActiveUsers()->where('status', 'pending')->count(),
+            'approved' => KycSubmission::query()->forActiveUsers()->where('status', 'approved')->count(),
+            'rejected' => KycSubmission::query()->forActiveUsers()->where('status', 'rejected')->count(),
         ];
 
         $kycRequired = SystemSetting::kycRequired();

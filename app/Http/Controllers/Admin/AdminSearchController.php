@@ -74,6 +74,7 @@ class AdminSearchController extends Controller
 
         if ($user?->can('support.manage')) {
             $items = SupportTicket::query()
+                ->forActiveUsers()
                 ->where(function ($query) use ($like, $q) {
                     $query->where('subject', 'like', $like)
                         ->orWhere('id', is_numeric($q) ? (int) $q : -1);
@@ -97,6 +98,7 @@ class AdminSearchController extends Controller
 
         if ($user?->can('finance.manage')) {
             $orders = Order::query()
+                ->forActiveUsers()
                 ->where(function ($query) use ($like, $q) {
                     $query->where('reference', 'like', $like)
                         ->orWhere('id', is_numeric($q) ? (int) $q : -1);
@@ -151,6 +153,7 @@ class AdminSearchController extends Controller
             }
 
             $txns = Transaction::query()
+                ->forActiveUsers()
                 ->where(function ($query) use ($like, $q) {
                     $query->where('reference', 'like', $like)
                         ->orWhere('label', 'like', $like)
@@ -173,6 +176,7 @@ class AdminSearchController extends Controller
             }
 
             $fundings = WalletFunding::query()
+                ->forActiveUsers()
                 ->with('user')
                 ->where(function ($query) use ($like, $q) {
                     $query->where('reference', 'like', $like)

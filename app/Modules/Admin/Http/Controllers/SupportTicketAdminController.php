@@ -28,7 +28,10 @@ class SupportTicketAdminController extends Controller
 
         $search = trim($request->string('q')->toString());
 
-        $query = SupportTicket::with(['user', 'assignee'])->orderByDesc('created_at');
+        $query = SupportTicket::query()
+            ->forActiveUsers()
+            ->with(['user', 'assignee'])
+            ->orderByDesc('created_at');
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
@@ -48,7 +51,7 @@ class SupportTicketAdminController extends Controller
 
         $counts = [];
         foreach (self::STATUSES as $s) {
-            $counts[$s] = SupportTicket::where('status', $s)->count();
+            $counts[$s] = SupportTicket::query()->forActiveUsers()->where('status', $s)->count();
         }
 
         $data = compact('tickets', 'status', 'counts', 'search');

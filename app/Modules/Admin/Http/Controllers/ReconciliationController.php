@@ -22,6 +22,7 @@ class ReconciliationController extends Controller
     public function index(): View
     {
         $fundings = WalletFunding::query()
+            ->forActiveUsers()
             ->with('user')
             ->where('amount', '>', 0)
             ->where(function ($q) {
@@ -34,6 +35,7 @@ class ReconciliationController extends Controller
             ->get();
 
         $withdrawals = Withdrawal::query()
+            ->forActiveUsers()
             ->with(['user', 'latestAttempt'])
             ->where(function ($q) {
                 $q->whereIn('status', ['processing', 'approved'])

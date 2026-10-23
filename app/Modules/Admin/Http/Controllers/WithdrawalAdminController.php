@@ -25,7 +25,9 @@ class WithdrawalAdminController extends Controller
 
     public function index(): View
     {
-        $withdrawals = Withdrawal::with(['user', 'approver', 'payoutAccount', 'latestAttempt'])
+        $withdrawals = Withdrawal::query()
+            ->forActiveUsers()
+            ->with(['user', 'approver', 'payoutAccount', 'latestAttempt'])
             ->orderByDesc('created_at')
             ->paginate(20);
 
