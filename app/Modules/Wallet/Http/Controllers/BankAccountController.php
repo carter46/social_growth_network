@@ -78,7 +78,6 @@ class BankAccountController extends Controller
             'schemas' => $schemas,
             'atLimit' => $user->payoutAccounts()->count() >= $this->accounts->maxAccounts(),
             'profileName' => (string) $user->name,
-            'bounceFee' => PayoutAccountService::bounceFee(),
             'layout' => MemberShell::layout(),
             'prefix' => $prefix,
         ]);

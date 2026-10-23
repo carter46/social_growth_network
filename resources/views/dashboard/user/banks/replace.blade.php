@@ -116,35 +116,31 @@
                 </template>
 
                 <div x-show="method" x-cloak class="rounded-xl border border-border-subtle p-4 text-sm space-y-2">
-                    <p><span class="text-text-muted">Account holder:</span> <strong>{{ $profileName }}</strong></p>
+                    <p><span class="text-text-muted">Must match your profile name:</span> <strong>{{ $profileName }}</strong></p>
                     <template x-if="isAuto()">
-                        <div>
-                            <p class="text-xs text-text-muted" x-show="resolving">Looking up the account name…</p>
+                        <div class="space-y-1">
+                            <p class="text-xs text-text-muted" x-show="resolving">Checking the name on this account…</p>
                             <p class="text-xs text-danger" x-show="resolveError" x-text="resolveError"></p>
                             <p x-show="resolvedName"><span class="text-text-muted">Name at the bank:</span> <strong x-text="resolvedName"></strong></p>
-                            <p class="text-xs text-danger" x-show="resolvedName && matches === false">This name doesn't match your profile name. Use an account in your own name, or contact support.</p>
+                            <p class="text-xs text-success" x-show="matches === true">Names match. You can save this account.</p>
+                            <p class="text-xs text-danger" x-show="resolvedName && matches === false">This bank name doesn’t match your profile. Use an account in your own name, or update your profile name first. You can’t save until they match.</p>
                         </div>
                     </template>
                     <template x-if="!isAuto()">
                         <label class="flex items-start gap-2">
                             <input type="checkbox" name="confirm_name" value="1" class="mt-1" required>
-                            <span>This account is in my name, exactly as shown above. This can't be checked automatically, so the first payout is reviewed.</span>
+                            <span>This account is in my name ({{ $profileName }}). It can’t be checked automatically, so the first payout is reviewed.</span>
                         </label>
                     </template>
                     <label class="flex items-start gap-2">
                         <input type="checkbox" name="accept_terms" value="1" class="mt-1" required>
-                        <span>
-                            The account holder name is exactly {{ $profileName }}. Payouts to an account in another name will fail@if (bccomp($bounceFee, '0', 2) > 0), and a {{ money($bounceFee, 2) }} bounce fee applies@endif.
-                            @if (bccomp($bounceFee, '0', 2) > 0)
-                                All other failed payouts are refunded in full.
-                            @endif
-                        </span>
+                        <span>I confirm this payout account belongs to {{ $profileName }}.</span>
                     </label>
-                    <p class="text-xs text-text-muted">The holder name comes from your profile and is locked once you save a payout account.</p>
+                    <p class="text-xs text-text-muted">Your profile name is locked after you save a payout account.</p>
                 </div>
 
                 <div class="flex flex-wrap gap-3">
-                    <x-dashboard.button type="submit" variant="primary" x-bind:disabled="isAuto() && matches === false">Save payout account</x-dashboard.button>
+                    <x-dashboard.button type="submit" variant="primary" x-bind:disabled="!canSave()">Save payout account</x-dashboard.button>
                     <x-dashboard.button :href="route($prefix.'.banks.index')" variant="secondary">Cancel</x-dashboard.button>
                 </div>
             </form>
@@ -215,10 +211,17 @@
             ready() {
                 return Object.entries(this.currentFields()).every(([name, def]) => !def.required || (this.fields[name] || '').toString().trim() !== '');
             },
+            canSave() {
+                if (!this.method || this.resolving) return false;
+                if (this.isAuto()) return this.matches === true;
+                return true;
+            },
             async tryResolve() {
                 if (!this.isAuto() || !this.ready()) return;
                 this.resolving = true;
                 this.resolveError = null;
+                this.matches = null;
+                this.resolvedName = null;
                 try {
                     const res = await fetch(cfg.resolveUrl, {
                         method: 'POST',
@@ -228,12 +231,14 @@
                     const data = await res.json();
                     if (!res.ok) {
                         this.resolveError = data.message || 'We could not check this account.';
+                        this.matches = false;
                         return;
                     }
                     this.resolvedName = data.account_name;
-                    this.matches = data.matches;
+                    this.matches = data.matches === true;
                 } catch (e) {
                     this.resolveError = 'We could not check this account. Try again.';
+                    this.matches = false;
                 } finally {
                     this.resolving = false;
                 }

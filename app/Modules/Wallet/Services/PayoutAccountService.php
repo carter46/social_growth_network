@@ -326,7 +326,7 @@ class PayoutAccountService
         }
 
         if (! $termsAccepted) {
-            throw ValidationException::withMessages(['accept_terms' => __('Confirm the account holder name and payout terms to continue.')]);
+            throw ValidationException::withMessages(['accept_terms' => __('Confirm that this payout account is in your name.')]);
         }
 
         $resolvedName = $this->lookupName($user, $country, $method, $validated);
@@ -486,14 +486,9 @@ class PayoutAccountService
         }
     }
 
-    public function termsText(string $profileName, string $bounceFee): string
+    public function termsText(string $profileName, string $bounceFee = '0'): string
     {
-        $text = 'The account holder name is exactly '.$profileName.'. Payouts to an account in another name will fail';
-        if (bccomp($bounceFee, '0', 2) > 0) {
-            $text .= ', and a '.money($bounceFee, 2).' bounce fee applies';
-        }
-
-        return $text.'.';
+        return 'I confirm this payout account belongs to '.$profileName.'.';
     }
 
     private function assertOwnedActive(User $user, PayoutAccount $account): void
