@@ -131,13 +131,17 @@
                 x-data="{
                     sending: false,
                     status: '',
-                    ok: null,
+                    outcome: null,
+                    fromEmail: '',
+                    attempts: [],
                     async submit(e) {
                         e.preventDefault();
                         if (this.sending) return;
                         this.sending = true;
                         this.status = '';
-                        this.ok = null;
+                        this.outcome = null;
+                        this.fromEmail = '';
+                        this.attempts = [];
                         try {
                             const res = await fetch(e.target.action, {
                                 method: 'POST',
@@ -149,16 +153,17 @@
                                 body: new FormData(e.target),
                             });
                             const data = await res.json().catch(() => ({}));
-                            this.ok = !!data.ok;
-                            if (res.ok && data.ok) {
-                                this.status = data.message || 'Test email sent.';
-                            } else if (data.errors?.test_email?.[0]) {
+                            this.outcome = data.outcome || (data.ok ? 'brevo' : 'failed');
+                            this.fromEmail = data.from_email || '';
+                            this.attempts = Array.isArray(data.attempts) ? data.attempts : [];
+                            if (data.errors?.test_email?.[0]) {
                                 this.status = data.errors.test_email[0];
+                                this.outcome = 'failed';
                             } else {
                                 this.status = data.message || data.error || 'Mail send failed.';
                             }
                         } catch (err) {
-                            this.ok = false;
+                            this.outcome = 'failed';
                             this.status = err?.message || 'Mail send failed.';
                         } finally {
                             this.sending = false;
@@ -169,15 +174,54 @@
             >
                 @csrf
                 <h3 class="font-semibold text-text-primary">Send test email</h3>
+                <p class="text-sm text-text-secondary">Tries Brevo first, then SMTP if Brevo fails. The report below shows each step — a fallback is not shown as a clean success.</p>
                 <x-dashboard.input name="test_email" type="email" label="Send test to" :value="old('test_email', auth()->user()->email)" required />
                 <x-dashboard.input name="test_subject" label="Subject (optional)" :value="old('test_subject', $siteName.' — test email')" />
-                <p
+                <div
                     x-show="status"
-                    x-text="status"
-                    class="text-sm break-words"
-                    :class="ok === true ? 'text-success' : 'text-danger'"
                     x-cloak
-                ></p>
+                    class="rounded-xl border p-4 space-y-3 text-sm"
+                    :class="{
+                        'border-success/40 bg-success/5': outcome === 'brevo',
+                        'border-warning/40 bg-warning/5': outcome === 'fallback',
+                        'border-danger/40 bg-danger/5': outcome === 'failed'
+                    }"
+                >
+                    <p
+                        class="break-words font-medium"
+                        :class="{
+                            'text-success': outcome === 'brevo',
+                            'text-warning': outcome === 'fallback',
+                            'text-danger': outcome === 'failed'
+                        }"
+                        x-text="status"
+                    ></p>
+                    <p class="text-text-muted" x-show="fromEmail" x-cloak>
+                        From: <span x-text="fromEmail"></span>
+                    </p>
+                    <ul class="space-y-2" x-show="attempts.length" x-cloak>
+                        <template x-for="row in attempts" :key="row.step + '-' + row.label">
+                            <li class="rounded-lg border border-border-subtle bg-elevated px-3 py-2">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <span class="font-medium text-text-primary" x-text="'Step ' + row.step + ': ' + row.label"></span>
+                                    <span
+                                        class="text-xs font-semibold uppercase"
+                                        :class="row.success ? 'text-success' : 'text-danger'"
+                                        x-text="row.success ? 'OK' : 'Failed'"
+                                    ></span>
+                                </div>
+                                <p class="mt-1 text-danger break-words" x-show="row.error" x-text="row.error"></p>
+                                <p class="mt-1 text-text-muted" x-show="row.message_id" x-cloak>
+                                    Message ID: <span x-text="row.message_id"></span>
+                                </p>
+                                <p class="mt-1 text-text-muted" x-show="row.http_status" x-cloak>
+                                    HTTP <span x-text="row.http_status"></span>
+                                    <span x-show="row.latency_ms" x-text="' · ' + row.latency_ms + ' ms'"></span>
+                                </p>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
                 @error('test_email')
                     <p class="text-sm text-danger" x-show="!status">{{ $message }}</p>
                 @enderror

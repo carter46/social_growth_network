@@ -17,6 +17,7 @@ use App\Services\Tracking\TrackingScriptRenderer;
 use App\Services\Branding\SiteBrandingRepository;
 use App\Services\Communications\Contact\PlatformContactRepository;
 use App\Services\Communications\Email\EmailProfile;
+use App\Services\Communications\Email\EmailSendReport;
 use App\Services\Communications\Email\EmailService;
 use App\Services\Communications\LiveChat\LiveChatManager;
 use App\Services\Communications\Social\SocialLinkRepository;
@@ -437,87 +438,87 @@ class SettingsController extends Controller
 
         $to = $validated['test_email'];
         $siteName = $this->branding->siteName();
-        $subject = $validated['test_subject'] ?: $siteName.' — test email';
+        $subjectInput = isset($validated['test_subject']) ? trim((string) $validated['test_subject']) : '';
+        $subject = $subjectInput !== '' ? $subjectInput : $siteName.' — test email';
         $wantsJson = $request->expectsJson() || $request->ajax();
 
         try {
-            $result = $this->emails->sendRaw(
+            $report = $this->emails->sendRawWithReport(
                 $to,
                 $subject,
                 "This is a test email from {$siteName} Admin Settings.\n\nIf you received this, your mail configuration is working.\n\nSent at: ".now()->toDateTimeString(),
                 EmailProfile::NoReply,
             );
 
-            $brevo = IntegrationProvider::forProvider(IntegrationProvider::BREVO)->fresh();
-            $errorDetail = $result->error
-                ?: $brevo->last_error
-                ?: ($brevo->meta['last_fallback_reason'] ?? null);
-            $fallbackReason = $brevo->meta['last_fallback_reason'] ?? null;
-            $usedFallback = $result->success
-                && $result->provider === IntegrationProvider::LARAVEL_MAIL
-                && filled($fallbackReason);
+            $result = $report->result;
+            $brevoError = collect($report->attempts)
+                ->filter(fn (array $row) => ($row['provider'] ?? '') === IntegrationProvider::BREVO && ! ($row['success'] ?? false))
+                ->map(fn (array $row) => $row['error'] ?? null)
+                ->filter()
+                ->last();
 
             $this->audit->log(auth()->id(), 'settings.mail_test', null, null, [
                 'recipient' => $to,
-                'ok' => $result->success,
+                'outcome' => $report->outcome,
+                'ok' => $report->outcome === EmailSendReport::OUTCOME_BREVO,
+                'delivered' => $result->success,
                 'provider' => $result->provider,
-                'error' => $errorDetail,
+                'error' => $result->error ?: $brevoError,
                 'message_id' => $result->messageId,
                 'http_status' => $result->httpStatus,
+                'from_email' => $report->fromEmail,
+                'attempts' => $report->attempts,
             ], $request->ip());
 
-            if (! $result->success) {
-                $message = 'Mail send failed via '.$result->provider.': '.($errorDetail ?: 'Unknown error');
+            $message = match ($report->outcome) {
+                EmailSendReport::OUTCOME_BREVO => __('Brevo accepted the test to :email. From: :from. Check inbox and spam. Message ID: :id', [
+                    'email' => $to,
+                    'from' => $report->fromEmail,
+                    'id' => $result->messageId ?: '—',
+                ]),
+                EmailSendReport::OUTCOME_FALLBACK => __('Brevo did not send (:error). Fell back to SMTP. From: :from. Check inbox — and fix Brevo.', [
+                    'error' => $brevoError ?: 'unknown error',
+                    'from' => $report->fromEmail,
+                ]),
+                default => __('Email was not sent. :detail', [
+                    'detail' => $result->error ?: ($brevoError ?: 'Both Brevo and SMTP failed.'),
+                ]),
+            };
 
+            $payload = array_merge($report->toArray(), [
+                'recipient' => $to,
+                'message' => $message,
+                'brevo_error' => $brevoError,
+            ]);
+
+            if ($report->outcome === EmailSendReport::OUTCOME_FAILED) {
                 if ($wantsJson) {
-                    return response()->json([
-                        'ok' => false,
-                        'message' => $message,
-                        'provider' => $result->provider,
-                        'error' => $errorDetail,
-                        'http_status' => $result->httpStatus,
-                    ], 422);
+                    return response()->json($payload, 422);
                 }
 
                 return back()->withInput()->withErrors(['test_email' => $message]);
             }
 
-            if ($usedFallback) {
-                $message = __('Sent via Laravel Mail fallback. Brevo error: :error', [
-                    'error' => $fallbackReason,
-                ]);
-            } else {
-                $message = __('Test email sent to :email via :provider.', [
-                    'email' => $to,
-                    'provider' => $result->provider === 'brevo' ? 'Brevo' : $result->provider,
-                ]);
-                if ($result->messageId) {
-                    $message .= ' Message ID: '.$result->messageId;
-                }
-            }
-
             if ($wantsJson) {
-                return response()->json([
-                    'ok' => true,
-                    'message' => $message,
-                    'provider' => $result->provider,
-                    'message_id' => $result->messageId,
-                    'http_status' => $result->httpStatus,
-                    'used_fallback' => $usedFallback,
-                    'fallback_reason' => $usedFallback ? $fallbackReason : null,
-                ]);
+                return response()->json($payload);
             }
 
-            return back()->with('status', $message);
+            // Fallback is a warning flash, not a green success.
+            return $report->usedFallback()
+                ? back()->with('error', $message)
+                : back()->with('status', $message);
         } catch (Throwable $e) {
             $message = 'Mail send failed: '.$e->getMessage();
 
             if ($wantsJson) {
                 return response()->json([
                     'ok' => false,
+                    'delivered' => false,
+                    'outcome' => EmailSendReport::OUTCOME_FAILED,
                     'message' => $message,
                     'error' => $e->getMessage(),
-                ], 500);
+                    'attempts' => [],
+                ], 422);
             }
 
             return back()->withInput()->withErrors(['test_email' => $message]);

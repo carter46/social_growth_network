@@ -26,32 +26,65 @@ class EmailService
      */
     public function send(OutgoingEmail $email, int $deferredStage = 0): SendResult
     {
+        return $this->sendWithReport($email, $deferredStage)->result;
+    }
+
+    /**
+     * Same send path as send(), but returns every provider attempt for admin diagnostics.
+     *
+     * @param  int  $deferredStage  0 = initial send, 1 = after 5m retry, 2 = after 30m retry
+     */
+    public function sendWithReport(OutgoingEmail $email, int $deferredStage = 0): EmailSendReport
+    {
         $this->hydrateTemplate($email);
         [$fromName, $fromEmail, $replyTo] = $this->resolveIdentity($email);
         $correlationId = $this->logger->newCorrelationId();
         $attempt = 0;
+        $attempts = [];
         $brevoError = null;
 
         $brevoResult = $this->attemptBrevo($email, $fromName, $fromEmail, $replyTo, $correlationId, ++$attempt);
+        $attempts[] = $this->attemptRow('Brevo', $brevoResult, 1);
         if ($brevoResult->success) {
-            return $brevoResult;
+            return new EmailSendReport($brevoResult, $attempts, EmailSendReport::OUTCOME_BREVO, $fromName, $fromEmail, $replyTo);
         }
         $brevoError = $brevoResult->error;
 
         $brevoRetry = $this->attemptBrevo($email, $fromName, $fromEmail, $replyTo, $correlationId, ++$attempt);
+        $attempts[] = $this->attemptRow('Brevo (retry)', $brevoRetry, 2);
         if ($brevoRetry->success) {
-            return $brevoRetry;
+            return new EmailSendReport($brevoRetry, $attempts, EmailSendReport::OUTCOME_BREVO, $fromName, $fromEmail, $replyTo);
         }
         $brevoError = $brevoRetry->error ?: $brevoError;
 
         $laravelResult = $this->attemptLaravel($email, $fromName, $fromEmail, $replyTo, $correlationId, ++$attempt, true);
+        $attempts[] = $this->attemptRow('SMTP / Laravel Mail (fallback)', $laravelResult, 3);
         if ($laravelResult->success) {
             $this->rememberFallback($brevoError);
 
-            return $laravelResult;
+            return new EmailSendReport($laravelResult, $attempts, EmailSendReport::OUTCOME_FALLBACK, $fromName, $fromEmail, $replyTo);
         }
 
-        return $this->handleTotalFailure($email, $laravelResult, $deferredStage, $correlationId, $attempt);
+        $failed = $this->handleTotalFailure($email, $laravelResult, $deferredStage, $correlationId, $attempt);
+
+        return new EmailSendReport($failed, $attempts, EmailSendReport::OUTCOME_FAILED, $fromName, $fromEmail, $replyTo);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function attemptRow(string $label, SendResult $result, int $step): array
+    {
+        return [
+            'step' => $step,
+            'label' => $label,
+            'provider' => $result->provider,
+            'success' => $result->success,
+            'error' => $result->error,
+            'message_id' => $result->messageId,
+            'http_status' => $result->httpStatus,
+            'latency_ms' => $result->latencyMs,
+        ];
     }
 
     public function sendRaw(
@@ -61,7 +94,17 @@ class EmailService
         EmailProfile $profile = EmailProfile::NoReply,
         bool $html = false,
     ): SendResult {
-        return $this->send(new OutgoingEmail(
+        return $this->sendRawWithReport($to, $subject, $body, $profile, $html)->result;
+    }
+
+    public function sendRawWithReport(
+        string $to,
+        string $subject,
+        string $body,
+        EmailProfile $profile = EmailProfile::NoReply,
+        bool $html = false,
+    ): EmailSendReport {
+        return $this->sendWithReport(new OutgoingEmail(
             to: [['email' => $to]],
             subject: $subject,
             htmlContent: $html ? $body : null,
