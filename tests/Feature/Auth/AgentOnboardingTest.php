@@ -23,6 +23,7 @@ class AgentOnboardingTest extends TestCase
         $this->post(route('agent-onboarding.store'), [
             'referral_code' => $referrer->fresh()->referral_code,
             'name' => 'New Agent',
+            'date_of_birth' => now()->subYears(24)->toDateString(),
             'username' => 'newagent',
             'email' => 'newagent@example.com',
             'phone' => '+2348012345678',

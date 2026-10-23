@@ -37,6 +37,21 @@
             :hint="$user->nameLockedByPayoutAccount() ? __('Locked because your payout accounts are in this name. Contact support to change it.') : null"
         />
 
+        @if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'date_of_birth'))
+            <x-dashboard.input
+                label="{{ __('Date of birth') }}"
+                name="date_of_birth"
+                type="date"
+                id="date_of_birth"
+                :value="old('date_of_birth', optional($user->date_of_birth)->format('Y-m-d'))"
+                required
+                autocomplete="bday"
+                :max="now()->subYears(18)->toDateString()"
+                min="1900-01-01"
+                :hint="__('You must be at least 18 years old.')"
+            />
+        @endif
+
         <x-dashboard.input
             label="{{ __('Username') }}"
             name="username"

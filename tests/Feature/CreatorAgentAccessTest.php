@@ -174,8 +174,14 @@ class CreatorAgentAccessTest extends TestCase
         $response = $this->post(route('agent-onboarding.store'), [
             'referral_code' => $referrer->fresh()->referral_code,
             'name' => 'Agent User',
+            'date_of_birth' => now()->subYears(25)->toDateString(),
             'username' => 'agentuser1',
             'email' => 'agentuser1@example.com',
+            'phone' => '+2348012345678',
+            'country' => 'NG',
+            'address_line1' => '12 Marina Road',
+            'address_city' => 'Lagos',
+            'address_state' => 'Lagos',
             'password' => 'password',
             'password_confirmation' => 'password',
             'terms' => '1',
@@ -192,6 +198,7 @@ class CreatorAgentAccessTest extends TestCase
     {
         $this->post('/register', [
             'name' => 'Creator User',
+            'date_of_birth' => now()->subYears(25)->toDateString(),
             'username' => 'creatoruser1',
             'email' => 'creatoruser1@example.com',
             'password' => 'password',

@@ -2,10 +2,12 @@
 
 namespace App\Http\Requests;
 
+use App\Services\Auth\AccountRegistration;
 use App\Support\PhoneNumber;
 use App\Support\UniqueUserRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class ProfileUpdateRequest extends FormRequest
@@ -17,7 +19,7 @@ class ProfileUpdateRequest extends FormRequest
     {
         $countries = array_keys((array) config('payout_methods.countries', []));
 
-        return [
+        $rules = [
             'name' => [
                 'required',
                 'string',
@@ -51,6 +53,24 @@ class ProfileUpdateRequest extends FormRequest
             'address_city' => ['nullable', 'string', 'max:80'],
             'address_state' => ['nullable', 'string', 'max:80'],
             'address_postal_code' => ['nullable', 'string', 'max:20'],
+        ];
+
+        if (Schema::hasColumn('users', 'date_of_birth')) {
+            // Existing accounts may still be empty; require DOB once they save profile.
+            $rules['date_of_birth'] = AccountRegistration::dateOfBirthRules(true);
+        }
+
+        return $rules;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'date_of_birth.before_or_equal' => __('You must be at least 18 years old.'),
+            'date_of_birth.required' => __('Enter your date of birth.'),
         ];
     }
 }

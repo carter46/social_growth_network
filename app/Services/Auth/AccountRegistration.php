@@ -31,11 +31,29 @@ class AccountRegistration
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'date_of_birth' => self::dateOfBirthRules(true),
             'username' => ['required', 'string', 'max:255', 'alpha_dash', UniqueUserRules::username()],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', UniqueUserRules::email()],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'terms' => ['accepted'],
         ];
+    }
+
+    /**
+     * Adults only (18+). Used at registration and on the profile form.
+     *
+     * @return list<string>
+     */
+    public static function dateOfBirthRules(bool $required = true): array
+    {
+        $adultOnOrBefore = now()->subYears(18)->toDateString();
+
+        return array_values(array_filter([
+            $required ? 'required' : 'nullable',
+            'date',
+            'before_or_equal:'.$adultOnOrBefore,
+            'after:1900-01-01',
+        ]));
     }
 
     /**
@@ -82,10 +100,22 @@ class AccountRegistration
         ];
     }
 
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'date_of_birth.before_or_equal' => __('You must be at least 18 years old to create an account.'),
+            'date_of_birth.required' => __('Enter your date of birth.'),
+        ];
+    }
+
     public function register(Request $request, string $role, ?string $referralCode = null): RedirectResponse
     {
         $attrs = [
             'name' => $request->name,
+            'date_of_birth' => $request->date('date_of_birth')?->toDateString(),
             'username' => $request->username,
             'email' => $request->email,
             'password' => $request->password,

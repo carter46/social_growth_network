@@ -115,6 +115,25 @@
                 >
             </div>
             <div class="space-y-1.5">
+                <label for="signup-date-of-birth" class="block text-sm font-medium text-slate-600">Date of birth</label>
+                <input
+                    id="signup-date-of-birth"
+                    name="date_of_birth"
+                    type="date"
+                    value="{{ old('date_of_birth') }}"
+                    max="{{ now()->subYears(18)->toDateString() }}"
+                    min="1900-01-01"
+                    autocomplete="bday"
+                    class="block w-full h-10 px-3 text-sm rounded-lg border {{ $errors->has('date_of_birth') ? 'border-red-400' : 'border-slate-200' }} bg-slate-50 text-slate-900 focus-ring"
+                    :required="step === 1"
+                    required
+                >
+                <p class="text-xs text-slate-500">You must be at least 18 years old to join.</p>
+                @error('date_of_birth')
+                    <p class="text-xs text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+            <div class="space-y-1.5">
                 <label for="signup-username" class="block text-sm font-medium text-slate-600">Username</label>
                 <input
                     id="signup-username"

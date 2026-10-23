@@ -17,6 +17,7 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
+            'date_of_birth' => fake()->dateTimeBetween('-60 years', '-18 years')->format('Y-m-d'),
             'username' => fake()->unique()->userName(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),

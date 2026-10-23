@@ -26,6 +26,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     protected $fillable = [
         'name',
+        'date_of_birth',
         'username',
         'email',
         'password',
@@ -53,6 +54,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
+            'date_of_birth' => 'date',
             'password' => 'hashed',
             'password_set_at' => 'datetime',
             'is_suspended' => 'boolean',
@@ -350,6 +352,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
             $saved = $this->forceFill([
                 'name' => 'Deleted User',
+                'date_of_birth' => null,
                 'username' => $tombstoneUsername,
                 'email' => "deleted+{$id}@invalid.local",
                 'phone' => null,

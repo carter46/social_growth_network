@@ -84,8 +84,14 @@ class ReferralProgramTest extends TestCase
     {
         return array_merge([
             'name' => 'New Person',
+            'date_of_birth' => now()->subYears(25)->toDateString(),
             'username' => 'newperson',
             'email' => 'newperson@example.com',
+            'phone' => '+2348012345678',
+            'country' => 'NG',
+            'address_line1' => '12 Marina Road',
+            'address_city' => 'Lagos',
+            'address_state' => 'Lagos',
             'password' => 'password',
             'password_confirmation' => 'password',
             'terms' => '1',

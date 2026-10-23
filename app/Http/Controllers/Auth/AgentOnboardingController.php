@@ -32,9 +32,12 @@ class AgentOnboardingController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate($this->registration->rules() + $this->registration->agentProfileRules() + [
-            'referral_code' => $this->registration->requiredReferralCodeRules(),
-        ]);
+        $request->validate(
+            $this->registration->rules() + $this->registration->agentProfileRules() + [
+                'referral_code' => $this->registration->requiredReferralCodeRules(),
+            ],
+            $this->registration->messages(),
+        );
 
         return $this->registration->register($request, 'agent', (string) $request->input('referral_code'));
     }

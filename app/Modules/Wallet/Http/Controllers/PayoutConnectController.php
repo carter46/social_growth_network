@@ -83,7 +83,7 @@ class PayoutConnectController extends Controller
                 'email' => old('email', (string) $user->email),
                 'phone' => old('phone', (string) ($user->phone ?? '')),
                 'country' => old('country', $country),
-                'dob' => old('dob', ''),
+                'dob' => old('dob', $user->date_of_birth?->format('Y-m-d') ?? ''),
                 'address_line1' => old('address_line1', (string) ($user->address_line1 ?? '')),
                 'address_city' => old('address_city', (string) ($user->address_city ?? '')),
                 'address_state' => old('address_state', (string) ($user->address_state ?? '')),

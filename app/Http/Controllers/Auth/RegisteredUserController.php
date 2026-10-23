@@ -85,7 +85,7 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate($this->registration->rules());
+        $request->validate($this->registration->rules(), $this->registration->messages());
 
         return $this->registration->register($request, 'user');
     }

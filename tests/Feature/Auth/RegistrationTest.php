@@ -21,10 +21,19 @@ class RegistrationTest extends TestCase
             ->assertDontSee('Agent', false);
     }
 
+    public function test_registration_screen_asks_for_date_of_birth(): void
+    {
+        $this->get('/register')
+            ->assertOk()
+            ->assertSee('name="date_of_birth"', false)
+            ->assertSee('You must be at least 18 years old', false);
+    }
+
     public function test_new_users_can_register(): void
     {
         $response = $this->post('/register', [
             'name' => 'Test User',
+            'date_of_birth' => now()->subYears(20)->toDateString(),
             'username' => 'testuser',
             'email' => 'test@example.com',
             'password' => 'password',
@@ -34,7 +43,25 @@ class RegistrationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('verification.notice', absolute: false));
-        $this->assertTrue(User::where('email', 'test@example.com')->firstOrFail()->hasRole('user'));
+        $user = User::where('email', 'test@example.com')->firstOrFail();
+        $this->assertTrue($user->hasRole('user'));
+        $this->assertSame(now()->subYears(20)->toDateString(), $user->date_of_birth?->toDateString());
+    }
+
+    public function test_under_18_cannot_register(): void
+    {
+        $this->post('/register', [
+            'name' => 'Too Young',
+            'date_of_birth' => now()->subYears(17)->toDateString(),
+            'username' => 'tooyoung',
+            'email' => 'tooyoung@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'terms' => '1',
+        ])->assertSessionHasErrors('date_of_birth');
+
+        $this->assertGuest();
+        $this->assertNull(User::where('email', 'tooyoung@example.com')->first());
     }
 
     public function test_register_form_ignores_an_agent_account_type(): void
@@ -42,6 +69,7 @@ class RegistrationTest extends TestCase
         $this->post('/register', [
             'account_type' => 'agent',
             'name' => 'Agent From Form',
+            'date_of_birth' => now()->subYears(25)->toDateString(),
             'username' => 'agentfromform',
             'email' => 'agentfromform@example.com',
             'password' => 'password',
@@ -65,6 +93,7 @@ class RegistrationTest extends TestCase
 
         $this->post('/register', [
             'name' => 'Someone Else',
+            'date_of_birth' => now()->subYears(22)->toDateString(),
             'username' => 'trasheduser',
             'email' => 'fresh@example.com',
             'password' => 'password',
@@ -74,6 +103,7 @@ class RegistrationTest extends TestCase
 
         $this->post('/register', [
             'name' => 'Someone Else',
+            'date_of_birth' => now()->subYears(22)->toDateString(),
             'username' => 'newusername',
             'email' => 'trashed@example.com',
             'password' => 'password',
