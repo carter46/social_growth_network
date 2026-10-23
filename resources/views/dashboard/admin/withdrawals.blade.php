@@ -22,14 +22,25 @@
         <x-dashboard.alert type="danger">{{ session('error') }}</x-dashboard.alert>
     @endif
 
+    @php
+        $bachsBalance = $balances['bachs']['balance'] ?? null;
+        $bachsEmpty = $bachsBalance !== null && bccomp((string) $bachsBalance, '0', 2) <= 0;
+    @endphp
     @if (! $gatewaysConfigured)
         <x-dashboard.alert type="warning" class="mb-4">No payout gateway is configured. Approving a withdrawal marks it paid without sending money; pay it manually first.</x-dashboard.alert>
     @elseif ($balances !== [])
-        <x-dashboard.alert type="info" class="mb-4">
-            Payout balances:
-            @foreach ($balances as $b)
-                <strong>{{ $b['name'] }}</strong> {{ $b['balance'] !== null ? money($b['balance'], 2) : 'not available' }}@if (! $loop->last) · @endif
-            @endforeach
+        <x-dashboard.alert :type="$bachsEmpty ? 'warning' : 'info'" class="mb-4">
+            <p class="font-medium text-text-primary">Gateway platform balances (USD available right now)</p>
+            <p class="mt-1">
+                @foreach ($balances as $b)
+                    <strong>{{ $b['name'] }}</strong> {{ $b['balance'] !== null ? money($b['balance'], 2) : 'not available' }}@if (! $loop->last) · @endif
+                @endforeach
+            </p>
+            <p class="mt-2 text-xs text-text-secondary">
+                This is your Bachs/Flutterwave <em>platform</em> float — not the agent’s bank or Connect status.
+                Approving moves USD from this balance to the agent’s connected account, then out to their bank.
+                A connected identity with <strong>$0</strong> platform balance cannot be paid until you fund Bachs (or deposits settle into available).
+            </p>
         </x-dashboard.alert>
     @endif
 
@@ -209,6 +220,28 @@
 
                                                 @if ($w->payoutAccount && ! $w->payoutAccount->isResolved())
                                                     <x-dashboard.alert type="warning">Payout account is not verified by the gateway.</x-dashboard.alert>
+                                                @endif
+
+                                                @if ($balances !== [])
+                                                    <div @class([
+                                                        'rounded-xl border px-3 py-2 text-xs',
+                                                        'border-warning/40 bg-warning/10 text-text-primary' => $bachsEmpty,
+                                                        'border-border-subtle bg-surface-muted text-text-secondary' => ! $bachsEmpty,
+                                                    ])>
+                                                        <p class="font-medium text-text-primary">Platform balance before approve</p>
+                                                        <p class="mt-1">
+                                                            @foreach ($balances as $b)
+                                                                {{ $b['name'] }}:
+                                                                <strong>{{ $b['balance'] !== null ? money($b['balance'], 2) : 'not available' }}</strong>@if (! $loop->last) · @endif
+                                                            @endforeach
+                                                        </p>
+                                                        <p class="mt-1">
+                                                            This payout needs about <strong>{{ money($w->netPayoutAmount(), 2) }}</strong> (plus fee buffer) from the gateway platform balance.
+                                                        </p>
+                                                        @if ($bachsEmpty)
+                                                            <p class="mt-1 font-medium text-warning">Bachs available is $0 — fund the Bachs platform account before approving, or the send will fail.</p>
+                                                        @endif
+                                                    </div>
                                                 @endif
 
                                                 <p class="text-xs text-text-muted">

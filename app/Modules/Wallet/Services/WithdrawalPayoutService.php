@@ -60,6 +60,11 @@ class WithdrawalPayoutService
      *
      * @return array<string, array{name: string, balance: ?string}>
      */
+    /**
+     * Live platform USD available balances from each configured payout gateway (Bachs GET /v1/balances).
+     *
+     * @return array<string, array{name: string, balance: ?string}>
+     */
     public function gatewayBalances(): array
     {
         $out = [];

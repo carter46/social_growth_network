@@ -30,12 +30,21 @@
         <x-dashboard.alert type="danger">{{ session('error') }}</x-dashboard.alert>
     @endif
 
+    @php
+        $bachsBalance = $balances['bachs']['balance'] ?? null;
+        $bachsEmpty = $bachsBalance !== null && bccomp((string) $bachsBalance, '0', 2) <= 0;
+    @endphp
     @if ($balances !== [])
-        <x-dashboard.alert type="info" class="mb-4">
-            Payout balances:
-            @foreach ($balances as $b)
-                <strong>{{ $b['name'] }}</strong> {{ $b['balance'] !== null ? money($b['balance'], 2) : 'not available' }}@if (! $loop->last) · @endif
-            @endforeach
+        <x-dashboard.alert :type="$bachsEmpty ? 'warning' : 'info'" class="mb-4">
+            <p class="font-medium">Gateway platform balances (USD available right now)</p>
+            <p class="mt-1">
+                @foreach ($balances as $b)
+                    <strong>{{ $b['name'] }}</strong> {{ $b['balance'] !== null ? money($b['balance'], 2) : 'not available' }}@if (! $loop->last) · @endif
+                @endforeach
+            </p>
+            <p class="mt-2 text-xs">
+                Pulled live from each gateway (Bachs <code class="text-[11px]">GET /v1/balances</code>). Connected agents still need this platform float funded before payouts can leave.
+            </p>
         </x-dashboard.alert>
     @endif
 
