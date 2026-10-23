@@ -233,8 +233,10 @@ class DepositCheckoutService
             return $funding->fresh();
         }
 
+        // Exact match or overpayment (crypto often overshoots). Underpayment is rejected.
         $currencyMatches = strtoupper((string) $event->currency) === strtoupper((string) $funding->currency);
-        if (! $currencyMatches || Money::cmp((string) $event->amount, (string) $funding->amount, 2) !== 0) {
+        $covers = $currencyMatches && Money::cmp((string) $event->amount, (string) $funding->amount, 2) >= 0;
+        if (! $covers) {
             app(AdminPaymentAlertNotifier::class)->amountMismatch(
                 'Deposit '.$funding->reference,
                 money($funding->amount),

@@ -83,9 +83,7 @@ class PlatformCheckoutService
             return $order->fresh();
         }
 
-        $expectedCurrency = (string) config('platform.currency', 'USD');
-        if (strtoupper((string) $event->currency) !== strtoupper($expectedCurrency)
-            || Money::cmp((string) $event->amount, (string) $order->total_amount, 2) !== 0) {
+        if (! $this->gatewayPaymentCoversOrder($event, $order)) {
             app(AdminPaymentAlertNotifier::class)->amountMismatch(
                 'Order '.$order->reference,
                 money($order->total_amount),
@@ -98,6 +96,36 @@ class PlatformCheckoutService
         }
 
         return $this->fulfillPaidGatewayOrder($order->fresh());
+    }
+
+    /**
+     * Exact match or overpayment (common with crypto). Underpayment is rejected.
+     */
+    private function gatewayPaymentCoversOrder(\App\Modules\Wallet\Payments\Data\PaymentEvent $event, Order $order): bool
+    {
+        $expectedCurrency = strtoupper((string) config('platform.currency', 'USD'));
+        $expectedAmount = Money::round((string) $order->total_amount, 2);
+
+        $candidates = [
+            ['currency' => $event->currency, 'amount' => $event->amount],
+            ['currency' => data_get($event->raw, 'pricing.currency'), 'amount' => data_get($event->raw, 'pricing.amount')],
+            ['currency' => data_get($event->raw, 'charge.currency'), 'amount' => data_get($event->raw, 'charge.amount')],
+            ['currency' => data_get($event->raw, 'settlement_currency'), 'amount' => data_get($event->raw, 'settlement_amount')],
+            ['currency' => data_get($event->raw, 'charge.settlement_currency'), 'amount' => data_get($event->raw, 'charge.settlement_amount')],
+        ];
+
+        foreach ($candidates as $row) {
+            $currency = strtoupper((string) ($row['currency'] ?? ''));
+            $amount = $row['amount'] ?? null;
+            if ($currency !== $expectedCurrency || $amount === null || $amount === '') {
+                continue;
+            }
+            if (Money::cmp((string) $amount, $expectedAmount, 2) >= 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function manualBankTransferEnabledForCheckout(): bool

@@ -178,8 +178,12 @@ class ReconciliationController extends Controller
         }
 
         if ($order->status !== 'paid') {
-            return back()->with('error', __('Bachs has not confirmed this payment yet (status still :status).', [
+            $verify = data_get($order->payment_metadata, 'last_verify', []);
+
+            return back()->with('error', __('Bachs has not confirmed this payment yet (order still :status). Gateway said: :gateway (:code). For crypto, Bachs may show Accepted/overpayment — redeploy the latest fix and try again.', [
                 'status' => $order->status,
+                'gateway' => $verify['status'] ?? 'unknown',
+                'code' => $verify['code'] ?? 'none',
             ]));
         }
 

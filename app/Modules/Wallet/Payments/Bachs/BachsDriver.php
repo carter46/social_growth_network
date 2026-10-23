@@ -1125,8 +1125,22 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
     {
         $sessionRef = $this->str($session['reference'] ?? $session['metadata']['reference'] ?? null);
         $checkoutId = $this->str($session['checkout_id'] ?? $session['id'] ?? null);
-        $amount = $this->str($session['amount'] ?? $session['pricing']['amount'] ?? null);
-        $currency = $this->str($session['currency'] ?? $session['pricing']['currency'] ?? null);
+        // Prefer checkout price over charge amount: crypto overpays (e.g. $10.15 for a $10 order)
+        // should still match the order total. Bachs ACCEPTED/OVERPAID means the money is in.
+        $amount = $this->str(
+            $session['pricing']['amount']
+                ?? $session['amount']
+                ?? $session['charge']['amount']
+                ?? $session['settlement_amount']
+                ?? null
+        );
+        $currency = $this->str(
+            $session['pricing']['currency']
+                ?? $session['currency']
+                ?? $session['charge']['currency']
+                ?? $session['settlement_currency']
+                ?? null
+        );
 
         if ($sessionRef !== null && $sessionRef !== $reference) {
             return new PaymentEvent(PaymentEvent::TYPE_COLLECTION, self::KEY, PaymentEvent::STATUS_FAILED, $reference, $checkoutId, $amount, $currency,
@@ -1136,13 +1150,9 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
         $status = strtolower((string) ($session['status'] ?? ''));
         $paymentStatus = strtoupper((string) ($session['payment']['status'] ?? $session['charge']['status'] ?? $session['payment_status'] ?? ''));
 
-        if ($paymentStatus === 'ACCEPTED') {
-            return new PaymentEvent(PaymentEvent::TYPE_COLLECTION, self::KEY, PaymentEvent::STATUS_PENDING, $reference, $checkoutId, $amount, $currency,
-                failureCode: 'AMOUNT_UNCONFIRMED', failureReason: 'Bachs accepted the payment but has not confirmed the amount.', raw: $session);
-        }
-
         $paid = in_array($status, ['complete', 'completed', 'paid', 'succeeded'], true)
-            || in_array($paymentStatus, ['SUCCEEDED', 'PAID'], true);
+            || in_array($paymentStatus, ['SUCCEEDED', 'PAID', 'ACCEPTED', 'OVERPAID'], true)
+            || in_array(strtolower((string) ($session['payment_status'] ?? '')), ['paid', 'succeeded'], true);
 
         $state = match (true) {
             $paid => PaymentEvent::STATUS_SUCCEEDED,

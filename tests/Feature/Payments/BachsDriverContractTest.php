@@ -401,4 +401,24 @@ class BachsDriverContractTest extends TestCase
         $this->assertContains('US', $countries);
         $this->assertNotContains('NG', $countries);
     }
+
+    public function test_crypto_accepted_overpayment_verifies_as_succeeded_at_checkout_price(): void
+    {
+        $this->on('GET /v1/checkout-sessions/chk_crypto_1', [
+            'id' => 'chk_crypto_1',
+            'reference' => 'PLT-PAY-CRYPTO-1',
+            'status' => 'completed',
+            'pricing' => ['amount' => '10.00', 'currency' => 'USD'],
+            'amount' => '10.15',
+            'currency' => 'USD',
+            'charge' => ['status' => 'accepted', 'amount' => '10.15', 'currency' => 'USD'],
+            'payment_status' => 'paid',
+        ]);
+
+        $event = $this->driver->verify('PLT-PAY-CRYPTO-1', 'chk_crypto_1');
+
+        $this->assertTrue($event->succeeded());
+        $this->assertSame('10.00', $event->amount);
+        $this->assertSame('USD', $event->currency);
+    }
 }
