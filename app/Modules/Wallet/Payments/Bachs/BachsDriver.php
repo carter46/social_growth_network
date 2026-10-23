@@ -617,23 +617,55 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
         }
 
         $quote = $this->client()->post('/v1/payouts/quotes', $this->quoteBody($amount, $destination));
-        $fee = $quote['fee'] ?? $quote['fee_amount'] ?? null;
-        if ($fee === null) {
+        $quoteId = $this->str($quote['quote_id'] ?? $quote['id'] ?? null);
+        // Bachs docs: a successful quote returns quote_id + FX fields. It does not include a fee
+        // field — the payout fee is charged when the payout is created (docs.bachs.io Create Payout Quote).
+        if ($quoteId === null) {
             return null;
         }
 
         return new PayoutQuote(
-            providerFee: Money::round((string) $fee, 2),
+            providerFee: $this->quoteProviderFee($quote, Money::round($amount, 2)),
             feeCurrency: strtoupper((string) ($quote['fee_currency'] ?? $quote['from_currency'] ?? 'USD')),
             destinationCurrency: $currency,
             fxRate: $this->str($quote['exchange_rate'] ?? null),
             destinationAmount: $this->str($quote['to_amount'] ?? null),
             expiresAt: ! empty($quote['expires_at']) ? CarbonImmutable::parse($quote['expires_at']) : null,
             source: PayoutQuote::SOURCE_LIVE,
-            quoteId: $this->str($quote['quote_id'] ?? $quote['id'] ?? null),
+            quoteId: $quoteId,
             gatewayKey: self::KEY,
             quotedAt: CarbonImmutable::now(),
         );
+    }
+
+    /**
+     * Prefer an explicit fee when present. Otherwise derive it from Bachs' documented quote shape:
+     * fee is taken from from_amount before FX, so fee ≈ from_amount − (to_amount / exchange_rate).
+     * When that cannot be computed, return 0 — funding still adds the payout fee buffer.
+     *
+     * @param  array<string, mixed>  $quote
+     */
+    private function quoteProviderFee(array $quote, string $requestedAmount): string
+    {
+        $explicit = $quote['fee'] ?? $quote['fee_amount'] ?? null;
+        if ($explicit !== null && $explicit !== '') {
+            return Money::round((string) $explicit, 2);
+        }
+
+        $from = $this->str($quote['from_amount'] ?? $requestedAmount);
+        $to = $this->str($quote['to_amount'] ?? null);
+        $rate = $this->str($quote['exchange_rate'] ?? null);
+        if ($from === null || $to === null || $rate === null || Money::cmp($rate, '0', 8) <= 0) {
+            return '0.00';
+        }
+
+        $sourceAfterFee = Money::div($to, $rate, 8);
+        $fee = Money::sub($from, $sourceAfterFee, 8);
+        if (Money::cmp($fee, '0', 8) < 0) {
+            return '0.00';
+        }
+
+        return Money::round($fee, 2);
     }
 
     // ---------------------------------------------------------------- payouts

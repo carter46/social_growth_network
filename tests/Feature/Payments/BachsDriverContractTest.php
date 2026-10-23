@@ -265,6 +265,47 @@ class BachsDriverContractTest extends TestCase
         $this->assertSame('21.00', $reverse['amount']);
     }
 
+    public function test_documented_quote_response_without_fee_field_is_accepted(): void
+    {
+        // Exact shape from docs.bachs.io Create Payout Quote (no fee / fee_amount).
+        $this->on('POST /v1/payouts/quotes', [
+            'quote_id' => 'pqt_1a2b3c4d5e6f',
+            'from_currency' => 'USD',
+            'to_currency' => 'NGN',
+            'from_amount' => '100.00',
+            'to_amount' => '148500.00',
+            'exchange_rate' => '1500.00',
+            'expires_at' => '2026-02-22T12:31:00+00:00',
+        ]);
+
+        $quote = $this->driver->quoteTransfer('100.00', PayoutAccountDetails::fromPayoutAccount($this->payoutAccount($this->agent)));
+
+        $this->assertNotNull($quote);
+        $this->assertSame('pqt_1a2b3c4d5e6f', $quote->quoteId);
+        $this->assertSame('NGN', $quote->destinationCurrency);
+        $this->assertSame('148500.00', $quote->destinationAmount);
+        $this->assertSame('1500.00', $quote->fxRate);
+        // fee = from_amount − (to_amount / rate) = 100 − 99 = 1
+        $this->assertSame('1.00', $quote->providerFee);
+        $body = $this->sent('POST', '/v1/payouts/quotes')[0];
+        $this->assertSame('USD', $body['from_currency']);
+        $this->assertSame('NGN', $body['to_currency']);
+        $this->assertSame('BANK_TRANSFER', $body['payout_method']);
+    }
+
+    public function test_quote_without_quote_id_is_rejected(): void
+    {
+        $this->on('POST /v1/payouts/quotes', [
+            'from_currency' => 'USD',
+            'to_currency' => 'NGN',
+            'from_amount' => '50.00',
+            'to_amount' => '75000.00',
+            'exchange_rate' => '1500.00',
+        ]);
+
+        $this->assertNull($this->driver->quoteTransfer('50.00', PayoutAccountDetails::fromPayoutAccount($this->payoutAccount($this->agent))));
+    }
+
     private function webhook(string $raw, string $header): Request
     {
         return Request::create('/webhooks/payments/bachs', 'POST', [], [], [], [
