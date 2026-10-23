@@ -587,6 +587,7 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::post('/settings/payout-gate', [\App\Modules\Admin\Http\Controllers\PaymentGatewaySettingsController::class, 'updatePayoutGate'])->name('.settings.payout-gate');
         Route::post('/settings/payment-gateways/{gateway}', [\App\Modules\Admin\Http\Controllers\PaymentGatewaySettingsController::class, 'update'])->name('.settings.payment-gateways.update');
         Route::post('/settings/payment-gateways/{gateway}/test', [\App\Modules\Admin\Http\Controllers\PaymentGatewaySettingsController::class, 'test'])->name('.settings.payment-gateways.test');
+        Route::post('/settings/payment-gateways/bachs/reset-connect', [\App\Modules\Admin\Http\Controllers\PaymentGatewaySettingsController::class, 'resetMismatchedConnect'])->name('.settings.payment-gateways.bachs.reset-connect');
         Route::post('/settings/manual-bank-transfer', [AdminSettingsController::class, 'updateManualBankTransfer'])->name('.settings.manual-bank-transfer');
         Route::post('/settings/referrals', [AdminSettingsController::class, 'updateReferrals'])->name('.settings.referrals');
         Route::post('/settings/agent-invite', [AdminSettingsController::class, 'createAgentInvite'])

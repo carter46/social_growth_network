@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\SystemSetting;
 use App\Modules\Admin\Services\AuditLogService;
 use App\Modules\Wallet\Payments\AbstractGatewayDriver;
+use App\Modules\Wallet\Payments\Bachs\BachsConnectService;
+use App\Modules\Wallet\Payments\Bachs\BachsDriver;
 use App\Modules\Wallet\Payments\GatewayRegistry;
 use App\Modules\Wallet\Payments\PayoutGate;
 use Illuminate\Http\JsonResponse;
@@ -63,6 +65,7 @@ class PaymentGatewaySettingsController extends Controller
             $changed[] = $field['name'];
         }
 
+        $previousEnvironment = ($provider->meta['environment'] ?? 'sandbox') === 'live' ? 'live' : 'sandbox';
         $wasEnabled = (bool) $provider->enabled;
         $provider->enabled = $request->boolean('enabled');
         $provider->mergeCredentials($credentials);
@@ -81,7 +84,48 @@ class PaymentGatewaySettingsController extends Controller
             $message .= ' Some required fields are still empty, so it will not be offered yet.';
         }
 
+        if ($gateway === BachsDriver::KEY) {
+            $newEnvironment = $driver->environment();
+            if ($previousEnvironment !== $newEnvironment) {
+                $cleared = app(BachsConnectService::class)->invalidateMismatched($newEnvironment);
+                $this->audit->log(auth()->id(), 'settings.payment_gateway.connect_reset', null, null, [
+                    'gateway' => $gateway,
+                    'from' => $previousEnvironment,
+                    'to' => $newEnvironment,
+                    'cleared' => $cleared,
+                ], $request->ip());
+                $message .= ' Cleared '.$cleared.' Connect account'.($cleared === 1 ? '' : 's').' from '.$previousEnvironment.' so agents can reconnect on '.$newEnvironment.'.';
+            }
+        }
+
         return back()->with('success', $message);
+    }
+
+    /** Clear Bachs Connect rows that do not match the currently configured environment. */
+    public function resetMismatchedConnect(Request $request): RedirectResponse
+    {
+        abort_unless($this->registry->has(BachsDriver::KEY), 404);
+
+        $connect = app(BachsConnectService::class);
+        $environment = $connect->currentEnvironment();
+        $cleared = $connect->invalidateMismatched($environment);
+
+        $this->audit->log(auth()->id(), 'settings.payment_gateway.connect_reset', null, null, [
+            'gateway' => BachsDriver::KEY,
+            'to' => $environment,
+            'cleared' => $cleared,
+            'manual' => true,
+        ], $request->ip());
+
+        return back()->with(
+            'success',
+            $cleared === 0
+                ? __('No Connect accounts needed clearing for :env.', ['env' => $environment])
+                : __('Cleared :count Connect account(s). Those agents can reconnect on :env; profile details still autofill.', [
+                    'count' => $cleared,
+                    'env' => $environment,
+                ])
+        );
     }
 
     public function test(Request $request, string $gateway): JsonResponse|RedirectResponse

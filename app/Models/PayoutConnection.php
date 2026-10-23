@@ -38,6 +38,7 @@ class PayoutConnection extends Model
     protected $fillable = [
         'user_id',
         'provider',
+        'environment',
         'account_id',
         'status',
         'capabilities',
@@ -46,6 +47,17 @@ class PayoutConnection extends Model
         'last_event_at',
         'last_synced_at',
     ];
+
+    /** Rows created before environment was tracked are treated as sandbox cutover leftovers. */
+    public function recordedEnvironment(): string
+    {
+        return ($this->environment ?? 'sandbox') === 'live' ? 'live' : 'sandbox';
+    }
+
+    public function matchesEnvironment(string $environment): bool
+    {
+        return $this->recordedEnvironment() === (($environment === 'live') ? 'live' : 'sandbox');
+    }
 
     protected function casts(): array
     {

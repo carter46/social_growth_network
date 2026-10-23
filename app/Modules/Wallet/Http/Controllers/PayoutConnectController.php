@@ -3,6 +3,7 @@
 namespace App\Modules\Wallet\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\PayoutConnection;
 use App\Modules\Wallet\Payments\Bachs\BachsConnectService;
 use App\Modules\Wallet\Payments\Bachs\ConnectLinkException;
 use App\Modules\Wallet\Payments\Exceptions\GatewayException;
@@ -44,6 +45,12 @@ class PayoutConnectController extends Controller
                 ->with('error', __('Update your phone, country, and address before connecting a bank account.'));
         }
 
+        $connection = $this->connect->connection($user);
+        if ($connection?->status === PayoutConnection::ACTIVE) {
+            return redirect()->route('agent.banks.index')
+                ->with('status', __('Your payout identity is already verified. Add a bank account below for withdrawals.'));
+        }
+
         $country = strtoupper((string) $user->country);
         if ($this->connect->prefersHostedOnboarding($country)) {
             return view('dashboard.agent.payout-connect-hosted', [
@@ -51,7 +58,7 @@ class PayoutConnectController extends Controller
                 'prefix' => MemberShell::prefix(),
                 'country' => $country,
                 'countryName' => (string) config('payout_methods.countries.'.$country.'.name', $country),
-                'connection' => $this->connect->connection($user),
+                'connection' => $connection,
             ]);
         }
 
@@ -69,7 +76,7 @@ class PayoutConnectController extends Controller
             'prefix' => MemberShell::prefix(),
             'countries' => $countries,
             'nameChecks' => $nameChecks,
-            'connection' => $this->connect->connection($user),
+            'connection' => $connection,
             'prefill' => [
                 'first_name' => old('first_name', $first),
                 'last_name' => old('last_name', $last),
@@ -107,6 +114,11 @@ class PayoutConnectController extends Controller
                 ->with('error', __('Update your phone, country, and address before connecting a bank account.'));
         }
 
+        if ($this->connect->connection($user)?->status === PayoutConnection::ACTIVE) {
+            return redirect()->route('agent.banks.index')
+                ->with('status', __('Your payout identity is already verified. Add a bank account below for withdrawals.'));
+        }
+
         if (! $this->connect->prefersHostedOnboarding((string) $user->country)) {
             return redirect()->route('agent.payouts.connect');
         }
@@ -136,6 +148,11 @@ class PayoutConnectController extends Controller
         if (! $user->hasCompletePayoutProfile()) {
             return redirect()->route('agent.wallet')
                 ->with('error', __('Update your phone, country, and address before connecting a bank account.'));
+        }
+
+        if ($this->connect->connection($user)?->status === PayoutConnection::ACTIVE) {
+            return redirect()->route('agent.banks.index')
+                ->with('status', __('Your payout identity is already verified. Add a bank account below for withdrawals.'));
         }
 
         if ($this->connect->prefersHostedOnboarding((string) $user->country)) {

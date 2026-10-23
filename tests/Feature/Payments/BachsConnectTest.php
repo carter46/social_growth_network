@@ -143,6 +143,91 @@ class BachsConnectTest extends TestCase
             ->assertRedirect(route('agent.payouts.connect'));
     }
 
+    public function test_active_connect_offers_add_bank_account_not_update_details(): void
+    {
+        $this->fakeBachs();
+        $this->coverRoute('NG');
+        $agent = $this->agentWithBalance();
+        $this->connection($agent, PayoutConnection::ACTIVE, ['transfers' => 'active', 'payouts' => 'active'])
+            ->forceFill(['environment' => 'sandbox'])
+            ->save();
+
+        $this->actingAs($agent)->get(route('agent.banks.index'))
+            ->assertOk()
+            ->assertSee('Your payout identity is verified', false)
+            ->assertSee('Add bank account', false)
+            ->assertDontSee('Update bank details', false);
+
+        $this->actingAs($agent)->get(route('agent.payouts.connect'))
+            ->assertRedirect(route('agent.banks.index'))
+            ->assertSessionHas('status');
+    }
+
+    public function test_sandbox_connect_is_cleared_when_bachs_is_live(): void
+    {
+        $this->fakeBachs();
+        $this->coverRoute('NG');
+        $agent = $this->agentWithBalance();
+
+        IntegrationProvider::forProvider('bachs')->forceFill([
+            'meta' => ['environment' => 'live'],
+        ])->save();
+        app(GatewayRegistry::class)->driver('bachs')->refreshProvider();
+
+        $connection = $this->connection($agent, PayoutConnection::ACTIVE, [
+            'transfers' => 'active',
+            'payouts' => 'active',
+        ]);
+        $connection->forceFill([
+            'environment' => null, // pre-tracking sandbox leftover
+            'account_id' => 'acct_sandbox_old',
+        ])->save();
+
+        $account = $this->payoutAccount($agent, [
+            'provider_beneficiary_ids' => ['bachs' => ['account' => 'acct_sandbox_old', 'destination' => 'dst_1']],
+        ]);
+
+        $this->actingAs($agent)->get(route('agent.banks.index'))
+            ->assertOk()
+            ->assertSee('Connect bank account', false)
+            ->assertDontSee('Your payout identity is verified', false);
+
+        $connection->refresh();
+        $this->assertNull($connection->account_id);
+        $this->assertSame(PayoutConnection::NOT_STARTED, $connection->status);
+        $this->assertArrayNotHasKey('bachs', (array) $account->fresh()->provider_beneficiary_ids);
+
+        $this->actingAs($agent)->get(route('agent.payouts.connect'))
+            ->assertOk()
+            ->assertSee('Connect bank account');
+    }
+
+    public function test_admin_can_clear_mismatched_connect_accounts(): void
+    {
+        $this->fakeBachs();
+        $agent = $this->agentWithBalance();
+        IntegrationProvider::forProvider('bachs')->forceFill([
+            'meta' => ['environment' => 'live'],
+        ])->save();
+        app(GatewayRegistry::class)->driver('bachs')->refreshProvider();
+
+        $this->connection($agent, PayoutConnection::ACTIVE, [
+            'transfers' => 'active',
+            'payouts' => 'active',
+        ])->forceFill(['environment' => 'sandbox', 'account_id' => 'acct_sbx'])->save();
+
+        $admin = User::factory()->create(['email_verified_at' => now()]);
+        $admin->assignRole('admin');
+        $admin->givePermissionTo('system.manage');
+
+        $this->actingAs($admin)
+            ->post(route('admin.settings.payment-gateways.bachs.reset-connect'))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertNull(PayoutConnection::for($agent->id, 'bachs')?->account_id);
+    }
+
     public function test_api_onboarding_creates_individual_recipient_without_external_redirect(): void
     {
         $this->fakeBachs();

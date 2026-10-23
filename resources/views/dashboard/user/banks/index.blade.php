@@ -68,11 +68,19 @@
                         @endswitch
                     </p>
                 </div>
-                @if ($connectStatus !== \App\Models\PayoutConnection::REJECTED && $connectStatus !== \App\Models\PayoutConnection::UNDER_REVIEW)
+                @if ($connectActive)
+                    @if ($accounts->count() < $maxAccounts && ($hasRoutes || $connectActive))
+                        <x-dashboard.button :href="route($prefix.'.banks.replace')" size="sm" icon="withdraw">
+                            {{ $accounts->isEmpty() ? 'Add bank account' : 'Add another account' }}
+                        </x-dashboard.button>
+                    @endif
+                @elseif ($connectStatus === \App\Models\PayoutConnection::RESTRICTED)
+                    <x-dashboard.button :href="route('agent.payouts.connect')" size="sm" variant="secondary" icon="withdraw">
+                        Provide more information
+                    </x-dashboard.button>
+                @elseif ($connectStatus !== \App\Models\PayoutConnection::REJECTED && $connectStatus !== \App\Models\PayoutConnection::UNDER_REVIEW)
                     <x-dashboard.button :href="route('agent.payouts.connect')" size="sm" icon="withdraw">
-                        @if ($connectActive)
-                            Update bank details
-                        @elseif ($connection && filled($connection->account_id))
+                        @if ($connection && filled($connection->account_id))
                             Continue setup
                         @else
                             Connect bank account
@@ -158,9 +166,11 @@
         @if ($accounts->count() >= $maxAccounts)
             <p class="text-sm text-text-muted">You have {{ $maxAccounts }} payout accounts, the most allowed. Remove one to add another.</p>
         @elseif ($connectAvailable ?? false)
-            @if ($accounts->isEmpty() && ! $connectActive && ! ($connection && filled($connection->account_id)))
-                {{-- Primary CTA already in the payout setup card above --}}
-            @elseif ($hasRoutes || $connectActive)
+            @if ($connectActive)
+                {{-- Add bank account CTA is in the payout setup card above --}}
+            @elseif ($accounts->isEmpty() && ! ($connection && filled($connection->account_id)))
+                {{-- Connect CTA is in the payout setup card above --}}
+            @elseif ($hasRoutes)
                 <x-dashboard.button :href="route($prefix.'.banks.replace')" variant="secondary" icon="withdraw">
                     {{ $accounts->isEmpty() ? 'Add bank account' : 'Add another account' }}
                 </x-dashboard.button>

@@ -59,9 +59,102 @@ class BachsConnectService
         return $driver;
     }
 
+    public function currentEnvironment(): string
+    {
+        return $this->available() ? $this->driver()->environment() : 'sandbox';
+    }
+
     public function connection(User $user): ?PayoutConnection
     {
-        return PayoutConnection::for((int) $user->id, self::PROVIDER);
+        $connection = PayoutConnection::for((int) $user->id, self::PROVIDER);
+        if (! $connection) {
+            return null;
+        }
+
+        if ($this->available() && filled($connection->account_id) && ! $connection->matchesEnvironment($this->currentEnvironment())) {
+            $this->invalidate($connection, 'Provider environment changed ('.$connection->recordedEnvironment().' → '.$this->currentEnvironment().').');
+            $connection = $connection->fresh() ?? $connection;
+        }
+
+        return $connection;
+    }
+
+    /**
+     * Clear a local Connect row so the agent can onboard again on the current Bachs environment.
+     * Keeps profile data and local bank accounts; strips stale Bachs destination ids.
+     */
+    public function invalidate(PayoutConnection $connection, string $reason = 'Connect account reset.'): void
+    {
+        if ((string) $connection->provider !== self::PROVIDER) {
+            return;
+        }
+
+        $previousAccountId = (string) ($connection->account_id ?? '');
+        $userId = (int) $connection->user_id;
+
+        DB::transaction(function () use ($connection, $reason, $previousAccountId, $userId) {
+            $locked = PayoutConnection::query()->whereKey($connection->id)->lockForUpdate()->firstOrFail();
+            $locked->forceFill([
+                'account_id' => null,
+                'environment' => null,
+                'status' => PayoutConnection::NOT_STARTED,
+                'capabilities' => null,
+                'requirements' => null,
+                'status_reason' => mb_substr($reason, 0, 255),
+                'last_event_at' => null,
+                'last_synced_at' => null,
+            ])->save();
+
+            $this->clearBachsBeneficiaryIds($userId);
+        });
+
+        Log::info('bachs.connect.invalidated', [
+            'user_id' => $userId,
+            'previous_account_id' => $previousAccountId !== '' ? $previousAccountId : null,
+            'reason' => $reason,
+        ]);
+    }
+
+    /** Reset every Bachs Connect row that belongs to a different environment than the one configured now. */
+    public function invalidateMismatched(?string $currentEnvironment = null): int
+    {
+        $current = ($currentEnvironment ?? $this->currentEnvironment()) === 'live' ? 'live' : 'sandbox';
+        $count = 0;
+
+        PayoutConnection::query()
+            ->where('provider', self::PROVIDER)
+            ->whereNotNull('account_id')
+            ->orderBy('id')
+            ->each(function (PayoutConnection $connection) use ($current, &$count) {
+                if ($connection->matchesEnvironment($current)) {
+                    return;
+                }
+                $this->invalidate(
+                    $connection,
+                    'Provider switched to '.$current.'; previous '.$connection->recordedEnvironment().' Connect account cleared.'
+                );
+                $count++;
+            });
+
+        return $count;
+    }
+
+    /** @param  positive-int  $userId */
+    private function clearBachsBeneficiaryIds(int $userId): void
+    {
+        PayoutAccount::query()
+            ->where('user_id', $userId)
+            ->where('active', true)
+            ->orderBy('id')
+            ->each(function (PayoutAccount $account) {
+                $ids = (array) ($account->provider_beneficiary_ids ?? []);
+                if (! array_key_exists(self::PROVIDER, $ids)) {
+                    return;
+                }
+                unset($ids[self::PROVIDER]);
+                $account->provider_beneficiary_ids = $ids === [] ? null : $ids;
+                $account->save();
+            });
     }
 
     /** Create (once) the agent's recipient account and the local row that tracks it. */
@@ -75,6 +168,12 @@ class BachsConnectService
             ['user_id' => $user->id, 'provider' => self::PROVIDER],
             ['status' => PayoutConnection::NOT_STARTED],
         );
+
+        if (filled($connection->account_id) && ! $connection->matchesEnvironment($this->currentEnvironment())) {
+            $this->invalidate($connection, 'Provider environment changed; creating a new Connect account.');
+            $connection = $connection->fresh() ?? $connection;
+        }
+
         if (filled($connection->account_id)) {
             if ($country !== null) {
                 try {
@@ -100,6 +199,7 @@ class BachsConnectService
             $locked = PayoutConnection::query()->whereKey($connection->id)->lockForUpdate()->firstOrFail();
             if (blank($locked->account_id)) {
                 $locked->account_id = $accountId;
+                $locked->environment = $this->currentEnvironment();
                 $this->applyState($locked, $account, BachsDriver::normalizeCapabilities($account));
                 $locked->save();
             }
@@ -546,6 +646,7 @@ class BachsConnectService
         $previous = $connection->status;
         $derived = self::deriveStatus($account, $caps);
 
+        $connection->environment = $this->currentEnvironment();
         $connection->capabilities = $caps;
         $connection->requirements = array_intersect_key((array) ($account['requirements'] ?? []), array_flip([
             'currently_due', 'past_due', 'eventually_due', 'pending_verification', 'disabled_reason', 'current_deadline',

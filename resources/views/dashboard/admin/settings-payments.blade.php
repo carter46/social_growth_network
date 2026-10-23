@@ -237,6 +237,21 @@
                     </x-dashboard.button>
                     <p class="text-sm break-words" x-show="status" x-text="status" x-cloak :class="ok === true ? 'text-success' : 'text-danger'"></p>
                 </form>
+
+                @if ($key === 'bachs' && Route::has('admin.settings.payment-gateways.bachs.reset-connect'))
+                    <form
+                        method="POST"
+                        action="{{ route('admin.settings.payment-gateways.bachs.reset-connect') }}"
+                        class="mt-4 border-t border-border-subtle pt-4"
+                        onsubmit="return confirm('Clear Connect accounts that were created in the other Bachs environment (e.g. sandbox after switching to live)? Agents keep their profile and local bank accounts, and can reconnect with autofill.');"
+                    >
+                        @csrf
+                        <p class="mb-2 text-sm text-text-secondary">
+                            After switching sandbox ↔ live, old Connect rows stay “Connected” locally even though Bachs no longer has them. Clear those so agents can connect again on the current environment.
+                        </p>
+                        <x-dashboard.button type="submit" variant="secondary" size="sm">Clear Connect accounts from the other environment</x-dashboard.button>
+                    </form>
+                @endif
             </x-dashboard.card>
         @endforeach
 

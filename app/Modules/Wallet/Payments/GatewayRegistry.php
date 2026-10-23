@@ -247,7 +247,11 @@ class GatewayRegistry
         if (config('payout_methods.countries.'.strtoupper($country).'.methods.'.$method) === null) {
             return null;
         }
-        if (! PayoutConnection::for($userId, 'bachs')?->isActive()) {
+        $user = \App\Models\User::query()->find($userId);
+        $connection = $user
+            ? app(\App\Modules\Wallet\Payments\Bachs\BachsConnectService::class)->connection($user)
+            : PayoutConnection::for($userId, 'bachs');
+        if (! $connection?->isActive()) {
             return null;
         }
         $driver = $this->payoutDriver('bachs');

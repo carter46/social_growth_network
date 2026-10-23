@@ -975,7 +975,13 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
 
     private function connection(PayoutAccountDetails $destination): ?PayoutConnection
     {
-        return $destination->userId !== null ? PayoutConnection::for($destination->userId, self::KEY) : null;
+        if ($destination->userId === null) {
+            return null;
+        }
+
+        $user = \App\Models\User::query()->find($destination->userId);
+
+        return $user ? app(BachsConnectService::class)->connection($user) : PayoutConnection::for($destination->userId, self::KEY);
     }
 
     private function connectedAccountId(PayoutAccountDetails $destination): ?string
@@ -990,6 +996,9 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
     {
         $connection = $this->connection($destination);
         if (! $connection || blank($connection->account_id)) {
+            return false;
+        }
+        if (! $connection->matchesEnvironment($this->environment())) {
             return false;
         }
         if ($connection->isActive()) {
