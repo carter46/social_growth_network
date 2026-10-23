@@ -8,7 +8,9 @@ use App\Enums\WalletHoldStatus;
 use App\Enums\WalletType;
 use App\Events\WalletFunded;
 use App\Events\WalletWithdrawalCompleted;
+use App\Events\WithdrawalApproved;
 use App\Events\WithdrawalPayoutFailed;
+use App\Events\WithdrawalRejected;
 use App\Models\Order;
 use App\Models\PaymentTimelineEvent;
 use App\Models\ReferralCommission;
@@ -245,6 +247,15 @@ class WalletService
             ]);
 
             PaymentTimelineEvent::record($withdrawal, 'approved', 'Approved by admin');
+
+            DB::afterCommit(function () use ($withdrawal) {
+                WithdrawalApproved::dispatch(
+                    (int) $withdrawal->id,
+                    (int) $withdrawal->user_id,
+                    (float) $withdrawal->amount,
+                    (string) ($withdrawal->currency ?: $this->currency())
+                );
+            });
         });
     }
 
@@ -677,6 +688,18 @@ class WalletService
             ]);
 
             PaymentTimelineEvent::record($withdrawal, 'rejected', 'Rejected, funds returned');
+
+            $reason = filled($adminNotes) ? trim((string) $adminNotes) : null;
+
+            DB::afterCommit(function () use ($withdrawal, $reason) {
+                WithdrawalRejected::dispatch(
+                    (int) $withdrawal->id,
+                    (int) $withdrawal->user_id,
+                    (float) $withdrawal->amount,
+                    (string) ($withdrawal->currency ?: $this->currency()),
+                    $reason,
+                );
+            });
         });
     }
 

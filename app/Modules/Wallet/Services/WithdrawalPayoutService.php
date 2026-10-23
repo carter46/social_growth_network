@@ -90,7 +90,7 @@ class WithdrawalPayoutService
 
         return array_map(
             fn (PayoutGateway $d) => $d->displayName(),
-            $this->registry->payoutRoute($destination->country, $destination->method),
+            $this->registry->payoutRoute($destination->country, $destination->method, $destination->userId),
         );
     }
 

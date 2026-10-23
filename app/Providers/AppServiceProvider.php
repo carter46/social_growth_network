@@ -15,8 +15,10 @@ use App\Events\UserVerified;
 use App\Events\WalletFunded;
 use App\Events\WalletFundingSubmitted;
 use App\Events\WalletWithdrawalCompleted;
+use App\Events\WithdrawalApproved;
 use App\Events\WithdrawalAwaitingProviderAuthorization;
 use App\Events\WithdrawalPayoutFailed;
+use App\Events\WithdrawalRejected;
 use App\Events\WithdrawalRequested;
 use App\Listeners\DispatchMarketingAnalytics;
 use App\Listeners\NotifyAdmins;
@@ -52,6 +54,8 @@ class AppServiceProvider extends ServiceProvider
         \App\Events\WalletDepositAbandoned::class,
         WalletFundingSubmitted::class,
         WalletWithdrawalCompleted::class,
+        WithdrawalApproved::class,
+        WithdrawalRejected::class,
         WithdrawalRequested::class,
         WithdrawalAwaitingProviderAuthorization::class,
         WithdrawalPayoutFailed::class,

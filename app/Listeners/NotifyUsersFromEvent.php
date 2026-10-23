@@ -8,7 +8,9 @@ use App\Events\WalletDepositAbandoned;
 use App\Events\WalletDepositFailed;
 use App\Events\WalletFunded;
 use App\Events\WalletWithdrawalCompleted;
+use App\Events\WithdrawalApproved;
 use App\Events\WithdrawalPayoutFailed;
+use App\Events\WithdrawalRejected;
 use App\Models\Order;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketReply;
@@ -37,6 +39,8 @@ class NotifyUsersFromEvent
             WalletDepositFailed::class => $this->walletDepositFailed($event),
             WalletDepositAbandoned::class => $this->walletDepositAbandoned($event),
             WalletWithdrawalCompleted::class => $this->walletWithdrawalCompleted($event),
+            WithdrawalApproved::class => $this->withdrawalApproved($event),
+            WithdrawalRejected::class => $this->withdrawalRejected($event),
             WithdrawalPayoutFailed::class => $this->withdrawalPayoutFailed($event),
             OrderCompleted::class => $this->orderCompleted($event),
             TicketReplied::class => $this->ticketReplied($event),
@@ -141,6 +145,59 @@ class NotifyUsersFromEvent
                     'transaction_id' => $event->transactionId,
                 ],
                 emailSubject: __('Withdrawal completed'),
+            ),
+            ['database', 'mail']
+        );
+    }
+
+    private function withdrawalApproved(WithdrawalApproved $event): void
+    {
+        $user = User::query()->find($event->userId);
+        if (! $user) {
+            return;
+        }
+
+        $this->dispatcher->notifyUser(
+            $user,
+            new NotificationMessage(
+                type: 'wallet.withdrawal_approved',
+                title: __('Withdrawal approved'),
+                body: __('Your withdrawal of :amount was approved and is being processed.', [
+                    'amount' => money($event->amount, 2),
+                ]),
+                actionUrl: $this->withdrawalsUrl($user),
+                meta: ['withdrawal_id' => $event->withdrawalId],
+                emailSubject: __('Withdrawal approved'),
+                dedupeKey: 'wallet.withdrawal_approved.'.$event->withdrawalId,
+            ),
+            ['database', 'mail']
+        );
+    }
+
+    private function withdrawalRejected(WithdrawalRejected $event): void
+    {
+        $user = User::query()->find($event->userId);
+        if (! $user) {
+            return;
+        }
+
+        $this->dispatcher->notifyUser(
+            $user,
+            new NotificationMessage(
+                type: 'wallet.withdrawal_rejected',
+                title: __('Withdrawal rejected'),
+                body: filled($event->reason)
+                    ? __('Your withdrawal of :amount was rejected. :reason Funds have been returned to your wallet.', [
+                        'amount' => money($event->amount, 2),
+                        'reason' => $event->reason,
+                    ])
+                    : __('Your withdrawal of :amount was rejected. Funds have been returned to your wallet.', [
+                        'amount' => money($event->amount, 2),
+                    ]),
+                actionUrl: $this->withdrawalsUrl($user),
+                meta: ['withdrawal_id' => $event->withdrawalId],
+                emailSubject: __('Withdrawal rejected'),
+                dedupeKey: 'wallet.withdrawal_rejected.'.$event->withdrawalId,
             ),
             ['database', 'mail']
         );

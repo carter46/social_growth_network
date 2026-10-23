@@ -2,6 +2,7 @@
 
 namespace App\Modules\Wallet\Payments;
 
+use App\Models\PayoutConnection;
 use App\Models\PayoutCoverage;
 use App\Models\PayoutRoute;
 use App\Models\SystemSetting;
@@ -209,9 +210,12 @@ class GatewayRegistry
      * Gateways that may pay this destination, in route order. A gateway is skipped when it
      * isn't configured or the route isn't verified for it in payout coverage.
      *
+     * When $userId is set and that agent has an active Bachs Connect account, Bachs is included
+     * even if coverage has not been synced yet — same rule as live fee quotes on withdraw.
+     *
      * @return array<string, PayoutGateway>
      */
-    public function payoutRoute(string $country, string $method): array
+    public function payoutRoute(string $country, string $method, ?int $userId = null): array
     {
         $route = [];
         foreach ($this->payoutRouteKeys($country, $method) as $key) {
@@ -225,7 +229,30 @@ class GatewayRegistry
             $route[$key] = $driver;
         }
 
+        if ($userId !== null && ! isset($route['bachs'])) {
+            $bachs = $this->connectBachsIfReady($userId, $country, $method);
+            if ($bachs !== null) {
+                $route = ['bachs' => $bachs] + $route;
+            }
+        }
+
         return $route;
+    }
+
+    /**
+     * Active Bachs Connect recipient may be paid before payout_coverage marks the route verified.
+     */
+    private function connectBachsIfReady(int $userId, string $country, string $method): ?PayoutGateway
+    {
+        if (config('payout_methods.countries.'.strtoupper($country).'.methods.'.$method) === null) {
+            return null;
+        }
+        if (! PayoutConnection::for($userId, 'bachs')?->isActive()) {
+            return null;
+        }
+        $driver = $this->payoutDriver('bachs');
+
+        return $driver && $driver->isConfigured() ? $driver : null;
     }
 
     /**

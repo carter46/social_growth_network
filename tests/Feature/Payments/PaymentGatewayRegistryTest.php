@@ -3,6 +3,7 @@
 namespace Tests\Feature\Payments;
 
 use App\Models\PaymentWebhook;
+use App\Models\PayoutConnection;
 use App\Models\PayoutCoverage;
 use App\Modules\Wallet\Payments\Exceptions\GatewayUnavailable;
 use App\Modules\Wallet\Payments\GatewayRegistry;
@@ -56,6 +57,30 @@ class PaymentGatewayRegistryTest extends TestCase
 
         $this->gateways['flutterwave']->configured = false;
         $this->assertSame([], $this->registry()->payoutRoute('NG', 'bank_account'));
+    }
+
+    public function test_active_bachs_connect_allows_admin_approve_without_coverage_row(): void
+    {
+        // No coverRoute() — same gap that blocked live approve after the agent could still request.
+        $agent = $this->agentWithBalance('100.00');
+        PayoutConnection::query()->create([
+            'user_id' => $agent->id,
+            'provider' => 'bachs',
+            'account_id' => 'acct_connect_1',
+            'status' => PayoutConnection::ACTIVE,
+            'capabilities' => ['transfers' => 'active', 'payouts' => 'active'],
+        ]);
+        $account = $this->payoutAccount($agent);
+        $withdrawal = $this->pendingWithdrawal($agent, $account);
+
+        $this->assertSame([], array_keys($this->registry()->payoutRoute('NG', 'bank_account')));
+        $this->assertSame(['bachs'], array_keys($this->registry()->payoutRoute('NG', 'bank_account', $agent->id)));
+        $this->assertSame(['bachs'], array_keys(app(WithdrawalPayoutService::class)->routeOptions($withdrawal)));
+
+        app(WithdrawalPayoutService::class)->approveAndSend($withdrawal, $this->adminUser()->id);
+
+        $this->assertNotNull($withdrawal->fresh()->latestAttempt);
+        $this->assertSame('bachs', $withdrawal->fresh()->latestAttempt->gateway_key);
     }
 
     public function test_payout_webhook_is_stored_once_and_reverified_with_the_provider(): void
