@@ -137,16 +137,18 @@ class DashboardController extends Controller
         return view('dashboard.admin.analytics', $payload);
     }
 
-    public function transactions(): View
+    public function transactions(Request $request): View
     {
-        $transactions = \App\Models\Transaction::query()
+        $query = \App\Models\Transaction::query()
             ->forActiveUsers()
             ->with('user')
-            ->orderByDesc('created_at')
-            ->paginate(20);
+            ->orderByDesc('created_at');
+
+        \App\Support\SandboxArchive::excludePurgedTransactions($query, $request);
 
         return view('dashboard.admin.transactions', [
-            'transactions' => $transactions,
+            'transactions' => $query->paginate(20)->withQueryString(),
+            'showingSandbox' => \App\Support\SandboxArchive::includeSandbox($request),
         ]);
     }
 

@@ -8,6 +8,7 @@ use App\Models\SystemSetting;
 use App\Modules\Admin\Services\FinancialAuditLog;
 use App\Modules\Catalog\Services\PlatformCheckoutService;
 use App\Modules\Wallet\Services\WalletService;
+use App\Support\SandboxArchive;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -30,6 +31,8 @@ class OrderAdminController extends Controller
             ->where('source', 'platform')
             ->orderByDesc('created_at');
 
+        SandboxArchive::excludePurgedOrders($query, $request);
+
         if ($request->string('filter')->toString() === 'awaiting_bank') {
             $query->where('payment_method', Order::PAYMENT_MANUAL_BANK_TRANSFER)
                 ->where('status', 'pending');
@@ -43,6 +46,7 @@ class OrderAdminController extends Controller
         return view('dashboard.admin.orders.index', [
             'orders' => $orders,
             'filter' => $request->string('filter')->toString(),
+            'showingSandbox' => SandboxArchive::includeSandbox($request),
         ]);
     }
 

@@ -12,6 +12,13 @@
         ['Transactions', null],
     ]"
 >
+    <x-slot:actions>
+        @if (! empty($showingSandbox))
+            <x-dashboard.button :href="route('admin.transactions')" variant="secondary" size="sm">Hide sandbox archive</x-dashboard.button>
+        @else
+            <x-dashboard.button :href="route('admin.transactions', ['sandbox' => 1])" variant="secondary" size="sm">Show sandbox archive</x-dashboard.button>
+        @endif
+    </x-slot:actions>
     <x-dashboard.table
         :empty="$transactions->isEmpty()"
         empty-title="No transactions yet"

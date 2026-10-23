@@ -12,6 +12,13 @@
         ['Wallet fundings', null],
     ]"
 >
+    <x-slot:actions>
+        @if (! empty($showingSandbox))
+            <x-dashboard.button :href="route('admin.fundings')" variant="secondary" size="sm">Hide sandbox archive</x-dashboard.button>
+        @else
+            <x-dashboard.button :href="route('admin.fundings', ['sandbox' => 1])" variant="secondary" size="sm">Show sandbox archive</x-dashboard.button>
+        @endif
+    </x-slot:actions>
     <x-dashboard.table :empty="$fundings->isEmpty()" empty-title="No deposit requests" empty-description="Online payment deposits appear here. Order bank transfers are under Orders." empty-icon="deposit" striped>
         <x-slot:head>
             <x-dashboard.th>User / Ref</x-dashboard.th>

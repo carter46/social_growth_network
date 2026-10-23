@@ -11,6 +11,7 @@ use App\Modules\Admin\Services\FinancialAuditLog;
 use App\Modules\Wallet\Payments\GatewayRegistry;
 use App\Modules\Wallet\Services\DepositCheckoutService;
 use App\Modules\Wallet\Services\WalletService;
+use App\Support\SandboxArchive;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -27,15 +28,19 @@ class WalletFundingController extends Controller
         private GatewayRegistry $gateways,
     ) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $fundings = WalletFunding::query()
+        $query = WalletFunding::query()
             ->forActiveUsers()
             ->with(['user', 'wallet'])
-            ->orderByDesc('created_at')
-            ->paginate(20);
+            ->orderByDesc('created_at');
 
-        return view('dashboard.admin.fundings', compact('fundings'));
+        SandboxArchive::excludePurgedFundings($query, $request);
+
+        return view('dashboard.admin.fundings', [
+            'fundings' => $query->paginate(20)->withQueryString(),
+            'showingSandbox' => SandboxArchive::includeSandbox($request),
+        ]);
     }
 
     public function approve(WalletFunding $funding, Request $request): RedirectResponse

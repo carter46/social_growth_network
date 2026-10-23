@@ -16,6 +16,11 @@
         <x-dashboard.button :href="route('admin.orders', ['filter' => 'awaiting_bank'])" variant="secondary" size="sm">Awaiting bank</x-dashboard.button>
         <x-dashboard.button :href="route('admin.orders', ['filter' => 'failed_bank'])" variant="secondary" size="sm">Failed bank</x-dashboard.button>
         <x-dashboard.button :href="route('admin.orders')" variant="secondary" size="sm">All orders</x-dashboard.button>
+        @if (! empty($showingSandbox))
+            <x-dashboard.button :href="route('admin.orders', array_filter(['filter' => $filter ?: null]))" variant="secondary" size="sm">Hide sandbox archive</x-dashboard.button>
+        @else
+            <x-dashboard.button :href="route('admin.orders', array_filter(['filter' => $filter ?: null, 'sandbox' => 1]))" variant="secondary" size="sm">Show sandbox archive</x-dashboard.button>
+        @endif
     </x-slot:actions>
 
     <x-dashboard.table :empty="$orders->isEmpty()" empty-title="No orders" empty-description="Platform service orders appear here." empty-icon="orders" striped>

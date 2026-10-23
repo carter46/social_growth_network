@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Enums\TransactionType;
 use App\Enums\WalletType;
+use App\Models\Order;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Wallet;
@@ -20,6 +21,9 @@ use InvalidArgumentException;
  *
  * Site balances live in our DB — switching the gateway to live does not clear them.
  * Default is dry-run. Pass --execute to write ledger reversals / adjustments.
+ *
+ * --cancel-open closes unfinished sandbox deposits/orders.
+ * --archive tags sandbox-era deposit/order rows so admin lists hide them by default.
  */
 class PurgeSandboxWalletCreditsCommand extends Command
 {
@@ -28,6 +32,8 @@ class PurgeSandboxWalletCreditsCommand extends Command
         {--user= : Limit to one user id or email}
         {--execute : Apply changes (default is dry-run)}
         {--zero-available : After reversing, zero remaining available balance on wallets that had sandbox deposits}
+        {--cancel-open : Cancel pending/processing sandbox deposits and unpaid platform orders}
+        {--archive : Tag sandbox-era deposits/orders so admin lists hide them (use ?sandbox=1 to show)}
         {--admin= : Admin user id for ledger attribution}';
 
     protected $description = 'Dry-run (or execute) clawback of sandbox-era wallet deposits before go-live';
@@ -58,6 +64,9 @@ class PurgeSandboxWalletCreditsCommand extends Command
 
         $execute = (bool) $this->option('execute');
         $zeroAvailable = (bool) $this->option('zero-available');
+        $cancelOpen = (bool) $this->option('cancel-open');
+        $archive = (bool) $this->option('archive');
+
         try {
             $userFilter = $this->resolveUserId();
         } catch (InvalidArgumentException $e) {
@@ -66,20 +75,49 @@ class PurgeSandboxWalletCreditsCommand extends Command
             return self::FAILURE;
         }
 
-        $fundings = $this->candidateFundings($before, $userFilter);
-        $this->info(($execute ? 'EXECUTE' : 'DRY RUN').' — sandbox deposits at/before '.$before->toDateTimeString());
+        $this->info(($execute ? 'EXECUTE' : 'DRY RUN').' — sandbox cutover at/before '.$before->toDateTimeString());
         $this->line('Admin attribution: #'.$admin->id.' ('.$admin->email.')');
         if ($userFilter) {
             $this->line('Limited to user #'.$userFilter);
         }
 
+        $failed = $this->purgeApprovedCredits($wallets, $before, $userFilter, $admin, $execute, $zeroAvailable);
+
+        if ($cancelOpen) {
+            $this->cancelOpenRecords($before, $userFilter, $execute);
+        }
+
+        if ($archive) {
+            $this->archiveRecords($before, $userFilter, $execute);
+        }
+
+        if (! $execute) {
+            $this->comment('Re-run with --execute to apply.');
+            if (! $cancelOpen || ! $archive) {
+                $this->comment('Add --cancel-open and/or --archive to clean admin deposit/order lists.');
+            }
+        }
+
+        return $failed > 0 && $execute ? self::FAILURE : self::SUCCESS;
+    }
+
+    private function purgeApprovedCredits(
+        WalletService $wallets,
+        Carbon $before,
+        ?int $userFilter,
+        User $admin,
+        bool $execute,
+        bool $zeroAvailable,
+    ): int {
+        $fundings = $this->candidateFundings($before, $userFilter);
+
         if ($fundings->isEmpty()) {
-            $this->warn('No approved sandbox-era deposits matched.');
+            $this->line('No approved sandbox-era deposits left to reverse.');
             if ($zeroAvailable && $userFilter) {
-                return $this->zeroWalletAvailable($wallets, $userFilter, $admin, $execute);
+                $this->zeroWalletAvailable($wallets, $userFilter, $admin, $execute);
             }
 
-            return self::SUCCESS;
+            return 0;
         }
 
         $rows = [];
@@ -112,6 +150,7 @@ class PurgeSandboxWalletCreditsCommand extends Command
                         'Sandbox deposit purge (before '.$before->toDateString().')',
                         $admin->id,
                     );
+                    $this->tagFundingPurged($funding->fresh(), 'reversed');
                     $action = 'reversed';
                     $reversed++;
                     $affectedWalletIds[$funding->wallet_id] = true;
@@ -122,17 +161,17 @@ class PurgeSandboxWalletCreditsCommand extends Command
                         'admin_id' => $admin->id,
                     ]);
                 } catch (InvalidArgumentException $e) {
-                    // Already spent some/all of the deposit — claw what is still available.
                     $wallet = Wallet::query()->find($funding->wallet_id);
                     $take = $wallet ? Money::round($wallet->availableBalance(), 4) : '0';
                     if (Money::isPositive($take, 4)) {
                         try {
-                            $wallets->adminAdjust(
+                            $adj = $wallets->adminAdjust(
                                 $wallet,
                                 Money::sub('0', $take, 4),
                                 'Sandbox purge leftover after spent deposit #'.$funding->id,
                                 $admin->id,
                             );
+                            $this->markFundingClawed($funding, $adj->id);
                             $action = 'clawed leftover';
                             $note = $e->getMessage();
                             $clawed++;
@@ -150,9 +189,10 @@ class PurgeSandboxWalletCreditsCommand extends Command
                             $failed++;
                         }
                     } else {
-                        $action = 'spent (nothing left)';
+                        $this->markFundingClawed($funding, null);
+                        $action = 'spent (marked reversed)';
                         $note = $e->getMessage();
-                        $failed++;
+                        $clawed++;
                     }
                 }
             } else {
@@ -184,7 +224,7 @@ class PurgeSandboxWalletCreditsCommand extends Command
             'Matched %d deposit(s).%s',
             $fundings->count(),
             $execute
-                ? " Reversed {$reversed}, clawed leftover {$clawed}, failed/spent {$failed}."
+                ? " Reversed {$reversed}, clawed/marked {$clawed}, failed {$failed}."
                 : ' Nothing written (dry-run).'
         ));
 
@@ -198,11 +238,159 @@ class PurgeSandboxWalletCreditsCommand extends Command
             }
         }
 
-        if (! $execute) {
-            $this->comment('Re-run with --execute to apply. Add --zero-available to also clear leftovers on those wallets.');
+        return $failed;
+    }
+
+    private function cancelOpenRecords(Carbon $before, ?int $userId, bool $execute): void
+    {
+        $fundings = WalletFunding::query()
+            ->whereIn('status', ['pending', 'processing'])
+            ->where('created_at', '<=', $before)
+            ->where(function ($q) {
+                $q->whereNull('metadata->environment')
+                    ->orWhere('metadata->environment', '!=', 'live');
+            })
+            ->when($userId, fn ($q) => $q->where('user_id', $userId))
+            ->orderBy('id')
+            ->get();
+
+        $orders = Order::query()
+            ->where('source', 'platform')
+            ->whereIn('status', ['pending', 'processing'])
+            ->where('created_at', '<=', $before)
+            ->when($userId, fn ($q) => $q->where('user_id', $userId))
+            ->orderBy('id')
+            ->get();
+
+        $this->line('');
+        $this->info('Open sandbox deposits/orders: '.$fundings->count().' deposit(s), '.$orders->count().' order(s).');
+
+        foreach ($fundings as $funding) {
+            if (! $execute) {
+                $this->line("  would cancel deposit #{$funding->id} {$funding->reference} ({$funding->status})");
+
+                continue;
+            }
+            $funding->update([
+                'status' => 'rejected',
+                'internal_status' => 'rejected',
+                'admin_notes' => trim((string) $funding->admin_notes."\nSandbox purge: cancelled unfinished checkout."),
+                'metadata' => $this->withPurgedMeta($funding->metadata),
+            ]);
+            $this->line("  cancelled deposit #{$funding->id} {$funding->reference}");
         }
 
-        return $failed > 0 && $execute ? self::FAILURE : self::SUCCESS;
+        foreach ($orders as $order) {
+            if (! $execute) {
+                $this->line("  would cancel order #{$order->id} {$order->reference} ({$order->status})");
+
+                continue;
+            }
+            $meta = $this->withPurgedMeta($order->payment_metadata);
+            $meta['cancel_reason'] = 'Sandbox purge: cancelled unfinished checkout.';
+            $order->update([
+                'status' => 'cancelled',
+                'payment_metadata' => $meta,
+            ]);
+            $this->line("  cancelled order #{$order->id} {$order->reference}");
+        }
+    }
+
+    private function archiveRecords(Carbon $before, ?int $userId, bool $execute): void
+    {
+        $fundings = WalletFunding::query()
+            ->where('created_at', '<=', $before)
+            ->where(function ($q) {
+                $q->whereNull('metadata->environment')
+                    ->orWhere('metadata->environment', '!=', 'live');
+            })
+            ->where(function ($q) {
+                $q->whereNull('metadata->sandbox_purged_at');
+            })
+            ->when($userId, fn ($q) => $q->where('user_id', $userId))
+            ->orderBy('id')
+            ->get();
+
+        $orders = Order::query()
+            ->where('source', 'platform')
+            ->where('created_at', '<=', $before)
+            ->where(function ($q) {
+                $q->whereNull('payment_metadata->sandbox_purged_at');
+            })
+            ->when($userId, fn ($q) => $q->where('user_id', $userId))
+            ->orderBy('id')
+            ->get();
+
+        $this->line('');
+        $this->info('Archive sandbox history: '.$fundings->count().' deposit(s), '.$orders->count().' order(s).');
+
+        foreach ($fundings as $funding) {
+            if (! $execute) {
+                $this->line("  would archive deposit #{$funding->id} {$funding->reference} ({$funding->status})");
+
+                continue;
+            }
+            $updates = [
+                'metadata' => $this->withPurgedMeta($funding->metadata),
+                'admin_notes' => trim((string) $funding->admin_notes."\nSandbox archive: hidden from admin lists."),
+            ];
+            // Clawed leftovers that still say "approved" — mark reversed for the UI.
+            if ($funding->status === 'approved') {
+                $updates['status'] = 'reversed';
+                $updates['internal_status'] = 'reversed';
+                $updates['reversed_at'] = $funding->reversed_at ?? now();
+            }
+            $funding->update($updates);
+            $this->line("  archived deposit #{$funding->id} {$funding->reference}");
+        }
+
+        foreach ($orders as $order) {
+            if (! $execute) {
+                $this->line("  would archive order #{$order->id} {$order->reference} ({$order->status})");
+
+                continue;
+            }
+            $meta = $this->withPurgedMeta($order->payment_metadata);
+            $meta['sandbox_note'] = 'Sandbox archive: hidden from admin lists. Paid test orders were not unfulfilled.';
+            $order->update(['payment_metadata' => $meta]);
+            $this->line("  archived order #{$order->id} {$order->reference}");
+        }
+
+        if ($execute) {
+            $this->comment('Admin Deposits / Orders / Transactions hide these unless you open the page with ?sandbox=1');
+        }
+    }
+
+    /** @param  array<string, mixed>|null  $meta */
+    private function withPurgedMeta(?array $meta): array
+    {
+        $meta = $meta ?? [];
+        $meta['sandbox_purged_at'] = now()->toIso8601String();
+        if (! isset($meta['environment']) || $meta['environment'] === '') {
+            $meta['environment'] = 'sandbox';
+        }
+
+        return $meta;
+    }
+
+    private function tagFundingPurged(WalletFunding $funding, string $status): void
+    {
+        $funding->update([
+            'metadata' => $this->withPurgedMeta($funding->metadata),
+            'status' => $status,
+        ]);
+    }
+
+    private function markFundingClawed(WalletFunding $funding, ?int $adjustmentId): void
+    {
+        $funding->update([
+            'status' => 'reversed',
+            'internal_status' => 'reversed',
+            'reversed_at' => now(),
+            'reversal_transaction_id' => $adjustmentId ?? $funding->reversal_transaction_id,
+            'admin_notes' => trim((string) $funding->admin_notes."\nSandbox purge: deposit was partly spent; leftover clawed."),
+            'metadata' => $this->withPurgedMeta($funding->metadata),
+        ]);
     }
 
     /** @return \Illuminate\Support\Collection<int, WalletFunding> */
@@ -211,9 +399,7 @@ class PurgeSandboxWalletCreditsCommand extends Command
         return WalletFunding::query()
             ->where('status', 'approved')
             ->where(function ($q) use ($before) {
-                // Explicitly tagged sandbox deposits (any date).
                 $q->where('metadata->environment', 'sandbox')
-                    // Untagged / non-live deposits credited at or before go-live.
                     ->orWhere(function ($q2) use ($before) {
                         $q2->where(function ($q3) {
                             $q3->whereNull('metadata->environment')

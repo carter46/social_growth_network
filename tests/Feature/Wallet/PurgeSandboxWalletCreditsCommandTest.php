@@ -91,8 +91,8 @@ class PurgeSandboxWalletCreditsCommandTest extends TestCase
         ])->assertSuccessful();
 
         $this->assertSame('0.0000', $user->wallet->fresh()->balance);
-        // Full reverse failed; funding stays approved, leftover was adjusted off.
-        $this->assertSame('approved', $funding->fresh()->status);
+        $this->assertSame('reversed', $funding->fresh()->status);
+        $this->assertNotNull(data_get($funding->fresh()->metadata, 'sandbox_purged_at'));
         $this->assertTrue(
             Transaction::query()
                 ->where('wallet_id', $user->wallet->id)
@@ -100,6 +100,59 @@ class PurgeSandboxWalletCreditsCommandTest extends TestCase
                 ->where('description', 'like', 'Sandbox purge leftover%')
                 ->exists()
         );
+    }
+
+    public function test_cancel_open_and_archive_hide_sandbox_rows_from_admin_lists(): void
+    {
+        [$admin, $user] = $this->adminAndUser();
+
+        $openFunding = WalletFunding::create([
+            'user_id' => $user->id,
+            'wallet_id' => $user->wallet->id,
+            'method' => 'bachs_checkout',
+            'provider' => 'bachs',
+            'amount' => 1000,
+            'currency' => 'USD',
+            'status' => 'processing',
+            'reference' => 'DEP-OPEN-1',
+            'provider_payment_reference' => 'DEP-OPEN-1',
+            'created_at' => now()->subDays(2),
+        ]);
+
+        $order = \App\Models\Order::factory()->platform()->create([
+            'user_id' => $user->id,
+            'reference' => 'PLT-OPEN-1',
+            'status' => 'processing',
+            'payment_method' => 'gateway',
+            'total_amount' => 490,
+            'created_at' => now()->subDays(2),
+        ]);
+
+        $this->artisan('wallets:purge-sandbox-credits', [
+            '--before' => now()->toDateString(),
+            '--execute' => true,
+            '--cancel-open' => true,
+            '--archive' => true,
+            '--admin' => $admin->id,
+        ])->assertSuccessful();
+
+        $this->assertSame('rejected', $openFunding->fresh()->status);
+        $this->assertSame('cancelled', $order->fresh()->status);
+        $this->assertNotNull(data_get($openFunding->fresh()->metadata, 'sandbox_purged_at'));
+        $this->assertNotNull(data_get($order->fresh()->payment_metadata, 'sandbox_purged_at'));
+
+        $this->actingAs($admin)->get(route('admin.fundings'))
+            ->assertOk()
+            ->assertDontSee('DEP-OPEN-1');
+        $this->actingAs($admin)->get(route('admin.fundings', ['sandbox' => 1]))
+            ->assertOk()
+            ->assertSee('DEP-OPEN-1');
+        $this->actingAs($admin)->get(route('admin.orders'))
+            ->assertOk()
+            ->assertDontSee('PLT-OPEN-1');
+        $this->actingAs($admin)->get(route('admin.orders', ['sandbox' => 1]))
+            ->assertOk()
+            ->assertSee('PLT-OPEN-1');
     }
 
     /** @return array{0: User, 1: User, 2: WalletFunding} */
