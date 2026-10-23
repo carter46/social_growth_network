@@ -192,10 +192,18 @@ class Withdrawal extends Model
         return (array) (($this->provider_meta ?? [])['initiate'] ?? []);
     }
 
+    public function accountNumber(): string
+    {
+        return (string) ($this->account_number
+            ?: ($this->destination_details['fields']['account_number']
+                ?? $this->destination_details['fields']['iban']
+                ?? $this->destination_details['fields']['phone_number']
+                ?? ''));
+    }
+
     public function maskedAccountNumber(): string
     {
-        $num = (string) ($this->account_number
-            ?: ($this->destination_details['fields']['account_number'] ?? $this->destination_details['fields']['iban'] ?? $this->destination_details['fields']['phone_number'] ?? ''));
+        $num = $this->accountNumber();
         if (strlen($num) <= 4) {
             return str_repeat('*', strlen($num));
         }

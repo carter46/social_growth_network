@@ -81,8 +81,9 @@
             @endif
 
             @if ($withdrawal->canBeRejectedByAdmin() && ! $latest?->isLive())
-                <form method="POST" action="{{ route('admin.withdrawals.reject', $withdrawal) }}" onsubmit="return confirm('Reject this withdrawal and return the full amount to the member?');" class="pt-2">
+                <form method="POST" action="{{ route('admin.withdrawals.reject', $withdrawal) }}" class="space-y-2 pt-2">
                     @csrf
+                    <x-dashboard.input name="notes" label="Rejection reason" required maxlength="1000" />
                     <x-dashboard.button type="submit" size="sm" variant="danger">Reject &amp; refund</x-dashboard.button>
                 </form>
             @endif
@@ -107,8 +108,12 @@
             <dl class="space-y-2">
                 <div class="flex justify-between gap-4"><dt class="text-text-muted">Route</dt><dd>{{ $withdrawal->destinationLabel() }} ({{ $withdrawal->destination_currency ?: 'NGN' }})</dd></div>
                 <div class="flex justify-between gap-4"><dt class="text-text-muted">{{ $withdrawal->method === 'mobile_money' ? 'Network' : 'Bank' }}</dt><dd>{{ $withdrawal->bank_name }}</dd></div>
-                <div class="flex justify-between gap-4"><dt class="text-text-muted">Account</dt><dd class="font-mono">{{ $withdrawal->maskedAccountNumber() }}</dd></div>
+                <div class="flex justify-between gap-4"><dt class="text-text-muted">Account</dt><dd class="font-mono break-all">{{ $withdrawal->accountNumber() ?: $withdrawal->maskedAccountNumber() }}</dd></div>
                 <div class="flex justify-between gap-4"><dt class="text-text-muted">Holder name</dt><dd>{{ $withdrawal->account_name }}</dd></div>
+                @if ($withdrawal->user)
+                    <div class="flex justify-between gap-4"><dt class="text-text-muted">Member name</dt><dd>{{ $withdrawal->user->name }}</dd></div>
+                    <div class="flex justify-between gap-4"><dt class="text-text-muted">Email</dt><dd class="break-all">{{ $withdrawal->user->email }}</dd></div>
+                @endif
                 @if ($account)
                     <div class="flex justify-between gap-4"><dt class="text-text-muted">Verification</dt><dd>
                         @if ($account->isResolved())

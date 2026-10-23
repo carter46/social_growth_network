@@ -126,10 +126,18 @@ class WithdrawalAdminController extends Controller
             return back()->with('error', __('A payout attempt is still in progress. Wait for the provider to confirm the result.'));
         }
 
+        try {
+            $validated = $request->validate([
+                'notes' => ['required', 'string', 'min:3', 'max:1000'],
+            ]);
+        } catch (ValidationException $e) {
+            return back()->with('error', $e->validator->errors()->first() ?: __('Enter a reason for rejecting this withdrawal.'));
+        }
+
         $walletBefore = $withdrawal->wallet?->replicate();
 
         try {
-            $this->walletService->unlockRejectedWithdrawal($withdrawal, $request->input('notes'));
+            $this->walletService->unlockRejectedWithdrawal($withdrawal, $validated['notes']);
         } catch (\InvalidArgumentException $e) {
             if ($withdrawal->fresh()->status === 'rejected') {
                 return back()->with('status', __('Withdrawal already rejected.'));
