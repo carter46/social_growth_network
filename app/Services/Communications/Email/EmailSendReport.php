@@ -10,6 +10,10 @@ final class EmailSendReport
 {
     public const OUTCOME_BREVO = 'brevo';
 
+    /** SMTP used because Brevo is off / not configured — this is the intended primary path. */
+    public const OUTCOME_SMTP = 'smtp';
+
+    /** Brevo was tried and failed; SMTP then succeeded. */
     public const OUTCOME_FALLBACK = 'fallback';
 
     public const OUTCOME_FAILED = 'failed';
@@ -31,6 +35,12 @@ final class EmailSendReport
         return $this->outcome === self::OUTCOME_FALLBACK;
     }
 
+    /** Clean success: Brevo worked, or SMTP was used on purpose because Brevo is off. */
+    public function isCleanSuccess(): bool
+    {
+        return in_array($this->outcome, [self::OUTCOME_BREVO, self::OUTCOME_SMTP], true);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -38,7 +48,7 @@ final class EmailSendReport
     {
         return [
             'outcome' => $this->outcome,
-            'ok' => $this->outcome === self::OUTCOME_BREVO,
+            'ok' => $this->isCleanSuccess(),
             'delivered' => $this->result->success,
             'used_fallback' => $this->usedFallback(),
             'from_name' => $this->fromName,

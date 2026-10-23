@@ -448,11 +448,14 @@ class SettingsController extends Controller
                 $subject,
                 "This is a test email from {$siteName} Admin Settings.\n\nIf you received this, your mail configuration is working.\n\nSent at: ".now()->toDateTimeString(),
                 EmailProfile::NoReply,
+                false,
+                false,
             );
 
             $result = $report->result;
             $brevoError = collect($report->attempts)
-                ->filter(fn (array $row) => ($row['provider'] ?? '') === IntegrationProvider::BREVO && ! ($row['success'] ?? false))
+                ->filter(fn (array $row) => ($row['provider'] ?? '') === IntegrationProvider::BREVO
+                    && ($row['status'] ?? '') === 'failed')
                 ->map(fn (array $row) => $row['error'] ?? null)
                 ->filter()
                 ->last();
@@ -460,7 +463,7 @@ class SettingsController extends Controller
             $this->audit->log(auth()->id(), 'settings.mail_test', null, null, [
                 'recipient' => $to,
                 'outcome' => $report->outcome,
-                'ok' => $report->outcome === EmailSendReport::OUTCOME_BREVO,
+                'ok' => $report->isCleanSuccess(),
                 'delivered' => $result->success,
                 'provider' => $result->provider,
                 'error' => $result->error ?: $brevoError,
@@ -476,12 +479,16 @@ class SettingsController extends Controller
                     'from' => $report->fromEmail,
                     'id' => $result->messageId ?: '—',
                 ]),
+                EmailSendReport::OUTCOME_SMTP => __('SMTP accepted the test to :email. From: :from. Check inbox and spam. (Brevo is off, so SMTP was used on purpose.)', [
+                    'email' => $to,
+                    'from' => $report->fromEmail,
+                ]),
                 EmailSendReport::OUTCOME_FALLBACK => __('Brevo did not send (:error). Fell back to SMTP. From: :from. Check inbox — and fix Brevo.', [
                     'error' => $brevoError ?: 'unknown error',
                     'from' => $report->fromEmail,
                 ]),
                 default => __('Email was not sent. :detail', [
-                    'detail' => $result->error ?: ($brevoError ?: 'Both Brevo and SMTP failed.'),
+                    'detail' => $result->error ?: ($brevoError ?: 'SMTP failed.'),
                 ]),
             };
 

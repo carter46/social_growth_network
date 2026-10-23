@@ -65,7 +65,9 @@ class EmailTestMailDiagnosticTest extends TestCase
                     'step' => 1,
                     'label' => 'Brevo',
                     'provider' => IntegrationProvider::BREVO,
+                    'status' => 'failed',
                     'success' => false,
+                    'skipped' => false,
                     'error' => 'Invalid sender',
                     'message_id' => null,
                     'http_status' => 400,
@@ -75,7 +77,9 @@ class EmailTestMailDiagnosticTest extends TestCase
                     'step' => 2,
                     'label' => 'Brevo (retry)',
                     'provider' => IntegrationProvider::BREVO,
+                    'status' => 'failed',
                     'success' => false,
+                    'skipped' => false,
                     'error' => 'Invalid sender',
                     'message_id' => null,
                     'http_status' => 400,
@@ -85,7 +89,9 @@ class EmailTestMailDiagnosticTest extends TestCase
                     'step' => 3,
                     'label' => 'SMTP / Laravel Mail (fallback)',
                     'provider' => IntegrationProvider::LARAVEL_MAIL,
+                    'status' => 'ok',
                     'success' => true,
+                    'skipped' => false,
                     'error' => null,
                     'message_id' => null,
                     'http_status' => null,
@@ -111,6 +117,55 @@ class EmailTestMailDiagnosticTest extends TestCase
             ->assertJsonPath('used_fallback', true)
             ->assertJsonPath('delivered', true)
             ->assertJsonFragment(['error' => 'Invalid sender']);
+    }
+
+    public function test_smtp_with_brevo_disabled_is_clean_success(): void
+    {
+        $report = new EmailSendReport(
+            SendResult::ok(IntegrationProvider::LARAVEL_MAIL, null, 25),
+            [
+                [
+                    'step' => 1,
+                    'label' => 'Brevo',
+                    'provider' => IntegrationProvider::BREVO,
+                    'status' => 'skipped',
+                    'success' => null,
+                    'skipped' => true,
+                    'error' => 'Skipped — Brevo is disabled or has no API key.',
+                    'message_id' => null,
+                    'http_status' => null,
+                    'latency_ms' => null,
+                ],
+                [
+                    'step' => 2,
+                    'label' => 'SMTP / Laravel Mail',
+                    'provider' => IntegrationProvider::LARAVEL_MAIL,
+                    'status' => 'ok',
+                    'success' => true,
+                    'skipped' => false,
+                    'error' => null,
+                    'message_id' => null,
+                    'http_status' => null,
+                    'latency_ms' => 25,
+                ],
+            ],
+            EmailSendReport::OUTCOME_SMTP,
+            'Site',
+            'noreply@example.com',
+        );
+
+        $emails = Mockery::mock(EmailService::class);
+        $emails->shouldReceive('sendRawWithReport')->once()->andReturn($report);
+        $this->app->instance(EmailService::class, $emails);
+
+        $this->actingAs($this->admin())
+            ->postJson(route('admin.settings.test-mail'), [
+                'test_email' => 'admin@example.com',
+            ])
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('outcome', 'smtp')
+            ->assertJsonPath('used_fallback', false);
     }
 
     public function test_total_failure_returns_422_with_attempt_trail(): void

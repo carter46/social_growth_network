@@ -89,8 +89,8 @@
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <x-dashboard.input name="smtp_host" label="SMTP host" :value="old('smtp_host', $laravelMail->credential('host', config('mail.mailers.smtp.host')))" />
-                        <x-dashboard.input name="smtp_port" type="number" label="Port" :value="old('smtp_port', $laravelMail->credential('port', config('mail.mailers.smtp.port')))" />
-                        <x-dashboard.input name="smtp_encryption" label="Encryption" :value="old('smtp_encryption', $laravelMail->credential('encryption', config('mail.mailers.smtp.encryption')))" />
+                        <x-dashboard.input name="smtp_port" type="number" label="Port" :value="old('smtp_port', $laravelMail->credential('port', config('mail.mailers.smtp.port')))" hint="Hostinger: 465 (SSL) or 587 (TLS). Port 456 is not valid." />
+                        <x-dashboard.input name="smtp_encryption" label="Encryption" :value="old('smtp_encryption', $laravelMail->credential('encryption', config('mail.mailers.smtp.encryption')))" hint="Use ssl with 465, or tls with 587." />
                         <x-dashboard.input name="smtp_username" label="Username" :value="old('smtp_username', $laravelMail->credential('username', config('mail.mailers.smtp.username')))" />
                         <x-dashboard.secret-input
                             name="smtp_password"
@@ -182,7 +182,7 @@
                     x-cloak
                     class="rounded-xl border p-4 space-y-3 text-sm"
                     :class="{
-                        'border-success/40 bg-success/5': outcome === 'brevo',
+                        'border-success/40 bg-success/5': outcome === 'brevo' || outcome === 'smtp',
                         'border-warning/40 bg-warning/5': outcome === 'fallback',
                         'border-danger/40 bg-danger/5': outcome === 'failed'
                     }"
@@ -190,7 +190,7 @@
                     <p
                         class="break-words font-medium"
                         :class="{
-                            'text-success': outcome === 'brevo',
+                            'text-success': outcome === 'brevo' || outcome === 'smtp',
                             'text-warning': outcome === 'fallback',
                             'text-danger': outcome === 'failed'
                         }"
@@ -206,11 +206,20 @@
                                     <span class="font-medium text-text-primary" x-text="'Step ' + row.step + ': ' + row.label"></span>
                                     <span
                                         class="text-xs font-semibold uppercase"
-                                        :class="row.success ? 'text-success' : 'text-danger'"
-                                        x-text="row.success ? 'OK' : 'Failed'"
+                                        :class="{
+                                            'text-success': row.status === 'ok',
+                                            'text-text-muted': row.status === 'skipped',
+                                            'text-danger': row.status === 'failed'
+                                        }"
+                                        x-text="row.status === 'ok' ? 'OK' : (row.status === 'skipped' ? 'Skipped' : 'Failed')"
                                     ></span>
                                 </div>
-                                <p class="mt-1 text-danger break-words" x-show="row.error" x-text="row.error"></p>
+                                <p
+                                    class="mt-1 break-words"
+                                    :class="row.status === 'failed' ? 'text-danger' : 'text-text-muted'"
+                                    x-show="row.error"
+                                    x-text="row.error"
+                                ></p>
                                 <p class="mt-1 text-text-muted" x-show="row.message_id" x-cloak>
                                     Message ID: <span x-text="row.message_id"></span>
                                 </p>

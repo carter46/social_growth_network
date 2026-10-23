@@ -33,8 +33,9 @@ class EmailService
      * Same send path as send(), but returns every provider attempt for admin diagnostics.
      *
      * @param  int  $deferredStage  0 = initial send, 1 = after 5m retry, 2 = after 30m retry
+     * @param  bool  $deferRetries  When false (admin test mail), never queue a deferred retry — return the real error now.
      */
-    public function sendWithReport(OutgoingEmail $email, int $deferredStage = 0): EmailSendReport
+    public function sendWithReport(OutgoingEmail $email, int $deferredStage = 0, bool $deferRetries = true): EmailSendReport
     {
         $this->hydrateTemplate($email);
         [$fromName, $fromEmail, $replyTo] = $this->resolveIdentity($email);
@@ -42,30 +43,49 @@ class EmailService
         $attempt = 0;
         $attempts = [];
         $brevoError = null;
+        $brevoWasAvailable = $this->brevo->isAvailable();
 
-        $brevoResult = $this->attemptBrevo($email, $fromName, $fromEmail, $replyTo, $correlationId, ++$attempt);
-        $attempts[] = $this->attemptRow('Brevo', $brevoResult, 1);
-        if ($brevoResult->success) {
-            return new EmailSendReport($brevoResult, $attempts, EmailSendReport::OUTCOME_BREVO, $fromName, $fromEmail, $replyTo);
+        if (! $brevoWasAvailable) {
+            $attempts[] = $this->skippedRow(
+                'Brevo',
+                IntegrationProvider::BREVO,
+                ++$attempt,
+                'Skipped — Brevo is disabled or has no API key.',
+            );
+        } else {
+            $brevoResult = $this->attemptBrevo($email, $fromName, $fromEmail, $replyTo, $correlationId, ++$attempt);
+            $attempts[] = $this->attemptRow('Brevo', $brevoResult, $attempt);
+            if ($brevoResult->success) {
+                return new EmailSendReport($brevoResult, $attempts, EmailSendReport::OUTCOME_BREVO, $fromName, $fromEmail, $replyTo);
+            }
+            $brevoError = $brevoResult->error;
+
+            $brevoRetry = $this->attemptBrevo($email, $fromName, $fromEmail, $replyTo, $correlationId, ++$attempt);
+            $attempts[] = $this->attemptRow('Brevo (retry)', $brevoRetry, $attempt);
+            if ($brevoRetry->success) {
+                return new EmailSendReport($brevoRetry, $attempts, EmailSendReport::OUTCOME_BREVO, $fromName, $fromEmail, $replyTo);
+            }
+            $brevoError = $brevoRetry->error ?: $brevoError;
         }
-        $brevoError = $brevoResult->error;
 
-        $brevoRetry = $this->attemptBrevo($email, $fromName, $fromEmail, $replyTo, $correlationId, ++$attempt);
-        $attempts[] = $this->attemptRow('Brevo (retry)', $brevoRetry, 2);
-        if ($brevoRetry->success) {
-            return new EmailSendReport($brevoRetry, $attempts, EmailSendReport::OUTCOME_BREVO, $fromName, $fromEmail, $replyTo);
-        }
-        $brevoError = $brevoRetry->error ?: $brevoError;
-
-        $laravelResult = $this->attemptLaravel($email, $fromName, $fromEmail, $replyTo, $correlationId, ++$attempt, true);
-        $attempts[] = $this->attemptRow('SMTP / Laravel Mail (fallback)', $laravelResult, 3);
+        $smtpLabel = $brevoWasAvailable
+            ? 'SMTP / Laravel Mail (fallback)'
+            : 'SMTP / Laravel Mail';
+        $laravelResult = $this->attemptLaravel($email, $fromName, $fromEmail, $replyTo, $correlationId, ++$attempt, $brevoWasAvailable);
+        $attempts[] = $this->attemptRow($smtpLabel, $laravelResult, $attempt);
         if ($laravelResult->success) {
-            $this->rememberFallback($brevoError);
+            if ($brevoWasAvailable) {
+                $this->rememberFallback($brevoError);
 
-            return new EmailSendReport($laravelResult, $attempts, EmailSendReport::OUTCOME_FALLBACK, $fromName, $fromEmail, $replyTo);
+                return new EmailSendReport($laravelResult, $attempts, EmailSendReport::OUTCOME_FALLBACK, $fromName, $fromEmail, $replyTo);
+            }
+
+            return new EmailSendReport($laravelResult, $attempts, EmailSendReport::OUTCOME_SMTP, $fromName, $fromEmail, $replyTo);
         }
 
-        $failed = $this->handleTotalFailure($email, $laravelResult, $deferredStage, $correlationId, $attempt);
+        $failed = $deferRetries
+            ? $this->handleTotalFailure($email, $laravelResult, $deferredStage, $correlationId, $attempt)
+            : $laravelResult;
 
         return new EmailSendReport($failed, $attempts, EmailSendReport::OUTCOME_FAILED, $fromName, $fromEmail, $replyTo);
     }
@@ -79,11 +99,32 @@ class EmailService
             'step' => $step,
             'label' => $label,
             'provider' => $result->provider,
+            'status' => $result->success ? 'ok' : 'failed',
             'success' => $result->success,
+            'skipped' => false,
             'error' => $result->error,
             'message_id' => $result->messageId,
             'http_status' => $result->httpStatus,
             'latency_ms' => $result->latencyMs,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function skippedRow(string $label, string $provider, int $step, string $reason): array
+    {
+        return [
+            'step' => $step,
+            'label' => $label,
+            'provider' => $provider,
+            'status' => 'skipped',
+            'success' => null,
+            'skipped' => true,
+            'error' => $reason,
+            'message_id' => null,
+            'http_status' => null,
+            'latency_ms' => null,
         ];
     }
 
@@ -103,6 +144,7 @@ class EmailService
         string $body,
         EmailProfile $profile = EmailProfile::NoReply,
         bool $html = false,
+        bool $deferRetries = true,
     ): EmailSendReport {
         return $this->sendWithReport(new OutgoingEmail(
             to: [['email' => $to]],
@@ -111,7 +153,7 @@ class EmailService
             textContent: $html ? \App\Support\Email\HtmlToText::convert($body) : $body,
             profile: $profile,
             tags: ['transactional'],
-        ));
+        ), 0, $deferRetries);
     }
 
     public function sendMailableHtml(
