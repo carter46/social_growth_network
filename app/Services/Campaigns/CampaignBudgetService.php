@@ -374,4 +374,56 @@ class CampaignBudgetService
             ]);
         });
     }
+
+    /**
+     * Sandbox cutover: close a campaign and unlock its held agent budget without refunding
+     * the creator (sandbox payments were not real money — a normal cancel would re-credit them).
+     *
+     * @return string Amount unlocked from the platform wallet locked_balance
+     */
+    public function voidSandboxHold(Campaign $campaign): string
+    {
+        if (! self::enabled()) {
+            return '0.0000';
+        }
+
+        return DB::transaction(function () use ($campaign) {
+            $campaign = Campaign::query()->whereKey($campaign->id)->lockForUpdate()->firstOrFail();
+            $budget = CampaignBudget::query()->where('campaign_id', $campaign->id)->lockForUpdate()->first();
+            if (! $budget || $budget->status !== CampaignBudget::STATUS_HELD) {
+                return '0.0000';
+            }
+
+            CampaignParticipation::query()
+                ->where('campaign_id', $campaign->id)
+                ->whereIn('status', self::IN_FLIGHT_STATUSES)
+                ->update([
+                    'status' => CampaignParticipation::STATUS_EXPIRED,
+                    'updated_at' => now(),
+                ]);
+
+            if (in_array($campaign->status, Campaign::WORKABLE_STATUSES, true)
+                || $campaign->status === Campaign::STATUS_PENDING_REVIEW) {
+                $campaign->forceFill(['status' => Campaign::STATUS_CANCELLED])->save();
+            }
+
+            $leftover = $budget->remaining();
+            $this->wallets->releaseCampaignBudget($campaign->id, $leftover);
+
+            $budget->released_amount = bcadd((string) $budget->released_amount, $leftover, 4);
+            $budget->status = CampaignBudget::STATUS_SETTLED;
+            $budget->save();
+
+            $meta = is_array($campaign->meta) ? $campaign->meta : [];
+            $meta['sandbox_hold_purged_at'] = now()->toIso8601String();
+            $campaign->forceFill(['meta' => $meta])->save();
+
+            $this->audit('campaign.sandbox_hold_voided', $campaign, [
+                'released' => $leftover,
+                'paid' => (string) $budget->paid_amount,
+            ]);
+
+            return $leftover;
+        });
+    }
 }
