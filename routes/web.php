@@ -512,6 +512,7 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::post('/payout-coverage/reset', [\App\Modules\Admin\Http\Controllers\PayoutCoverageController::class, 'reset'])->name('.payout-coverage.reset');
         Route::get('/reconciliation', [ReconciliationController::class, 'index'])->name('.reconciliation');
         Route::post('/reconciliation/fundings/{funding}/fix', [ReconciliationController::class, 'fixFunding'])->name('.reconciliation.fix-funding');
+        Route::post('/reconciliation/orders/{order}/confirm', [ReconciliationController::class, 'confirmOrder'])->name('.reconciliation.confirm-order');
         Route::post('/reconciliation/withdrawals/{withdrawal}/sync', [ReconciliationController::class, 'syncWithdrawal'])->name('.reconciliation.sync-withdrawal');
         Route::get('/transactions', [AdminDashboardController::class, 'transactions'])->name('.transactions');
     });

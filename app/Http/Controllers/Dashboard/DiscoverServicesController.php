@@ -417,17 +417,26 @@ class DiscoverServicesController extends Controller
 
         $paymentReference = $request->string('reference')->toString()
             ?: $request->string('tx_ref')->toString();
+        // Bachs appends checkout_id on redirect; keep supporting our reference= query too.
+        $checkoutId = $request->string('checkout_id')->toString();
 
-        if ($paymentReference === '') {
+        if ($paymentReference === '' && $checkoutId === '') {
             return redirect()
                 ->to($backUrl)
                 ->with('error', 'Payment reference missing. If you paid, wait a moment and check My Orders or My Campaigns.');
         }
 
         $order = \App\Models\Order::query()
-            ->where('provider_payment_reference', $paymentReference)
             ->where('user_id', $request->user()->id)
             ->where('source', 'platform')
+            ->where(function ($q) use ($paymentReference, $checkoutId) {
+                if ($paymentReference !== '') {
+                    $q->where('provider_payment_reference', $paymentReference);
+                }
+                if ($checkoutId !== '') {
+                    $q->orWhere('provider_transaction_reference', $checkoutId);
+                }
+            })
             ->first();
 
         if (! $order) {

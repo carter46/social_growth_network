@@ -73,6 +73,16 @@
                     </form>
                 </div>
             @endif
+
+            @if ($order->payment_method === 'gateway' && in_array($order->status, ['pending', 'processing'], true))
+                <div class="flex flex-wrap gap-2 pt-2">
+                    <form method="POST" action="{{ route('admin.reconciliation.confirm-order', $order) }}">
+                        @csrf
+                        <x-dashboard.button type="submit" size="sm" variant="primary">Verify with Bachs and fulfill</x-dashboard.button>
+                    </form>
+                    <p class="w-full text-xs text-text-muted">Calls Bachs to confirm the checkout was paid, then creates the campaign if it was.</p>
+                </div>
+            @endif
         </x-dashboard.card>
 
         <x-dashboard.card class="space-y-3 text-sm">

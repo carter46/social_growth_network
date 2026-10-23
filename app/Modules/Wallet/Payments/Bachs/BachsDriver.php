@@ -244,8 +244,13 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
         $metadata = (array) ($data['metadata'] ?? []);
 
         if (in_array($type, ['collection.succeeded', 'checkout.completed', 'collection.failed', 'checkout.expired'], true)) {
+            $paymentStatus = strtolower((string) ($data['payment_status'] ?? ''));
             $status = match ($type) {
                 'collection.failed', 'checkout.expired' => PaymentEvent::STATUS_FAILED,
+                // checkout.completed also fires for free/setup checkouts — only treat as paid when Bachs says so.
+                'checkout.completed' => in_array($paymentStatus, ['paid', 'succeeded', 'no_payment_required'], true)
+                    ? PaymentEvent::STATUS_SUCCEEDED
+                    : PaymentEvent::STATUS_PENDING,
                 default => PaymentEvent::STATUS_SUCCEEDED,
             };
 

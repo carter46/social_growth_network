@@ -3,9 +3,11 @@
 namespace App\Modules\Admin\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order;
 use App\Models\PaymentWebhook;
 use App\Models\WalletFunding;
 use App\Models\Withdrawal;
+use App\Modules\Catalog\Services\PlatformCheckoutService;
 use App\Modules\Wallet\Services\DepositCheckoutService;
 use App\Modules\Wallet\Services\WithdrawalPayoutService;
 use Illuminate\Http\RedirectResponse;
@@ -17,6 +19,7 @@ class ReconciliationController extends Controller
     public function __construct(
         private DepositCheckoutService $deposits,
         private WithdrawalPayoutService $payouts,
+        private PlatformCheckoutService $checkout,
     ) {}
 
     public function index(): View
@@ -29,6 +32,17 @@ class ReconciliationController extends Controller
                 $q->whereIn('status', ['processing', 'pending'])
                     ->orWhereIn('internal_status', ['processing', 'pending', DepositCheckoutService::PAID_AFTER_FAILURE]);
             })
+            ->whereNotNull('provider_payment_reference')
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get();
+
+        $orders = Order::query()
+            ->forActiveUsers()
+            ->with('user')
+            ->where('source', 'platform')
+            ->where('payment_method', 'gateway')
+            ->whereIn('status', ['pending', 'processing'])
             ->whereNotNull('provider_payment_reference')
             ->orderByDesc('created_at')
             ->limit(50)
@@ -52,6 +66,8 @@ class ReconciliationController extends Controller
 
         $webhookByRef = $this->webhooksIndexedByReference(
             $fundings->pluck('provider_payment_reference')
+                ->merge($orders->pluck('provider_payment_reference'))
+                ->merge($orders->pluck('provider_transaction_reference'))
                 ->merge($withdrawals->map(fn (Withdrawal $w) => $w->latestAttempt?->reference))
         );
 
@@ -69,6 +85,25 @@ class ReconciliationController extends Controller
                 'ledger_status' => $f->internal_status ?: $f->status,
                 'webhook' => $webhook?->status,
                 'difference' => $this->fundingDifference($f, $webhook),
+            ];
+        });
+
+        $orderRows = $orders->map(function (Order $order) use ($webhookByRef) {
+            $webhook = $webhookByRef[(string) $order->provider_payment_reference]
+                ?? $webhookByRef[(string) $order->provider_transaction_reference]
+                ?? null;
+
+            return [
+                'type' => 'order',
+                'model' => $order,
+                'reference' => $order->provider_payment_reference ?: $order->reference,
+                'user' => \App\Models\User::labelFor($order->user),
+                'amount' => $order->total_amount,
+                'gateway' => $order->payment_provider ? ucfirst((string) $order->payment_provider) : '—',
+                'provider_status' => data_get($order->payment_metadata, 'last_verify.status'),
+                'ledger_status' => $order->status,
+                'webhook' => $webhook?->status,
+                'difference' => $this->orderDifference($order, $webhook),
             ];
         });
 
@@ -91,7 +126,7 @@ class ReconciliationController extends Controller
         });
 
         return view('dashboard.admin.reconciliation', [
-            'rows' => $fundingRows->concat($withdrawalRows)->values(),
+            'rows' => $fundingRows->concat($orderRows)->concat($withdrawalRows)->values(),
         ]);
     }
 
@@ -128,6 +163,27 @@ class ReconciliationController extends Controller
         }
 
         return back()->with('status', __('Payout checked: :status.', ['status' => $status]));
+    }
+
+    public function confirmOrder(Order $order): RedirectResponse
+    {
+        if ($order->source !== 'platform' || $order->payment_method !== 'gateway') {
+            return back()->with('error', __('This is not a gateway checkout order.'));
+        }
+
+        try {
+            $order = $this->checkout->confirmGatewayOrder($order);
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        if ($order->status !== 'paid') {
+            return back()->with('error', __('Bachs has not confirmed this payment yet (status still :status).', [
+                'status' => $order->status,
+            ]));
+        }
+
+        return back()->with('status', __('Order verified with Bachs and fulfilled. Campaign should now be live.'));
     }
 
     /**
@@ -182,6 +238,21 @@ class ReconciliationController extends Controller
             return 'Credited / Webhook Missing';
         }
         if ($f->status === 'processing') {
+            return 'Stuck processing';
+        }
+
+        return 'OK';
+    }
+
+    private function orderDifference(Order $order, ?PaymentWebhook $webhook): string
+    {
+        if ($order->created_at && $order->created_at->lt(now()->subDays(3)) && in_array($order->status, ['pending', 'processing'], true)) {
+            return 'Needs review (over 3 days)';
+        }
+        if ($webhook && in_array($webhook->status, ['received', 'processed', 'failed'], true) && $order->status !== 'paid') {
+            return 'Webhook seen / Order not paid';
+        }
+        if (in_array($order->status, ['pending', 'processing'], true)) {
             return 'Stuck processing';
         }
 

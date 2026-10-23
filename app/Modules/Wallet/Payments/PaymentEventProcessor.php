@@ -71,7 +71,18 @@ class PaymentEventProcessor
             return ['status' => 200, 'webhook' => PaymentWebhook::query()->where('provider', $provider)->where('idempotency_key', $key)->first()];
         }
 
-        ProcessPaymentWebhook::dispatch($webhook->id);
+        // Process inline. Shared hosting often has QUEUE_CONNECTION=database with no
+        // worker — a queued job would leave paid checkouts stuck on "processing" while
+        // Bachs still shows the webhook delivery as successful (HTTP 200).
+        try {
+            ProcessPaymentWebhook::dispatchSync($webhook->id);
+        } catch (\Throwable $e) {
+            Log::error('payments.webhook.sync_failed', [
+                'webhook_id' => $webhook->id,
+                'provider' => $provider,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return ['status' => 200, 'webhook' => $webhook->fresh()];
     }
@@ -132,7 +143,7 @@ class PaymentEventProcessor
         }
 
         try {
-            ProcessPaymentWebhook::dispatch($webhook->id);
+            ProcessPaymentWebhook::dispatchSync($webhook->id);
         } catch (\Throwable $e) {
             Log::warning('payments.webhook.retry_failed', ['webhook_id' => $webhook->id, 'error' => $e->getMessage()]);
         }
@@ -172,8 +183,13 @@ class PaymentEventProcessor
         }
 
         $order = Order::query()
-            ->where('provider_payment_reference', $reference)
             ->where('payment_method', 'gateway')
+            ->where(function ($q) use ($reference, $event) {
+                $q->where('provider_payment_reference', $reference);
+                if (filled($event->providerReference)) {
+                    $q->orWhere('provider_transaction_reference', $event->providerReference);
+                }
+            })
             ->first();
         if ($order) {
             if ((string) $order->payment_provider !== $provider) {

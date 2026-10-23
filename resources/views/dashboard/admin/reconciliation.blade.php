@@ -41,6 +41,11 @@
                             @csrf
                             <x-dashboard.button type="submit" size="sm" variant="secondary">Verify and credit</x-dashboard.button>
                         </form>
+                    @elseif ($row['type'] === 'order' && $row['difference'] !== 'OK')
+                        <form method="POST" action="{{ route('admin.reconciliation.confirm-order', $row['model']) }}">
+                            @csrf
+                            <x-dashboard.button type="submit" size="sm" variant="secondary">Verify with Bachs</x-dashboard.button>
+                        </form>
                     @elseif ($row['type'] === 'withdrawal' && $row['difference'] !== 'OK')
                         <form method="POST" action="{{ route('admin.reconciliation.sync-withdrawal', $row['model']) }}">
                             @csrf

@@ -85,6 +85,27 @@ class PaymentRecoveryTest extends TestCase
         $this->assertSame(1, PaymentWebhook::query()->where('idempotency_key', 'evt:evt-retry-1')->count());
     }
 
+    public function test_reconcile_processes_stuck_received_webhooks(): void
+    {
+        $funding = $this->creatorFunding('DEP-STUCK-RECV');
+        $this->gateways['bachs']->verifyAmount = '25.00';
+        $webhook = PaymentWebhook::create([
+            'provider' => 'bachs',
+            'event' => 'collection',
+            'payload' => $this->collectionWebhook('evt-stuck-recv', 'DEP-STUCK-RECV'),
+            'headers' => [],
+            'signature_valid' => true,
+            'idempotency_key' => 'evt:evt-stuck-recv',
+            'status' => 'received',
+            'received_at' => now()->subMinutes(5),
+        ]);
+
+        $this->artisan('payments:reconcile')->assertSuccessful();
+
+        $this->assertSame('processed', $webhook->fresh()->status);
+        $this->assertSame('approved', $funding->fresh()->status);
+    }
+
     public function test_reconcile_retries_failed_webhooks_on_backoff_then_alerts(): void
     {
         $this->creatorFunding('DEP-RETRY-2');

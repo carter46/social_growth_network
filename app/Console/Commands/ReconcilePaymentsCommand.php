@@ -136,6 +136,23 @@ class ReconcilePaymentsCommand extends Command
 
     private function webhooks(PaymentEventProcessor $processor, int $limit): void
     {
+        // Never processed (queued job never ran) — common when the queue worker is down.
+        PaymentWebhook::query()
+            ->where('status', 'received')
+            ->where('signature_valid', true)
+            ->where('received_at', '<', now()->subMinute())
+            ->orderBy('id')
+            ->limit($limit)
+            ->get()
+            ->each(function (PaymentWebhook $webhook) use ($processor) {
+                try {
+                    $processor->process($webhook);
+                    $this->line('Webhook #'.$webhook->id.' (received): '.$webhook->fresh()?->status);
+                } catch (Throwable $e) {
+                    $this->error('Webhook #'.$webhook->id.': '.$e->getMessage());
+                }
+            });
+
         PaymentWebhook::query()
             ->where('status', 'failed')
             ->where('attempts', '<', PaymentEventProcessor::MAX_ATTEMPTS)
