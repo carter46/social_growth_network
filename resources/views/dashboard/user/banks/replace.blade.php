@@ -83,7 +83,7 @@
                     <div>
                         <label class="mb-1 block text-sm font-medium" :for="'f_' + name" x-text="def.label"></label>
                         <template x-if="def.type === 'select'">
-                            <select :id="'f_' + name" :name="'fields[' + name + ']'" x-model="fields[name]" @change="resetResolved(); tryResolve()" class="w-full rounded-lg border border-border-subtle px-3 py-2 text-sm" :required="def.required">
+                            <select :id="'f_' + name" :name="'fields[' + name + ']'" x-model="fields[name]" @change="scheduleResolve()" class="w-full rounded-lg border border-border-subtle px-3 py-2 text-sm" :required="def.required">
                                 <option value="" x-text="loadingOptions ? 'Loading…' : 'Choose'"></option>
                                 <template x-for="o in options" :key="o.code">
                                     <option :value="o.code" x-text="o.name" :selected="o.code === fields[name]"></option>
@@ -91,7 +91,7 @@
                             </select>
                         </template>
                         <template x-if="def.type === 'choice'">
-                            <select :id="'f_' + name" :name="'fields[' + name + ']'" x-model="fields[name]" class="w-full rounded-lg border border-border-subtle px-3 py-2 text-sm" :required="def.required">
+                            <select :id="'f_' + name" :name="'fields[' + name + ']'" x-model="fields[name]" @change="scheduleResolve()" class="w-full rounded-lg border border-border-subtle px-3 py-2 text-sm" :required="def.required">
                                 <option value="">Choose</option>
                                 <template x-for="(label, value) in def.options" :key="value">
                                     <option :value="value" x-text="label" :selected="value === fields[name]"></option>
@@ -104,7 +104,7 @@
                                 type="text"
                                 :name="'fields[' + name + ']'"
                                 x-model="fields[name]"
-                                @input.debounce.600ms="resetResolved(); tryResolve()"
+                                @input="scheduleResolve()"
                                 :inputmode="def.type === 'digits' ? 'numeric' : 'text'"
                                 :maxlength="def.max || 160"
                                 autocomplete="off"
@@ -162,6 +162,9 @@
             resolvedName: null,
             matches: null,
             resolveError: null,
+            _resolveTimer: null,
+            _resolveSeq: 0,
+            _lastResolveKey: null,
             init() {
                 if (this.country && this.method) this.loadOptions();
             },
@@ -191,6 +194,7 @@
                 this.resolvedName = null;
                 this.matches = null;
                 this.resolveError = null;
+                this._lastResolveKey = null;
             },
             async loadOptions() {
                 this.options = [];
@@ -208,6 +212,23 @@
                     this.loadingOptions = false;
                 }
             },
+            fieldsCompleteEnough() {
+                return Object.entries(this.currentFields()).every(([name, def]) => {
+                    if (!def.required) return true;
+                    const raw = (this.fields[name] || '').toString().trim();
+                    if (raw === '') return false;
+                    if (def.type === 'digits') {
+                        const digits = raw.replace(/\D+/g, '');
+                        const min = Number(def.min) || 0;
+                        const max = Number(def.max) || 0;
+                        // Wait for a full local account (usually 10+) so typing doesn't spam name lookups.
+                        const resolveAt = max >= 10 ? Math.max(min, 10) : Math.max(min, 1);
+                        return digits.length >= resolveAt;
+                    }
+                    const min = Number(def.min) || 0;
+                    return raw.length >= min;
+                });
+            },
             ready() {
                 return Object.entries(this.currentFields()).every(([name, def]) => !def.required || (this.fields[name] || '').toString().trim() !== '');
             },
@@ -216,8 +237,19 @@
                 if (this.isAuto()) return this.matches === true;
                 return true;
             },
+            scheduleResolve() {
+                this.resetResolved();
+                if (this._resolveTimer) clearTimeout(this._resolveTimer);
+                this._resolveTimer = setTimeout(() => this.tryResolve(), 900);
+            },
             async tryResolve() {
-                if (!this.isAuto() || !this.ready()) return;
+                if (!this.isAuto() || !this.fieldsCompleteEnough()) return;
+
+                const key = JSON.stringify({ country: this.country, method: this.method, fields: this.fields });
+                if (key === this._lastResolveKey) return;
+                this._lastResolveKey = key;
+
+                const seq = ++this._resolveSeq;
                 this.resolving = true;
                 this.resolveError = null;
                 this.matches = null;
@@ -228,19 +260,32 @@
                         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': cfg.csrf },
                         body: JSON.stringify({ country: this.country, method: this.method, fields: this.fields }),
                     });
-                    const data = await res.json();
+                    if (seq !== this._resolveSeq) return;
+                    let data = {};
+                    try {
+                        data = await res.json();
+                    } catch (e) {
+                        data = {};
+                    }
                     if (!res.ok) {
-                        this.resolveError = data.message || 'We could not check this account.';
                         this.matches = false;
+                        this._lastResolveKey = null;
+                        if (res.status === 429) {
+                            this.resolveError = 'Too many name checks just now. Wait a few seconds, then edit the account number once to try again.';
+                            return;
+                        }
+                        this.resolveError = data.message || 'We could not check this account.';
                         return;
                     }
                     this.resolvedName = data.account_name;
                     this.matches = data.matches === true;
                 } catch (e) {
+                    if (seq !== this._resolveSeq) return;
                     this.resolveError = 'We could not check this account. Try again.';
                     this.matches = false;
+                    this._lastResolveKey = null;
                 } finally {
-                    this.resolving = false;
+                    if (seq === this._resolveSeq) this.resolving = false;
                 }
             },
         };

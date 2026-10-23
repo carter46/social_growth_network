@@ -296,7 +296,7 @@ function payoutConnectForm(cfg) {
             if (this._resolveTimer) {
                 clearTimeout(this._resolveTimer);
             }
-            this._resolveTimer = setTimeout(() => this.tryResolve(), 400);
+            this._resolveTimer = setTimeout(() => this.tryResolve(), 900);
         },
         async tryResolve() {
             if (!this.isAuto() || this.method !== 'bank_account') return;

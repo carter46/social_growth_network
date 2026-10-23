@@ -316,8 +316,8 @@ Route::middleware(['auth', 'verified', 'role:agent'])->prefix('agent')->name('ag
         Route::get('/banks/replace', [BankAccountController::class, 'replaceForm'])->name('.banks.replace');
         Route::post('/banks/replace/otp', [BankAccountController::class, 'sendOtp'])->middleware('throttle:5,10')->name('.banks.replace.otp');
         Route::post('/banks/replace/verify-otp', [BankAccountController::class, 'verifyOtp'])->middleware('throttle:10,10')->name('.banks.replace.verify-otp');
-        Route::post('/banks/replace/resolve', [BankAccountController::class, 'resolve'])->middleware('throttle:10,1')->name('.banks.replace.resolve');
-        Route::post('/banks/replace/confirm', [BankAccountController::class, 'confirm'])->middleware('throttle:5,1')->name('.banks.replace.confirm');
+        Route::post('/banks/replace/resolve', [BankAccountController::class, 'resolve'])->middleware('throttle:60,1')->name('.banks.replace.resolve');
+        Route::post('/banks/replace/confirm', [BankAccountController::class, 'confirm'])->middleware('throttle:15,1')->name('.banks.replace.confirm');
         Route::get('/banks/options', [BankAccountController::class, 'options'])->middleware('throttle:30,1')->name('.banks.options');
         Route::post('/banks/{account}/primary', [BankAccountController::class, 'makePrimary'])->middleware('throttle:5,1')->name('.banks.primary');
         Route::delete('/banks/{account}', [BankAccountController::class, 'destroy'])->middleware('throttle:5,1')->name('.banks.remove');
@@ -336,7 +336,7 @@ Route::middleware(['auth', 'verified', 'role:agent'])->prefix('agent')->name('ag
         Route::post('/wallet/payouts/connect', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'store'])->middleware('throttle:5,1')->name('.payouts.connect.submit');
         Route::post('/wallet/payouts/connect/hosted', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'startHosted'])->middleware('throttle:5,1')->name('.payouts.connect.hosted');
         Route::get('/wallet/payouts/connect/options', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'options'])->middleware('throttle:30,1')->name('.payouts.connect.options');
-        Route::post('/wallet/payouts/connect/resolve', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'resolve'])->middleware('throttle:20,1')->name('.payouts.connect.resolve');
+        Route::post('/wallet/payouts/connect/resolve', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'resolve'])->middleware('throttle:60,1')->name('.payouts.connect.resolve');
         Route::get('/wallet/payouts/connect/return', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'return'])->middleware('throttle:10,1')->name('.payouts.connect.return');
         Route::get('/wallet/payouts/connect/refresh', [\App\Modules\Wallet\Http\Controllers\PayoutConnectController::class, 'refresh'])->middleware('throttle:5,1')->name('.payouts.connect.refresh');
 
