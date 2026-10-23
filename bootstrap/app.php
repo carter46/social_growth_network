@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureNotSuspended;
+use App\Http\Middleware\RunScheduledTasksOnAdminHit;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -38,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->redirectUsersTo(fn (Request $request) => $request->user()?->homeRoute() ?? '/dashboard');
         $middleware->appendToGroup('web', EnsureNotSuspended::class);
+        $middleware->appendToGroup('web', RunScheduledTasksOnAdminHit::class);
         $middleware->appendToGroup('api', EnsureNotSuspended::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
