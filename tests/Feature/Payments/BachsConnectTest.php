@@ -70,7 +70,14 @@ class BachsConnectTest extends TestCase
                     'requirements' => [],
                 ]),
                 $path === '/v1/accounts/acct_1/account-links' => Http::response(['url' => self::ONBOARDING_URL]),
-                $path === '/v1/accounts/acct_1/capabilities' => Http::response(['capabilities' => $capabilities]),
+                $path === '/v1/accounts/acct_1/capabilities' => Http::response([
+                    'items' => collect($capabilities)->map(fn (array $c, string $name) => [
+                        'name' => $name,
+                        'status' => $c['status'],
+                        'requested' => true,
+                        'status_details' => null,
+                    ])->values()->all(),
+                ]),
                 $path === '/v1/accounts/acct_1' => Http::response(['id' => 'acct_1', 'capabilities' => $capabilities, 'requirements' => []]),
                 $path === '/v1/accounts/acct_1/persons' && $method === 'GET' => Http::response(['items' => []]),
                 $path === '/v1/accounts/acct_1/persons' && $method === 'POST' => Http::response([
@@ -87,7 +94,7 @@ class BachsConnectTest extends TestCase
                     'bank_code' => '058',
                 ]),
                 $path === '/v1/currencies/payout-supported' => Http::response(['currencies' => []]),
-                $path === '/v1/payouts/destinations' && $method === 'GET' => Http::response(['data' => []]),
+                $path === '/v1/payouts/destinations' && $method === 'GET' => Http::response(['items' => []]),
                 $path === '/v1/payouts/destinations' => Http::response(['id' => 'pd_'.(++$destinations), 'is_usable' => true, 'status' => 'active']),
                 default => Http::response(['error_code' => 'NOT_FOUND', 'detail' => 'Not faked: '.$method.' '.$path], 404),
             };
@@ -398,9 +405,9 @@ class BachsConnectTest extends TestCase
             $path = parse_url($request->url(), PHP_URL_PATH);
 
             return match (true) {
-                $path === '/v1/accounts/acct_1/capabilities' => Http::response(['capabilities' => [
-                    'transfers' => ['status' => 'active'],
-                    'payouts' => ['status' => 'active'],
+                $path === '/v1/accounts/acct_1/capabilities' => Http::response(['items' => [
+                    ['name' => 'transfers', 'status' => 'active', 'requested' => true, 'status_details' => null],
+                    ['name' => 'payouts', 'status' => 'active', 'requested' => true, 'status_details' => null],
                 ]]),
                 $path === '/v1/accounts/acct_1' => Http::response([
                     'id' => 'acct_1',
@@ -411,7 +418,7 @@ class BachsConnectTest extends TestCase
                     ],
                     'requirements' => [],
                 ]),
-                $path === '/v1/payouts/destinations' && $request->method() === 'GET' => Http::response(['data' => [[
+                $path === '/v1/payouts/destinations' && $request->method() === 'GET' => Http::response(['items' => [[
                     'id' => 'pd_hosted_ng',
                     'type' => 'bank_account',
                     'currency' => 'NGN',

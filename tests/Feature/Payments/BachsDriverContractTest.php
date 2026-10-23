@@ -59,8 +59,12 @@ class BachsDriverContractTest extends TestCase
             'capabilities' => ['transfers' => 'active', 'payouts' => 'active'],
         ]);
 
-        $this->on('GET /v1/accounts/acct_1/capabilities', ['capabilities' => ['transfers' => ['status' => 'active'], 'payouts' => ['status' => 'active']]]);
-        $this->on('GET /v1/payouts/destinations', ['data' => []]);
+        // Documented list shape: { items: [ { name, status, ... } ] }
+        $this->on('GET /v1/accounts/acct_1/capabilities', ['items' => [
+            ['name' => 'transfers', 'status' => 'active', 'requested' => true, 'status_details' => null],
+            ['name' => 'payouts', 'status' => 'active', 'requested' => true, 'status_details' => null],
+        ]]);
+        $this->on('GET /v1/payouts/destinations', ['items' => []]);
         $this->on('POST /v1/payouts/destinations', ['id' => 'pd_1', 'is_usable' => true, 'status' => 'active']);
         $this->on('GET /v1/balances', ['balances' => [['currency' => 'USD', 'available_balance' => '1.00']]]);
 
@@ -148,6 +152,55 @@ class BachsDriverContractTest extends TestCase
 
         $this->assertSame(PayoutResult::NOT_CREATED, $result->status);
         $this->assertSame('DESTINATION_REJECTED', $result->failureCode);
+        $this->assertCount(0, $this->sent('POST', '/v1/transfers'));
+    }
+
+    public function test_normalize_capabilities_reads_documented_items_list(): void
+    {
+        $caps = BachsDriver::normalizeCapabilities([
+            'items' => [
+                ['name' => 'payouts', 'status' => 'active', 'requested' => true, 'status_details' => null],
+                ['name' => 'transfers', 'status' => 'restricted', 'requested' => true, 'status_details' => [
+                    ['code' => 'requirements_outstanding', 'message' => 'Outstanding requirements. See the account\'s requirements.'],
+                ]],
+            ],
+        ]);
+
+        $this->assertSame(['payouts' => 'active', 'transfers' => 'restricted'], $caps);
+        $this->assertStringContainsString('transfers=restricted', BachsDriver::describeInactiveCapabilities([
+            'items' => [
+                ['name' => 'transfers', 'status' => 'restricted', 'status_details' => [
+                    ['code' => 'requirements_outstanding', 'message' => 'Outstanding requirements. See the account\'s requirements.'],
+                ]],
+                ['name' => 'payouts', 'status' => 'active', 'status_details' => null],
+            ],
+        ], $caps));
+    }
+
+    public function test_inactive_capabilities_report_live_statuses_not_a_vague_message(): void
+    {
+        $this->on('GET /v1/accounts/acct_1/capabilities', ['items' => [
+            ['name' => 'payouts', 'status' => 'restricted', 'requested' => true, 'status_details' => [
+                ['code' => 'requirements_outstanding', 'resolution' => 'provide_info', 'message' => 'Outstanding requirements. See the account\'s requirements.'],
+            ]],
+            ['name' => 'transfers', 'status' => 'active', 'requested' => true, 'status_details' => null],
+        ]]);
+        $this->on('GET /v1/accounts/acct_1', [
+            'id' => 'acct_1',
+            'capabilities' => [
+                'payouts' => ['status' => 'restricted'],
+                'transfers' => ['status' => 'active'],
+            ],
+            'requirements' => ['currently_due' => ['persons.per_1.id_document']],
+        ]);
+
+        $result = $this->pay($this->usDestination());
+
+        $this->assertSame(PayoutResult::NOT_CREATED, $result->status);
+        $this->assertSame('PAYOUTS_NOT_ENABLED', $result->failureCode);
+        $this->assertStringContainsString('payouts=restricted', (string) $result->failureReason);
+        $this->assertStringContainsString('Outstanding requirements', (string) $result->failureReason);
+        $this->assertSame(['payouts' => 'restricted', 'transfers' => 'active'], $result->raw['capabilities'] ?? null);
         $this->assertCount(0, $this->sent('POST', '/v1/transfers'));
     }
 

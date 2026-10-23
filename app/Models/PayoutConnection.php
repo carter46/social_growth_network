@@ -117,4 +117,17 @@ class PayoutConnection extends Model
             (array) ($req['currently_due'] ?? []),
         ))));
     }
+
+    /**
+     * Fields Bachs already has and is checking (docs: requirements.pending_verification).
+     * Re-submitting these does nothing — wait for account.updated.
+     *
+     * @return list<string>
+     */
+    public function pendingVerificationRequirements(): array
+    {
+        $req = (array) ($this->requirements ?? []);
+
+        return array_values(array_unique(array_map('strval', (array) ($req['pending_verification'] ?? []))));
+    }
 }

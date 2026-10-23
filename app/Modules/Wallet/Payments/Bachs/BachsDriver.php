@@ -441,8 +441,9 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
     {
         $body = $this->client()->get('/v1/payouts/destinations', [], $accountId);
 
+        // Bachs list endpoints use `items` (docs.bachs.io/api-reference/success-responses).
         return array_values(array_filter(
-            array_is_list($body) ? $body : (array) ($body['data'] ?? $body['destinations'] ?? []),
+            array_is_list($body) ? $body : (array) ($body['items'] ?? $body['data'] ?? $body['destinations'] ?? []),
             'is_array',
         ));
     }
@@ -461,6 +462,10 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
     /**
      * Capability statuses from a capabilities response or an account object, keyed by name.
      *
+     * GET /v1/accounts/{id}/capabilities returns `{ "items": [ { "name", "status", ... } ] }`
+     * (docs.bachs.io/api-reference/accounts/list-capabilities). Account reads nest a
+     * `capabilities` map. Accept both, plus legacy `data` wrappers.
+     *
      * @param  array<string, mixed>  $body
      * @return array<string, string>
      */
@@ -468,11 +473,12 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
     {
         $caps = $body['capabilities']
             ?? $body['configuration']['recipient']['capabilities']
+            ?? $body['items']
             ?? $body['data']
             ?? null;
         // A bare body only counts as a capability map when its entries are capability objects.
         $bare = $caps === null;
-        $caps = (array) ($caps ?? (isset($body['capability']) ? [$body] : $body));
+        $caps = (array) ($caps ?? (isset($body['capability']) || isset($body['name']) ? [$body] : $body));
         if ($bare && ! array_is_list($caps)) {
             $caps = array_filter($caps, fn ($value) => is_array($value) && isset($value['status']));
         }
@@ -496,6 +502,85 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
         }
 
         return $out;
+    }
+
+    /**
+     * Human-readable reasons for inactive required capabilities, from status_details.
+     *
+     * @param  array<string, mixed>  $body  Raw capabilities list or account object
+     * @param  array<string, string>  $caps  name => status
+     */
+    public static function describeInactiveCapabilities(array $body, array $caps): string
+    {
+        $required = PayoutConnection::REQUIRED_CAPABILITIES;
+        $parts = [];
+        foreach ($required as $name) {
+            $status = $caps[$name] ?? 'missing';
+            if ($status === 'active') {
+                continue;
+            }
+            $detail = self::capabilityDetailMessage($body, $name);
+            $parts[] = $detail !== null
+                ? "{$name}={$status} ({$detail})"
+                : "{$name}={$status}";
+        }
+
+        if ($parts === []) {
+            return 'Payouts are not active on the recipient account yet.';
+        }
+
+        return 'Recipient capabilities not ready: '.implode('; ', $parts).'.';
+    }
+
+    /**
+     * @param  array<string, mixed>  $body
+     */
+    private static function capabilityDetailMessage(array $body, string $name): ?string
+    {
+        $rows = $body['items']
+            ?? $body['data']
+            ?? (isset($body['capabilities']) && is_array($body['capabilities']) ? $body['capabilities'] : null)
+            ?? null;
+
+        $entry = null;
+        if (is_array($rows)) {
+            if (array_is_list($rows)) {
+                foreach ($rows as $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+                    $key = (string) ($row['capability'] ?? $row['name'] ?? $row['id'] ?? '');
+                    if ($key === $name) {
+                        $entry = $row;
+                        break;
+                    }
+                }
+            } elseif (isset($rows[$name]) && is_array($rows[$name])) {
+                $entry = $rows[$name];
+            }
+        }
+
+        if ($entry === null) {
+            return null;
+        }
+
+        $details = $entry['status_details'] ?? null;
+        if (! is_array($details) || $details === []) {
+            return null;
+        }
+
+        $messages = [];
+        foreach ($details as $detail) {
+            if (! is_array($detail)) {
+                continue;
+            }
+            $msg = trim((string) ($detail['message'] ?? $detail['code'] ?? ''));
+            if ($msg !== '') {
+                $messages[] = $msg;
+            }
+        }
+
+        return $messages === [] ? null : implode(' · ', $messages);
     }
 
     // ---------------------------------------------------------------- payout catalogue
@@ -749,8 +834,17 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
         }
 
         try {
-            if (! $this->payoutsActive($accountId)) {
-                return $this->result(PayoutResult::NOT_CREATED, null, 'PAYOUTS_NOT_ENABLED', 'Payouts are not active on the recipient account yet.', FailureClass::NOT_CREATED, $raw, $ids);
+            $gate = $this->payoutCapabilityGate($accountId);
+            if ($gate !== null) {
+                return $this->result(
+                    PayoutResult::NOT_CREATED,
+                    null,
+                    'PAYOUTS_NOT_ENABLED',
+                    $gate['message'],
+                    FailureClass::NOT_CREATED,
+                    $raw + ['capabilities' => $gate['capabilities']],
+                    $ids,
+                );
             }
         } catch (GatewayException $e) {
             return $this->failureBeforeMoney($e, $ids, $raw);
@@ -973,9 +1067,36 @@ class BachsDriver extends AbstractGatewayDriver implements CollectionGateway, Pa
 
     private function payoutsActive(string $accountId): bool
     {
-        $caps = $this->accountCapabilities($accountId);
+        return $this->payoutCapabilityGate($accountId) === null;
+    }
 
-        return ($caps['payouts'] ?? null) === 'active' && ($caps['transfers'] ?? null) === 'active';
+    /**
+     * Live gate for recipient payouts+transfers. Returns null when both are active;
+     * otherwise the message and statuses to show admin (never a vague "not active").
+     *
+     * @return array{message: string, capabilities: array<string, string>}|null
+     */
+    private function payoutCapabilityGate(string $accountId): ?array
+    {
+        $listBody = $this->client()->get('/v1/accounts/'.rawurlencode($accountId).'/capabilities');
+        $caps = self::normalizeCapabilities($listBody);
+
+        if (($caps['payouts'] ?? null) === 'active' && ($caps['transfers'] ?? null) === 'active') {
+            return null;
+        }
+
+        // Account object also carries capabilities; merge so a list-shape miss cannot
+        // falsely block when the dashboard already shows active (same merge as Connect sync).
+        $account = $this->retrieveAccount($accountId);
+        $caps = $caps + self::normalizeCapabilities($account);
+        if (($caps['payouts'] ?? null) === 'active' && ($caps['transfers'] ?? null) === 'active') {
+            return null;
+        }
+
+        return [
+            'message' => self::describeInactiveCapabilities($listBody !== [] ? $listBody : $account, $caps),
+            'capabilities' => array_intersect_key($caps, array_flip(PayoutConnection::REQUIRED_CAPABILITIES)),
+        ];
     }
 
     private function connection(PayoutAccountDetails $destination): ?PayoutConnection

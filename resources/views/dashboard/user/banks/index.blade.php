@@ -55,7 +55,11 @@
                                 Your payout identity is verified. Manage the bank accounts below for withdrawals.
                                 @break
                             @case(\App\Models\PayoutConnection::UNDER_REVIEW)
-                                Your details are under review. Withdrawals open once that finishes.
+                                @if (($connection?->pendingVerificationRequirements() ?? []) !== [])
+                                    Your details were submitted and are still being verified. You cannot change them while verification is in progress — withdrawals open once that finishes.
+                                @else
+                                    Your details are under review. Withdrawals open once that finishes.
+                                @endif
                                 @break
                             @case(\App\Models\PayoutConnection::RESTRICTED)
                                 More information is needed before payouts can resume.
@@ -67,6 +71,11 @@
                                 Connect a bank account to withdraw your earnings.
                         @endswitch
                     </p>
+                    @if (($connection?->dueRequirements() ?? []) !== [] && $connectStatus !== \App\Models\PayoutConnection::ACTIVE)
+                        <p class="mt-2 text-xs text-warning">Still needed: {{ implode(', ', $connection->dueRequirements()) }}</p>
+                    @elseif (($connection?->pendingVerificationRequirements() ?? []) !== [] && $connectStatus === \App\Models\PayoutConnection::UNDER_REVIEW)
+                        <p class="mt-2 text-xs text-text-muted">Pending verification: {{ implode(', ', $connection->pendingVerificationRequirements()) }}</p>
+                    @endif
                 </div>
                 @if ($connectActive)
                     @if ($accounts->count() < $maxAccounts && ($hasRoutes || $connectActive))
