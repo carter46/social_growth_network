@@ -9,6 +9,7 @@ use App\Models\CampaignParticipationTask;
 use App\Models\CampaignWatchSession;
 use App\Models\ReferralCommission;
 use App\Models\User;
+use App\Services\Media\TaskProofRetentionService;
 use App\Services\Referrals\ReferralCommissionService;
 use App\Support\Money\Money;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +31,8 @@ class CampaignParticipationService
         if (YoutubeIdentityService::requiredFor($campaign) && ! app(YoutubeIdentityService::class)->verified($agent)) {
             throw new YoutubeChannelRequiredException;
         }
+
+        app(AgentSocialFollowService::class)->assertCleared($agent);
 
         $eligibility = app(AgentEligibilityService::class);
 
@@ -255,8 +258,10 @@ class CampaignParticipationService
                 'paid_at' => now(),
             ]);
 
+            $paid = $participation->fresh();
+            app(TaskProofRetentionService::class)->scheduleForParticipation($paid);
+
             if (bccomp($amount, '0', 4) > 0 && $agent->referred_by_id) {
-                $paid = $participation->fresh();
                 DB::afterCommit(function () use ($agent, $paid) {
                     try {
                         app(ReferralCommissionService::class)->record(
@@ -271,7 +276,7 @@ class CampaignParticipationService
                 });
             }
 
-            return $participation->fresh();
+            return $paid->fresh();
         });
     }
 

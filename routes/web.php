@@ -353,6 +353,14 @@ Route::middleware(['auth', 'verified', 'role:agent'])->prefix('agent')->name('ag
     Route::get('/marketplace', [\App\Http\Controllers\Agent\MarketplaceController::class, 'index'])->name('.marketplace');
     Route::get('/marketplace/{campaign}', [\App\Http\Controllers\Agent\MarketplaceController::class, 'show'])->name('.marketplace.show');
 
+    Route::get('/social-follow', [\App\Http\Controllers\Agent\SocialFollowController::class, 'show'])->name('.social-follow');
+    Route::post('/social-follow/proofs/{proof}', [\App\Http\Controllers\Agent\SocialFollowController::class, 'saveProof'])
+        ->middleware('throttle:30,1')
+        ->name('.social-follow.proof');
+    Route::post('/social-follow/submit', [\App\Http\Controllers\Agent\SocialFollowController::class, 'submit'])
+        ->middleware('throttle:10,1')
+        ->name('.social-follow.submit');
+
     Route::get('/tasks/active', [\App\Http\Controllers\Agent\TaskController::class, 'active'])->name('.tasks.active');
     Route::get('/tasks/incomplete', [\App\Http\Controllers\Agent\TaskController::class, 'incomplete'])->name('.tasks.incomplete');
     Route::get('/tasks/completed', [\App\Http\Controllers\Agent\TaskController::class, 'completed'])->name('.tasks.completed');
@@ -434,6 +442,10 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::post('/verifications/{participation}/approve', [\App\Http\Controllers\Admin\VerificationAdminController::class, 'approve'])->name('.verifications.approve');
         Route::post('/verifications/{participation}/reject', [\App\Http\Controllers\Admin\VerificationAdminController::class, 'reject'])->name('.verifications.reject');
         Route::post('/verifications/{participation}/check-comment', [\App\Http\Controllers\Admin\VerificationAdminController::class, 'checkComment'])->middleware('throttle:20,1')->name('.verifications.check-comment');
+        Route::get('/social-follows', [\App\Http\Controllers\Admin\SocialFollowAdminController::class, 'index'])->name('.social-follows');
+        Route::get('/social-follows/{submission}', [\App\Http\Controllers\Admin\SocialFollowAdminController::class, 'show'])->name('.social-follows.show');
+        Route::post('/social-follows/{submission}/approve', [\App\Http\Controllers\Admin\SocialFollowAdminController::class, 'approve'])->name('.social-follows.approve');
+        Route::post('/social-follows/{submission}/reject', [\App\Http\Controllers\Admin\SocialFollowAdminController::class, 'reject'])->name('.social-follows.reject');
         Route::get('/youtube-identities', [\App\Http\Controllers\Admin\YoutubeIdentityAdminController::class, 'index'])->name('.youtube-identities.index');
         Route::post('/youtube-identities/{identity}/approve', [\App\Http\Controllers\Admin\YoutubeIdentityAdminController::class, 'approve'])->name('.youtube-identities.approve');
         Route::post('/youtube-identities/{identity}/reject', [\App\Http\Controllers\Admin\YoutubeIdentityAdminController::class, 'reject'])->name('.youtube-identities.reject');

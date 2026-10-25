@@ -1,4 +1,8 @@
-@props(['links' => null, 'class' => 'flex flex-wrap items-center gap-3'])
+@props([
+    'links' => null,
+    'variant' => 'icons', // icons | labeled
+    'class' => null,
+])
 
 @php
     $items = $links ?? ($footer->socialLinks ?? collect());
@@ -20,7 +24,6 @@
         'facebook' => '#1877F2',
         'instagram' => '#E4405F',
         'twitter' => '#1DA1F2',
-        // Near-black brand marks are unreadable on dark footers / contact - use light fills.
         'x' => '#F8FAFC',
         'linkedin' => '#0A66C2',
         'youtube' => '#FF0000',
@@ -31,15 +34,19 @@
         'trustpilot' => '#00B67A',
         'whatsapp' => '#25D366',
     ];
+    $isLabeled = $variant === 'labeled';
+    $defaultClass = $isLabeled
+        ? 'flex flex-wrap items-center gap-3'
+        : 'flex flex-wrap items-center gap-2.5';
 @endphp
 
 @if($items->isNotEmpty())
-    <div {{ $attributes->merge(['class' => $class]) }}>
+    <div {{ $attributes->merge(['class' => $class ?? $defaultClass]) }}>
         @foreach($items as $link)
             @php
                 $key = strtolower((string) ($link->icon ?: $link->platform));
                 $color = $brandColors[$key] ?? '#E2E8F0';
-                $label = ucfirst($link->platform);
+                $label = ucfirst((string) $link->platform);
                 $path = $paths[$key] ?? null;
                 $customLogo = ! empty($link->icon_media_id)
                     ? media_url_from_id((int) $link->icon_media_id)
@@ -49,18 +56,43 @@
                 href="{{ $link->url }}"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 hover:bg-white/15 hover:border-white/20 transition-colors overflow-hidden"
+                @class([
+                    'inline-flex items-center transition-colors overflow-hidden',
+                    'gap-2.5 rounded-full border border-white/15 bg-white/10 px-3.5 py-2 hover:bg-white/15 hover:border-white/25' => $isLabeled,
+                    'h-9 w-9 justify-center rounded-full border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-sm' => ! $isLabeled,
+                ])
                 aria-label="{{ $label }}"
                 title="{{ $label }}"
             >
-                @if($customLogo)
-                    <img src="{{ $customLogo }}" alt="" class="h-5 w-5 object-contain">
-                @elseif($path)
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="{{ $color }}" aria-hidden="true">
-                        <path d="{{ $path }}"></path>
-                    </svg>
-                @else
-                    <span class="text-xs font-bold text-white">{{ mb_strtoupper(mb_substr($link->platform, 0, 1)) }}</span>
+                <span @class([
+                    'inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full',
+                    'h-9 w-9 bg-white/10' => $isLabeled,
+                    'h-full w-full' => ! $isLabeled,
+                ])>
+                    @if($customLogo)
+                        <img
+                            src="{{ $customLogo }}"
+                            alt=""
+                            @class([
+                                'rounded-full object-cover',
+                                'h-9 w-9' => $isLabeled,
+                                'h-full w-full' => ! $isLabeled,
+                            ])
+                        >
+                    @elseif($path)
+                        <svg @class(['h-5 w-5' => $isLabeled, 'h-4 w-4' => ! $isLabeled]) viewBox="0 0 24 24" fill="{{ $isLabeled ? $color : '#0F172A' }}" aria-hidden="true">
+                            <path d="{{ $path }}"></path>
+                        </svg>
+                    @else
+                        <span @class([
+                            'font-bold',
+                            'text-sm text-white' => $isLabeled,
+                            'text-xs text-slate-700' => ! $isLabeled,
+                        ])>{{ mb_strtoupper(mb_substr($link->platform, 0, 1)) }}</span>
+                    @endif
+                </span>
+                @if($isLabeled)
+                    <span class="text-sm font-medium text-white">{{ $label }}</span>
                 @endif
             </a>
         @endforeach

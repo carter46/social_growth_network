@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\AgentSocialFollowSubmission;
 use App\Models\Campaign;
 use App\Models\CampaignParticipation;
 use App\Models\KycSubmission;
@@ -28,6 +29,12 @@ class AdminQueueCounts
                         CampaignParticipation::STATUS_UNDER_REVIEW,
                         CampaignParticipation::STATUS_VERIFYING,
                     ])
+                    ->count();
+            }
+
+            if (Schema::hasTable('agent_social_follow_submissions')) {
+                $counts['admin.social-follows'] = AgentSocialFollowSubmission::query()
+                    ->where('status', AgentSocialFollowSubmission::STATUS_SUBMITTED)
                     ->count();
             }
 

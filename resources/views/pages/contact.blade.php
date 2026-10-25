@@ -211,7 +211,7 @@
             @if(($socialLinks ?? collect())->isNotEmpty())
                 <div class="rounded-2xl border border-border-subtle bg-elevated/60 px-5 py-5 sm:px-6">
                     <h3 class="font-display text-base font-semibold text-white mb-4">Follow us</h3>
-                    <x-ui.social-links :links="$socialLinks" />
+                    <x-ui.social-links :links="$socialLinks" variant="labeled" />
                 </div>
             @endif
         </div>

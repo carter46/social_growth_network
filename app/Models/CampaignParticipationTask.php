@@ -52,6 +52,7 @@ class CampaignParticipationTask extends Model
         'status',
         'evidence_method',
         'proof_url',
+        'proof_purge_at',
         'proof_notes',
         'proof_meta',
         'done_at',
@@ -73,6 +74,7 @@ class CampaignParticipationTask extends Model
             'checked_at' => 'datetime',
             'next_check_at' => 'datetime',
             'accepted_at' => 'datetime',
+            'proof_purge_at' => 'datetime',
         ];
     }
 

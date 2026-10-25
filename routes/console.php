@@ -47,6 +47,10 @@ $scheduleCommand('campaigns:verify-steps', 'campaigns:verify-steps')
     ->everyMinute()
     ->withoutOverlapping(5);
 
+$scheduleCommand('proofs:purge-expired', 'proofs:purge-expired')
+    ->hourly()
+    ->withoutOverlapping(30);
+
 $scheduleCommand('youtube:check-identity-codes', 'youtube:check-identity-codes')
     ->everyFiveMinutes()
     ->withoutOverlapping(10);
