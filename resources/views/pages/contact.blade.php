@@ -61,8 +61,8 @@
         <div class="lg:col-span-8 space-y-8">
             <div>
                 <p class="text-[11px] font-semibold uppercase tracking-wider text-accent mb-2">Get in touch</p>
-                <h2 class="font-display text-2xl sm:text-3xl font-semibold text-white mb-2">Talk to a real person</h2>
-                <p class="text-sm sm:text-base text-text-secondary max-w-2xl leading-relaxed">
+                <h2 class="font-display text-2xl sm:text-3xl font-semibold text-slate-900 mb-2">Talk to a real person</h2>
+                <p class="text-sm sm:text-base text-slate-600 max-w-2xl leading-relaxed">
                     Pick the channel that fits: email for records, WhatsApp or phone for quick questions, and tickets for tracked cases.
                 </p>
             </div>
@@ -77,13 +77,13 @@
                             <x-ui.icon name="mail" class="w-5 h-5" />
                         </span>
                         <span class="min-w-0 flex-1">
-                            <span class="block text-[11px] uppercase tracking-wide text-text-muted">{{ $label }} email</span>
-                            <span class="block truncate text-sm sm:text-base font-semibold text-white group-hover:text-accent transition-colors">{{ $email }}</span>
+                            <span class="block text-[11px] uppercase tracking-wide text-slate-500">{{ $label }} email</span>
+                            <span class="block truncate text-sm sm:text-base font-semibold text-slate-900 group-hover:text-primary transition-colors">{{ $email }}</span>
                         </span>
-                        <x-ui.icon name="chevron-right" class="w-4 h-4 text-text-muted group-hover:text-accent shrink-0" />
+                        <x-ui.icon name="chevron-right" class="w-4 h-4 text-slate-400 group-hover:text-accent shrink-0" />
                     </a>
                 @empty
-                    <div class="rounded-2xl border border-dashed border-border-subtle px-5 py-6 text-sm text-text-muted">
+                    <div class="rounded-2xl border border-dashed border-slate-200 px-5 py-6 text-sm text-slate-500">
                         Our email addresses will be listed here soon.
                     </div>
                 @endforelse
@@ -97,10 +97,10 @@
                             <x-ui.icon name="phone" class="w-5 h-5" />
                         </span>
                         <span class="min-w-0 flex-1">
-                            <span class="block text-[11px] uppercase tracking-wide text-text-muted">Call support</span>
-                            <span class="block text-sm sm:text-base font-semibold text-white group-hover:text-accent transition-colors">{{ $c['phone_support'] }}</span>
+                            <span class="block text-[11px] uppercase tracking-wide text-slate-500">Call support</span>
+                            <span class="block text-sm sm:text-base font-semibold text-slate-900 group-hover:text-primary transition-colors">{{ $c['phone_support'] }}</span>
                         </span>
-                        <x-ui.icon name="chevron-right" class="w-4 h-4 text-text-muted group-hover:text-accent shrink-0" />
+                        <x-ui.icon name="chevron-right" class="w-4 h-4 text-slate-400 group-hover:text-accent shrink-0" />
                     </a>
                 @endif
 
@@ -113,10 +113,10 @@
                             <x-ui.icon name="phone" class="w-5 h-5" />
                         </span>
                         <span class="min-w-0 flex-1">
-                            <span class="block text-[11px] uppercase tracking-wide text-text-muted">Call general</span>
-                            <span class="block text-sm sm:text-base font-semibold text-white group-hover:text-accent transition-colors">{{ $c['phone_general'] }}</span>
+                            <span class="block text-[11px] uppercase tracking-wide text-slate-500">Call general</span>
+                            <span class="block text-sm sm:text-base font-semibold text-slate-900 group-hover:text-primary transition-colors">{{ $c['phone_general'] }}</span>
                         </span>
-                        <x-ui.icon name="chevron-right" class="w-4 h-4 text-text-muted group-hover:text-accent shrink-0" />
+                        <x-ui.icon name="chevron-right" class="w-4 h-4 text-slate-400 group-hover:text-accent shrink-0" />
                     </a>
                 @endif
 
@@ -131,24 +131,24 @@
                             <x-ui.icon name="whatsapp" class="w-5 h-5" />
                         </span>
                         <span class="min-w-0 flex-1">
-                            <span class="block text-[11px] uppercase tracking-wide text-text-muted">WhatsApp</span>
-                            <span class="block text-sm sm:text-base font-semibold text-white group-hover:text-[#25D366] transition-colors">{{ $c['phone_whatsapp'] }}</span>
+                            <span class="block text-[11px] uppercase tracking-wide text-slate-500">WhatsApp</span>
+                            <span class="block text-sm sm:text-base font-semibold text-slate-900 group-hover:text-[#25D366] transition-colors">{{ $c['phone_whatsapp'] }}</span>
                         </span>
-                        <x-ui.icon name="chevron-right" class="w-4 h-4 text-text-muted group-hover:text-[#25D366] shrink-0" />
+                        <x-ui.icon name="chevron-right" class="w-4 h-4 text-slate-400 group-hover:text-[#25D366] shrink-0" />
                     </a>
                 @endif
 
                 @if(($c['phone_support'] ?? '') === '' && ($c['phone_general'] ?? '') === '' && $wa === '' && $emails->isNotEmpty())
                     {{-- phones empty but emails exist: no extra empty state --}}
                 @elseif(($c['phone_support'] ?? '') === '' && ($c['phone_general'] ?? '') === '' && $wa === '' && $emails->isEmpty())
-                    <div class="rounded-2xl border border-dashed border-border-subtle px-5 py-6 text-sm text-text-muted">
+                    <div class="rounded-2xl border border-dashed border-slate-200 px-5 py-6 text-sm text-slate-500">
                         Our phone numbers will be listed here soon.
                     </div>
                 @endif
             </div>
 
             @if(($c['support_hours'] ?? '') !== '' || ($c['business_hours'] ?? '') !== '')
-                <p class="text-xs text-text-muted">
+                <p class="text-xs text-slate-500">
                     Hours: {{ $c['business_hours'] ?: $c['support_hours'] }}
                     @if(($c['timezone'] ?? '') !== '') · {{ $c['timezone'] }} @endif
                 </p>
@@ -162,11 +162,11 @@
                                 <x-ui.icon name="chat" class="w-5 h-5" />
                             </span>
                             <div>
-                                <h3 class="font-display text-base font-semibold text-white">{{ $chatLabel }}</h3>
+                                <h3 class="font-display text-base font-semibold text-slate-900">{{ $chatLabel }}</h3>
                                 <p class="text-[11px] text-success">Available now</p>
                             </div>
                         </div>
-                        <p class="text-sm text-text-secondary mb-4">Best for time-sensitive help while you’re on the site.</p>
+                        <p class="text-sm text-slate-600 mb-4">Best for time-sensitive help while you’re on the site.</p>
                         <button type="button" onclick="document.dispatchEvent(new CustomEvent('open-live-chat'))"
                             class="w-full py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover transition-colors">
                             Open chat
@@ -179,12 +179,12 @@
                         <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-accent">
                             <x-ui.icon name="support" class="w-5 h-5" />
                         </span>
-                        <h3 class="font-display text-base font-semibold text-white">Support tickets</h3>
+                        <h3 class="font-display text-base font-semibold text-slate-900">Support tickets</h3>
                     </div>
-                    <p class="text-sm text-text-secondary mb-4">Create a tracked ticket from your dashboard. Login required.</p>
+                    <p class="text-sm text-slate-600 mb-4">Create a tracked ticket from your dashboard. Login required.</p>
                     <div class="flex flex-col sm:flex-row gap-3">
                         <a href="{{ $supportHref }}" class="flex-1 text-center py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover transition-colors">New ticket</a>
-                        <a href="{{ $ticketsHref }}" class="flex-1 text-center py-2.5 rounded-xl border border-border-subtle text-sm font-semibold text-white hover:bg-white/5 transition-colors">My tickets</a>
+                        <a href="{{ $ticketsHref }}" class="flex-1 text-center py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800 hover:bg-slate-50 transition-colors">My tickets</a>
                     </div>
                 </div>
             </div>
@@ -192,9 +192,9 @@
             @if($formattedAddress !== '' || $mapsEmbed !== '')
                 <div class="rounded-2xl border border-border-subtle bg-elevated overflow-hidden">
                     <div class="p-5 sm:p-6">
-                        <h3 class="font-display text-lg font-semibold text-white mb-2">Visit us</h3>
+                        <h3 class="font-display text-lg font-semibold text-slate-900 mb-2">Visit us</h3>
                         @if($formattedAddress !== '')
-                            <p class="text-sm text-text-secondary">{{ $formattedAddress }}</p>
+                            <p class="text-sm text-slate-600">{{ $formattedAddress }}</p>
                         @endif
                         @if(($c['maps_url'] ?? '') !== '')
                             <a href="{{ $c['maps_url'] }}" target="_blank" rel="noopener" class="inline-block mt-3 text-sm text-accent hover:underline">Open in Google Maps</a>
@@ -210,7 +210,7 @@
 
             @if(($socialLinks ?? collect())->isNotEmpty())
                 <div class="rounded-2xl border border-border-subtle bg-elevated/60 px-5 py-5 sm:px-6">
-                    <h3 class="font-display text-base font-semibold text-white mb-4">Follow us</h3>
+                    <h3 class="font-display text-base font-semibold text-slate-900 mb-4">Follow us</h3>
                     <x-ui.social-links :links="$socialLinks" variant="labeled" />
                 </div>
             @endif
@@ -219,20 +219,20 @@
         <aside class="lg:col-span-4">
             <div class="lg:sticky lg:top-28 space-y-5">
                 <div class="rounded-2xl border border-border-subtle bg-elevated p-5 sm:p-6">
-                    <h3 class="font-display text-lg font-semibold text-white mb-1">Help guides</h3>
-                    <p class="text-xs text-text-muted mb-4">Same topics as the Help Center</p>
+                    <h3 class="font-display text-lg font-semibold text-slate-900 mb-1">Help guides</h3>
+                    <p class="text-xs text-slate-500 mb-4">Same topics as the Help Center</p>
                     <ul class="space-y-1">
                         @foreach($helpCategories as $item)
                             <li>
-                                <a href="{{ $item['href'] }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-text-secondary hover:bg-white/5 hover:text-white transition-colors">
-                                    <x-ui.icon :name="$item['icon']" class="w-4 h-4 text-accent shrink-0" />
+                                <a href="{{ $item['href'] }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                                    <x-ui.icon :name="$item['icon']" class="w-4 h-4 text-primary shrink-0" />
                                     <span class="min-w-0 flex-1 truncate">{{ $item['label'] }}</span>
                                     <x-ui.icon name="chevron-right" class="w-3.5 h-3.5 opacity-50 shrink-0" />
                                 </a>
                             </li>
                         @endforeach
                         <li>
-                            <a href="{{ route('help') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-accent hover:bg-primary-hover/10 transition-colors">
+                            <a href="{{ route('help') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-primary hover:bg-primary/5 transition-colors">
                                 <x-ui.icon name="search" class="w-4 h-4 shrink-0" />
                                 <span>All Help Center articles</span>
                             </a>
@@ -241,20 +241,20 @@
                 </div>
 
                 <div class="rounded-2xl border border-border-subtle bg-elevated p-5 sm:p-6">
-                    <h3 class="font-display text-lg font-semibold text-white mb-1">Legal</h3>
-                    <p class="text-xs text-text-muted mb-4">Policies &amp; compliance</p>
+                    <h3 class="font-display text-lg font-semibold text-slate-900 mb-1">Legal</h3>
+                    <p class="text-xs text-slate-500 mb-4">Policies &amp; compliance</p>
                     <ul class="space-y-1">
                         @foreach($legalDocs as $item)
                             <li>
-                                <a href="{{ $item['href'] }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-text-secondary hover:bg-white/5 hover:text-white transition-colors">
-                                    <x-ui.icon :name="$item['icon']" class="w-4 h-4 text-accent shrink-0" />
+                                <a href="{{ $item['href'] }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                                    <x-ui.icon :name="$item['icon']" class="w-4 h-4 text-primary shrink-0" />
                                     <span class="min-w-0 flex-1 truncate">{{ $item['label'] }}</span>
                                     <x-ui.icon name="chevron-right" class="w-3.5 h-3.5 opacity-50 shrink-0" />
                                 </a>
                             </li>
                         @endforeach
                         <li>
-                            <a href="{{ route('legal') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-accent hover:bg-primary-hover/10 transition-colors">
+                            <a href="{{ route('legal') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-primary hover:bg-primary/5 transition-colors">
                                 <x-ui.icon name="audit" class="w-4 h-4 shrink-0" />
                                 <span>Legal hub</span>
                             </a>

@@ -106,6 +106,8 @@ class AgentSocialFollowService
                     'reviewed_at' => null,
                     'reviewed_by' => null,
                     'submitted_at' => null,
+                    'started_at' => null,
+                    'expires_at' => null,
                 ])->save();
                 $submission->proofs()->delete();
             }
@@ -146,11 +148,82 @@ class AgentSocialFollowService
         });
     }
 
+    /**
+     * Start (or restart) the timed follow run. Minutes: 1→3, 2→5, 3→7, 4+→10.
+     */
+    public function start(User $user): AgentSocialFollowSubmission
+    {
+        $submission = $this->ensureSubmission($user);
+        if (! $submission) {
+            throw new InvalidArgumentException('Follow task is not available.');
+        }
+        if ($submission->isApproved()) {
+            throw new InvalidArgumentException('This follow task is already approved.');
+        }
+        if ($submission->isSubmitted()) {
+            throw new InvalidArgumentException('This follow task is already waiting for review.');
+        }
+
+        $this->expireIfNeeded($submission);
+
+        if ($submission->isTimedRunActive() && ! $submission->expires_at?->isPast()) {
+            return $submission->fresh('proofs');
+        }
+
+        $submission->load('proofs');
+        if ($submission->proofs->isEmpty()) {
+            throw new InvalidArgumentException('There are no social accounts to follow right now.');
+        }
+
+        $minutes = AgentSocialFollowSubmission::completionMinutesForCount($submission->proofs->count());
+
+        $submission->forceFill([
+            'status' => AgentSocialFollowSubmission::STATUS_PENDING,
+            'started_at' => now(),
+            'expires_at' => now()->addMinutes($minutes),
+            'rejection_reason' => null,
+            'submitted_at' => null,
+        ])->save();
+
+        return $submission->fresh('proofs');
+    }
+
+    public function expireIfNeeded(?AgentSocialFollowSubmission $submission): ?AgentSocialFollowSubmission
+    {
+        if (! $submission) {
+            return null;
+        }
+
+        if ($submission->status !== AgentSocialFollowSubmission::STATUS_PENDING) {
+            return $submission;
+        }
+
+        if ($submission->expires_at === null || $submission->expires_at->isFuture()) {
+            return $submission;
+        }
+
+        $submission->forceFill([
+            'status' => AgentSocialFollowSubmission::STATUS_EXPIRED,
+        ])->save();
+
+        return $submission->fresh('proofs');
+    }
+
     public function saveProof(User $user, AgentSocialFollowProof $proof, UploadedFile $file): AgentSocialFollowProof
     {
         $submission = $this->ensureSubmission($user);
         if (! $submission || (int) $proof->submission_id !== (int) $submission->id) {
             throw new InvalidArgumentException('That follow step is not part of your task.');
+        }
+
+        $this->expireIfNeeded($submission);
+        $submission->refresh();
+
+        if ($submission->isExpired()) {
+            throw new InvalidArgumentException('Time ran out. Start the task again to continue.');
+        }
+        if (! $submission->isTimedRunActive()) {
+            throw new InvalidArgumentException('Start the task before uploading screenshots.');
         }
         if (! $submission->canEditProofs()) {
             throw new InvalidArgumentException('You cannot change proofs while this task is under review or already approved.');
@@ -178,6 +251,16 @@ class AgentSocialFollowService
         }
         if ($submission->isSubmitted()) {
             throw new InvalidArgumentException('This follow task is already waiting for review.');
+        }
+
+        $this->expireIfNeeded($submission);
+        $submission->refresh();
+
+        if ($submission->isExpired()) {
+            throw new InvalidArgumentException('Time ran out. Start the task again to continue.');
+        }
+        if (! $submission->isTimedRunActive()) {
+            throw new InvalidArgumentException('Start the task before submitting.');
         }
 
         $submission->load('proofs');

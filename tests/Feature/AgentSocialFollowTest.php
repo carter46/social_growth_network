@@ -69,6 +69,12 @@ class AgentSocialFollowTest extends TestCase
         $this->assertNotNull($submission);
         $this->assertCount(2, $submission->proofs);
 
+        $service->start($agent);
+        $submission = $submission->fresh();
+        $this->assertNotNull($submission->started_at);
+        $this->assertNotNull($submission->expires_at);
+        $this->assertSame(5, (int) $submission->started_at->diffInMinutes($submission->expires_at));
+
         foreach ($submission->proofs as $proof) {
             $service->saveProof($agent, $proof, UploadedFile::fake()->image('follow.jpg', 800, 600));
         }
@@ -84,13 +90,57 @@ class AgentSocialFollowTest extends TestCase
         $this->assertNotNull($submission->fresh()->proofs->first()->proof_purge_at);
     }
 
+    public function test_follow_timer_scales_with_social_count(): void
+    {
+        $agent = $this->agent();
+        $service = app(AgentSocialFollowService::class);
+
+        $this->social('tiktok');
+        $service->ensureSubmission($agent);
+        $one = $service->start($agent);
+        $this->assertSame(3, (int) $one->started_at->diffInMinutes($one->expires_at));
+
+        $this->social('instagram');
+        $this->social('youtube');
+        $this->social('facebook');
+        $service->ensureSubmission($agent->fresh());
+        // Already timed — start() returns active run; expire then restart with new count.
+        $one->forceFill([
+            'status' => AgentSocialFollowSubmission::STATUS_EXPIRED,
+            'started_at' => null,
+            'expires_at' => null,
+        ])->save();
+
+        $four = $service->start($agent->fresh());
+        $this->assertCount(4, $four->proofs);
+        $this->assertSame(10, (int) $four->started_at->diffInMinutes($four->expires_at));
+    }
+
+    public function test_expired_follow_blocks_submit_until_restart(): void
+    {
+        Storage::fake('public');
+        $this->social();
+        $agent = $this->agent();
+        $service = app(AgentSocialFollowService::class);
+        $submission = $service->start($agent);
+
+        foreach ($submission->proofs as $proof) {
+            $service->saveProof($agent, $proof, UploadedFile::fake()->image('follow.jpg', 800, 600));
+        }
+
+        $submission->forceFill(['expires_at' => now()->subMinute()])->save();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $service->submit($agent);
+    }
+
     public function test_no_enabled_socials_means_follow_is_not_required(): void
     {
         $agent = $this->agent();
         $this->assertTrue(app(AgentSocialFollowService::class)->isCleared($agent));
     }
 
-    public function test_marketplace_hides_earning_campaigns_until_follow_is_approved(): void
+    public function test_marketplace_shows_follow_as_regular_task_card(): void
     {
         $this->social();
         $agent = $this->agent();
@@ -108,8 +158,11 @@ class AgentSocialFollowTest extends TestCase
         $this->actingAs($agent)
             ->get(route('agent.marketplace'))
             ->assertOk()
-            ->assertSee('Required first: Follow us')
-            ->assertSee('Earning tasks locked')
+            ->assertSee('Follow us')
+            ->assertSee('View task')
+            ->assertSee('3 mins to complete')
+            ->assertDontSee('Required first: Follow us')
+            ->assertDontSee('Earning tasks locked')
             ->assertDontSee('Hidden until follow');
     }
 }

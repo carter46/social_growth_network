@@ -354,6 +354,12 @@ Route::middleware(['auth', 'verified', 'role:agent'])->prefix('agent')->name('ag
     Route::get('/marketplace/{campaign}', [\App\Http\Controllers\Agent\MarketplaceController::class, 'show'])->name('.marketplace.show');
 
     Route::get('/social-follow', [\App\Http\Controllers\Agent\SocialFollowController::class, 'show'])->name('.social-follow');
+    Route::post('/social-follow/start', [\App\Http\Controllers\Agent\SocialFollowController::class, 'start'])
+        ->middleware('throttle:20,1')
+        ->name('.social-follow.start');
+    Route::post('/social-follow/heartbeat', [\App\Http\Controllers\Agent\SocialFollowController::class, 'heartbeat'])
+        ->middleware('throttle:60,1')
+        ->name('.social-follow.heartbeat');
     Route::post('/social-follow/proofs/{proof}', [\App\Http\Controllers\Agent\SocialFollowController::class, 'saveProof'])
         ->middleware('throttle:30,1')
         ->name('.social-follow.proof');

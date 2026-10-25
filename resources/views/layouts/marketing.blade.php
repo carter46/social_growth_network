@@ -227,13 +227,15 @@
                     </div>
                 </div>
 
-                <div class="pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-                    <p>Fixed-price YouTube promotion campaigns with clear progress tracking.</p>
-                    <div class="flex flex-wrap items-center justify-center sm:justify-end gap-x-4 gap-y-3">
+                <div class="pt-8 border-t border-slate-100 flex flex-col items-center gap-4 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+                    <p class="text-center sm:text-left">Fixed-price YouTube promotion campaigns with clear progress tracking.</p>
+                    <div class="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-end sm:gap-0">
                         @if (($footer->socialLinks ?? collect())->isNotEmpty())
-                            <x-ui.social-links :links="$footer->socialLinks" variant="icons" class="flex flex-wrap items-center gap-2" />
+                            <div class="flex justify-center sm:pr-4 sm:mr-4 sm:border-r sm:border-slate-200">
+                                <x-ui.social-links :links="$footer->socialLinks" variant="icons" class="flex flex-wrap items-center justify-center gap-2" />
+                            </div>
                         @endif
-                        <div class="flex items-center space-x-4">
+                        <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
                             <a class="hover:text-slate-600 transition-colors" href="{{ route($legalRoute, ['doc' => 'privacy']) }}#security-privacy">Security</a>
                             <a class="hover:text-slate-600 transition-colors" href="{{ route('help') }}">Help Center</a>
                             <a class="hover:text-slate-600 transition-colors" href="{{ route($legalRoute, ['doc' => 'privacy']) }}{{ $isAgentsPage ? '' : '#cookies' }}">{{ $isAgentsPage ? 'Privacy' : 'Cookies' }}</a>

@@ -58,7 +58,7 @@
                 rel="noopener noreferrer"
                 @class([
                     'inline-flex items-center transition-colors overflow-hidden',
-                    'gap-2.5 rounded-full border border-white/15 bg-white/10 px-3.5 py-2 hover:bg-white/15 hover:border-white/25' => $isLabeled,
+                    'gap-2.5 rounded-full border border-slate-200 bg-slate-50 px-3.5 py-2 hover:bg-slate-100 hover:border-slate-300' => $isLabeled,
                     'h-9 w-9 justify-center rounded-full border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-sm' => ! $isLabeled,
                 ])
                 aria-label="{{ $label }}"
@@ -66,7 +66,7 @@
             >
                 <span @class([
                     'inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full',
-                    'h-9 w-9 bg-white/10' => $isLabeled,
+                    'h-9 w-9 bg-white border border-slate-100' => $isLabeled,
                     'h-full w-full' => ! $isLabeled,
                 ])>
                     @if($customLogo)
@@ -80,19 +80,19 @@
                             ])
                         >
                     @elseif($path)
-                        <svg @class(['h-5 w-5' => $isLabeled, 'h-4 w-4' => ! $isLabeled]) viewBox="0 0 24 24" fill="{{ $isLabeled ? $color : '#0F172A' }}" aria-hidden="true">
+                        <svg @class(['h-5 w-5' => $isLabeled, 'h-4 w-4' => ! $isLabeled]) viewBox="0 0 24 24" fill="{{ $isLabeled ? ($brandColors[$key] === '#F8FAFC' ? '#0F172A' : $color) : '#0F172A' }}" aria-hidden="true">
                             <path d="{{ $path }}"></path>
                         </svg>
                     @else
                         <span @class([
                             'font-bold',
-                            'text-sm text-white' => $isLabeled,
+                            'text-sm text-slate-800' => $isLabeled,
                             'text-xs text-slate-700' => ! $isLabeled,
                         ])>{{ mb_strtoupper(mb_substr($link->platform, 0, 1)) }}</span>
                     @endif
                 </span>
                 @if($isLabeled)
-                    <span class="text-sm font-medium text-white">{{ $label }}</span>
+                    <span class="text-sm font-medium text-slate-800">{{ $label }}</span>
                 @endif
             </a>
         @endforeach
