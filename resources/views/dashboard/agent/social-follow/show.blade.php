@@ -1,6 +1,6 @@
 @extends('layouts.dashboard-agent')
 
-@section('title', 'Follow us')
+@section('title', 'Priority task')
 
 @section('content')
 @php
@@ -16,14 +16,16 @@
         AgentSocialFollowSubmission::STATUS_REJECTED,
         null,
     ], true) && ! $timed;
+    $showSteps = $status !== AgentSocialFollowSubmission::STATUS_APPROVED
+        && ($submission?->proofs?->isNotEmpty() ?? false);
 @endphp
 <x-layout.page
-    title="Follow us"
+    title="Priority task"
     width="full"
     :breadcrumb="[
         ['Agent', route('agent')],
         ['Marketplace', route('agent.marketplace')],
-        ['Follow us', null],
+        ['Priority task', null],
     ]"
 >
     @if (session('status'))
@@ -84,13 +86,13 @@
     @if ($status !== AgentSocialFollowSubmission::STATUS_APPROVED && $status !== AgentSocialFollowSubmission::STATUS_SUBMITTED)
         <x-dashboard.card class="mb-4 space-y-3">
             <div class="flex flex-wrap gap-2 text-sm text-text-secondary">
-                <span class="px-2 py-0.5 bg-surface-muted rounded text-xs font-medium">{{ __('Follow') }}</span>
+                <span class="px-2 py-0.5 bg-surface-muted rounded text-xs font-medium">{{ __('Priority') }}</span>
                 <span class="px-2 py-0.5 bg-surface-muted rounded text-xs font-medium">
                     {{ __(':time to complete', ['time' => trans_choice(':count min|:count mins', (int) ($completionMinutes ?? 3))]) }}
                 </span>
                 <span class="px-2 py-0.5 bg-surface-muted rounded text-xs font-medium">{{ __('Reward: Required') }}</span>
             </div>
-            <p class="text-sm text-text-secondary">Follow each account, then upload a clear screenshot that shows you followed.</p>
+            <p class="text-sm text-text-secondary">{{ __('Complete these tasks to start earning real money.') }}</p>
 
             @if ($needsStart)
                 <form method="POST" action="{{ route('agent.social-follow.start') }}">
@@ -101,9 +103,9 @@
         </x-dashboard.card>
     @endif
 
-    @if ($timed || $status === AgentSocialFollowSubmission::STATUS_SUBMITTED)
+    @if ($showSteps)
         <div class="space-y-4">
-            @foreach (($submission?->proofs ?? collect()) as $proof)
+            @foreach ($submission->proofs as $proof)
                 <x-dashboard.card class="space-y-3">
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <div class="flex items-center gap-3 min-w-0">
@@ -152,12 +154,14 @@
                                 {{ $proof->isComplete() ? 'Replace screenshot' : 'Upload screenshot' }}
                             </x-dashboard.button>
                         </form>
+                    @elseif ($needsStart)
+                        <p class="text-xs text-text-muted">Start the task to upload your screenshot.</p>
                     @endif
                 </x-dashboard.card>
             @endforeach
         </div>
 
-        @if ($canEdit && ($submission?->proofs?->isNotEmpty() ?? false))
+        @if ($canEdit && $submission->proofs->isNotEmpty())
             @if ($allDone)
                 <form method="POST" action="{{ route('agent.social-follow.submit') }}" class="mt-6">
                     @csrf

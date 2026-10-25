@@ -5,15 +5,11 @@
     $count = (int) ($followSocialCount ?? ($followSubmission?->proofs?->count() ?? 0));
     $minutes = AgentSocialFollowSubmission::completionMinutesForCount(max(1, $count));
     $status = $followSubmission?->status;
-    $cta = match ($status) {
-        AgentSocialFollowSubmission::STATUS_SUBMITTED => __('View task'),
-        AgentSocialFollowSubmission::STATUS_APPROVED => __('View task'),
-        default => __('View task'),
-    };
+    $siteName = $siteName ?? config('app.name', 'Social Growth Network');
+    $cta = __('View task');
     $slotLabel = match ($status) {
         AgentSocialFollowSubmission::STATUS_SUBMITTED => __('Slot status: Under review'),
         AgentSocialFollowSubmission::STATUS_EXPIRED => __('Slot status: Expired'),
-        AgentSocialFollowSubmission::STATUS_REJECTED => __('Slot status: Open'),
         default => __('Slot status: Open'),
     };
 @endphp
@@ -21,7 +17,7 @@
     <div class="flex flex-wrap items-start justify-between gap-3">
         <div class="min-w-0">
             <p class="mt-0.5 text-sm font-semibold text-text-primary" data-marketplace-channel>
-                {{ __('Channel: Platform') }}
+                {{ __('Channel: :name', ['name' => $siteName]) }}
             </p>
         </div>
         <p class="text-xs text-text-muted shrink-0">{{ $followSubmission?->updated_at?->diffForHumans() ?? __('Just now') }}</p>
@@ -30,11 +26,11 @@
     <div class="min-w-0">
         <h3 class="font-display text-base sm:text-lg font-bold text-text-primary leading-snug">
             <a href="{{ $href }}" class="hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded">
-                {{ __('Follow us') }}
+                {{ __('Priority task') }}
             </a>
         </h3>
         <p class="mt-1 text-sm text-text-secondary">
-            {{ trans_choice('Follow :count social account|Follow :count social accounts', max(1, $count), ['count' => max(1, $count)]) }}
+            {{ __('Complete these tasks to start earning real money.') }}
         </p>
     </div>
 
@@ -45,7 +41,7 @@
         <span class="px-2 py-0.5 bg-surface-muted text-text-secondary rounded text-xs font-medium">
             {{ __(':time to complete', ['time' => trans_choice(':count min|:count mins', $minutes)]) }}
         </span>
-        <span class="px-2 py-0.5 bg-surface-muted text-text-secondary rounded text-xs font-medium">{{ __('Follow') }}</span>
+        <span class="px-2 py-0.5 bg-surface-muted text-text-secondary rounded text-xs font-medium">{{ __('Priority') }}</span>
     </div>
 
     <div class="mt-auto pt-3 border-t border-border-subtle flex items-center justify-between gap-3">
