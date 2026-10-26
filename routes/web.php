@@ -478,6 +478,8 @@ Route::middleware(['auth', 'verified', 'role:admin|demo_finance|demo_compliance|
         Route::get('/trash', [\App\Http\Controllers\Admin\TrashController::class, 'index'])->name('.trash');
         Route::post('/trash/{user}/restore', [\App\Http\Controllers\Admin\TrashController::class, 'restore'])->name('.trash.restore');
         Route::delete('/trash/{user}', [\App\Http\Controllers\Admin\TrashController::class, 'destroy'])->name('.trash.destroy');
+        Route::get('/purged-accounts', [\App\Http\Controllers\Admin\PurgedUserRecordController::class, 'index'])->name('.purged-accounts');
+        Route::get('/purged-accounts/{record}', [\App\Http\Controllers\Admin\PurgedUserRecordController::class, 'show'])->name('.purged-accounts.show');
     });
 
     Route::middleware('permission:admins.manage')->group(function () {

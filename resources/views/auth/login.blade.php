@@ -30,7 +30,17 @@
             Your package is saved. Log in with your Creator account, or <a href="{{ route('register') }}" class="font-semibold text-primary hover:underline">sign up as a Creator</a>, to finish your order.
         </div>
     @endif
-    @if ($errors->any())
+    @if (session('account_inactive'))
+        <div class="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 space-y-3" role="alert" data-account-inactive>
+            <p>{{ $errors->first('email') ?: $errors->first('google') ?: __('Your account is currently inactive. Activate it to sign in again.') }}</p>
+            <a
+                href="{{ route('account.reactivate', array_filter(['email' => session('account_inactive_email'), 'agent' => $forAgents ? 1 : null])) }}"
+                class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover transition-colors"
+            >
+                Activate account
+            </a>
+        </div>
+    @elseif ($errors->any())
         <div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {{ $errors->first() }}
         </div>

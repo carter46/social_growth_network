@@ -76,7 +76,10 @@ class AccountController extends Controller
         $user = $request->user();
         Auth::logout();
 
-        $user->anonymize();
+        // Soft-delete into Trash (ledger-safe). Permanent historical purge runs later
+        // via retention or admin Delete forever — never forceDelete wallets/transactions here.
+        app(\App\Services\Users\AccountLifecycleService::class)
+            ->moveToTrash($user, null, 'self_service');
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

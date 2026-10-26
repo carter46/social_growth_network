@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\AccountReactivationController;
 use App\Http\Controllers\Auth\AgentOnboardingController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
@@ -42,6 +43,19 @@ Route::middleware('guest')->group(function () {
     Route::get('agent-login', [AuthenticatedSessionController::class, 'createAgent'])
         ->middleware('noindex')
         ->name('agent-login');
+
+    Route::get('activate-account', [AccountReactivationController::class, 'create'])
+        ->middleware('noindex')
+        ->name('account.reactivate');
+    Route::post('activate-account', [AccountReactivationController::class, 'send'])
+        ->middleware('throttle:5,1')
+        ->name('account.reactivate.send');
+    Route::get('activate-account/verify', [AccountReactivationController::class, 'showVerify'])
+        ->middleware('noindex')
+        ->name('account.reactivate.verify');
+    Route::post('activate-account/verify', [AccountReactivationController::class, 'verify'])
+        ->middleware('throttle:10,1')
+        ->name('account.reactivate.verify.store');
 
     Route::post('auth/google', [GoogleAuthController::class, 'store'])
         ->middleware('throttle:5,1')

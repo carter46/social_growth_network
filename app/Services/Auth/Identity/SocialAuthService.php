@@ -154,7 +154,15 @@ class SocialAuthService
             ->first();
 
         if ($byProvider) {
-            $user = $byProvider->user;
+            $user = $byProvider->user()->withTrashed()->first();
+            if ($user?->trashed() && $user->anonymized_at === null) {
+                throw new \App\Services\Auth\AccountInactiveException(
+                    (string) ($user->email ?: $identity->email),
+                );
+            }
+            if (! $user) {
+                throw new InvalidArgumentException(__('We could not sign you in with Google. Please try again.'));
+            }
             $byProvider->fill([
                 'provider_email' => $identity->email,
                 'avatar_url' => $identity->avatarUrl,
@@ -165,8 +173,8 @@ class SocialAuthService
 
         $user = User::withTrashed()->where('email', $identity->email)->first();
 
-        if ($user?->trashed()) {
-            throw new InvalidArgumentException(__('An account with this email already exists but is inactive. Ask support to restore it from Trash, or use a different Google account.'));
+        if ($user?->trashed() && $user->anonymized_at === null) {
+            throw new \App\Services\Auth\AccountInactiveException((string) $user->email);
         }
 
         if ($user) {
@@ -280,7 +288,9 @@ class SocialAuthService
     private function assertNotSuspended(User $user): void
     {
         if ($user->is_suspended) {
-            throw new RuntimeException(__('Your account has been suspended.'));
+            throw new RuntimeException(__(
+                'Your account has been suspended. If you think this is a mistake, please contact our support team.'
+            ));
         }
     }
 

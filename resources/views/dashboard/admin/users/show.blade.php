@@ -82,7 +82,7 @@
                     :form-action="route('admin.users.destroy', $user)"
                     method="DELETE"
                 >
-                    Their wallet, campaigns and history stay recoverable. You can restore them later from System → Trash, or permanently delete them there.
+                    Their wallet, campaigns and history stay recoverable. You can restore them later from System → Trash. Permanent removal is automatic after the trash retention period.
                 </x-dashboard.modal>
             @else
                 <form method="POST" action="{{ route('admin.users.suspend', $user) }}">

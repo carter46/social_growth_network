@@ -336,8 +336,10 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Scrub personal data immediately. The tombstone is hidden from admin lists and
-     * hard-purged after 24 hours by `users:purge-anonymized`.
+     * Scrub personal data immediately. The tombstone is hidden from Trash and user lists.
+     * Lifecycle / admin permanent purge keep the tombstone (soft-deleted) so wallet ledgers
+     * are not cascade-deleted. Legacy anonymized rows without ledger history may still be
+     * hard-removed by `users:purge-anonymized` after retention.
      * Admins must never be anonymized.
      */
     public function anonymize(?int $administratorId = null): bool
@@ -404,24 +406,41 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Hard-delete anonymized tombstones older than the retention window.
-     * Pass 0 hours to purge every anonymized tombstone immediately.
+     * Hard-delete anonymized tombstones older than the retention window when safe.
+     * Never forceDeletes users that still have wallet or transaction rows (cascade would
+     * wipe the ledger), or users with a purged_user_records historical row.
+     * Pass 0 hours to consider every eligible anonymized tombstone.
      *
-     * @return array{purged: int, failed: int}
+     * @return array{purged: int, failed: int, skipped: int}
      */
     public static function purgeAnonymizedOlderThanHours(int $hours = 24): array
     {
         $cutoff = $hours <= 0 ? now() : now()->subHours($hours);
         $purged = 0;
         $failed = 0;
+        $skipped = 0;
 
-        static::query()
+        $query = static::query()
             ->whereNotNull('anonymized_at')
-            ->where('anonymized_at', '<=', $cutoff)
+            ->where('anonymized_at', '<=', $cutoff);
+
+        // Lifecycle-purged accounts keep an anonymized tombstone so wallet ledgers
+        // (cascade-on-delete) are not wiped; skip those with a historical record.
+        if (Schema::hasTable('purged_user_records')) {
+            $query->whereNotIn('id', DB::table('purged_user_records')->select('original_user_id'));
+        }
+
+        $query
             ->orderBy('id')
-            ->chunkById(50, function ($users) use (&$purged, &$failed) {
+            ->chunkById(50, function ($users) use (&$purged, &$failed, &$skipped) {
                 foreach ($users as $user) {
                     try {
+                        if (static::hasLedgerRows((int) $user->id)) {
+                            $skipped++;
+
+                            continue;
+                        }
+
                         DB::transaction(function () use ($user) {
                             // Clear reverse refs that block delete (nullOnDelete columns).
                             static::query()->where('suspended_by', $user->id)->update(['suspended_by' => null]);
@@ -444,7 +463,28 @@ class User extends Authenticatable implements MustVerifyEmail
                 }
             });
 
-        return compact('purged', 'failed');
+        return compact('purged', 'failed', 'skipped');
+    }
+
+    /**
+     * True when forceDelete would risk cascading financial history.
+     */
+    public static function hasLedgerRows(int $userId): bool
+    {
+        if (Schema::hasTable('wallets') && DB::table('wallets')->where('user_id', $userId)->exists()) {
+            return true;
+        }
+        if (Schema::hasTable('transactions') && DB::table('transactions')->where('user_id', $userId)->exists()) {
+            return true;
+        }
+        if (Schema::hasTable('wallet_fundings') && DB::table('wallet_fundings')->where('user_id', $userId)->exists()) {
+            return true;
+        }
+        if (Schema::hasTable('withdrawals') && DB::table('withdrawals')->where('user_id', $userId)->exists()) {
+            return true;
+        }
+
+        return false;
     }
 
     public function unreadNotificationsCount(): int

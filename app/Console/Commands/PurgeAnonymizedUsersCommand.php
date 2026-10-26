@@ -12,7 +12,7 @@ class PurgeAnonymizedUsersCommand extends Command
                             {--hours=24 : Remove anonymized tombstones at least this many hours old (0 = all)}
                             {--retire-only : Only cancel leftover campaigns / release YouTube links for anonymized accounts}';
 
-    protected $description = 'Retire leftover data for anonymized accounts, then hard-delete tombstones after the retention window (default 24h)';
+    protected $description = 'Retire leftover data for anonymized accounts, then hard-delete tombstones after the retention window when safe (skips ledger-bearing and historically purged rows)';
 
     public function handle(AnonymizedAccountCleanup $cleanup): int
     {
@@ -28,6 +28,9 @@ class PurgeAnonymizedUsersCommand extends Command
 
         $label = $hours <= 0 ? 'all anonymized' : "older than {$hours}h";
         $this->info("Purged {$result['purged']} anonymized user(s) ({$label}).");
+        if (($result['skipped'] ?? 0) > 0) {
+            $this->warn("Skipped {$result['skipped']} user(s) that still have wallet/ledger rows or historical records.");
+        }
         if ($result['failed'] > 0) {
             $this->warn("Failed to purge {$result['failed']} user(s). Check the log.");
         }

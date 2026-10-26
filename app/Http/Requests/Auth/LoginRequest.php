@@ -7,6 +7,7 @@ use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -61,6 +62,22 @@ class LoginRequest extends FormRequest
         return ['username' => $username ?? $identifier, 'password' => (string) $this->input('password')];
     }
 
+    private function findInactiveTrashedUser(): ?User
+    {
+        $identifier = trim((string) $this->input('email'));
+        if ($identifier === '') {
+            return null;
+        }
+
+        $query = User::onlyTrashed()->whereNull('anonymized_at');
+
+        if (str_contains($identifier, '@')) {
+            return $query->whereRaw('LOWER(email) = ?', [mb_strtolower($identifier)])->first();
+        }
+
+        return $query->whereRaw('LOWER(username) = ?', [mb_strtolower($identifier)])->first();
+    }
+
     /**
      * Attempt to authenticate the request's credentials.
      *
@@ -69,6 +86,26 @@ class LoginRequest extends FormRequest
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
+
+        $inactive = $this->findInactiveTrashedUser();
+        if ($inactive && ! $inactive->hasRole('admin')) {
+            // Password must match before disclosing inactive / Activate CTA (enumeration control).
+            if (! Hash::check((string) $this->input('password'), (string) $inactive->password)) {
+                RateLimiter::hit($this->throttleKey());
+
+                throw ValidationException::withMessages([
+                    'email' => trans('auth.failed'),
+                ]);
+            }
+
+            RateLimiter::hit($this->throttleKey());
+            $this->session()->flash('account_inactive_email', $inactive->email);
+            $this->session()->flash('account_inactive', true);
+
+            throw ValidationException::withMessages([
+                'email' => __('Your account is currently inactive. Activate it to sign in again.'),
+            ]);
+        }
 
         if (! Auth::attempt($this->credentials(), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\Auth\AccountInactiveException;
 use App\Services\Auth\Identity\SocialAuthService;
 use App\Services\Campaigns\YoutubeIdentityService;
 use App\Services\Referrals\ReferralAttribution;
@@ -38,6 +39,11 @@ class GoogleAuthController extends Controller
                 $accountType,
                 $inviteCode,
             );
+        } catch (AccountInactiveException $e) {
+            $request->session()->flash('account_inactive', true);
+            $request->session()->flash('account_inactive_email', $e->email);
+
+            return $this->failure($request, $e->getMessage());
         } catch (\Throwable $e) {
             return $this->failure($request, $e->getMessage());
         }

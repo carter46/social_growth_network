@@ -143,7 +143,7 @@ class UserManagementTest extends TestCase
             ->assertSee('keep-history@example.com');
     }
 
-    public function test_trash_restore_and_permanent_delete(): void
+    public function test_trash_restore_and_admin_permanent_delete(): void
     {
         $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
         $member = User::factory()->create([
@@ -166,9 +166,13 @@ class UserManagementTest extends TestCase
         $this->actingAs($admin)->delete(route('admin.users.destroy', $member->fresh()));
         $this->actingAs($admin)
             ->delete(route('admin.trash.destroy', $member->id))
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertSessionHas('status');
 
-        $this->assertDatabaseMissing('users', ['id' => $member->id]);
+        $this->assertNotNull(\App\Models\PurgedUserRecord::query()->where('original_user_id', $member->id)->first());
+        $tombstone = User::withTrashed()->find($member->id);
+        $this->assertNotNull($tombstone?->anonymized_at);
+        $this->assertTrue($tombstone->trashed());
     }
 
     public function test_purge_anonymized_removes_tombstones_after_retention(): void

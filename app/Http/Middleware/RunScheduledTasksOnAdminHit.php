@@ -13,8 +13,12 @@ use Symfony\Component\HttpFoundation\Response;
  * Shared-hosting backup when cPanel cron / queue workers are missing or late.
  *
  * After an admin finishes loading a dashboard page, at most once a minute we:
- *  1. run Laravel's scheduler (payments:reconcile, heartbeats, …)
+ *  1. run Laravel's scheduler via schedule:run (only due tasks — including
+ *     users:trash-expired-suspensions and users:purge-expired-trash)
  *  2. drain a few queued jobs if the queue is not sync
+ *
+ * A cache lock prevents concurrent overlapping runs. This middleware never runs
+ * lifecycle loops inline; batching lives on the Artisan commands themselves.
  *
  * Real cron is still preferred — this only helps while admins are active.
  */

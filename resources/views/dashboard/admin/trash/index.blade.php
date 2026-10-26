@@ -5,7 +5,7 @@
 @section('content')
 <x-layout.page
     title="Trash"
-    subtitle="Accounts moved here keep their wallet, campaigns and history. Restore them, or permanently delete them."
+    :subtitle="__('Inactive accounts stay recoverable here. After :days days they leave Trash and are kept in Historical accounts (anonymized tombstone — not a hard database wipe). You can also permanently remove an account now; the historical log is always written.', ['days' => $purgeDays ?? 180])"
     width="full"
     :breadcrumb="[
         ['Admin', route('admin')],
@@ -18,6 +18,12 @@
     @if (session('error'))
         <x-dashboard.alert type="danger" class="mb-4">{{ session('error') }}</x-dashboard.alert>
     @endif
+
+    <div class="mb-4 flex flex-wrap items-center gap-3">
+        <a href="{{ route('admin.purged-accounts') }}" class="text-sm font-semibold text-primary hover:underline">
+            View historical (purged) accounts
+        </a>
+    </div>
 
     <form method="GET" action="{{ route('admin.trash') }}" class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end">
         <div class="min-w-0 flex-1">
@@ -79,13 +85,13 @@
                                         </x-dashboard.button>
                                         <x-dashboard.modal
                                             name="purge-user-{{ $user->id }}"
-                                            title="Permanently delete this account?"
+                                            title="Permanently remove this account?"
                                             variant="danger"
                                             confirm-label="Delete forever"
                                             :form-action="route('admin.trash.destroy', $user->id)"
                                             method="DELETE"
                                         >
-                                            This removes personal data and cannot be undone. Wallet history and related records may remain for compliance.
+                                            This removes the account from Trash and cannot be restored. A searchable historical record is kept for compliance. Wallet and transaction history stay linked to the anonymized tombstone. The email may be used again for a new registration.
                                         </x-dashboard.modal>
                                     </div>
                                 </td>
