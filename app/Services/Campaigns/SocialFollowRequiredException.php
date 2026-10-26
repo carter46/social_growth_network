@@ -6,7 +6,7 @@ use RuntimeException;
 
 class SocialFollowRequiredException extends RuntimeException
 {
-    public function __construct(string $message = 'Follow our social accounts and get approved before starting paid tasks.')
+    public function __construct(string $message = 'Complete the priority task and get approved before starting paid tasks.')
     {
         parent::__construct($message);
     }

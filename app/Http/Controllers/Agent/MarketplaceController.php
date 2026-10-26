@@ -89,7 +89,7 @@ class MarketplaceController extends Controller
         if (! $openParticipation && ! $this->socialFollows->isCleared($agent)) {
             return redirect()
                 ->route('agent.social-follow')
-                ->with('error', __('Complete the follow-us task and get approved before opening paid tasks.'));
+                ->with('error', __('Complete the priority task and get approved before opening paid tasks.'));
         }
 
         if (! $openParticipation) {

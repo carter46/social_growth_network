@@ -33,9 +33,9 @@
                 @elseif ($campaign->isOpenForAgents())
                     @if (! ($followCleared ?? true))
                         <x-dashboard.alert type="warning" class="mb-3">
-                            Complete the follow-us task and wait for approval before starting paid tasks.
+                            Complete the priority task and wait for approval before starting paid tasks.
                         </x-dashboard.alert>
-                        <x-dashboard.button :href="route('agent.social-follow')" icon="plus">Go to follow task</x-dashboard.button>
+                        <x-dashboard.button :href="route('agent.social-follow')" icon="plus">Go to priority task</x-dashboard.button>
                     @elseif ($needsChannel)
                         <x-dashboard.button type="button" icon="plus" x-data x-on:click="$dispatch('open-modal', 'youtube-channel')">Start task</x-dashboard.button>
                     @else

@@ -1,15 +1,15 @@
 @extends('layouts.dashboard-admin')
 
-@section('title', 'Follow-us reviews')
+@section('title', 'Priority task reviews')
 
 @section('content')
 <x-layout.page
-    title="Follow-us reviews"
-    subtitle="Agents must follow platform socials and upload screenshots before earning on marketplace tasks."
+    title="Priority task reviews"
+    subtitle="Agents must complete the priority social task and get approved before earning on marketplace tasks."
     width="full"
     :breadcrumb="[
         ['Admin', route('admin')],
-        ['Follow-us reviews', null],
+        ['Priority task reviews', null],
     ]"
 >
     @if (session('status'))
@@ -23,8 +23,8 @@
         <x-dashboard.card>
             <x-dashboard.empty-state
                 icon="verified"
-                title="No follow tasks waiting"
-                description="Submitted follow-us proofs will show up here."
+                title="No priority tasks waiting"
+                description="Submitted priority task proofs will show up here."
             />
         </x-dashboard.card>
     @else

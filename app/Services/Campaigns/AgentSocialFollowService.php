@@ -153,15 +153,20 @@ class AgentSocialFollowService
      */
     public function start(User $user): AgentSocialFollowSubmission
     {
+        if (! Schema::hasColumn('agent_social_follow_submissions', 'started_at')
+            || ! Schema::hasColumn('agent_social_follow_submissions', 'expires_at')) {
+            throw new InvalidArgumentException('Priority task timer is not set up yet. Run database migrations, then try again.');
+        }
+
         $submission = $this->ensureSubmission($user);
         if (! $submission) {
-            throw new InvalidArgumentException('Follow task is not available.');
+            throw new InvalidArgumentException('Priority task is not available.');
         }
         if ($submission->isApproved()) {
-            throw new InvalidArgumentException('This follow task is already approved.');
+            throw new InvalidArgumentException('This priority task is already approved.');
         }
         if ($submission->isSubmitted()) {
-            throw new InvalidArgumentException('This follow task is already waiting for review.');
+            throw new InvalidArgumentException('This priority task is already waiting for review.');
         }
 
         $this->expireIfNeeded($submission);
@@ -172,7 +177,7 @@ class AgentSocialFollowService
 
         $submission->load('proofs');
         if ($submission->proofs->isEmpty()) {
-            throw new InvalidArgumentException('There are no social accounts to follow right now.');
+            throw new InvalidArgumentException('There are no social accounts to complete right now.');
         }
 
         $minutes = AgentSocialFollowSubmission::completionMinutesForCount($submission->proofs->count());
@@ -244,13 +249,13 @@ class AgentSocialFollowService
     {
         $submission = $this->ensureSubmission($user);
         if (! $submission) {
-            throw new InvalidArgumentException('Follow task is not available.');
+            throw new InvalidArgumentException('Priority task is not available.');
         }
         if ($submission->isApproved()) {
-            throw new InvalidArgumentException('This follow task is already approved.');
+            throw new InvalidArgumentException('This priority task is already approved.');
         }
         if ($submission->isSubmitted()) {
-            throw new InvalidArgumentException('This follow task is already waiting for review.');
+            throw new InvalidArgumentException('This priority task is already waiting for review.');
         }
 
         $this->expireIfNeeded($submission);
@@ -305,8 +310,8 @@ class AgentSocialFollowService
         $this->notifyAgent(
             $fresh,
             'agent.social_follow.approved',
-            'Follow task approved',
-            'Your follow-us task was approved. You can now start earning on the Task Marketplace.',
+            'Priority task approved',
+            'Your priority task was approved. You can now start earning on the Task Marketplace.',
         );
 
         return $fresh;
@@ -340,8 +345,8 @@ class AgentSocialFollowService
         $this->notifyAgent(
             $submission,
             'agent.social_follow.rejected',
-            'Follow task needs changes',
-            'Your follow-us screenshots were not approved: '.$reason.' Open the task, upload new screenshots, and submit again.',
+            'Priority task needs changes',
+            'Your priority task screenshots were not approved: '.$reason.' Open the task, upload new screenshots, and submit again.',
         );
 
         return $submission->fresh('proofs');
@@ -373,13 +378,13 @@ class AgentSocialFollowService
         try {
             $this->notifications->notifyAdmins(new NotificationMessage(
                 type: 'agent.social_follow.submitted',
-                title: 'Agent follow task submitted',
-                body: 'An agent submitted follow-us screenshots for review.',
+                title: 'Agent priority task submitted',
+                body: 'An agent submitted priority task screenshots for review.',
                 actionUrl: Route::has('admin.social-follows.show')
                     ? route('admin.social-follows.show', $submission)
                     : null,
                 meta: ['submission_id' => $submission->id, 'user_id' => $submission->user_id],
-                emailSubject: 'Agent follow task submitted',
+                emailSubject: 'Agent priority task submitted',
                 permission: 'users.manage',
                 dedupeKey: 'agent.social_follow.submitted.'.$submission->id.'.'.($submission->submitted_at?->timestamp ?? time()),
             ));

@@ -22,14 +22,14 @@ class AgentSocialFollowTest extends TestCase
         return User::factory()->agent()->kycApproved()->create();
     }
 
-    private function social(string $platform = 'tiktok'): SocialLink
+    private function social(string $platform = 'tiktok', int $sortOrder = 1): SocialLink
     {
         $link = SocialLink::query()->create([
             'platform' => $platform,
             'url' => 'https://www.'.$platform.'.com/@example',
             'icon' => $platform,
             'enabled' => true,
-            'sort_order' => 1,
+            'sort_order' => $sortOrder,
         ]);
         app(SocialLinkRepository::class)->flush();
 
@@ -165,5 +165,36 @@ class AgentSocialFollowTest extends TestCase
             ->assertDontSee('Required first: Follow us')
             ->assertDontSee('Earning tasks locked')
             ->assertDontSee('Hidden until follow');
+    }
+
+    public function test_priority_task_uses_multi_step_flow(): void
+    {
+        $this->social('instagram', 1);
+        $this->social('facebook', 2);
+        $this->social('youtube', 3);
+        $agent = $this->agent();
+        $service = app(AgentSocialFollowService::class);
+
+        $this->actingAs($agent)
+            ->get(route('agent.social-follow'))
+            ->assertOk()
+            ->assertSee('Priority task')
+            ->assertSee('Start task')
+            ->assertSee('Follow Instagram')
+            ->assertSee('Follow Facebook')
+            ->assertSee('Subscribe')
+            ->assertDontSee('Upload a screenshot for every account before submitting');
+
+        $service->start($agent);
+
+        $this->actingAs($agent)
+            ->get(route('agent.social-follow'))
+            ->assertOk()
+            ->assertSee('Time left to finish this task')
+            ->assertSee('Follow us on Instagram')
+            ->assertSee('Open Instagram')
+            ->assertSee('Done')
+            ->assertDontSee('Open Facebook')
+            ->assertDontSee('Subscribe on YouTube');
     }
 }

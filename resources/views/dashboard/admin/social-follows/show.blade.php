@@ -1,15 +1,15 @@
 @extends('layouts.dashboard-admin')
 
-@section('title', 'Review follow task')
+@section('title', 'Review priority task')
 
 @section('content')
 <x-layout.page
-    title="Review follow task"
+    title="Review priority task"
     :subtitle="$submission->user?->name.' · '.$submission->user?->email"
     width="full"
     :breadcrumb="[
         ['Admin', route('admin')],
-        ['Follow-us reviews', route('admin.social-follows')],
+        ['Priority task reviews', route('admin.social-follows')],
         ['Review', null],
     ]"
 >
